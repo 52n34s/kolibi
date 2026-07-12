@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Onboarding Koli Companion Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #eceaf8;
+      padding: 24px;
+      color: #111827;
+    }
+    h1 { font-size: 20px; margin-bottom: 8px; }
+    p.sub { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .phone {
+      background: linear-gradient(160deg, #f4f3ff 0%, #fefcf8 55%, #f8f5ff 100%);
+      border-radius: 28px;
+      border: 6px solid #1f2937;
+      box-shadow: 0 16px 40px rgba(79, 70, 229, 0.15);
+      overflow: hidden;
+      min-height: 520px;
+    }
+    .screen { padding: 28px 22px 24px; }
+    .step-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4f46e5;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 16px;
+    }
+    .koli { width: 52px; height: 42px; object-fit: contain; margin-bottom: 12px; display: block; }
+    .title { font-size: 24px; font-weight: 700; line-height: 1.25; margin-bottom: 8px; }
+    .subtitle { font-size: 16px; color: #6b7280; line-height: 1.45; margin-bottom: 20px; }
+    .field {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px 16px;
+      color: #374151;
+      font-size: 16px;
+    }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .card {
+      background: #fff;
+      border: 1px solid #ede4d8;
+      border-radius: 14px;
+      padding: 16px 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .card.selected { border-color: #4f46e5; background: #eef2ff; color: #4f46e5; }
+    .highlight { color: #4f46e5; font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Onboarding – Koli Companion Preview</h1>
+  <p class="sub">3 Beispiel-Steps mit echten Assets (52×42 pt, oberhalb der Überschrift)</p>
+
+  <div class="grid">
+    <div class="phone">
+      <div class="screen">
+        <div class="step-label">Step 1 · Geschlecht</div>
+        <img class="koli" src="../assets/images/koli-confident.png" alt="Koli confident" />
+        <div class="title">What is your biological sex?</div>
+        <div class="subtitle">Used to calculate your calorie needs more accurately.</div>
+        <div class="cards">
+          <div class="card selected">Male</div>
+          <div class="card">Female</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="screen">
+        <div class="step-label">Step 3 · Größe</div>
+        <img class="koli" src="../assets/images/koli-curious.png" alt="Koli curious" />
+        <div class="title">How tall are you?</div>
+        <div class="subtitle">Your height helps us estimate your daily calorie needs.</div>
+        <div class="field">175 cm</div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="screen">
+        <div class="step-label">Step 7 · Zusammenfassung</div>
+        <img class="koli" src="../assets/images/koli-happy.png" alt="Koli happy" />
+        <div class="title">Your daily target</div>
+        <div class="subtitle">You can adjust this anytime in settings.</div>
+        <div class="highlight">2,100 kcal / day</div>
+        <div class="field">2100</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

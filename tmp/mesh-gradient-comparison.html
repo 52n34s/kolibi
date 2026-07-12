@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kolibi Mesh Gradient – Vorher/Nachher</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 24px;
+    }
+    h1 { font-size: 18px; margin-bottom: 16px; font-weight: 600; }
+    .row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .panel { flex: 1; min-width: 280px; max-width: 390px; }
+    .label {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #aaa;
+    }
+    .phone {
+      width: 100%;
+      aspect-ratio: 390 / 844;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 2px solid #333;
+      position: relative;
+      background: #FAFAFA;
+    }
+    .stats {
+      margin-top: 10px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #888;
+      font-family: ui-monospace, monospace;
+    }
+    svg { width: 100%; height: 100%; display: block; }
+  </style>
+</head>
+<body>
+  <h1>Onboarding Mesh-Hintergrund – Vorher vs. Nachher</h1>
+  <div class="row">
+    <div class="panel">
+      <div class="label">VORHER (fast unsichtbar)</div>
+      <div class="phone" id="before"></div>
+      <div class="stats">
+        Indigo oben: cx 0.06, cy 0.04 · peak α 0.028<br/>
+        Mint unten: cx 0.94, cy 0.88 · peak α 0.030<br/>
+        + Weiß-Wash-Layer α 0.35 oben
+      </div>
+    </div>
+    <div class="panel">
+      <div class="label">NACHHER (sichtbare Flecken)</div>
+      <div class="phone" id="after"></div>
+      <div class="stats">
+        Indigo oben: cx 0.22, cy 0.16 · peak α 0.42<br/>
+        Mint unten: cx 0.78, cy 0.74 · peak α 0.40<br/>
+        Kein Weiß-Wash-Layer
+      </div>
+    </div>
+  </div>
+  <script>
+    const BG = '#FAFAFA';
+    const INDIGO = '#4F46E5';
+    const MINT = '#7CE7C7';
+
+    const BEFORE = [
+      { color: INDIGO, cx: 0.06, cy: 0.04, rx: 0.78, ry: 0.58, peak: 0.028, mid: 0.012 },
+      { color: MINT, cx: 0.94, cy: 0.88, rx: 0.72, ry: 0.62, peak: 0.03, mid: 0.013 },
+      { color: INDIGO, cx: 0.82, cy: 0.38, rx: 0.48, ry: 0.36, peak: 0.016, mid: 0.007 },
+      { color: MINT, cx: 0.42, cy: 0.18, rx: 0.52, ry: 0.34, peak: 0.014, mid: 0.006 },
+    ];
+
+    const AFTER = [
+      { color: INDIGO, cx: 0.22, cy: 0.16, rx: 0.72, ry: 0.55, peak: 0.42, mid: 0.2 },
+      { color: MINT, cx: 0.78, cy: 0.74, rx: 0.68, ry: 0.58, peak: 0.4, mid: 0.19 },
+      { color: INDIGO, cx: 0.68, cy: 0.42, rx: 0.5, ry: 0.4, peak: 0.24, mid: 0.11 },
+      { color: MINT, cx: 0.48, cy: 0.28, rx: 0.46, ry: 0.32, peak: 0.22, mid: 0.1 },
+    ];
+
+    function render(id, blobs, wash) {
+      const defs = blobs.map((b, i) => `
+        <radialGradient id="${id}-g${i}" cx="${b.cx}" cy="${b.cy}" rx="${b.rx}" ry="${b.ry}" gradientUnits="objectBoundingBox">
+          <stop offset="0" stop-color="${b.color}" stop-opacity="${b.peak}" />
+          <stop offset="0.45" stop-color="${b.color}" stop-opacity="${b.mid}" />
+          <stop offset="1" stop-color="${b.color}" stop-opacity="0" />
+        </radialGradient>`).join('');
+
+      const layers = blobs.map((_, i) =>
+        `<rect width="100%" height="100%" fill="url(#${id}-g${i})" />`).join('');
+
+      const washLayer = wash
+        ? `<defs><linearGradient id="${id}-wash" x1="10%" y1="0%" x2="90%" y2="100%">
+             <stop offset="0%" stop-color="#FAFAFA" stop-opacity="0.35"/>
+             <stop offset="55%" stop-color="#FAFAFA" stop-opacity="0"/>
+             <stop offset="100%" stop-color="#FAFAFA" stop-opacity="0.2"/>
+           </linearGradient></defs>
+           <rect width="100%" height="100%" fill="url(#${id}-wash)" />`
+        : '';
+
+      document.getElementById(id).innerHTML = `
+        <svg viewBox="0 0 1 1" preserveAspectRatio="none">
+          <defs>${defs}</defs>
+          <rect width="100%" height="100%" fill="${BG}" />
+          ${layers}
+          ${washLayer}
+        </svg>`;
+    }
+
+    render('before', BEFORE, true);
+    render('after', AFTER, false);
+  </script>
+</body>
+</html>

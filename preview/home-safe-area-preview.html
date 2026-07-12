@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home Safe Area Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #ddd;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
+    .phone {
+      width: 390px;
+      height: 844px;
+      border: 8px solid #111827;
+      border-radius: 40px;
+      overflow: hidden;
+      background: linear-gradient(160deg, #f4f3ff 0%, #fefcf8 55%, #f8f5ff 100%);
+      position: relative;
+    }
+    .statusbar {
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .safe-zone {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 54px;
+      border-bottom: 2px dashed rgba(79, 70, 229, 0.35);
+      pointer-events: none;
+    }
+    .content {
+      padding: 12px 24px 0;
+      margin-top: 54px;
+    }
+    .row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .greeting {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: #111827;
+      flex: 1;
+      padding-right: 12px;
+    }
+    .settings-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    .label { color: #6b7280; font-size: 14px; margin-bottom: 8px; }
+    .value { color: #4f46e5; font-size: 48px; font-weight: 700; }
+    .note {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 1.5;
+      max-width: 390px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="phone">
+      <div class="safe-zone"></div>
+      <div class="statusbar">
+        <span>15:58</span>
+        <span>●●● ▮</span>
+      </div>
+      <div class="content">
+        <div class="row">
+          <div class="greeting">Good afternoon, steffen</div>
+          <div class="settings-btn">🐦</div>
+        </div>
+        <div class="card">
+          <div class="label">Daily calorie goal</div>
+          <div class="value">2,145</div>
+        </div>
+      </div>
+    </div>
+    <p class="note">
+      Vorschau nach Fix: <code>contentTopPadding = insets.top + 12</code> für ScrollView und Settings-Button.
+      Begrüßung und Koli-Button beginnen unterhalb der Statusbar (gestrichelte Linie = unteres Ende des Notch/Safe-Area-Bereichs).
+    </p>
+  </div>
+</body>
+</html>

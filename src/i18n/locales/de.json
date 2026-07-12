@@ -1,0 +1,444 @@
+{
+  "auth": {
+    "subtitleSignIn": "Melde dich an, um fortzufahren",
+    "subtitleSignUp": "Erstelle dein Konto, um loszulegen",
+    "apple": "Mit Apple anmelden",
+    "signInWithGoogle": "Mit Google anmelden",
+    "or": "oder",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "signIn": "Anmelden",
+    "signUp": "Registrieren",
+    "noAccount": "Noch kein Konto?",
+    "haveAccount": "Schon ein Konto?",
+    "errors": {
+      "invalidCredentials": "Ungültige E-Mail oder Passwort.",
+      "signUpFailed": "Konto konnte nicht erstellt werden. Bitte versuche es erneut.",
+      "signInFailed": "Anmeldung fehlgeschlagen.",
+      "appleSignInFailed": "Apple-Anmeldung fehlgeschlagen.",
+      "googleSignInFailed": "Google-Anmeldung fehlgeschlagen.",
+      "noAppleToken": "Kein Identity Token von Apple erhalten.",
+      "noGoogleToken": "Kein ID Token von Google erhalten.",
+      "emailRequired": "E-Mail ist erforderlich",
+      "emailInvalid": "Ungültige E-Mail-Adresse",
+      "passwordRequired": "Passwort ist erforderlich",
+      "passwordMinLength": "Mindestens 6 Zeichen"
+    }
+  },
+  "onboarding": {
+    "skip": "Überspringen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "finish": "Loslegen",
+    "stepOf": "Schritt {{current}} von {{total}}",
+    "errors": {
+      "saveFailed": "Profil konnte nicht gespeichert werden. Bitte versuche es erneut.",
+      "birthDateRequired": "Bitte wähle dein Geburtsdatum",
+      "birthDateInvalid": "Bitte gib ein gültiges Alter zwischen 13 und 100 Jahren ein",
+      "heightRequired": "Bitte gib deine Größe ein",
+      "heightInvalid": "Bitte gib eine Größe zwischen 100 und 250 cm ein",
+      "weightRequired": "Bitte gib dein Gewicht ein",
+      "weightInvalid": "Bitte gib ein Gewicht zwischen 30 und 300 kg ein",
+      "activityRequired": "Bitte wähle dein Aktivitätslevel",
+      "goalRequired": "Bitte wähle ein Ziel",
+      "customCaloriesRequired": "Bitte gib dein tägliches Kalorienziel ein",
+      "customCaloriesInvalid": "Bitte gib einen Wert zwischen {{min}} und 6000 kcal ein",
+      "summaryCaloriesInvalid": "Bitte gib einen Wert zwischen {{min}} und 6000 kcal ein"
+    },
+    "sex": {
+      "title": "Was ist dein biologisches Geschlecht?",
+      "subtitle": "Das hilft uns, deinen Kalorienbedarf genauer zu berechnen. Du kannst diesen Schritt überspringen.",
+      "male": "Männlich",
+      "female": "Weiblich",
+      "preferNotToSay": "Lieber nicht angeben"
+    },
+    "birthDate": {
+      "title": "Wann bist du geboren?",
+      "subtitle": "Wir nutzen dein Alter, um dein Kalorienziel zu personalisieren.",
+      "selectDate": "Geburtsdatum wählen",
+      "done": "Fertig",
+      "expoGoWarning": "Der Datums-Picker benötigt einen Development Build. Bitte npx expo run:ios statt Expo Go verwenden."
+    },
+    "units": {
+      "cm": "cm",
+      "ftIn": "ft, in",
+      "kg": "kg",
+      "lbs": "lbs"
+    },
+    "height": {
+      "title": "Wie groß bist du?",
+      "subtitle": "Gib deine Größe ein.",
+      "placeholderMetric": "Größe (cm)",
+      "placeholderFeet": "Fuß (ft)",
+      "placeholderInches": "Zoll (in)"
+    },
+    "weight": {
+      "title": "Wie viel wiegst du aktuell?",
+      "subtitle": "Gib dein Gewicht in Kilogramm ein.",
+      "placeholder": "Gewicht (kg)"
+    },
+    "activity": {
+      "title": "Wie aktiv bist du?",
+      "subtitle": "Wähle die Option, die deinen Alltag am besten beschreibt.",
+      "mostly_sitting": "Überwiegend sitzend",
+      "lightly_active": "Leicht aktiv",
+      "active": "Aktiv",
+      "very_active": "Sehr aktiv"
+    },
+    "goal": {
+      "title": "Was ist dein Ziel?",
+      "subtitle": "Wir berechnen ein tägliches Kalorienziel basierend auf deinem Ziel.",
+      "maintain": "Halten",
+      "maintainHint": "Halte dein aktuelles Gewicht",
+      "lose_weight": "Abnehmen",
+      "lose_weightHint": "Ausgewogener Ansatz",
+      "gain_weight": "Zunehmen",
+      "gain_weightHint": "Moderater Aufbau",
+      "faster_weight_loss": "Schnelleres Abnehmen",
+      "faster_weight_lossHint": "Ambitionierter Ansatz",
+      "faster_weight_lossWarning": "Ein schnelleres Defizit kann schwerer durchzuhalten sein. Sprich bei Unsicherheit mit einer Fachperson.",
+      "custom": "Eigenes Ziel",
+      "customHint": "Eigenes Kalorienziel festlegen",
+      "customPlaceholder": "Tägliche Kalorien (kcal)"
+    },
+    "summary": {
+      "title": "Dein Tagesziel",
+      "subtitle": "Du kannst dein Kalorienziel vor dem Speichern anpassen.",
+      "dailyGoal": "Dein Tagesziel: {{calories}} kcal",
+      "caloriesLabel": "Tägliche Kalorien (kcal)",
+      "tdee": "Geschätzter Erhaltungsbedarf: {{calories}} kcal",
+      "minimumApplied": "Dein berechnetes Ziel läge bei {{calculated}} kcal. Aus Sicherheitsgründen setzen wir mindestens {{minimum}} kcal an.",
+      "farFromTdeeWarning": "Dieses Ziel weicht stark von deinem geschätzten Bedarf ab und könnte auf Dauer ungesund sein."
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Guten Morgen, {{name}}",
+      "afternoon": "Guten Tag, {{name}}",
+      "evening": "Guten Abend, {{name}}",
+      "morningNoName": "Guten Morgen",
+      "afternoonNoName": "Guten Tag",
+      "eveningNoName": "Guten Abend"
+    },
+    "calorieGoal": {
+      "label": "Heute übrig",
+      "overGoal": "kcal drüber",
+      "dailyGoalReference": "Tagesziel: {{goal}} kcal",
+      "notSpecified": "Nicht angegeben",
+      "tapToSet": "Tippen, um dein Ziel festzulegen",
+      "emptyPrefix": "Kein Kalorienziel gesetzt · ",
+      "emptyAction": "Jetzt festlegen"
+    },
+    "weight": {
+      "label": "Aktuelles Gewicht",
+      "notLogged": "Noch nicht erfasst",
+      "modalTitle": "Gewicht aktualisieren",
+      "modalSubtitle": "Der heutige Eintrag ersetzt ein früheres Gewicht von heute.",
+      "placeholderKg": "Gewicht in kg",
+      "placeholderLbs": "Gewicht in lbs",
+      "invalid": "Bitte gib ein gültiges Gewicht ein.",
+      "saveFailed": "Gewicht konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "meals": {
+      "title": "Heutige Mahlzeiten",
+      "emptyTitle": "Noch keine Mahlzeiten heute",
+      "emptySubtitle": "Scanne deine erste Mahlzeit, um zu starten.",
+      "unnamedMeal": "Mahlzeit",
+      "rowMeta": "{{kcal}} kcal · {{time}}"
+    },
+    "manualEntry": {
+      "buttonLabel": "Manuell",
+      "title": "Mahlzeit manuell erfassen",
+      "totalKcal": "Gesamt-kcal",
+      "nameLabel": "Name",
+      "namePlaceholder": "Produktname",
+      "unitLabel": "Einheit",
+      "unitGrams": "g",
+      "unitMl": "ml",
+      "unitCount": "Stück",
+      "gramsLabel": "Menge (g)",
+      "mlLabel": "Menge (ml)",
+      "countLabel": "Menge (Stück)",
+      "amountPlaceholder": "0",
+      "gramsPerUnitLabel": "Gramm pro Stück",
+      "gramsPerUnitPlaceholder": "z. B. 120",
+      "kcalLabel": "Kalorien",
+      "kcalPlaceholder": "kcal",
+      "addProduct": "Produkt hinzufügen",
+      "removeProduct": "Produkt entfernen",
+      "save": "Mahlzeit speichern",
+      "saveError": "Die Mahlzeit konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      "validationFixRows": "Bitte alle Produktfelder ausfüllen, bevor du speicherst."
+    },
+    "mealEdit": {
+      "title": "Mahlzeit bearbeiten",
+      "save": "Änderungen speichern",
+      "saveError": "Die Änderungen konnten nicht gespeichert werden. Bitte erneut versuchen.",
+      "loading": "Mahlzeit wird geladen…",
+      "loadError": "Die Mahlzeit konnte nicht geladen werden. Bitte erneut versuchen."
+    },
+    "scan": {
+      "buttonLabel": "Mahlzeit scannen",
+      "barcodeLabel": "Barcode",
+      "options": {
+        "title": "Wie viele Fotos?",
+        "onePhoto": "1 Foto",
+        "twoPhotos": "2 Fotos",
+        "threePhotos": "3 Fotos",
+        "captureCta": "Foto aufnehmen",
+        "chooseFromGallery": "Aus Galerie wählen"
+      },
+      "gallery": {
+        "permissionTitle": "Zugriff auf Fotomediathek erforderlich",
+        "permissionBody": "Erlaube den Zugriff auf deine Fotomediathek, um ein Mahlzeitenfoto aus der Galerie zu importieren.",
+        "openSettings": "Einstellungen öffnen"
+      },
+      "camera": {
+        "progress": "Foto {{current}} von {{total}}",
+        "permissionTitle": "Kamerazugriff erforderlich",
+        "permissionBody": "Erlaube den Kamerazugriff, um deine Mahlzeit zu fotografieren.",
+        "permissionAction": "Kamera erlauben",
+        "captureFailed": "Foto konnte nicht aufgenommen werden, nochmal versuchen"
+      },
+      "referenceObjectHint": "Tipp: Leg eine Gabel oder Hand daneben – das hilft bei der Größenschätzung.",
+      "referenceObjectHintMultiPhoto": "Für noch mehr Genauigkeit: 2–3 Fotos aus verschiedenen Winkeln machen.",
+      "confirmation": {
+        "title": "Mahlzeit bestätigen",
+        "totalKcal": "Gesamt-kcal",
+        "quantityGrams": "{{value}} g",
+        "quantityCount": "{{value}} Stk.",
+        "quantityUnknown": "Menge unbekannt",
+        "increase": "Menge erhöhen",
+        "decrease": "Menge verringern",
+        "addIngredient": "Zutat hinzufügen",
+        "newIngredientDefault": "Neue Zutat",
+        "namePlaceholder": "Zutatenname",
+        "gramsPlaceholder": "Gramm (g)",
+        "kcalPlaceholder": "kcal",
+        "removeIngredient": "Zutat entfernen",
+        "validationNoIngredients": "Füge mindestens eine Zutat hinzu, um zu speichern.",
+        "validationFixRows": "Vervollständige oder entferne markierte Zutaten vor dem Speichern.",
+        "validationMissingName": "Name eingeben",
+        "validationMissingGrams": "Gramm eingeben",
+        "validationMissingKcal": "kcal eingeben",
+        "save": "Mahlzeit speichern",
+        "analyzing": "Mahlzeit wird analysiert...",
+        "analyzeErrorTitle": "Analyse fehlgeschlagen",
+        "analyzeError": "Die Mahlzeit-Fotos konnten nicht analysiert werden. Bitte erneut versuchen.",
+        "saveError": "Die Mahlzeit konnte nicht gespeichert werden. Bitte erneut versuchen."
+      },
+      "rateLimit": {
+        "title": "Scan-Limit erreicht",
+        "message": "Du hast dein heutiges Scan-Limit erreicht (20 Scans). Versuche es erneut ab {{resetAt}}.",
+        "messageNoReset": "Du hast dein heutiges Scan-Limit erreicht (20 Scans). Bitte versuche es morgen erneut.",
+        "close": "OK"
+      },
+      "errors": {
+        "parseTitle": "Nichts erkannt",
+        "parseMessage": "Konnte nichts auf dem Foto erkennen. Nochmal versuchen oder manuell eingeben?",
+        "scanAgain": "Nochmal scannen",
+        "manualEntry": "Manuell eingeben",
+        "apiTitle": "Verbindungsproblem",
+        "apiMessage": "Verbindungsproblem, bitte erneut versuchen.",
+        "retryAnalysis": "Erneut versuchen"
+      },
+      "barcode": {
+        "guide": "Barcode hier positionieren",
+        "loadingProduct": "Produkt wird gesucht...",
+        "loadingSlow": "Das dauert länger als erwartet...",
+        "timeoutTitle": "Kein Barcode erkannt",
+        "timeoutMessage": "Versuche es erneut mit dem Barcode im Rahmen, oder brich ab.",
+        "retryScan": "Erneut versuchen",
+        "notFoundTitle": "Produkt nicht gefunden",
+        "notFoundMessage": "Dieser Barcode ist nicht in der Open Food Facts-Datenbank. Du kannst deine Mahlzeit stattdessen per Foto erfassen.",
+        "takePhotoInstead": "Stattdessen Foto machen",
+        "save": "Mahlzeit speichern",
+        "saveError": "Die Mahlzeit konnte nicht gespeichert werden. Bitte erneut versuchen.",
+        "fetchErrorTitle": "Abfrage fehlgeschlagen",
+        "fetchError": "Das Produkt konnte nicht geladen werden. Bitte erneut versuchen.",
+        "quantity": {
+          "wholePackage": "Ganze Packung",
+          "halfPackage": "Halbe Packung",
+          "oneServing": "Eine Portion",
+          "customAmount": "Andere Menge",
+          "gramsValue": "{{value}} g"
+        }
+      },
+      "comingSoonTitle": "Demnächst verfügbar",
+      "comingSoonMessage": "Der Scan-Flow ist noch nicht verfügbar."
+    },
+    "settings": {
+      "comingSoonTitle": "Einstellungen folgen bald",
+      "comingSoonMessage": "Kalorienziel-Einstellungen werden hier bald verfügbar sein."
+    },
+    "errors": {
+      "loadFailed": "Dashboard konnte nicht geladen werden. Bitte versuche es erneut.",
+      "unknown": "Etwas ist schiefgelaufen."
+    }
+  },
+  "koli": {
+    "title": "Koli"
+  },
+  "history": {
+    "title": "Verlauf",
+    "errors": {
+      "loadFailed": "Verlauf konnte nicht geladen werden. Bitte erneut versuchen."
+    },
+    "weight": {
+      "sectionTitle": "Gewichtsverlauf",
+      "currentLabel": "Aktuelles Gewicht",
+      "notLogged": "Noch nicht erfasst",
+      "empty": "Noch keine Gewichtsdaten – aktualisiere dein Gewicht auf der Startseite.",
+      "updateOnHome": "Gewicht auf Startseite aktualisieren"
+    },
+    "calories": {
+      "sectionTitle": "Letzte 7 Tage",
+      "empty": "Noch keine Kaloriendaten – scanne Mahlzeiten, um zu starten."
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "backToHome": "Zurück zur Startseite",
+    "subSegments": {
+      "profile": "Profil",
+      "security": "Sicherheit",
+      "support": "Support"
+    },
+    "security": {
+      "statusSectionTitle": "Status",
+      "accountSectionTitle": "Account-Sicherheit",
+      "loginMethod": "Aktive Anmeldemethode",
+      "lastSignIn": "Letzte Anmeldung",
+      "refreshStatus": "Status aktualisieren",
+      "manageInProfile": "Passwort und Abmelden im Profil verwalten",
+      "cloud": {
+        "connectedTitle": "Verbunden und aktiv",
+        "connectedDescription": "Deine Daten werden sicher mit der Kolibi-Cloud synchronisiert.",
+        "disconnectedTitle": "Nicht verbunden",
+        "disconnectedDescription": "Eine sichere Cloud-Verbindung konnte nicht bestätigt werden. Bitte aktualisieren."
+      },
+      "privacy": {
+        "title": "Deine Daten bleiben privat",
+        "description": "Nur du hast Zugriff auf deine Gesundheitsdaten. Kolibi verkauft deine persönlichen Daten nicht."
+      },
+      "providers": {
+        "apple": "Apple",
+        "google": "Google",
+        "email": "E-Mail & Passwort",
+        "unknown": "Unbekannt"
+      },
+      "dataRights": {
+        "sectionTitle": "Deine Datenrechte",
+        "description": "Nach der DSGVO kannst du jederzeit Auskunft, Export oder Löschung deiner personenbezogenen Daten verlangen.",
+        "export": "Meine Daten exportieren",
+        "comingSoon": "Demnächst"
+      }
+    },
+    "support": {
+      "intro": "Sag uns, was passiert ist oder was du brauchst — wir lesen jede Nachricht.",
+      "categorySectionTitle": "Kategorie",
+      "messageSectionTitle": "Nachricht",
+      "messagePlaceholder": "Was möchtest du uns mitteilen?",
+      "messageRequired": "Bitte gib vor dem Senden eine Nachricht ein.",
+      "send": "Senden",
+      "sending": "Wird gesendet...",
+      "sentTitle": "Nachricht erhalten",
+      "sentMessage": "Danke für deine Nachricht. Wir melden uns so schnell wie möglich.",
+      "legalSectionTitle": "Rechtliches",
+      "categories": {
+        "bug": "Fehler",
+        "dataIssue": "Datenproblem",
+        "featureRequest": "Feature-Wunsch",
+        "securityConcern": "Sicherheit",
+        "question": "Frage",
+        "praise": "Lob",
+        "other": "Sonstiges"
+      },
+      "legal": {
+        "privacyPolicy": "Datenschutz",
+        "termsOfService": "Nutzungsbedingungen",
+        "imprint": "Impressum"
+      }
+    },
+    "common": {
+      "cancel": "Abbrechen",
+      "save": "Speichern"
+    },
+    "errors": {
+      "title": "Etwas ist schiefgelaufen",
+      "loadFailed": "Einstellungen konnten nicht geladen werden. Bitte erneut versuchen."
+    },
+    "profile": {
+      "unnamed": "Unbenannt",
+      "avatarTitle": "Profilbild",
+      "avatarButtonLabel": "Profilbild hochladen",
+      "avatarMessage": "Wähle, wie du dein Profilbild aktualisieren möchtest.",
+      "avatarCamera": "Foto aufnehmen",
+      "avatarLibrary": "Aus Galerie wählen",
+      "avatarPermissionDenied": "Für das Profilbild wird eine Berechtigung benötigt.",
+      "avatarUploadFailed": "Profilbild konnte nicht hochgeladen werden. Bitte erneut versuchen.",
+      "editNameTitle": "Name bearbeiten",
+      "editNamePlaceholder": "Dein Name",
+      "nameSaveFailed": "Name konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "password": {
+      "sectionTitle": "Passwort",
+      "change": "Passwort ändern",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "confirm": "Neues Passwort bestätigen",
+      "save": "Passwort aktualisieren",
+      "allFieldsRequired": "Bitte alle Passwortfelder ausfüllen.",
+      "tooShort": "Das neue Passwort muss mindestens 6 Zeichen haben.",
+      "mismatch": "Die neuen Passwörter stimmen nicht überein.",
+      "changeFailed": "Passwort konnte nicht geändert werden. Bitte aktuelles Passwort prüfen.",
+      "successTitle": "Passwort aktualisiert",
+      "successMessage": "Dein Passwort wurde erfolgreich geändert."
+    },
+    "language": {
+      "sectionTitle": "Sprache"
+    },
+    "units": {
+      "sectionTitle": "Einheitensystem"
+    },
+    "calorieGoal": {
+      "sectionTitle": "Kalorienziel",
+      "screenTitle": "Kalorienziel bearbeiten",
+      "directEditSubtitle": "Gib dein tägliches Kalorienziel ein.",
+      "current": "Tagesziel",
+      "value": "{{calories}} kcal",
+      "notSet": "Nicht gesetzt",
+      "missingProfile": "Profildaten fehlen.",
+      "completeOnboardingFirst": "Bitte vervollständige zuerst deine Angaben über „Meine Angaben überprüfen“.",
+      "saveFailed": "Kalorienziel konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "onboardingReview": {
+      "sectionTitle": "Profilangaben",
+      "action": "Meine Angaben überprüfen",
+      "save": "Änderungen speichern"
+    },
+    "subscription": {
+      "sectionTitle": "Abo",
+      "comingSoonTitle": "Verwaltung folgt bald",
+      "comingSoonMessage": "Die Abo-Verwaltung wird hier verfügbar, sobald die Abrechnung angebunden ist.",
+      "active": "Premium aktiv",
+      "overrideActive": "Premium-Zugang freigeschaltet"
+    },
+    "signOut": {
+      "action": "Abmelden",
+      "title": "Abmelden?",
+      "message": "Du kannst dich jederzeit wieder anmelden.",
+      "confirm": "Abmelden"
+    },
+    "deleteAccount": {
+      "action": "Account löschen",
+      "step1Title": "Account löschen?",
+      "step1Message": "Dies entfernt dauerhaft dein Profil, deine Ziele und persönlichen Daten aus Kolibi.",
+      "continue": "Weiter",
+      "step2Title": "Das kann nicht rückgängig gemacht werden",
+      "step2Message": "Alle deine Daten werden dauerhaft gelöscht. Bist du dir absolut sicher?",
+      "confirm": "Endgültig löschen",
+      "failed": "Account konnte nicht gelöscht werden. Bitte erneut versuchen oder Support kontaktieren."
+    }
+  }
+}

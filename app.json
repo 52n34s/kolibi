@@ -1,14 +1,18 @@
 {
   "expo": {
-    "name": "kolibi-temp",
-    "slug": "kolibi-temp",
+    "name": "Kolibi",
+    "slug": "kolibi",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/kolibi-app-icon.png",
     "scheme": "kolibitemp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.steffen.kolibi",
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +21,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.steffen.kolibi"
     },
     "web": {
       "bundler": "metro",
@@ -33,11 +38,45 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.543613260072-7g56l864f40jo3hp420gafahqsp5qgaq"
+        }
+      ],
+      "expo-localization",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Kolibi to access your photos to set a profile picture.",
+          "cameraPermission": "Allow Kolibi to access your camera to take a profile picture and scan meals."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Kolibi to access your camera to scan meals and barcodes.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
+        }
+      ],
+      "./plugins/with-ios-modular-headers.js",
+      "expo-asset",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6a372771-7ca2-4394-aba0-18b08be64383"
+      }
     }
   }
 }

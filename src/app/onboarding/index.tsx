@@ -15,6 +15,7 @@ import {
 } from '@/components/onboarding/birth-date-picker';
 import { OnboardingField, OnboardingFieldPressable } from '@/components/onboarding/onboarding-field';
 import { OnboardingFooter, ONBOARDING_FOOTER_ESTIMATED_HEIGHT } from '@/components/onboarding/onboarding-footer';
+import { OnboardingReviewCancelButton } from '@/components/onboarding/onboarding-review-cancel-button';
 import { OnboardingKoliCompanion } from '@/components/onboarding/onboarding-koli-companion';
 import { HeightInput } from '@/components/onboarding/height-input';
 import { OnboardingLayout } from '@/components/onboarding/onboarding-layout';
@@ -689,6 +690,14 @@ export default function OnboardingScreen() {
     <OnboardingLayout>
       <View className="flex-1">
         <View className="px-6 pt-2">
+          {isReviewMode ? (
+            <View className="mb-2">
+              <OnboardingReviewCancelButton
+                label={t('settings.common.cancel')}
+                accessibilityLabel={t('settings.common.cancel')}
+              />
+            </View>
+          ) : null}
           <Text className="mb-4 text-sm text-gray-500">
             {t('onboarding.stepOf', { current: step + 1, total: TOTAL_STEPS })}
           </Text>
