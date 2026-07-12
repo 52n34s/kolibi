@@ -4,6 +4,12 @@
     "slug": "kolibi",
     "version": "1.0.0",
     "orientation": "portrait",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6a372771-7ca2-4394-aba0-18b08be64383"
+    },
     "icon": "./assets/images/kolibi-app-icon.png",
     "scheme": "kolibitemp",
     "userInterfaceStyle": "automatic",
