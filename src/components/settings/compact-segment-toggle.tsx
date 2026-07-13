@@ -14,6 +14,8 @@ type CompactSegmentToggleProps = {
   onChange: (value: string) => void;
   /** Language uses solid accent fill; unit uses bordered card segment. */
   variant?: 'language' | 'unit';
+  style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
+  containerStyle?: import('react-native').StyleProp<import('react-native').ViewStyle>;
 };
 
 export function CompactSegmentToggle({
@@ -21,10 +23,12 @@ export function CompactSegmentToggle({
   value,
   onChange,
   variant = 'unit',
+  style,
+  containerStyle,
 }: CompactSegmentToggleProps) {
   return (
-    <View style={styles.fitWrapper}>
-      <View style={[styles.container, variant === 'language' && styles.containerLanguage]}>
+    <View style={[styles.fitWrapper, style]}>
+      <View style={[styles.container, variant === 'language' && styles.containerLanguage, containerStyle]}>
         {segments.map((segment) => {
           const isActive = value === segment.id;
 

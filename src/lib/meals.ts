@@ -8,6 +8,7 @@ import {
   getBaselineTotalGrams,
   getItemTotalGrams,
   wasMealItemEdited,
+  wasQuantityUserCorrected,
   type EditableMealItem,
 } from '@/services/mealVision/types';
 
@@ -31,6 +32,14 @@ function scaleKcalFromPer100g(kcalPer100g: number, quantityGrams: number): numbe
   return Math.max(0, Math.round((kcalPer100g / 100) * quantityGrams));
 }
 
+function normalizeKcalPer100g(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+
+  return value;
+}
+
 function normalizeFoodName(canonicalName: string | undefined): string {
   return (canonicalName ?? '').trim().toLowerCase();
 }
@@ -47,7 +56,7 @@ type FoodAdjustmentRow = {
   user_id: string;
   meal_item_id: string;
   food_name_normalized: string;
-  food_id: null;
+  food_id: string | null;
   adjustment_ratio: number;
   corrected_grams: number;
   include_in_calibration: boolean;
@@ -82,13 +91,13 @@ function buildFoodAdjustmentRow(
     return null;
   }
 
-  const edited = wasMealItemEdited(item);
+  const edited = wasQuantityUserCorrected(item);
 
   return {
     user_id: params.userId,
     meal_item_id: insertedItem.id,
     food_name_normalized: normalizeFoodName(item.canonicalName),
-    food_id: null,
+    food_id: item.foodId ?? null,
     adjustment_ratio: edited ? finalGrams / aiEstimatedGrams : 1,
     corrected_grams: edited ? finalGrams : aiEstimatedGrams,
     include_in_calibration: params.includeInCalibration,
@@ -163,6 +172,7 @@ function buildMealItemPayload(
     was_ai_generated: item.origin === 'ai',
     was_edited: wasMealItemEdited(item),
     sort_order: params.sortOrder,
+    kcal_per_100g: normalizeKcalPer100g(item.kcalPer100g),
   };
 }
 
@@ -285,6 +295,7 @@ export async function saveBarcodeMeal(params: {
   carbsPer100g: number;
   fatPer100g: number;
   quantityGrams: number;
+  kcal?: number;
 }): Promise<{ mealId: string; totalKcal: number }> {
   if ((params.productName ?? '').trim().length === 0) {
     const error = new Error('Product name is required.');
@@ -298,6 +309,17 @@ export async function saveBarcodeMeal(params: {
     throw error;
   }
 
+  const effectiveKcalPer100g =
+    params.kcal != null && params.kcal > 0
+      ? (params.kcal / params.quantityGrams) * 100
+      : params.kcalPer100g;
+  const macroRatio =
+    params.kcalPer100g > 0 ? effectiveKcalPer100g / params.kcalPer100g : 1;
+  const itemKcal =
+    params.kcal != null && params.kcal > 0
+      ? Math.round(params.kcal)
+      : scaleKcalFromPer100g(params.kcalPer100g, params.quantityGrams);
+
   const mealRow = await insertMealAndReload(params.userId, MEAL_SOURCE.BARCODE);
 
   const { error: itemsError } = await supabase.from('meal_items').insert({
@@ -308,15 +330,16 @@ export async function saveBarcodeMeal(params: {
     quantity_grams: params.quantityGrams,
     count: null,
     grams_per_unit: null,
-    kcal: scaleKcalFromPer100g(params.kcalPer100g, params.quantityGrams),
-    protein_g: scaleNutrientFromPer100g(params.proteinPer100g, params.quantityGrams),
-    carbs_g: scaleNutrientFromPer100g(params.carbsPer100g, params.quantityGrams),
-    fat_g: scaleNutrientFromPer100g(params.fatPer100g, params.quantityGrams),
+    kcal: itemKcal,
+    protein_g: scaleNutrientFromPer100g(params.proteinPer100g * macroRatio, params.quantityGrams),
+    carbs_g: scaleNutrientFromPer100g(params.carbsPer100g * macroRatio, params.quantityGrams),
+    fat_g: scaleNutrientFromPer100g(params.fatPer100g * macroRatio, params.quantityGrams),
     ai_estimated_grams: null,
     portion_factor: 1,
     was_ai_generated: false,
     was_edited: false,
     sort_order: 0,
+    kcal_per_100g: normalizeKcalPer100g(params.kcalPer100g),
   });
 
   if (itemsError) {
@@ -366,6 +389,8 @@ export type TodayMealItem = {
   id: string;
   name: string;
   kcal: number;
+  quantity_grams: number;
+  kcal_per_100g: number | null;
   sort_order: number;
 };
 
@@ -373,6 +398,7 @@ export type TodayMeal = {
   id: string;
   eaten_at: string;
   total_kcal: number;
+  total_quantity_grams: number;
   items: TodayMealItem[];
 };
 
@@ -399,7 +425,7 @@ export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
 
   const { data: items, error: itemsError } = await supabase
     .from('meal_items')
-    .select('id, meal_id, name, kcal, sort_order')
+    .select('id, meal_id, name, kcal, quantity_grams, kcal_per_100g, sort_order')
     .in('meal_id', mealIds)
     .order('sort_order', { ascending: true });
 
@@ -415,17 +441,29 @@ export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
       id: item.id,
       name: (item.name ?? '').trim(),
       kcal: Number(item.kcal ?? 0),
+      quantity_grams: Number(item.quantity_grams ?? 0),
+      kcal_per_100g:
+        item.kcal_per_100g == null ? null : Number(item.kcal_per_100g),
       sort_order: item.sort_order ?? 0,
     });
     itemsByMealId.set(item.meal_id, mealItems);
   }
 
-  return meals.map((meal) => ({
-    id: meal.id,
-    eaten_at: meal.eaten_at,
-    total_kcal: Number(meal.total_kcal ?? 0),
-    items: itemsByMealId.get(meal.id) ?? [],
-  }));
+  return meals.map((meal) => {
+    const mealItems = itemsByMealId.get(meal.id) ?? [];
+    const total_quantity_grams = mealItems.reduce(
+      (sum, item) => sum + item.quantity_grams,
+      0,
+    );
+
+    return {
+      id: meal.id,
+      eaten_at: meal.eaten_at,
+      total_kcal: Number(meal.total_kcal ?? 0),
+      total_quantity_grams,
+      items: mealItems,
+    };
+  });
 }
 
 /** Live Postgres enum `quantity_type`: `grams` | `count` (no separate `ml`). */
@@ -440,6 +478,8 @@ export type ManualMealEntryInput = {
   amount: number;
   gramsPerUnit: number | null;
   kcal: number;
+  kcalPer100g?: number | null;
+  foodId?: string | null;
 };
 
 /**
@@ -472,6 +512,9 @@ export function mapManualMealEntriesToEditableItems(
         baselineCount: count,
         baselineGramsPerUnit: gramsPerUnit,
         baselineKcal: entry.kcal,
+        foodId: entry.foodId ?? null,
+        kcalPer100g: normalizeKcalPer100g(entry.kcalPer100g),
+        quantitySource: 'user',
       };
     }
 
@@ -491,6 +534,9 @@ export function mapManualMealEntriesToEditableItems(
       baselineCount: null,
       baselineGramsPerUnit: null,
       baselineKcal: entry.kcal,
+      foodId: entry.foodId ?? null,
+      kcalPer100g: normalizeKcalPer100g(entry.kcalPer100g),
+      quantitySource: 'user',
     };
   });
 }
@@ -567,6 +613,7 @@ export type MealItemForEdit = {
   count: number | null;
   grams_per_unit: number | null;
   kcal: number;
+  kcal_per_100g: number | null;
   sort_order: number;
   was_ai_generated: boolean;
 };
@@ -611,6 +658,7 @@ function buildMealItemRowFromManualEntry(
     was_ai_generated: params.wasAiGenerated,
     was_edited: true,
     sort_order: params.sortOrder,
+    kcal_per_100g: normalizeKcalPer100g(entry.kcalPer100g),
   };
 }
 
@@ -621,7 +669,7 @@ export async function fetchMealItemsForEdit(
   const { data, error } = await supabase
     .from('meal_items')
     .select(
-      'id, name, quantity_type, quantity_grams, count, grams_per_unit, kcal, sort_order, was_ai_generated',
+      'id, name, quantity_type, quantity_grams, count, grams_per_unit, kcal, kcal_per_100g, sort_order, was_ai_generated',
     )
     .eq('meal_id', mealId)
     .eq('user_id', userId)
@@ -639,6 +687,8 @@ export async function fetchMealItemsForEdit(
     count: item.count == null ? null : Number(item.count),
     grams_per_unit: item.grams_per_unit == null ? null : Number(item.grams_per_unit),
     kcal: Number(item.kcal ?? 0),
+    kcal_per_100g:
+      item.kcal_per_100g == null ? null : Number(item.kcal_per_100g),
     sort_order: item.sort_order ?? 0,
     was_ai_generated: Boolean(item.was_ai_generated),
   }));
@@ -686,6 +736,7 @@ export async function updateMealWithItems(params: {
           count: row.count,
           grams_per_unit: row.grams_per_unit,
           kcal: row.kcal,
+          kcal_per_100g: row.kcal_per_100g,
           was_edited: true,
           sort_order: row.sort_order,
         })
@@ -711,4 +762,19 @@ export async function updateMealWithItems(params: {
     mealId: savedMeal.id,
     totalKcal: Number(savedMeal.total_kcal ?? 0),
   };
+}
+
+export async function deleteMeal(params: {
+  mealId: string;
+  userId: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('meals')
+    .delete()
+    .eq('id', params.mealId)
+    .eq('user_id', params.userId);
+
+  if (error) {
+    throw error;
+  }
 }

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { getOnboardingIdleCardStyle } from './onboarding-styles';
+import { getNumberInputAccessoryProps } from '@/components/ui/keyboard-accessory';
 
 const FIELD_HEIGHT = 48;
 
@@ -33,10 +34,12 @@ const styles = StyleSheet.create({
 
 type OnboardingFieldProps = TextInputProps;
 
-export function OnboardingField({ style, ...props }: OnboardingFieldProps) {
+export function OnboardingField({ style, keyboardType, ...props }: OnboardingFieldProps) {
   return (
     <TextInput
       {...props}
+      keyboardType={keyboardType}
+      {...getNumberInputAccessoryProps(keyboardType)}
       placeholderTextColor="#9CA3AF"
       style={[getOnboardingIdleCardStyle(), styles.input, style]}
     />

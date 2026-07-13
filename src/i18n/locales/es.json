@@ -11,6 +11,9 @@
     "signUp": "Registrarse",
     "noAccount": "¿No tienes una cuenta?",
     "haveAccount": "¿Ya tienes una cuenta?",
+    "signup": {
+      "freeHint": "Empieza gratis: sin datos de pago."
+    },
     "errors": {
       "invalidCredentials": "Correo electrónico o contraseña no válidos.",
       "signUpFailed": "No se pudo crear tu cuenta. Inténtalo de nuevo.",
@@ -131,9 +134,13 @@
     },
     "weight": {
       "label": "Peso actual",
+      "targetTitle": "Peso objetivo",
+      "targetNotSet": "No establecido",
       "notLogged": "Aún no registrado",
       "modalTitle": "Actualizar peso",
       "modalSubtitle": "La entrada de hoy reemplaza cualquier peso anterior de hoy.",
+      "updateTargetTitle": "Editar peso objetivo",
+      "updateTargetDescription": "Tu peso meta para seguir el progreso.",
       "placeholderKg": "Peso en kg",
       "placeholderLbs": "Peso en lbs",
       "invalid": "Introduce un peso válido.",
@@ -144,7 +151,17 @@
       "emptyTitle": "Aún no hay comidas hoy",
       "emptySubtitle": "Escanea tu primera comida para empezar.",
       "unnamedMeal": "Comida",
-      "rowMeta": "{{kcal}} kcal · {{time}}"
+      "rowMeta": "{{grams}} g · {{kcal}} kcal · {{time}}"
+    },
+    "meal": {
+      "removeItem": "Eliminar producto",
+      "deleteMeal": "Eliminar comida",
+      "deleteMealConfirm": "¿Eliminar esta comida de forma permanente? No se puede deshacer."
+    },
+    "mealItemRow": {
+      "quantityLabel": "Cantidad",
+      "kcalLabel": "kcal",
+      "densityHint": "{{kcal}} kcal / 100 {{unit}}"
     },
     "manualEntry": {
       "buttonLabel": "Manual",
@@ -155,6 +172,8 @@
       "unitLabel": "Unidad",
       "unitGrams": "g",
       "unitMl": "ml",
+      "unitOz": "oz",
+      "unitFlOz": "fl oz",
       "unitCount": "uds",
       "gramsLabel": "Cantidad (g)",
       "mlLabel": "Cantidad (ml)",
@@ -292,6 +311,7 @@
       "currentLabel": "Peso actual",
       "notLogged": "Sin registro",
       "empty": "Sin datos de peso — actualiza tu peso en la pantalla de inicio.",
+      "targetLabel": "Meta",
       "updateOnHome": "Actualizar peso en inicio"
     },
     "calories": {
@@ -443,5 +463,8 @@
       "confirm": "Eliminar permanentemente",
       "failed": "No se pudo eliminar la cuenta. Inténtalo de nuevo o contacta con soporte."
     }
+  },
+  "common": {
+    "done": "Listo"
   }
 }

@@ -78,24 +78,33 @@ export function parseGramsFromLabel(label: string | null | undefined): number | 
 
   const normalized = label.trim().toLowerCase().replace(/,/g, '.');
 
+  function toPositiveGrams(value: number): number | null {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+
+    const grams = Math.round(value);
+    return grams > 0 ? grams : null;
+  }
+
   const kgMatch = normalized.match(/(\d+(?:\.\d+)?)\s*kg\b/);
   if (kgMatch) {
-    return Math.round(parseFloat(kgMatch[1]) * 1000);
+    return toPositiveGrams(parseFloat(kgMatch[1]) * 1000);
   }
 
   const gMatch = normalized.match(/(\d+(?:\.\d+)?)\s*g\b/);
   if (gMatch) {
-    return Math.round(parseFloat(gMatch[1]));
+    return toPositiveGrams(parseFloat(gMatch[1]));
   }
 
   const mlMatch = normalized.match(/(\d+(?:\.\d+)?)\s*ml\b/);
   if (mlMatch) {
-    return Math.round(parseFloat(mlMatch[1]));
+    return toPositiveGrams(parseFloat(mlMatch[1]));
   }
 
   const literMatch = normalized.match(/(\d+(?:\.\d+)?)\s*l\b/);
   if (literMatch) {
-    return Math.round(parseFloat(literMatch[1]) * 1000);
+    return toPositiveGrams(parseFloat(literMatch[1]) * 1000);
   }
 
   return null;
@@ -119,7 +128,7 @@ function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSch
   const nutriments = product.nutriments;
   const kcalPer100g = resolveKcalPer100g(nutriments);
 
-  if (kcalPer100g == null) {
+  if (kcalPer100g == null || !Number.isFinite(kcalPer100g) || kcalPer100g <= 0) {
     throw new BarcodeNutrimentsMissingError(barcode);
   }
 
@@ -129,14 +138,22 @@ function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSch
 
   const quantityLabel = product.quantity?.trim() || null;
   const servingSizeLabel = product.serving_size?.trim() || null;
+  const quantityGrams = parseGramsFromLabel(quantityLabel);
+  const servingSizeGrams = parseGramsFromLabel(servingSizeLabel);
+
+  console.log('[bc] raw quantity:', product.quantity);
+  console.log('[bc] raw serving_size:', product.serving_size);
+  console.log('[bc] parsed quantityGrams:', quantityGrams);
+  console.log('[bc] parsed servingSizeGrams:', servingSizeGrams);
+  console.log('[bc] kcalPer100g:', kcalPer100g);
 
   return {
     barcode,
     productName: product.product_name!.trim(),
     quantityLabel,
     servingSizeLabel,
-    quantityGrams: parseGramsFromLabel(quantityLabel),
-    servingSizeGrams: parseGramsFromLabel(servingSizeLabel),
+    quantityGrams,
+    servingSizeGrams,
     kcalPer100g,
     proteinPer100g: nutriments?.proteins_100g ?? 0,
     carbsPer100g: nutriments?.carbohydrates_100g ?? 0,

@@ -14,6 +14,7 @@ export type DailyCalorieTotal = {
 export type HistoryData = {
   weightLogs: WeightLogEntry[];
   dailyCalories: DailyCalorieTotal[];
+  targetWeightKg: number | null;
 };
 
 const WEIGHT_LOOKBACK_DAYS = 30;
@@ -64,26 +65,35 @@ function buildEmptyCalorieDays(days: number): DailyCalorieTotal[] {
 export async function fetchHistoryData(userId: string): Promise<HistoryData> {
   const sinceWeight = getLookbackDate(WEIGHT_LOOKBACK_DAYS);
 
-  const { data: weightRows, error: weightError } = await supabase
-    .from('weight_logs')
-    .select('weight_kg, logged_at')
-    .eq('user_id', userId)
-    .gte('logged_at', sinceWeight)
-    .order('logged_at', { ascending: true });
+  const [weightResult, profileResult, dailyCalories] = await Promise.all([
+    supabase
+      .from('weight_logs')
+      .select('weight_kg, logged_at')
+      .eq('user_id', userId)
+      .gte('logged_at', sinceWeight)
+      .order('logged_at', { ascending: true }),
+    supabase.from('profiles').select('target_weight_kg').eq('id', userId).maybeSingle(),
+    fetchDailyCalorieTotals({
+      userId,
+      days: CALORIE_LOOKBACK_DAYS,
+    }).catch(() => buildEmptyCalorieDays(CALORIE_LOOKBACK_DAYS)),
+  ]);
 
-  if (weightError) {
-    throw weightError;
+  if (weightResult.error) {
+    throw weightResult.error;
   }
 
-  // Fall back to zeroed days if meals table is not available yet.
-  const dailyCalories = await fetchDailyCalorieTotals({
-    userId,
-    days: CALORIE_LOOKBACK_DAYS,
-  }).catch(() => buildEmptyCalorieDays(CALORIE_LOOKBACK_DAYS));
+  if (profileResult.error) {
+    throw profileResult.error;
+  }
 
   return {
-    weightLogs: weightRows ?? [],
+    weightLogs: weightResult.data ?? [],
     dailyCalories,
+    targetWeightKg:
+      profileResult.data?.target_weight_kg == null
+        ? null
+        : Number(profileResult.data.target_weight_kg),
   };
 }
 
@@ -103,7 +113,7 @@ export function resolveHistoryPreviewData(data: HistoryData): HistoryData {
         totalCalories: DEV_PREVIEW_DAILY_CALORIES[index] ?? 0,
       }));
 
-  return { weightLogs, dailyCalories };
+  return { weightLogs, dailyCalories, targetWeightKg: data.targetWeightKg };
 }
 
 export function getLatestWeightKg(weightLogs: WeightLogEntry[]): number | null {

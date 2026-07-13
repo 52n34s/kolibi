@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 export type HomeProfile = {
   calorie_goal_source: 'calculated' | 'custom' | null;
+  target_weight_kg: number | null;
 };
 
 export type HomeCalorieGoal = {
@@ -26,7 +27,7 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
   const [profileResult, calorieGoalResult, weightResult, consumedCaloriesToday] = await Promise.all([
     supabase
       .from('profiles')
-      .select('calorie_goal_source')
+      .select('calorie_goal_source, target_weight_kg')
       .eq('id', userId)
       .maybeSingle(),
     supabase

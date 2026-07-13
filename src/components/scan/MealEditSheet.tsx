@@ -4,30 +4,32 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   Text,
   View,
 } from 'react-native';
 
+import { MealItemRow } from '@/components/scan/MealItemRow';
 import {
-  createEmptyMealItemDraft,
-  createEntryId,
-  draftToInput,
-  formatDraftNumber,
-  MealItemEntryCard,
-  mealEntrySheetStyles as styles,
-  SHEET_MAX_HEIGHT_RATIO,
-  sumDraftKcal,
-  useGrowableMealEntrySheetLayout,
-  type MealItemDraft,
-} from '@/components/scan/meal-entry-shared';
+  changeRowItemKcal,
+  changeRowItemName,
+  changeRowItemQuantity,
+  changeRowItemUnit,
+  createEmptyRowItem,
+  isRowItemValid,
+  mealItemForEditToRow,
+  rowItemToManualInput,
+  sumRowItemsKcal,
+  type MealItemRowItem,
+} from '@/components/scan/meal-item-row-model';
+import { mealEntrySheetStyles as styles } from '@/components/scan/meal-entry-shared';
+import { MealItemsSheetBody, MEAL_SHEET_MAX_HEIGHT_RATIO } from '@/components/scan/MealItemsSheetBody';
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import {
   fetchMealItemsForEdit,
-  isManualMealEntryValid,
   type MealItemEditInput,
-  type MealItemForEdit,
 } from '@/lib/meals';
 
 type MealEditSheetProps = {
@@ -35,52 +37,29 @@ type MealEditSheetProps = {
   mealId: string | null;
   userId: string | null;
   isSaving: boolean;
+  isDeleting: boolean;
   onClose: () => void;
   onSave: (params: {
     mealId: string;
     items: MealItemEditInput[];
     removedMealItemIds: string[];
   }) => void;
+  onDeleteMeal: (mealId: string) => void;
 };
-
-function mealItemToDraft(item: MealItemForEdit): MealItemDraft {
-  if (item.quantity_type === 'count') {
-    return {
-      id: createEntryId(),
-      mealItemId: item.id,
-      wasAiGenerated: item.was_ai_generated,
-      name: item.name,
-      unit: 'count',
-      amountText: formatDraftNumber(item.count ?? 0),
-      gramsPerUnitText: formatDraftNumber(item.grams_per_unit ?? 0),
-      kcalText: formatDraftNumber(item.kcal),
-    };
-  }
-
-  return {
-    id: createEntryId(),
-    mealItemId: item.id,
-    wasAiGenerated: item.was_ai_generated,
-    name: item.name,
-    unit: 'grams',
-    amountText: formatDraftNumber(item.quantity_grams),
-    gramsPerUnitText: '',
-    kcalText: formatDraftNumber(item.kcal),
-  };
-}
 
 export function MealEditSheet({
   visible,
   mealId,
   userId,
   isSaving,
+  isDeleting,
   onClose,
   onSave,
+  onDeleteMeal,
 }: MealEditSheetProps) {
   const { t } = useTranslation();
-  const { scrollMaxHeight } = useGrowableMealEntrySheetLayout();
   const scrollRef = useRef<ScrollView>(null);
-  const [drafts, setDrafts] = useState<MealItemDraft[]>([]);
+  const [rowItems, setRowItems] = useState<MealItemRowItem[]>([]);
   const [initialMealItemIds, setInitialMealItemIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -98,18 +77,18 @@ export function MealEditSheet({
       setLoadError(false);
 
       try {
-        const items = await fetchMealItemsForEdit(mealId, userId);
+        const items = await fetchMealItemsForEdit(mealId!, userId!);
         if (cancelled) {
           return;
         }
 
-        setDrafts(items.map(mealItemToDraft));
+        setRowItems(items.map(mealItemForEditToRow));
         setInitialMealItemIds(items.map((item) => item.id));
       } catch (error) {
         console.error('[MealEditSheet] failed to load meal items:', error);
         if (!cancelled) {
           setLoadError(true);
-          setDrafts([]);
+          setRowItems([]);
           setInitialMealItemIds([]);
         }
       } finally {
@@ -128,7 +107,7 @@ export function MealEditSheet({
 
   useEffect(() => {
     if (!visible) {
-      setDrafts([]);
+      setRowItems([]);
       setInitialMealItemIds([]);
       setLoadError(false);
       setShouldScrollToEnd(false);
@@ -144,36 +123,36 @@ export function MealEditSheet({
       scrollRef.current?.scrollToEnd({ animated: true });
       setShouldScrollToEnd(false);
     });
-  }, [drafts.length, shouldScrollToEnd]);
+  }, [rowItems.length, shouldScrollToEnd]);
 
-  const totalKcal = useMemo(() => sumDraftKcal(drafts), [drafts]);
+  const totalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
 
   const canSave = useMemo(() => {
-    if (drafts.length === 0 || isLoading || loadError) {
+    if (rowItems.length === 0 || isLoading || loadError) {
       return false;
     }
 
-    return drafts.every((draft) => isManualMealEntryValid(draftToInput(draft)));
-  }, [drafts, isLoading, loadError]);
+    return rowItems.every((item) => isRowItemValid(item));
+  }, [rowItems, isLoading, loadError]);
 
-  function updateDraft(id: string, updates: Partial<MealItemDraft>) {
-    setDrafts((current) =>
-      current.map((draft) => (draft.id === id ? { ...draft, ...updates } : draft)),
+  function updateRowItem(id: string, updater: (item: MealItemRowItem) => MealItemRowItem) {
+    setRowItems((current) =>
+      current.map((item) => (item.id === id ? updater(item) : item)),
     );
   }
 
   function handleAddProduct() {
-    setDrafts((current) => [...current, createEmptyMealItemDraft()]);
+    setRowItems((current) => [...current, createEmptyRowItem()]);
     setShouldScrollToEnd(true);
   }
 
   function handleRemoveProduct(id: string) {
-    setDrafts((current) => {
+    setRowItems((current) => {
       if (current.length <= 1) {
         return current;
       }
 
-      return current.filter((draft) => draft.id !== id);
+      return current.filter((item) => item.id !== id);
     });
   }
 
@@ -183,14 +162,14 @@ export function MealEditSheet({
     }
 
     const remainingMealItemIds = new Set(
-      drafts.map((draft) => draft.mealItemId).filter((id): id is string => id != null),
+      rowItems.map((item) => item.mealItemId).filter((id): id is string => id != null),
     );
     const removedMealItemIds = initialMealItemIds.filter((id) => !remainingMealItemIds.has(id));
 
-    const items: MealItemEditInput[] = drafts.map((draft) => ({
-      ...draftToInput(draft),
-      mealItemId: draft.mealItemId,
-      wasAiGenerated: draft.wasAiGenerated,
+    const items: MealItemEditInput[] = rowItems.map((item) => ({
+      ...rowItemToManualInput(item),
+      mealItemId: item.mealItemId ?? null,
+      wasAiGenerated: item.wasAiGenerated ?? false,
     }));
 
     onSave({
@@ -200,8 +179,26 @@ export function MealEditSheet({
     });
   }
 
+  function handleDeleteMealPress() {
+    if (!mealId || isSaving || isDeleting) {
+      return;
+    }
+
+    Alert.alert(t('home.meal.deleteMeal'), t('home.meal.deleteMealConfirm'), [
+      { text: t('settings.common.cancel'), style: 'cancel' },
+      {
+        text: t('home.meal.deleteMeal'),
+        style: 'destructive',
+        onPress: () => onDeleteMeal(mealId),
+      },
+    ]);
+  }
+
   return (
-    <GlassBottomSheet visible={visible} onClose={onClose} maxHeightRatio={SHEET_MAX_HEIGHT_RATIO}>
+    <GlassBottomSheet
+      visible={visible}
+      onClose={onClose}
+      maxHeightRatio={MEAL_SHEET_MAX_HEIGHT_RATIO}>
       <View style={styles.sheetBody}>
         <Text style={styles.title}>{t('home.mealEdit.title')}</Text>
 
@@ -215,71 +212,79 @@ export function MealEditSheet({
             <Text style={styles.loadingLabel}>{t('home.mealEdit.loadError')}</Text>
           </View>
         ) : (
-          <>
-            <Text style={styles.totalKcal}>{totalKcal}</Text>
-            <Text style={styles.totalLabel}>{t('home.manualEntry.totalKcal')}</Text>
+          <MealItemsSheetBody
+            scrollRef={scrollRef}
+            header={
+              <>
+                <Text style={styles.totalKcal}>{totalKcal}</Text>
+                <Text style={styles.totalLabel}>{t('home.manualEntry.totalKcal')}</Text>
+              </>
+            }
+            footer={
+              <>
+                {!canSave ? (
+                  <Text style={styles.saveHint}>{t('home.manualEntry.validationFixRows')}</Text>
+                ) : null}
 
-            <ScrollView
-              ref={scrollRef}
-              style={[styles.list, { maxHeight: scrollMaxHeight }]}
-              contentContainerStyle={styles.listContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled>
-              {drafts.map((draft) => (
-                <MealItemEntryCard
-                  key={draft.id}
-                  canRemove={drafts.length > 1}
-                  draft={draft}
-                  onAmountChange={(value) => updateDraft(draft.id, { amountText: value })}
-                  onGramsPerUnitChange={(value) =>
-                    updateDraft(draft.id, { gramsPerUnitText: value })
-                  }
-                  onKcalChange={(value) => updateDraft(draft.id, { kcalText: value })}
-                  onNameChange={(value) => updateDraft(draft.id, { name: value })}
-                  onRemove={() => handleRemoveProduct(draft.id)}
-                  onUnitChange={(unit) =>
-                    updateDraft(draft.id, {
-                      unit,
-                      gramsPerUnitText: unit === 'count' ? draft.gramsPerUnitText : '',
-                    })
-                  }
-                />
-              ))}
-            </ScrollView>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.manualEntry.addProduct')}
+                  style={styles.addButton}
+                  onPress={handleAddProduct}>
+                  <Ionicons name="add-circle-outline" size={18} color="#4F46E5" />
+                  <Text style={styles.addButtonLabel}>{t('home.manualEntry.addProduct')}</Text>
+                </Pressable>
 
-            {!canSave ? (
-              <Text style={styles.saveHint}>{t('home.manualEntry.validationFixRows')}</Text>
-            ) : null}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.mealEdit.save')}
+                  disabled={isSaving || isDeleting || !canSave}
+                  style={[styles.saveShell, (isSaving || isDeleting || !canSave) && styles.saveDisabled]}
+                  onPress={handleSavePress}>
+                  <LinearGradient
+                    colors={['#4F46E5', '#7CE7C7']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.saveGradient}>
+                    {isSaving ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.saveLabel}>{t('home.mealEdit.save')}</Text>
+                    )}
+                  </LinearGradient>
+                </Pressable>
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('home.manualEntry.addProduct')}
-              style={styles.addButton}
-              onPress={handleAddProduct}>
-              <Ionicons name="add-circle-outline" size={18} color="#4F46E5" />
-              <Text style={styles.addButtonLabel}>{t('home.manualEntry.addProduct')}</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('home.mealEdit.save')}
-              disabled={isSaving || !canSave}
-              style={[styles.saveShell, (isSaving || !canSave) && styles.saveDisabled]}
-              onPress={handleSavePress}>
-              <LinearGradient
-                colors={['#4F46E5', '#7CE7C7']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.saveGradient}>
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.saveLabel}>{t('home.mealEdit.save')}</Text>
-                )}
-              </LinearGradient>
-            </Pressable>
-          </>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.meal.deleteMeal')}
+                  disabled={isSaving || isDeleting}
+                  style={styles.deleteMealButton}
+                  onPress={handleDeleteMealPress}>
+                  {isDeleting ? (
+                    <ActivityIndicator color="#DC2626" />
+                  ) : (
+                    <Text style={styles.deleteMealLabel}>{t('home.meal.deleteMeal')}</Text>
+                  )}
+                </Pressable>
+              </>
+            }>
+            {rowItems.map((item) => (
+              <MealItemRow
+                key={item.id}
+                invalid={!isRowItemValid(item)}
+                item={item}
+                onChangeKcal={(id, value) =>
+                  updateRowItem(id, (row) => changeRowItemKcal(row, value))
+                }
+                onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
+                onChangeQuantity={(id, value) =>
+                  updateRowItem(id, (row) => changeRowItemQuantity(row, value))
+                }
+                onChangeUnit={(id, unit) => updateRowItem(id, (row) => changeRowItemUnit(row, unit))}
+                onRemove={rowItems.length > 1 ? handleRemoveProduct : undefined}
+              />
+            ))}
+          </MealItemsSheetBody>
         )}
       </View>
     </GlassBottomSheet>

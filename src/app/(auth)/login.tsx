@@ -290,7 +290,7 @@ export default function LoginScreen() {
         )}
 
         <Pressable
-          className="mb-3 overflow-hidden rounded-xl"
+          className="overflow-hidden rounded-xl"
           disabled={isSubmitting}
           onPress={handleSubmit(isSignUpMode ? onSignUp : onSignIn)}>
           <LinearGradient
@@ -308,7 +308,16 @@ export default function LoginScreen() {
           </LinearGradient>
         </Pressable>
 
-        <Pressable className="items-center py-2" disabled={isSubmitting} onPress={toggleAuthMode}>
+        {isSignUpMode ? (
+          <Text className="mt-2 text-center text-[13px] text-gray-500">
+            {t('auth.signup.freeHint')}
+          </Text>
+        ) : null}
+
+        <Pressable
+          className={`items-center py-2 ${isSignUpMode ? 'mt-2' : 'mt-3'}`}
+          disabled={isSubmitting}
+          onPress={toggleAuthMode}>
           <Text className="text-center text-sm text-gray-500">
             {isSignUpMode ? (
               <>

@@ -16,6 +16,7 @@ import {
 import { OnboardingField, OnboardingFieldPressable } from '@/components/onboarding/onboarding-field';
 import { OnboardingFooter, ONBOARDING_FOOTER_ESTIMATED_HEIGHT } from '@/components/onboarding/onboarding-footer';
 import { OnboardingReviewCancelButton } from '@/components/onboarding/onboarding-review-cancel-button';
+import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { OnboardingKoliCompanion } from '@/components/onboarding/onboarding-koli-companion';
 import { HeightInput } from '@/components/onboarding/height-input';
 import { OnboardingLayout } from '@/components/onboarding/onboarding-layout';
@@ -774,6 +775,7 @@ export default function OnboardingScreen() {
           onChange={handleBirthDateChange}
           onClose={() => setShowDatePicker(false)}
       />
+      <NumberInputAccessory />
     </OnboardingLayout>
   );
 }

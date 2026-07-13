@@ -17,6 +17,7 @@ import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import { OnboardingField } from '@/components/onboarding/onboarding-field';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
+import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import {
   calculateMaintenanceCalories,
@@ -198,6 +199,7 @@ export default function CalorieGoalSettingsScreen() {
           </View>
         </KeyboardAvoidingView>
       )}
+      <NumberInputAccessory />
     </HomeLayout>
   );
 }

@@ -11,6 +11,9 @@
     "signUp": "Sign up",
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
+    "signup": {
+      "freeHint": "Free to start — no payment details required."
+    },
     "errors": {
       "invalidCredentials": "Invalid email or password.",
       "signUpFailed": "Could not create your account. Please try again.",
@@ -131,9 +134,13 @@
     },
     "weight": {
       "label": "Current weight",
+      "targetTitle": "Target weight",
+      "targetNotSet": "Not set",
       "notLogged": "Not logged yet",
       "modalTitle": "Update weight",
       "modalSubtitle": "Today's entry replaces any earlier weight logged today.",
+      "updateTargetTitle": "Update target weight",
+      "updateTargetDescription": "Your goal weight for tracking progress.",
       "placeholderKg": "Weight in kg",
       "placeholderLbs": "Weight in lbs",
       "invalid": "Please enter a valid weight.",
@@ -144,7 +151,17 @@
       "emptyTitle": "No meals yet today",
       "emptySubtitle": "Scan your first meal to start tracking.",
       "unnamedMeal": "Meal",
-      "rowMeta": "{{kcal}} kcal · {{time}}"
+      "rowMeta": "{{grams}} g · {{kcal}} kcal · {{time}}"
+    },
+    "meal": {
+      "removeItem": "Remove product",
+      "deleteMeal": "Delete meal",
+      "deleteMealConfirm": "Delete this meal permanently? This cannot be undone."
+    },
+    "mealItemRow": {
+      "quantityLabel": "Amount",
+      "kcalLabel": "kcal",
+      "densityHint": "{{kcal}} kcal / 100 {{unit}}"
     },
     "manualEntry": {
       "buttonLabel": "Manual",
@@ -155,6 +172,8 @@
       "unitLabel": "Unit",
       "unitGrams": "g",
       "unitMl": "ml",
+      "unitOz": "oz",
+      "unitFlOz": "fl oz",
       "unitCount": "pcs",
       "gramsLabel": "Amount (g)",
       "mlLabel": "Amount (ml)",
@@ -292,6 +311,7 @@
       "currentLabel": "Current weight",
       "notLogged": "Not logged yet",
       "empty": "No weight data yet — update your weight on the home screen.",
+      "targetLabel": "Target",
       "updateOnHome": "Update weight on home"
     },
     "calories": {
@@ -443,5 +463,8 @@
       "confirm": "Delete permanently",
       "failed": "Could not delete your account. Please try again or contact support."
     }
+  },
+  "common": {
+    "done": "Done"
   }
 }

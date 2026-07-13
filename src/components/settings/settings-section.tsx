@@ -28,6 +28,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionUnframed: {
-    alignItems: 'flex-start',
+    alignSelf: 'stretch',
   },
 });

@@ -12,13 +12,19 @@ import {
 
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import {
+  getAvailableQuantityOptions,
+  getDefaultCustomGrams,
+  getDefaultOption,
+  getQuantityGramsForOption,
+  MIN_GRAMS,
+  type QuantityOption,
+} from '@/components/scan/barcode-quantity-utils';
+import {
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_COLORS,
   ONBOARDING_SECONDARY_SURFACE,
 } from '@/components/onboarding/onboarding-styles';
 import type { BarcodeProduct } from '@/services/barcode/OpenFoodFactsService';
-
-type QuantityOption = 'whole' | 'half' | 'serving' | 'custom';
 
 type BarcodeQuantitySheetProps = {
   visible: boolean;
@@ -29,40 +35,10 @@ type BarcodeQuantitySheetProps = {
 };
 
 const GRAM_STEP = 10;
-const MIN_GRAMS = 10;
 const DEFAULT_CUSTOM_GRAMS = 100;
 
 function scaleKcal(kcalPer100g: number, quantityGrams: number): number {
   return Math.max(0, Math.round((kcalPer100g / 100) * quantityGrams));
-}
-
-function getQuantityGramsForOption(
-  option: QuantityOption,
-  product: BarcodeProduct,
-  customGrams: number,
-): number {
-  switch (option) {
-    case 'whole':
-      return product.quantityGrams ?? customGrams;
-    case 'half':
-      return Math.max(MIN_GRAMS, Math.round((product.quantityGrams ?? customGrams) / 2));
-    case 'serving':
-      return product.servingSizeGrams ?? customGrams;
-    case 'custom':
-      return customGrams;
-  }
-}
-
-function getDefaultOption(product: BarcodeProduct): QuantityOption {
-  if (product.quantityGrams != null) {
-    return 'whole';
-  }
-
-  if (product.servingSizeGrams != null) {
-    return 'serving';
-  }
-
-  return 'custom';
 }
 
 export function BarcodeQuantitySheet({
@@ -79,7 +55,7 @@ export function BarcodeQuantitySheet({
   useEffect(() => {
     if (visible && product) {
       setSelectedOption(getDefaultOption(product));
-      setCustomGrams(product.servingSizeGrams ?? product.quantityGrams ?? DEFAULT_CUSTOM_GRAMS);
+      setCustomGrams(getDefaultCustomGrams(product, DEFAULT_CUSTOM_GRAMS));
     }
   }, [product, visible]);
 
@@ -88,15 +64,7 @@ export function BarcodeQuantitySheet({
       return [] as QuantityOption[];
     }
 
-    const options: QuantityOption[] = [];
-    if (product.quantityGrams != null) {
-      options.push('whole', 'half');
-    }
-    if (product.servingSizeGrams != null) {
-      options.push('serving');
-    }
-    options.push('custom');
-    return options;
+    return getAvailableQuantityOptions(product);
   }, [product]);
 
   const quantityGrams = useMemo(() => {

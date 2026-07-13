@@ -11,6 +11,9 @@
     "signUp": "Registrieren",
     "noAccount": "Noch kein Konto?",
     "haveAccount": "Schon ein Konto?",
+    "signup": {
+      "freeHint": "Kostenlos starten – keine Zahlungsdaten nötig."
+    },
     "errors": {
       "invalidCredentials": "Ungültige E-Mail oder Passwort.",
       "signUpFailed": "Konto konnte nicht erstellt werden. Bitte versuche es erneut.",
@@ -131,9 +134,13 @@
     },
     "weight": {
       "label": "Aktuelles Gewicht",
+      "targetTitle": "Zielgewicht",
+      "targetNotSet": "Nicht gesetzt",
       "notLogged": "Noch nicht erfasst",
       "modalTitle": "Gewicht aktualisieren",
       "modalSubtitle": "Der heutige Eintrag ersetzt ein früheres Gewicht von heute.",
+      "updateTargetTitle": "Zielgewicht bearbeiten",
+      "updateTargetDescription": "Dein Zielgewicht für den Fortschritt.",
       "placeholderKg": "Gewicht in kg",
       "placeholderLbs": "Gewicht in lbs",
       "invalid": "Bitte gib ein gültiges Gewicht ein.",
@@ -144,7 +151,17 @@
       "emptyTitle": "Noch keine Mahlzeiten heute",
       "emptySubtitle": "Scanne deine erste Mahlzeit, um zu starten.",
       "unnamedMeal": "Mahlzeit",
-      "rowMeta": "{{kcal}} kcal · {{time}}"
+      "rowMeta": "{{grams}} g · {{kcal}} kcal · {{time}}"
+    },
+    "meal": {
+      "removeItem": "Produkt entfernen",
+      "deleteMeal": "Mahlzeit löschen",
+      "deleteMealConfirm": "Diese Mahlzeit endgültig löschen? Das kann nicht rückgängig gemacht werden."
+    },
+    "mealItemRow": {
+      "quantityLabel": "Menge",
+      "kcalLabel": "kcal",
+      "densityHint": "{{kcal}} kcal / 100 {{unit}}"
     },
     "manualEntry": {
       "buttonLabel": "Manuell",
@@ -155,6 +172,8 @@
       "unitLabel": "Einheit",
       "unitGrams": "g",
       "unitMl": "ml",
+      "unitOz": "oz",
+      "unitFlOz": "fl oz",
       "unitCount": "Stück",
       "gramsLabel": "Menge (g)",
       "mlLabel": "Menge (ml)",
@@ -292,6 +311,7 @@
       "currentLabel": "Aktuelles Gewicht",
       "notLogged": "Noch nicht erfasst",
       "empty": "Noch keine Gewichtsdaten – aktualisiere dein Gewicht auf der Startseite.",
+      "targetLabel": "Ziel",
       "updateOnHome": "Gewicht auf Startseite aktualisieren"
     },
     "calories": {
@@ -443,5 +463,8 @@
       "confirm": "Endgültig löschen",
       "failed": "Account konnte nicht gelöscht werden. Bitte erneut versuchen oder Support kontaktieren."
     }
+  },
+  "common": {
+    "done": "Fertig"
   }
 }

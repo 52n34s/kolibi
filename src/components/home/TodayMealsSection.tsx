@@ -68,6 +68,7 @@ export function TodayMealsSection({ meals, isLoading, onMealPress }: TodayMealsS
                   </Text>
                   <Text className="mt-1 text-sm text-gray-500">
                     {t('home.meals.rowMeta', {
+                      grams: meal.total_quantity_grams,
                       kcal: meal.total_kcal,
                       time: timeLabel,
                     })}

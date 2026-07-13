@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Href, router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -9,7 +9,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,11 +18,12 @@ import { BarcodeScanButton } from '@/components/home/BarcodeScanButton';
 import { HistoryKoliButton } from '@/components/home/history-koli-button';
 import { ManualEntryButton } from '@/components/home/ManualEntryButton';
 import { ScanMealButton } from '@/components/home/ScanMealButton';
-import { BarcodeCameraView } from '@/components/scan/BarcodeCameraView';
-import { BarcodeLookupErrorSheet } from '@/components/scan/BarcodeLookupErrorSheet';
-import { BarcodeNutrimentsMissingSheet } from '@/components/scan/BarcodeNutrimentsMissingSheet';
-import { BarcodeProductNotFoundSheet } from '@/components/scan/BarcodeProductNotFoundSheet';
-import { BarcodeQuantitySheet } from '@/components/scan/BarcodeQuantitySheet';
+import { BarcodeFlowModal, type BarcodeFlowState } from '@/components/scan/BarcodeFlowModal';
+import {
+  getRowItemTotalGrams,
+  rowItemsToEditable,
+  type MealItemRowItem,
+} from '@/components/scan/meal-item-row-model';
 import { ManualMealEntrySheet } from '@/components/scan/ManualMealEntrySheet';
 import { MealEditSheet } from '@/components/scan/MealEditSheet';
 import { MealConfirmationSheet } from '@/components/scan/MealConfirmationSheet';
@@ -38,28 +38,34 @@ import {
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
-import { GlassCard } from '@/components/ui/glass-card';
-import { getGlassCardStyle } from '@/components/ui/glass-styles';
 import { TodayMealsSection } from '@/components/home/TodayMealsSection';
+import { WeightMetricCard } from '@/components/home/weight-metric-card';
+import { WeightInputSheet } from '@/components/home/weight-update-sheet';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useTodayMeals } from '@/hooks/use-today-meals';
 import { getTimeOfDay, getCalorieGoalDisplay, resolveDisplayName } from '@/lib/home';
 import { kgToLbs } from '@/lib/units';
 import {
   formatWeightForDisplay,
+  formatWeightDeltaForDisplay,
   parseWeightInputToKg,
+  updateTargetWeightKg,
   upsertTodayWeightLog,
 } from '@/lib/weight-logs';
-import { saveBarcodeMeal, saveScannedMeal, updateMealWithItems, type TodayMeal } from '@/lib/meals';
+import {
+  saveBarcodeMeal,
+  saveScannedMeal,
+  deleteMeal,
+  updateMealWithItems,
+  type TodayMeal,
+} from '@/lib/meals';
 import { MEAL_SOURCE, type MealSource } from '@/lib/meal-sources';
 import { pickMealPhotosFromGallery } from '@/lib/pick-meal-gallery';
 import {
   BarcodeLookupAbortedError,
-  BarcodeLookupError,
   BarcodeNutrimentsMissingError,
   BarcodeProductNotFoundError,
   fetchProductByBarcode,
-  type BarcodeProduct,
 } from '@/services/barcode/OpenFoodFactsService';
 import {
   MealVisionApiError,
@@ -77,6 +83,8 @@ const DEV_PREVIEW_CONSUMED_CALORIES = 0;
 const CALORIE_GOAL_ACCENT = '#4F46E5';
 const CALORIE_OVER_GOAL_COLOR = '#D97706';
 const MAX_WEIGHT_KG = 699.9;
+
+type WeightSheetKind = 'current' | 'target' | null;
 
 function HomeLoadingState() {
   return (
@@ -107,7 +115,7 @@ export default function HomeScreen() {
   const { data, isLoading, isError, error } = useHomeDashboard();
   const { data: todayMeals, isLoading: isTodayMealsLoading } = useTodayMeals();
 
-  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [weightSheet, setWeightSheet] = useState<WeightSheetKind>(null);
   const [weightDraft, setWeightDraft] = useState('');
   const [isSavingWeight, setIsSavingWeight] = useState(false);
   const [showScanOptions, setShowScanOptions] = useState(false);
@@ -124,14 +132,9 @@ export default function HomeScreen() {
   const [pendingPhotoUris, setPendingPhotoUris] = useState<string[]>([]);
   const [pendingMealSource, setPendingMealSource] = useState<MealSource>(MEAL_SOURCE.PHOTO_CAMERA);
   const [isPickingGalleryPhotos, setIsPickingGalleryPhotos] = useState(false);
-  const [showBarcodeCamera, setShowBarcodeCamera] = useState(false);
-  const [isFetchingBarcodeProduct, setIsFetchingBarcodeProduct] = useState(false);
-  const [barcodeProduct, setBarcodeProduct] = useState<BarcodeProduct | null>(null);
-  const [showBarcodeQuantitySheet, setShowBarcodeQuantitySheet] = useState(false);
-  const [showBarcodeNotFoundSheet, setShowBarcodeNotFoundSheet] = useState(false);
-  const [showBarcodeNutrimentsMissingSheet, setShowBarcodeNutrimentsMissingSheet] = useState(false);
-  const [showBarcodeLookupErrorSheet, setShowBarcodeLookupErrorSheet] = useState(false);
+  const [barcodeFlow, setBarcodeFlow] = useState<BarcodeFlowState>({ kind: 'closed' });
   const [pendingBarcode, setPendingBarcode] = useState<string | null>(null);
+  const pendingBarcodeRef = useRef<string | null>(null);
   const [isSavingBarcodeMeal, setIsSavingBarcodeMeal] = useState(false);
   const [showBarcodeLookupSlow, setShowBarcodeLookupSlow] = useState(false);
   const barcodeLookupAbortRef = useRef<AbortController | null>(null);
@@ -139,6 +142,7 @@ export default function HomeScreen() {
   const [isSavingManualMeal, setIsSavingManualMeal] = useState(false);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [isSavingMealEdit, setIsSavingMealEdit] = useState(false);
+  const [isDeletingMeal, setIsDeletingMeal] = useState(false);
 
   useEffect(() => {
     initializeUnitSystem();
@@ -151,7 +155,7 @@ export default function HomeScreen() {
   }, [error, isError]);
 
   useEffect(() => {
-    if (!isFetchingBarcodeProduct) {
+    if (barcodeFlow.kind !== 'loading') {
       setShowBarcodeLookupSlow(false);
       return;
     }
@@ -161,7 +165,7 @@ export default function HomeScreen() {
     }, 5_000);
 
     return () => clearTimeout(slowMessageTimer);
-  }, [isFetchingBarcodeProduct]);
+  }, [barcodeFlow.kind]);
 
   const displayName = useMemo(
     () =>
@@ -200,6 +204,15 @@ export default function HomeScreen() {
   }, [consumedCaloriesToday, dailyCalorieGoal, hasCalorieGoal]);
 
   const latestWeightKg = data?.latestWeight?.weight_kg ?? null;
+  const targetWeightKg = data?.profile?.target_weight_kg ?? null;
+  const weightUnitLabels = useMemo(
+    () => ({
+      kgLabel: t('onboarding.units.kg'),
+      lbsLabel: t('onboarding.units.lbs'),
+    }),
+    [t],
+  );
+
   const weightLabel = useMemo(() => {
     if (latestWeightKg == null) {
       return t('home.weight.notLogged');
@@ -208,28 +221,57 @@ export default function HomeScreen() {
     return formatWeightForDisplay({
       weightKg: latestWeightKg,
       unitSystem,
-      kgLabel: t('onboarding.units.kg'),
-      lbsLabel: t('onboarding.units.lbs'),
+      ...weightUnitLabels,
     });
-  }, [latestWeightKg, t, unitSystem]);
+  }, [latestWeightKg, t, unitSystem, weightUnitLabels]);
 
-  function openCalorieGoalSettings() {
-    router.push('/koli/calorie-goal' as Href);
-  }
-
-  function openWeightModal() {
-    if (latestWeightKg != null) {
-      const initialValue =
-        unitSystem === 'imperial' ? String(kgToLbs(latestWeightKg)) : String(latestWeightKg);
-      setWeightDraft(initialValue);
-    } else {
-      setWeightDraft('');
+  const targetWeightLabel = useMemo(() => {
+    if (targetWeightKg == null) {
+      return t('home.weight.targetNotSet');
     }
 
-    setShowWeightModal(true);
+    return formatWeightForDisplay({
+      weightKg: targetWeightKg,
+      unitSystem,
+      ...weightUnitLabels,
+    });
+  }, [targetWeightKg, t, unitSystem, weightUnitLabels]);
+
+  const targetWeightDeltaHint = useMemo(() => {
+    if (targetWeightKg == null || latestWeightKg == null) {
+      return null;
+    }
+
+    return formatWeightDeltaForDisplay({
+      deltaKg: targetWeightKg - latestWeightKg,
+      unitSystem,
+      ...weightUnitLabels,
+    });
+  }, [latestWeightKg, targetWeightKg, unitSystem, weightUnitLabels]);
+
+  function weightKgToDraft(weightKg: number | null): string {
+    if (weightKg == null) {
+      return '';
+    }
+
+    return unitSystem === 'imperial' ? String(kgToLbs(weightKg)) : String(weightKg);
   }
 
-  async function saveWeight() {
+  function openCurrentWeightSheet() {
+    setWeightDraft(weightKgToDraft(latestWeightKg));
+    setWeightSheet('current');
+  }
+
+  function openTargetWeightSheet() {
+    setWeightDraft(weightKgToDraft(targetWeightKg));
+    setWeightSheet('target');
+  }
+
+  function closeWeightSheet() {
+    setWeightSheet(null);
+  }
+
+  async function saveCurrentWeight() {
     if (!userId) {
       return;
     }
@@ -247,13 +289,43 @@ export default function HomeScreen() {
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
-      setShowWeightModal(false);
+      closeWeightSheet();
     } catch (saveError) {
       console.error('[Home] weight save failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('home.weight.saveFailed'));
     } finally {
       setIsSavingWeight(false);
     }
+  }
+
+  async function saveTargetWeight() {
+    if (!userId) {
+      return;
+    }
+
+    const weightKg = parseWeightInputToKg({ value: weightDraft, unitSystem });
+    if (weightKg == null || weightKg >= MAX_WEIGHT_KG) {
+      Alert.alert(t('settings.errors.title'), t('home.weight.invalid'));
+      return;
+    }
+
+    setIsSavingWeight(true);
+
+    try {
+      await updateTargetWeightKg({ userId, targetWeightKg: weightKg });
+      await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+      closeWeightSheet();
+    } catch (saveError) {
+      console.error('[Home] target weight save failed:', saveError);
+      Alert.alert(t('settings.errors.title'), t('home.weight.saveFailed'));
+    } finally {
+      setIsSavingWeight(false);
+    }
+  }
+
+  function openCalorieGoalSettings() {
+    router.push('/koli/calorie-goal' as Href);
   }
 
   function handleScanCapture(photoCount: number) {
@@ -387,125 +459,115 @@ export default function HomeScreen() {
   }
 
   function handleBarcodePress() {
-    setShowBarcodeCamera(true);
+    setBarcodeFlow({ kind: 'camera' });
   }
 
-  function handleBarcodeCameraCancel() {
-    setShowBarcodeCamera(false);
-  }
-
-  function cancelBarcodeLookup() {
+  const closeBarcodeFlow = useCallback(() => {
     barcodeLookupAbortRef.current?.abort();
     barcodeLookupAbortRef.current = null;
-    setIsFetchingBarcodeProduct(false);
-    setShowBarcodeLookupSlow(false);
+    pendingBarcodeRef.current = null;
     setPendingBarcode(null);
-  }
+    setShowBarcodeLookupSlow(false);
+    setBarcodeFlow({ kind: 'closed' });
+  }, []);
 
-  async function lookupBarcodeProduct(barcode: string) {
+  const lookupBarcodeProduct = useCallback(async (barcode: string) => {
     barcodeLookupAbortRef.current?.abort();
 
     const controller = new AbortController();
     barcodeLookupAbortRef.current = controller;
-    setIsFetchingBarcodeProduct(true);
+    setBarcodeFlow({ kind: 'loading' });
     setShowBarcodeLookupSlow(false);
 
     try {
       const product = await fetchProductByBarcode(barcode, { signal: controller.signal });
-      setBarcodeProduct(product);
-      setShowBarcodeQuantitySheet(true);
+      setBarcodeFlow({ kind: 'quantity', product });
+      pendingBarcodeRef.current = null;
       setPendingBarcode(null);
-      setShowBarcodeLookupErrorSheet(false);
-      setShowBarcodeNotFoundSheet(false);
-      setShowBarcodeNutrimentsMissingSheet(false);
     } catch (lookupError) {
       if (lookupError instanceof BarcodeLookupAbortedError) {
         return;
       }
 
       if (lookupError instanceof BarcodeNutrimentsMissingError) {
-        setShowBarcodeNutrimentsMissingSheet(true);
+        setBarcodeFlow({ kind: 'nutrimentsMissing' });
         return;
       }
 
       if (lookupError instanceof BarcodeProductNotFoundError) {
-        setShowBarcodeNotFoundSheet(true);
+        setBarcodeFlow({ kind: 'notFound' });
         return;
       }
 
-      if (lookupError instanceof BarcodeLookupError) {
-        setShowBarcodeLookupErrorSheet(true);
-        return;
-      }
-
-      setShowBarcodeLookupErrorSheet(true);
+      setBarcodeFlow({ kind: 'lookupError' });
     } finally {
       if (barcodeLookupAbortRef.current === controller) {
         barcodeLookupAbortRef.current = null;
       }
-      setIsFetchingBarcodeProduct(false);
       setShowBarcodeLookupSlow(false);
     }
-  }
+  }, []);
 
-  async function handleBarcodeDetected(barcode: string) {
-    setShowBarcodeCamera(false);
-    setPendingBarcode(barcode);
-    await lookupBarcodeProduct(barcode);
-  }
+  const handleBarcodeDetected = useCallback(
+    (barcode: string) => {
+      pendingBarcodeRef.current = barcode;
+      setPendingBarcode(barcode);
+      void lookupBarcodeProduct(barcode);
+    },
+    [lookupBarcodeProduct],
+  );
 
   async function handleBarcodeLookupRetry() {
     if (!pendingBarcode) {
-      setShowBarcodeLookupErrorSheet(false);
+      closeBarcodeFlow();
       return;
     }
 
-    setShowBarcodeLookupErrorSheet(false);
     await lookupBarcodeProduct(pendingBarcode);
   }
 
-  function handleBarcodeQuantityClose() {
-    setShowBarcodeQuantitySheet(false);
-    setBarcodeProduct(null);
-  }
-
-  function handleBarcodeNotFoundClose() {
-    setShowBarcodeNotFoundSheet(false);
-  }
-
-  function handleBarcodeNutrimentsMissingClose() {
-    setShowBarcodeNutrimentsMissingSheet(false);
-  }
-
   function handleBarcodeTakePhotoInstead() {
-    setShowBarcodeNotFoundSheet(false);
-    setShowBarcodeNutrimentsMissingSheet(false);
+    closeBarcodeFlow();
     setScanPhotoCount(1);
     setPendingMealSource(MEAL_SOURCE.PHOTO_CAMERA);
     setShowCameraFlow(true);
   }
 
-  async function handleBarcodeSave(params: { quantityGrams: number }) {
-    if (!userId || !barcodeProduct) {
+  async function handleBarcodeSave(items: MealItemRowItem[]) {
+    if (!userId || barcodeFlow.kind !== 'quantity' || items.length === 0) {
       return;
     }
 
+    const { product } = barcodeFlow;
     setIsSavingBarcodeMeal(true);
 
     try {
-      await saveBarcodeMeal({
-        userId,
-        productName: barcodeProduct.productName,
-        kcalPer100g: barcodeProduct.kcalPer100g,
-        proteinPer100g: barcodeProduct.proteinPer100g,
-        carbsPer100g: barcodeProduct.carbsPer100g,
-        fatPer100g: barcodeProduct.fatPer100g,
-        quantityGrams: params.quantityGrams,
-      });
+      if (items.length === 1 && items[0].name.trim() === product.productName.trim()) {
+        const item = items[0];
+        const quantityGrams = getRowItemTotalGrams(item);
+
+        await saveBarcodeMeal({
+          userId,
+          productName: product.productName,
+          kcalPer100g: product.kcalPer100g,
+          proteinPer100g: product.proteinPer100g,
+          carbsPer100g: product.carbsPer100g,
+          fatPer100g: product.fatPer100g,
+          quantityGrams,
+          kcal: item.kcal,
+        });
+      } else {
+        await saveScannedMeal({
+          userId,
+          items: rowItemsToEditable(items),
+          source: MEAL_SOURCE.BARCODE,
+        });
+      }
+
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
-      handleBarcodeQuantityClose();
+      closeBarcodeFlow();
     } catch (saveError) {
       console.error('[Home] barcode meal save failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('home.scan.barcode.saveError'));
@@ -574,6 +636,27 @@ export default function HomeScreen() {
       Alert.alert(t('settings.errors.title'), t('home.mealEdit.saveError'));
     } finally {
       setIsSavingMealEdit(false);
+    }
+  }
+
+  async function handleMealDelete(mealId: string) {
+    if (!userId) {
+      return;
+    }
+
+    setIsDeletingMeal(true);
+
+    try {
+      await deleteMeal({ mealId, userId });
+      await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['history', userId] });
+      setEditingMealId(null);
+    } catch (deleteError) {
+      console.error('[Home] meal delete failed:', deleteError);
+      Alert.alert(t('settings.errors.title'), t('home.mealEdit.saveError'));
+    } finally {
+      setIsDeletingMeal(false);
     }
   }
 
@@ -652,24 +735,21 @@ export default function HomeScreen() {
             </Pressable>
           )}
 
-          <Pressable
-            className="mt-4"
-            onPress={openWeightModal}
-            style={({ pressed }) => [
-              getOnboardingSecondarySurfaceStyle(),
-              { opacity: pressed ? 0.75 : 1, borderRadius: ONBOARDING_CARD_RADIUS },
-            ]}>
-            <View className="flex-row items-center px-4 py-4">
-              <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-[#EEF2FF]">
-                <Ionicons name="scale-outline" size={20} color={ONBOARDING_ACCENT} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-gray-500">{t('home.weight.label')}</Text>
-                <Text className="mt-1 text-lg font-semibold text-gray-900">{weightLabel}</Text>
-              </View>
-              <Ionicons name="create-outline" size={18} color="#9CA3AF" />
-            </View>
-          </Pressable>
+          <View className="mt-4 flex-row gap-3">
+            <WeightMetricCard
+              icon="scale-outline"
+              label={t('home.weight.label')}
+              value={weightLabel}
+              onPress={openCurrentWeightSheet}
+            />
+            <WeightMetricCard
+              icon="flag-outline"
+              hint={targetWeightDeltaHint}
+              label={t('home.weight.targetTitle')}
+              value={targetWeightLabel}
+              onPress={openTargetWeightSheet}
+            />
+          </View>
 
           <TodayMealsSection
             meals={todayMeals}
@@ -754,36 +834,15 @@ export default function HomeScreen() {
         onRetry={() => void handleApiErrorRetry()}
       />
 
-      <BarcodeCameraView
-        visible={showBarcodeCamera}
-        onCancel={handleBarcodeCameraCancel}
-        onBarcodeScanned={(barcode) => void handleBarcodeDetected(barcode)}
-      />
-
-      <BarcodeQuantitySheet
-        visible={showBarcodeQuantitySheet}
-        product={barcodeProduct}
+      <BarcodeFlowModal
+        state={barcodeFlow}
         isSaving={isSavingBarcodeMeal}
-        onClose={handleBarcodeQuantityClose}
-        onSave={(params) => void handleBarcodeSave(params)}
-      />
-
-      <BarcodeProductNotFoundSheet
-        visible={showBarcodeNotFoundSheet}
-        onClose={handleBarcodeNotFoundClose}
+        showLookupSlow={showBarcodeLookupSlow}
+        onClose={closeBarcodeFlow}
+        onBarcodeScanned={handleBarcodeDetected}
+        onSaveItems={(items) => void handleBarcodeSave(items)}
+        onRetryLookup={() => void handleBarcodeLookupRetry()}
         onTakePhotoInstead={handleBarcodeTakePhotoInstead}
-      />
-
-      <BarcodeNutrimentsMissingSheet
-        visible={showBarcodeNutrimentsMissingSheet}
-        onClose={handleBarcodeNutrimentsMissingClose}
-        onTakePhotoOfLabel={handleBarcodeTakePhotoInstead}
-      />
-
-      <BarcodeLookupErrorSheet
-        visible={showBarcodeLookupErrorSheet}
-        onClose={() => setShowBarcodeLookupErrorSheet(false)}
-        onRetry={() => void handleBarcodeLookupRetry()}
       />
 
       <ManualMealEntrySheet
@@ -798,34 +857,12 @@ export default function HomeScreen() {
         mealId={editingMealId}
         userId={userId ?? null}
         isSaving={isSavingMealEdit}
+        isDeleting={isDeletingMeal}
         onClose={handleMealEditClose}
         onSave={(params) => void handleMealEditSave(params)}
+        onDeleteMeal={(mealId) => void handleMealDelete(mealId)}
       />
 
-      <Modal
-        transparent
-        visible={isFetchingBarcodeProduct}
-        animationType="fade"
-        onRequestClose={cancelBarcodeLookup}>
-        <View className="flex-1 items-center justify-center bg-black/55 px-6">
-          <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text className="mt-4 text-center text-base font-medium text-white">
-            {t('home.scan.barcode.loadingProduct')}
-          </Text>
-          {showBarcodeLookupSlow ? (
-            <Text className="mt-2 text-center text-sm text-white/80">
-              {t('home.scan.barcode.loadingSlow')}
-            </Text>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('settings.common.cancel')}
-            className="mt-6 rounded-xl bg-white/20 px-5 py-3"
-            onPress={cancelBarcodeLookup}>
-            <Text className="text-base font-semibold text-white">{t('settings.common.cancel')}</Text>
-          </Pressable>
-        </View>
-      </Modal>
 
       <Modal
         transparent
@@ -840,50 +877,25 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      <Modal
-        transparent
-        visible={showWeightModal}
-        animationType="fade"
-        onRequestClose={() => setShowWeightModal(false)}>
-        <Pressable
-          className="flex-1 justify-center bg-black/40 px-6"
-          onPress={() => setShowWeightModal(false)}>
-          <Pressable onPress={(event) => event.stopPropagation()}>
-            <GlassCard className="p-5">
-            <Text className="mb-2 text-lg font-semibold text-gray-900">{t('home.weight.modalTitle')}</Text>
-            <Text className="mb-4 text-sm text-gray-500">{t('home.weight.modalSubtitle')}</Text>
-            <TextInput
-              autoFocus
-              keyboardType="decimal-pad"
-              placeholder={
-                unitSystem === 'imperial'
-                  ? t('home.weight.placeholderLbs')
-                  : t('home.weight.placeholderKg')
-              }
-              value={weightDraft}
-              onChangeText={setWeightDraft}
-              className="mb-4 h-11 px-3 text-base text-gray-900"
-              style={getGlassCardStyle({ borderRadius: 12, height: 44 })}
-            />
-            <View className="flex-row justify-end gap-3">
-              <Pressable className="px-3 py-2" onPress={() => setShowWeightModal(false)}>
-                <Text className="text-base text-gray-500">{t('settings.common.cancel')}</Text>
-              </Pressable>
-              <Pressable
-                className="rounded-lg bg-[#4F46E5] px-4 py-2"
-                disabled={isSavingWeight}
-                onPress={() => void saveWeight()}>
-                {isSavingWeight ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="text-base font-semibold text-white">{t('settings.common.save')}</Text>
-                )}
-              </Pressable>
-            </View>
-            </GlassCard>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <WeightInputSheet
+        visible={weightSheet != null}
+        title={
+          weightSheet === 'target'
+            ? t('home.weight.updateTargetTitle')
+            : t('home.weight.modalTitle')
+        }
+        subtitle={
+          weightSheet === 'target'
+            ? t('home.weight.updateTargetDescription')
+            : t('home.weight.modalSubtitle')
+        }
+        unitSystem={unitSystem}
+        value={weightDraft}
+        isSaving={isSavingWeight}
+        onChange={setWeightDraft}
+        onClose={closeWeightSheet}
+        onSave={() => void (weightSheet === 'target' ? saveTargetWeight() : saveCurrentWeight())}
+      />
     </HomeLayout>
   );
 }

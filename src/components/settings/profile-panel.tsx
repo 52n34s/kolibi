@@ -331,21 +331,21 @@ export function ProfilePanel() {
                   placeholder={t('settings.password.current')}
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
-                  className="mb-2 h-11 rounded-xl border border-gray-200 bg-white px-3 text-base text-gray-900"
+                  className="mb-2 h-11 w-full self-stretch rounded-xl border border-gray-200 bg-white px-3 text-base text-gray-900"
                 />
                 <TextInput
                   secureTextEntry
                   placeholder={t('settings.password.new')}
                   value={newPassword}
                   onChangeText={setNewPassword}
-                  className="mb-2 h-11 rounded-xl border border-gray-200 bg-white px-3 text-base text-gray-900"
+                  className="mb-2 h-11 w-full self-stretch rounded-xl border border-gray-200 bg-white px-3 text-base text-gray-900"
                 />
                 <TextInput
                   secureTextEntry
                   placeholder={t('settings.password.confirm')}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  className="mb-3 h-11 rounded-xl border border-gray-200 bg-white px-3 text-base text-gray-900"
+                  className="mb-3 h-11 w-full self-stretch rounded-xl border border-gray-200 bg-white px-3 text-base text-gray-900"
                 />
                 <Pressable
                   className="h-11 items-center justify-center rounded-xl bg-[#4F46E5]"
@@ -379,7 +379,7 @@ export function ProfilePanel() {
 
       <Modal transparent visible={showNameModal} animationType="fade" onRequestClose={() => setShowNameModal(false)}>
         <Pressable className="flex-1 justify-center bg-black/40 px-6" onPress={() => setShowNameModal(false)}>
-          <Pressable onPress={(event) => event.stopPropagation()}>
+          <Pressable className="w-full self-stretch" onPress={(event) => event.stopPropagation()}>
             <GlassCard className="p-5">
             <Text className="mb-3 text-lg font-semibold text-gray-900">
               {t('settings.profile.editNameTitle')}
@@ -389,7 +389,7 @@ export function ProfilePanel() {
               value={nameDraft}
               onChangeText={setNameDraft}
               placeholder={t('settings.profile.editNamePlaceholder')}
-              className="mb-4 h-11 rounded-xl border border-gray-200 px-3 text-base text-gray-900"
+              className="mb-4 h-11 w-full self-stretch rounded-xl border border-gray-200 px-3 text-base text-gray-900"
             />
             <View className="flex-row justify-end gap-3">
               <Pressable className="px-3 py-2" onPress={() => setShowNameModal(false)}>

@@ -68,6 +68,23 @@ export function HistoryPanel() {
     [data?.weightLogs],
   );
 
+  const targetWeightKg = data?.targetWeightKg ?? null;
+
+  const targetLineLabel = useMemo(() => {
+    if (targetWeightKg == null) {
+      return null;
+    }
+
+    const formatted = formatWeightForDisplay({
+      weightKg: targetWeightKg,
+      unitSystem,
+      kgLabel: t('onboarding.units.kg'),
+      lbsLabel: t('onboarding.units.lbs'),
+    });
+
+    return `${t('history.weight.targetLabel')} ${formatted}`;
+  }, [targetWeightKg, t, unitSystem]);
+
   const calorieValues = useMemo(
     () => data?.dailyCalories.map((day) => day.totalCalories) ?? [],
     [data?.dailyCalories],
@@ -119,7 +136,12 @@ export function HistoryPanel() {
         ]}>
         <View className="px-4 py-5">
         {hasWeightData ? (
-          <WeightLineChart values={weightValues} width={chartWidth - 32} />
+          <WeightLineChart
+            values={weightValues}
+            width={chartWidth - 32}
+            targetWeightKg={targetWeightKg}
+            targetLabel={targetLineLabel}
+          />
         ) : (
           <View className="items-center py-8">
             <Ionicons name="analytics-outline" size={28} color="#9CA3AF" />

@@ -68,6 +68,8 @@ export type VisionConfidence = z.infer<typeof visionConfidenceSchema>;
 export type VisionFoodItem = z.infer<typeof visionFoodItemSchema>;
 export type VisionResponse = z.infer<typeof visionResponseSchema>;
 
+export type QuantitySource = 'user' | 'derived' | 'ai';
+
 export type EditableMealItem = {
   id: string;
   name: string;
@@ -82,6 +84,9 @@ export type EditableMealItem = {
   baselineCount: number | null;
   baselineGramsPerUnit: number | null;
   baselineKcal: number;
+  foodId: string | null;
+  kcalPer100g: number | null;
+  quantitySource: QuantitySource;
 };
 
 export function getItemTotalGrams(item: EditableMealItem): number {
@@ -132,6 +137,9 @@ export function visionItemToEditable(item: VisionFoodItem, id: string): Editable
     baselineCount,
     baselineGramsPerUnit,
     baselineKcal: item.estimated_kcal,
+    foodId: null,
+    kcalPer100g: null,
+    quantitySource: 'ai',
   };
 }
 
@@ -159,6 +167,9 @@ export function createManualEditableItem(params: {
     baselineCount: null,
     baselineGramsPerUnit: null,
     baselineKcal,
+    foodId: null,
+    kcalPer100g: null,
+    quantitySource: 'user',
   };
 }
 
@@ -189,4 +200,13 @@ export function wasMealItemEdited(item: EditableMealItem): boolean {
   }
 
   return item.quantityGrams !== item.baselineGrams;
+}
+
+/** True only when the user directly changed quantity (not via kcal-derived recalc). */
+export function wasQuantityUserCorrected(item: EditableMealItem): boolean {
+  if (item.quantitySource === 'derived') {
+    return false;
+  }
+
+  return wasMealItemEdited(item);
 }

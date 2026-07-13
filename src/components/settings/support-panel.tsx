@@ -99,8 +99,8 @@ export function SupportPanel() {
           placeholder={t('settings.support.messagePlaceholder')}
           value={message}
           onChangeText={setMessage}
-          className="min-h-[140px] px-3 py-3 text-base text-gray-900"
-          style={getGlassCardStyle({ borderRadius: 12, minHeight: 140 })}
+          className="min-h-[140px] w-full self-stretch px-3 py-3 text-base text-gray-900"
+          style={getGlassCardStyle({ borderRadius: 12, minHeight: 140, width: '100%', alignSelf: 'stretch' })}
         />
       </SettingsSection>
 

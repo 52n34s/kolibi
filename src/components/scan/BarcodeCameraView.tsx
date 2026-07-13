@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -15,13 +14,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const SCAN_TIMEOUT_MS = 15_000;
 
 type BarcodeCameraViewProps = {
-  visible: boolean;
   onCancel: () => void;
   onBarcodeScanned: (barcode: string) => void;
 };
 
-export function BarcodeCameraView({
-  visible,
+function BarcodeCameraViewComponent({
   onCancel,
   onBarcodeScanned,
 }: BarcodeCameraViewProps) {
@@ -43,13 +40,11 @@ export function BarcodeCameraView({
   }
 
   useEffect(() => {
-    if (visible) {
-      resetSession();
-    }
-  }, [visible]);
+    resetSession();
+  }, []);
 
   useEffect(() => {
-    if (!visible || scanPaused || scanTimedOut) {
+    if (scanPaused || scanTimedOut) {
       return;
     }
 
@@ -61,142 +56,137 @@ export function BarcodeCameraView({
     }, SCAN_TIMEOUT_MS);
 
     return () => clearTimeout(timeoutId);
-  }, [scanPaused, scanTimedOut, visible]);
+  }, [scanPaused, scanTimedOut]);
 
-  function handleCancel() {
+  const handleCancel = useCallback(() => {
     resetSession();
     onCancel();
-  }
+  }, [onCancel]);
 
-  function handleRetryScan() {
+  const handleRetryScan = useCallback(() => {
     resetSession();
-  }
+  }, []);
 
-  function handleBarcodeDetected(result: { data: string }) {
-    if (hasReportedScanRef.current || scanPausedRef.current || scanTimedOutRef.current) {
-      return;
-    }
+  const handleBarcodeDetected = useCallback(
+    (result: { data: string }) => {
+      if (hasReportedScanRef.current || scanPausedRef.current || scanTimedOutRef.current) {
+        return;
+      }
 
-    const barcode = result.data?.trim();
-    if (!barcode) {
-      return;
-    }
+      const barcode = result.data?.trim();
+      if (!barcode) {
+        return;
+      }
 
-    hasReportedScanRef.current = true;
-    scanPausedRef.current = true;
-    setScanPaused(true);
+      hasReportedScanRef.current = true;
+      scanPausedRef.current = true;
+      setScanPaused(true);
 
-    try {
-      onBarcodeScanned(barcode);
-    } catch (error) {
-      console.error('[BarcodeCameraView] onBarcodeScanned failed:', error);
-      resetSession();
-    }
-  }
-
-  if (!visible) {
-    return null;
-  }
+      try {
+        onBarcodeScanned(barcode);
+      } catch (error) {
+        console.error('[BarcodeCameraView] onBarcodeScanned failed:', error);
+        resetSession();
+      }
+    },
+    [onBarcodeScanned],
+  );
 
   if (!permission) {
     return (
-      <Modal visible transparent animationType="fade" onRequestClose={handleCancel}>
-        <View style={styles.centeredState}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('settings.common.cancel')}
-            style={[styles.permissionCloseButton, { top: insets.top + 8 }]}
-            onPress={handleCancel}>
-            <Ionicons name="close" size={24} color="#FFFFFF" />
-          </Pressable>
-          <ActivityIndicator color="#FFFFFF" />
-        </View>
-      </Modal>
+      <View style={styles.centeredState}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('settings.common.cancel')}
+          style={[styles.permissionCloseButton, { top: insets.top + 8 }]}
+          onPress={handleCancel}>
+          <Ionicons name="close" size={24} color="#FFFFFF" />
+        </Pressable>
+        <ActivityIndicator color="#FFFFFF" />
+      </View>
     );
   }
 
   if (!permission.granted) {
     return (
-      <Modal visible transparent animationType="fade" onRequestClose={handleCancel}>
-        <View style={styles.centeredState}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('settings.common.cancel')}
-            style={[styles.permissionCloseButton, { top: insets.top + 8 }]}
-            onPress={handleCancel}>
-            <Ionicons name="close" size={24} color="#FFFFFF" />
-          </Pressable>
-          <Text style={styles.permissionTitle}>{t('home.scan.camera.permissionTitle')}</Text>
-          <Text style={styles.permissionBody}>{t('home.scan.camera.permissionBody')}</Text>
-          <Pressable style={styles.permissionButton} onPress={() => void requestPermission()}>
-            <Text style={styles.permissionButtonLabel}>
-              {t('home.scan.camera.permissionAction')}
-            </Text>
-          </Pressable>
-          <Pressable style={styles.cancelTextButton} onPress={handleCancel}>
-            <Text style={styles.cancelTextLabel}>{t('settings.common.cancel')}</Text>
-          </Pressable>
-        </View>
-      </Modal>
+      <View style={styles.centeredState}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('settings.common.cancel')}
+          style={[styles.permissionCloseButton, { top: insets.top + 8 }]}
+          onPress={handleCancel}>
+          <Ionicons name="close" size={24} color="#FFFFFF" />
+        </Pressable>
+        <Text style={styles.permissionTitle}>{t('home.scan.camera.permissionTitle')}</Text>
+        <Text style={styles.permissionBody}>{t('home.scan.camera.permissionBody')}</Text>
+        <Pressable style={styles.permissionButton} onPress={() => void requestPermission()}>
+          <Text style={styles.permissionButtonLabel}>
+            {t('home.scan.camera.permissionAction')}
+          </Text>
+        </Pressable>
+        <Pressable style={styles.cancelTextButton} onPress={handleCancel}>
+          <Text style={styles.cancelTextLabel}>{t('settings.common.cancel')}</Text>
+        </Pressable>
+      </View>
     );
   }
 
   return (
-    <Modal visible animationType="slide" onRequestClose={handleCancel}>
-      <View style={styles.container}>
-        <CameraView
-          style={styles.camera}
-          facing="back"
-          barcodeScannerSettings={{
-            barcodeTypes: ['ean13', 'ean8', 'upc_a'],
-          }}
-          onBarcodeScanned={handleBarcodeDetected}
-        />
+    <View style={styles.container}>
+      <CameraView
+        style={styles.camera}
+        facing="back"
+        barcodeScannerSettings={{
+          barcodeTypes: ['ean13', 'ean8', 'upc_a'],
+        }}
+        onBarcodeScanned={handleBarcodeDetected}
+      />
 
-        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('settings.common.cancel')}
-            style={styles.closeButton}
-            onPress={handleCancel}>
-            <Ionicons name="close" size={24} color="#FFFFFF" />
-          </Pressable>
-          <View style={styles.progressSpacer} />
-        </View>
-
-        {scanTimedOut ? (
-          <View style={[styles.timeoutOverlay, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-            <Text style={styles.timeoutTitle}>{t('home.scan.barcode.timeoutTitle')}</Text>
-            <Text style={styles.timeoutMessage}>{t('home.scan.barcode.timeoutMessage')}</Text>
-            <View style={styles.timeoutActions}>
-              <Pressable style={styles.timeoutRetryButton} onPress={handleRetryScan}>
-                <Text style={styles.timeoutRetryLabel}>{t('home.scan.barcode.retryScan')}</Text>
-              </Pressable>
-              <Pressable style={styles.timeoutCancelButton} onPress={handleCancel}>
-                <Text style={styles.timeoutCancelLabel}>{t('settings.common.cancel')}</Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : (
-          <View
-            style={[
-              styles.guideOverlay,
-              { top: insets.top + TOP_BAR_CONTENT_HEIGHT, bottom: Math.max(insets.bottom, 0) },
-            ]}
-            pointerEvents="none">
-            <View style={styles.guideFrame}>
-              <View style={[styles.corner, styles.cornerTopLeft]} />
-              <View style={[styles.corner, styles.cornerTopRight]} />
-              <View style={[styles.corner, styles.cornerBottomLeft]} />
-              <View style={[styles.corner, styles.cornerBottomRight]} />
-            </View>
-            <Text style={styles.guideText}>{t('home.scan.barcode.guide')}</Text>
-          </View>
-        )}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('settings.common.cancel')}
+          style={styles.closeButton}
+          onPress={handleCancel}>
+          <Ionicons name="close" size={24} color="#FFFFFF" />
+        </Pressable>
+        <View style={styles.progressSpacer} />
       </View>
-    </Modal>
+
+      {scanTimedOut ? (
+        <View style={[styles.timeoutOverlay, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+          <Text style={styles.timeoutTitle}>{t('home.scan.barcode.timeoutTitle')}</Text>
+          <Text style={styles.timeoutMessage}>{t('home.scan.barcode.timeoutMessage')}</Text>
+          <View style={styles.timeoutActions}>
+            <Pressable style={styles.timeoutRetryButton} onPress={handleRetryScan}>
+              <Text style={styles.timeoutRetryLabel}>{t('home.scan.barcode.retryScan')}</Text>
+            </Pressable>
+            <Pressable style={styles.timeoutCancelButton} onPress={handleCancel}>
+              <Text style={styles.timeoutCancelLabel}>{t('settings.common.cancel')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.guideOverlay,
+            { top: insets.top + TOP_BAR_CONTENT_HEIGHT, bottom: Math.max(insets.bottom, 0) },
+          ]}
+          pointerEvents="none">
+          <View style={styles.guideFrame}>
+            <View style={[styles.corner, styles.cornerTopLeft]} />
+            <View style={[styles.corner, styles.cornerTopRight]} />
+            <View style={[styles.corner, styles.cornerBottomLeft]} />
+            <View style={[styles.corner, styles.cornerBottomRight]} />
+          </View>
+          <Text style={styles.guideText}>{t('home.scan.barcode.guide')}</Text>
+        </View>
+      )}
+    </View>
   );
 }
+
+export const BarcodeCameraView = memo(BarcodeCameraViewComponent);
 
 const GUIDE_WIDTH = 280;
 const GUIDE_HEIGHT = 160;
