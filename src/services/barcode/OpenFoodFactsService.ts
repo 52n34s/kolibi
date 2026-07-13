@@ -2,10 +2,13 @@ import { z } from 'zod';
 
 const OPEN_FOOD_FACTS_BASE_URL = 'https://world.openfoodfacts.org/api/v2/product';
 const REQUEST_TIMEOUT_MS = 8_000;
+const OFF_USER_AGENT = 'Kolibi/1.0 (kontakt@kolibi.app)';
+const KJ_TO_KCAL = 4.184;
 
 const nutrimentsSchema = z
   .object({
     'energy-kcal_100g': z.coerce.number().finite().optional(),
+    energy_100g: z.coerce.number().finite().optional(),
     proteins_100g: z.coerce.number().finite().optional(),
     carbohydrates_100g: z.coerce.number().finite().optional(),
     fat_100g: z.coerce.number().finite().optional(),
@@ -37,12 +40,20 @@ export type BarcodeProduct = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  hasIncompleteMacros: boolean;
 };
 
 export class BarcodeProductNotFoundError extends Error {
   constructor(barcode: string) {
     super(`No product found for barcode ${barcode}.`);
     this.name = 'BarcodeProductNotFoundError';
+  }
+}
+
+export class BarcodeNutrimentsMissingError extends Error {
+  constructor(barcode: string) {
+    super(`Product found for barcode ${barcode}, but no energy values are available.`);
+    this.name = 'BarcodeNutrimentsMissingError';
   }
 }
 
@@ -65,7 +76,7 @@ export function parseGramsFromLabel(label: string | null | undefined): number | 
     return null;
   }
 
-  const normalized = label.trim().toLowerCase().replace(',', '.');
+  const normalized = label.trim().toLowerCase().replace(/,/g, '.');
 
   const kgMatch = normalized.match(/(\d+(?:\.\d+)?)\s*kg\b/);
   if (kgMatch) {
@@ -90,21 +101,31 @@ export function parseGramsFromLabel(label: string | null | undefined): number | 
   return null;
 }
 
+function resolveKcalPer100g(nutriments: z.infer<typeof nutrimentsSchema> | undefined): number | null {
+  const kcal = nutriments?.['energy-kcal_100g'];
+  if (kcal != null) {
+    return kcal;
+  }
+
+  const energyKj = nutriments?.energy_100g;
+  if (energyKj != null) {
+    return Math.round((energyKj / KJ_TO_KCAL) * 10) / 10;
+  }
+
+  return null;
+}
+
 function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSchema>): BarcodeProduct {
   const nutriments = product.nutriments;
-  const kcalPer100g = nutriments?.['energy-kcal_100g'];
-  const proteinPer100g = nutriments?.proteins_100g;
-  const carbsPer100g = nutriments?.carbohydrates_100g;
-  const fatPer100g = nutriments?.fat_100g;
+  const kcalPer100g = resolveKcalPer100g(nutriments);
 
-  if (
-    kcalPer100g == null ||
-    proteinPer100g == null ||
-    carbsPer100g == null ||
-    fatPer100g == null
-  ) {
-    throw new BarcodeProductNotFoundError(barcode);
+  if (kcalPer100g == null) {
+    throw new BarcodeNutrimentsMissingError(barcode);
   }
+
+  const proteinMissing = nutriments?.proteins_100g == null;
+  const carbsMissing = nutriments?.carbohydrates_100g == null;
+  const fatMissing = nutriments?.fat_100g == null;
 
   const quantityLabel = product.quantity?.trim() || null;
   const servingSizeLabel = product.serving_size?.trim() || null;
@@ -117,9 +138,10 @@ function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSch
     quantityGrams: parseGramsFromLabel(quantityLabel),
     servingSizeGrams: parseGramsFromLabel(servingSizeLabel),
     kcalPer100g,
-    proteinPer100g,
-    carbsPer100g,
-    fatPer100g,
+    proteinPer100g: nutriments?.proteins_100g ?? 0,
+    carbsPer100g: nutriments?.carbohydrates_100g ?? 0,
+    fatPer100g: nutriments?.fat_100g ?? 0,
+    hasIncompleteMacros: proteinMissing || carbsMissing || fatMissing,
   };
 }
 
@@ -144,6 +166,9 @@ export async function fetchProductByBarcode(
   try {
     const response = await fetch(`${OPEN_FOOD_FACTS_BASE_URL}/${normalizedBarcode}.json`, {
       signal: timeoutController.signal,
+      headers: {
+        'User-Agent': OFF_USER_AGENT,
+      },
     });
 
     if (!response.ok) {
@@ -180,7 +205,11 @@ export async function fetchProductByBarcode(
       throw new BarcodeLookupAbortedError();
     }
 
-    if (error instanceof BarcodeProductNotFoundError || error instanceof BarcodeLookupError) {
+    if (
+      error instanceof BarcodeProductNotFoundError ||
+      error instanceof BarcodeNutrimentsMissingError ||
+      error instanceof BarcodeLookupError
+    ) {
       throw error;
     }
 

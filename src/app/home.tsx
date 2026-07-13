@@ -21,6 +21,7 @@ import { ManualEntryButton } from '@/components/home/ManualEntryButton';
 import { ScanMealButton } from '@/components/home/ScanMealButton';
 import { BarcodeCameraView } from '@/components/scan/BarcodeCameraView';
 import { BarcodeLookupErrorSheet } from '@/components/scan/BarcodeLookupErrorSheet';
+import { BarcodeNutrimentsMissingSheet } from '@/components/scan/BarcodeNutrimentsMissingSheet';
 import { BarcodeProductNotFoundSheet } from '@/components/scan/BarcodeProductNotFoundSheet';
 import { BarcodeQuantitySheet } from '@/components/scan/BarcodeQuantitySheet';
 import { ManualMealEntrySheet } from '@/components/scan/ManualMealEntrySheet';
@@ -55,6 +56,7 @@ import { pickMealPhotosFromGallery } from '@/lib/pick-meal-gallery';
 import {
   BarcodeLookupAbortedError,
   BarcodeLookupError,
+  BarcodeNutrimentsMissingError,
   BarcodeProductNotFoundError,
   fetchProductByBarcode,
   type BarcodeProduct,
@@ -127,6 +129,7 @@ export default function HomeScreen() {
   const [barcodeProduct, setBarcodeProduct] = useState<BarcodeProduct | null>(null);
   const [showBarcodeQuantitySheet, setShowBarcodeQuantitySheet] = useState(false);
   const [showBarcodeNotFoundSheet, setShowBarcodeNotFoundSheet] = useState(false);
+  const [showBarcodeNutrimentsMissingSheet, setShowBarcodeNutrimentsMissingSheet] = useState(false);
   const [showBarcodeLookupErrorSheet, setShowBarcodeLookupErrorSheet] = useState(false);
   const [pendingBarcode, setPendingBarcode] = useState<string | null>(null);
   const [isSavingBarcodeMeal, setIsSavingBarcodeMeal] = useState(false);
@@ -414,8 +417,14 @@ export default function HomeScreen() {
       setPendingBarcode(null);
       setShowBarcodeLookupErrorSheet(false);
       setShowBarcodeNotFoundSheet(false);
+      setShowBarcodeNutrimentsMissingSheet(false);
     } catch (lookupError) {
       if (lookupError instanceof BarcodeLookupAbortedError) {
+        return;
+      }
+
+      if (lookupError instanceof BarcodeNutrimentsMissingError) {
+        setShowBarcodeNutrimentsMissingSheet(true);
         return;
       }
 
@@ -464,8 +473,13 @@ export default function HomeScreen() {
     setShowBarcodeNotFoundSheet(false);
   }
 
+  function handleBarcodeNutrimentsMissingClose() {
+    setShowBarcodeNutrimentsMissingSheet(false);
+  }
+
   function handleBarcodeTakePhotoInstead() {
     setShowBarcodeNotFoundSheet(false);
+    setShowBarcodeNutrimentsMissingSheet(false);
     setScanPhotoCount(1);
     setPendingMealSource(MEAL_SOURCE.PHOTO_CAMERA);
     setShowCameraFlow(true);
@@ -758,6 +772,12 @@ export default function HomeScreen() {
         visible={showBarcodeNotFoundSheet}
         onClose={handleBarcodeNotFoundClose}
         onTakePhotoInstead={handleBarcodeTakePhotoInstead}
+      />
+
+      <BarcodeNutrimentsMissingSheet
+        visible={showBarcodeNutrimentsMissingSheet}
+        onClose={handleBarcodeNutrimentsMissingClose}
+        onTakePhotoOfLabel={handleBarcodeTakePhotoInstead}
       />
 
       <BarcodeLookupErrorSheet
