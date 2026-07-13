@@ -31,8 +31,12 @@ export function BarcodeCameraView({
   const [scanPaused, setScanPaused] = useState(false);
   const [scanTimedOut, setScanTimedOut] = useState(false);
   const hasReportedScanRef = useRef(false);
+  const scanPausedRef = useRef(false);
+  const scanTimedOutRef = useRef(false);
 
   function resetSession() {
+    scanPausedRef.current = false;
+    scanTimedOutRef.current = false;
     setScanPaused(false);
     setScanTimedOut(false);
     hasReportedScanRef.current = false;
@@ -50,6 +54,8 @@ export function BarcodeCameraView({
     }
 
     const timeoutId = setTimeout(() => {
+      scanPausedRef.current = true;
+      scanTimedOutRef.current = true;
       setScanPaused(true);
       setScanTimedOut(true);
     }, SCAN_TIMEOUT_MS);
@@ -67,7 +73,7 @@ export function BarcodeCameraView({
   }
 
   function handleBarcodeDetected(result: { data: string }) {
-    if (hasReportedScanRef.current || scanPaused || scanTimedOut) {
+    if (hasReportedScanRef.current || scanPausedRef.current || scanTimedOutRef.current) {
       return;
     }
 
@@ -77,6 +83,7 @@ export function BarcodeCameraView({
     }
 
     hasReportedScanRef.current = true;
+    scanPausedRef.current = true;
     setScanPaused(true);
 
     try {
@@ -171,7 +178,12 @@ export function BarcodeCameraView({
             </View>
           </View>
         ) : (
-          <View style={styles.guideOverlay} pointerEvents="none">
+          <View
+            style={[
+              styles.guideOverlay,
+              { top: insets.top + TOP_BAR_CONTENT_HEIGHT, bottom: Math.max(insets.bottom, 0) },
+            ]}
+            pointerEvents="none">
             <View style={styles.guideFrame}>
               <View style={[styles.corner, styles.cornerTopLeft]} />
               <View style={[styles.corner, styles.cornerTopRight]} />
@@ -190,6 +202,8 @@ const GUIDE_WIDTH = 280;
 const GUIDE_HEIGHT = 160;
 const CORNER_SIZE = 22;
 const CORNER_THICKNESS = 3;
+
+const TOP_BAR_CONTENT_HEIGHT = 48;
 
 const styles = StyleSheet.create({
   container: {
@@ -221,7 +235,11 @@ const styles = StyleSheet.create({
     width: 40,
   },
   guideOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
