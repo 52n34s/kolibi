@@ -21,6 +21,7 @@ import {
   getQuantityStep,
   toDisplay,
 } from '@/lib/units';
+import { isPartialNumericInput } from '@/lib/numeric-input';
 import type { UnitSystem } from '@/lib/unit-system';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
@@ -76,15 +77,6 @@ function parseStepperInput(text: string, minValue: number, allowDecimals: boolea
 function clampStepperValue(value: number, minValue: number, allowDecimals: boolean): number {
   const clamped = Math.max(minValue, value);
   return allowDecimals ? Math.round(clamped * 10) / 10 : Math.round(clamped);
-}
-
-function isPartialNumericInput(text: string, allowDecimals: boolean): boolean {
-  const normalized = text.replace(',', '.');
-  if (normalized === '') {
-    return true;
-  }
-
-  return allowDecimals ? /^[0-9]*\.?[0-9]*$/.test(normalized) : /^[0-9]*$/.test(normalized);
 }
 
 function StepperField({

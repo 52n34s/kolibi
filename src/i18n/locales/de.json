@@ -14,6 +14,33 @@
     "signup": {
       "freeHint": "Kostenlos starten – keine Zahlungsdaten nötig."
     },
+    "forgotPassword": {
+      "link": "Passwort vergessen?",
+      "title": "Passwort zurücksetzen",
+      "subtitle": "Gib die E-Mail-Adresse deines Kontos ein. Wir senden dir einen Link, um ein neues Passwort zu wählen.",
+      "submit": "Link senden",
+      "successMessage": "Falls ein Konto mit dieser E-Mail existiert, erhältst du in Kürze einen Link. Prüfe auch deinen Spam-Ordner.",
+      "cancel": "Zurück zur Anmeldung",
+      "backToSignIn": "Zurück zur Anmeldung",
+      "errors": {
+        "requestFailed": "Die E-Mail konnte nicht gesendet werden. Bitte prüfe die Adresse und versuche es erneut."
+      }
+    },
+    "resetPassword": {
+      "title": "Neues Passwort wählen",
+      "subtitle": "Gib ein neues Passwort für dein Konto ein.",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Passwort bestätigen",
+      "submit": "Passwort aktualisieren",
+      "backToSignIn": "Zurück zur Anmeldung",
+      "requestNewLink": "Neuen Link anfordern",
+      "errors": {
+        "linkExpired": "Dieser Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.",
+        "sessionMissing": "Öffne den Link aus deiner E-Mail, um fortzufahren.",
+        "passwordMismatch": "Die Passwörter stimmen nicht überein.",
+        "updateFailed": "Das Passwort konnte nicht aktualisiert werden. Bitte versuche es erneut."
+      }
+    },
     "errors": {
       "invalidCredentials": "Ungültige E-Mail oder Passwort.",
       "signUpFailed": "Konto konnte nicht erstellt werden. Bitte versuche es erneut.",
@@ -36,6 +63,7 @@
     "stepOf": "Schritt {{current}} von {{total}}",
     "errors": {
       "saveFailed": "Profil konnte nicht gespeichert werden. Bitte versuche es erneut.",
+      "sessionNotReady": "Deine Sitzung wird noch geladen. Bitte warte einen Moment und versuche es erneut.",
       "birthDateRequired": "Bitte wähle dein Geburtsdatum",
       "birthDateInvalid": "Bitte gib ein gültiges Alter zwischen 13 und 100 Jahren ein",
       "heightRequired": "Bitte gib deine Größe ein",

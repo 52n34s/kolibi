@@ -11,7 +11,7 @@
       "url": "https://u.expo.dev/6a372771-7ca2-4394-aba0-18b08be64383"
     },
     "icon": "./assets/images/kolibi-app-icon.png",
-    "scheme": "kolibitemp",
+    "scheme": "kolibi",
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.steffen.kolibi",

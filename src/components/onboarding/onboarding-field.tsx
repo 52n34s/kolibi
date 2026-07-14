@@ -11,7 +11,13 @@ import {
 } from 'react-native';
 
 import { getOnboardingIdleCardStyle } from './onboarding-styles';
-import { getNumberInputAccessoryProps } from '@/components/ui/keyboard-accessory';
+import {
+  NUMERIC_DONE_INPUT_PROPS,
+  isLegacyNumericKeyboardType,
+  isPartialNumericInput,
+  numericInputAllowsDecimals,
+  resolveNumericKeyboardType,
+} from '@/lib/numeric-input';
 
 const FIELD_HEIGHT = 48;
 
@@ -34,12 +40,30 @@ const styles = StyleSheet.create({
 
 type OnboardingFieldProps = TextInputProps;
 
-export function OnboardingField({ style, keyboardType, ...props }: OnboardingFieldProps) {
+export function OnboardingField({
+  style,
+  keyboardType,
+  onChangeText,
+  ...props
+}: OnboardingFieldProps) {
+  const resolvedKeyboardType = resolveNumericKeyboardType(keyboardType);
+  const isLegacyNumeric = isLegacyNumericKeyboardType(keyboardType);
+
   return (
     <TextInput
       {...props}
-      keyboardType={keyboardType}
-      {...getNumberInputAccessoryProps(keyboardType)}
+      {...(isLegacyNumeric ? NUMERIC_DONE_INPUT_PROPS : {})}
+      keyboardType={resolvedKeyboardType}
+      onChangeText={(text) => {
+        if (
+          isLegacyNumeric &&
+          !isPartialNumericInput(text, numericInputAllowsDecimals(keyboardType))
+        ) {
+          return;
+        }
+
+        onChangeText?.(text);
+      }}
       placeholderTextColor="#9CA3AF"
       style={[getOnboardingIdleCardStyle(), styles.input, style]}
     />

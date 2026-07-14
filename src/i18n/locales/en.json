@@ -14,6 +14,33 @@
     "signup": {
       "freeHint": "Free to start — no payment details required."
     },
+    "forgotPassword": {
+      "link": "Forgot password?",
+      "title": "Reset your password",
+      "subtitle": "Enter the email address for your account. We'll send you a link to choose a new password.",
+      "submit": "Send reset link",
+      "successMessage": "If an account exists for that email, you'll receive a reset link shortly. Check your inbox and spam folder.",
+      "cancel": "Back to sign in",
+      "backToSignIn": "Back to sign in",
+      "errors": {
+        "requestFailed": "Could not send the reset email. Please check the address and try again."
+      }
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "subtitle": "Enter a new password for your account.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "submit": "Update password",
+      "backToSignIn": "Back to sign in",
+      "requestNewLink": "Request a new reset link",
+      "errors": {
+        "linkExpired": "This reset link is invalid or has expired. Please request a new one.",
+        "sessionMissing": "Open the reset link from your email to continue.",
+        "passwordMismatch": "Passwords do not match.",
+        "updateFailed": "Could not update your password. Please try again."
+      }
+    },
     "errors": {
       "invalidCredentials": "Invalid email or password.",
       "signUpFailed": "Could not create your account. Please try again.",
@@ -36,6 +63,7 @@
     "stepOf": "Step {{current}} of {{total}}",
     "errors": {
       "saveFailed": "Could not save your profile. Please try again.",
+      "sessionNotReady": "Your session is still loading. Please wait a moment and try again.",
       "birthDateRequired": "Please select your date of birth",
       "birthDateInvalid": "Please enter a valid age between 13 and 100",
       "heightRequired": "Please enter your height",

@@ -94,7 +94,9 @@ export default function OnboardingScreen() {
   }>();
   const isReviewMode = resolveReviewMode(mode);
   const session = useAuthStore((state) => state.session);
+  const authInitialized = useAuthStore((state) => state.initialized);
   const userId = session?.user?.id;
+  const isSessionReady = authInitialized && Boolean(userId);
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [step, setStep] = useState(0);
@@ -109,6 +111,7 @@ export default function OnboardingScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isFooterDisabled = isSubmitting || !isSessionReady;
   const [summaryManuallyEdited, setSummaryManuallyEdited] = useState(false);
   const [isPrefillingReview, setIsPrefillingReview] = useState(isReviewMode);
 
@@ -427,8 +430,13 @@ export default function OnboardingScreen() {
   }
 
   async function finishOnboarding(skipped: boolean) {
-    const userId = session?.user?.id;
-    if (!userId) {
+    const currentUserId = useAuthStore.getState().session?.user?.id;
+    if (!currentUserId) {
+      console.error('[Onboarding] finishOnboarding aborted: session not ready', {
+        skipped,
+        initialized: useAuthStore.getState().initialized,
+      });
+      setErrorMessage(t('onboarding.errors.sessionNotReady'));
       return;
     }
 
@@ -437,7 +445,7 @@ export default function OnboardingScreen() {
 
     try {
       if (skipped) {
-        await skipOnboarding(userId);
+        await skipOnboarding(currentUserId);
       } else {
         if (!birthDate || !activityLevel || !goalType) {
           throw new Error(t('onboarding.errors.saveFailed'));
@@ -446,7 +454,7 @@ export default function OnboardingScreen() {
         const calorieGoalSource =
           goalType === 'custom' || summaryManuallyEdited ? 'custom' : 'calculated';
 
-        await completeOnboarding(userId, {
+        await completeOnboarding(currentUserId, {
           biologicalSex: effectiveSex,
           birthDate,
           heightCm: parsedHeight,
@@ -693,13 +701,6 @@ export default function OnboardingScreen() {
 
   const progress = ((step + 1) / TOTAL_STEPS) * 100;
 
-  console.log('[SKIP DEBUG]', {
-    step,
-    totalSteps: TOTAL_STEPS,
-    isReviewMode,
-    hideSkip: isReviewMode,
-  });
-
   return (
     <OnboardingLayout>
       <View className="flex-1">
@@ -766,6 +767,7 @@ export default function OnboardingScreen() {
             step={step}
             totalSteps={TOTAL_STEPS}
             isSubmitting={isSubmitting}
+            actionsDisabled={isFooterDisabled}
             errorMessage={errorMessage}
             backLabel={t('onboarding.back')}
             skipLabel={t('onboarding.skip')}
@@ -773,7 +775,10 @@ export default function OnboardingScreen() {
             finishLabel={isReviewMode ? t('settings.onboardingReview.save') : t('onboarding.finish')}
             hideSkip={isReviewMode}
             onBack={handleBack}
-            onSkip={handleSkip}
+            onSkip={() => {
+              console.log('[skip] pressed');
+              handleSkip();
+            }}
             onNext={handleNext}
             onFinish={handleFinish}
           />

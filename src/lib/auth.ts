@@ -1,5 +1,6 @@
 import { Href, router } from 'expo-router';
 
+import { PASSWORD_RESET_REDIRECT_URL } from '@/lib/auth-redirect';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -37,6 +38,32 @@ export async function signInWithGoogleIdToken(idToken: string) {
     provider: 'google',
     token: idToken,
   });
-  if (error) throw error;
+  if (error) {
+    console.error('[signInWithGoogleIdToken] Supabase rejected Google ID token:', {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+      name: error.name,
+    });
+    throw error;
+  }
   await navigateAfterLogin();
+}
+
+export async function requestPasswordReset(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: PASSWORD_RESET_REDIRECT_URL,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function updatePassword(password: string) {
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    throw error;
+  }
 }

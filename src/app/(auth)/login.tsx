@@ -27,6 +27,7 @@ import {
   signUpWithEmail,
 } from '@/lib/auth';
 import { getEmailAuthErrorKey, logAuthError } from '@/lib/auth-errors';
+import { isPasswordRecoveryFlowActive } from '@/lib/auth-redirect';
 import { configureGoogleSignIn } from '@/lib/google-signin';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -76,6 +77,8 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (!session) return;
+
+    if (isPasswordRecoveryFlowActive()) return;
 
     if (isOnboarded === null) return;
 
@@ -282,7 +285,20 @@ export default function LoginScreen() {
           )}
         />
         {errors.password && (
-          <Text className="mb-4 text-sm text-red-500">{errors.password.message}</Text>
+          <Text className="mb-2 text-sm text-red-500">{errors.password.message}</Text>
+        )}
+
+        {!isSignUpMode ? (
+          <Pressable
+            className="mb-4 self-end"
+            disabled={isSubmitting}
+            onPress={() => router.push('/(auth)/forgot-password')}>
+            <Text className="text-sm font-medium text-[#4F46E5]">
+              {t('auth.forgotPassword.link')}
+            </Text>
+          </Pressable>
+        ) : (
+          <View className="mb-4" />
         )}
 
         {errorMessage && (

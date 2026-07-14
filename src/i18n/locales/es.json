@@ -14,6 +14,33 @@
     "signup": {
       "freeHint": "Empieza gratis: sin datos de pago."
     },
+    "forgotPassword": {
+      "link": "¿Olvidaste tu contraseña?",
+      "title": "Restablecer contraseña",
+      "subtitle": "Introduce el correo de tu cuenta. Te enviaremos un enlace para elegir una nueva contraseña.",
+      "submit": "Enviar enlace",
+      "successMessage": "Si existe una cuenta con ese correo, recibirás un enlace en breve. Revisa también la carpeta de spam.",
+      "cancel": "Volver al inicio de sesión",
+      "backToSignIn": "Volver al inicio de sesión",
+      "errors": {
+        "requestFailed": "No se pudo enviar el correo. Comprueba la dirección e inténtalo de nuevo."
+      }
+    },
+    "resetPassword": {
+      "title": "Elige una nueva contraseña",
+      "subtitle": "Introduce una nueva contraseña para tu cuenta.",
+      "newPassword": "Nueva contraseña",
+      "confirmPassword": "Confirmar contraseña",
+      "submit": "Actualizar contraseña",
+      "backToSignIn": "Volver al inicio de sesión",
+      "requestNewLink": "Solicitar un nuevo enlace",
+      "errors": {
+        "linkExpired": "Este enlace no es válido o ha caducado. Solicita uno nuevo.",
+        "sessionMissing": "Abre el enlace de tu correo para continuar.",
+        "passwordMismatch": "Las contraseñas no coinciden.",
+        "updateFailed": "No se pudo actualizar la contraseña. Inténtalo de nuevo."
+      }
+    },
     "errors": {
       "invalidCredentials": "Correo electrónico o contraseña no válidos.",
       "signUpFailed": "No se pudo crear tu cuenta. Inténtalo de nuevo.",
@@ -36,6 +63,7 @@
     "stepOf": "Paso {{current}} de {{total}}",
     "errors": {
       "saveFailed": "No se pudo guardar tu perfil. Inténtalo de nuevo.",
+      "sessionNotReady": "Tu sesión aún se está cargando. Espera un momento e inténtalo de nuevo.",
       "birthDateRequired": "Selecciona tu fecha de nacimiento",
       "birthDateInvalid": "Introduce una edad válida entre 13 y 100 años",
       "heightRequired": "Introduce tu altura",

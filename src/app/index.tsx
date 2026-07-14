@@ -1,6 +1,7 @@
 import { Href, Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
+import { isPasswordRecoveryFlowActive } from '@/lib/auth-redirect';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function Index() {
@@ -17,6 +18,10 @@ export default function Index() {
 
   if (!session) {
     return <Redirect href={'/(auth)/login' as Href} />;
+  }
+
+  if (isPasswordRecoveryFlowActive()) {
+    return <Redirect href={'/(auth)/reset-password' as Href} />;
   }
 
   if (!isOnboarded) {

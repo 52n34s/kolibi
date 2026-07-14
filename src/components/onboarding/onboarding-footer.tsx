@@ -16,6 +16,8 @@ type OnboardingFooterProps = {
   step: number;
   totalSteps: number;
   isSubmitting: boolean;
+  /** Disables footer actions (e.g. while session is loading). Defaults to isSubmitting. */
+  actionsDisabled?: boolean;
   errorMessage: string | null;
   backLabel: string;
   skipLabel: string;
@@ -32,6 +34,7 @@ export function OnboardingFooter({
   step,
   totalSteps,
   isSubmitting,
+  actionsDisabled,
   errorMessage,
   backLabel,
   skipLabel,
@@ -47,6 +50,7 @@ export function OnboardingFooter({
   const isLastStep = step >= totalSteps - 1;
   const showBack = step > 0;
   const showSkip = shouldShowOnboardingSkip(step, totalSteps, hideSkip);
+  const footerDisabled = actionsDisabled ?? isSubmitting;
 
   return (
     <View
@@ -65,7 +69,7 @@ export function OnboardingFooter({
           <Pressable
             className="h-12 flex-1 items-center justify-center"
             style={getOnboardingSecondarySurfaceStyle()}
-            disabled={isSubmitting}
+            disabled={footerDisabled}
             onPress={onBack}>
             <Text className="text-base font-semibold text-gray-900">{backLabel}</Text>
           </Pressable>
@@ -73,7 +77,7 @@ export function OnboardingFooter({
 
         <Pressable
           className="h-12 flex-1 overflow-hidden rounded-xl"
-          disabled={isSubmitting}
+          disabled={footerDisabled}
           onPress={isLastStep ? onFinish : onNext}>
           <LinearGradient
             colors={['#4F46E5', '#7CE7C7']}
@@ -93,7 +97,7 @@ export function OnboardingFooter({
 
       {/* IMPORTANT: Skip button must always remain visible in non-review onboarding mode (steps 1–6). Do not remove during redesigns. */}
       {showSkip ? (
-        <OnboardingSkipLink label={skipLabel} disabled={isSubmitting} onPress={onSkip} />
+        <OnboardingSkipLink label={skipLabel} disabled={footerDisabled} onPress={onSkip} />
       ) : null}
     </View>
   );

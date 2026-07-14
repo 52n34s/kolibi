@@ -12,7 +12,11 @@ import {
 
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import { GLASS_SURFACE } from '@/components/ui/glass-styles';
-import { getNumberInputAccessoryProps } from '@/components/ui/keyboard-accessory';
+import {
+  NUMERIC_DONE_INPUT_PROPS,
+  isPartialNumericInput,
+  resolveNumericKeyboardType,
+} from '@/lib/numeric-input';
 import type { UnitSystem } from '@/lib/unit-system';
 
 export type WeightInputSheetProps = {
@@ -64,7 +68,6 @@ export function WeightInputSheet({
     <GlassBottomSheet
       visible={visible}
       presentation="center"
-      numberInputAccessory
       onClose={onClose}
       onShow={() => setShouldFocus(true)}>
       <View style={styles.content}>
@@ -72,7 +75,7 @@ export function WeightInputSheet({
         <Text style={styles.subtitle}>{subtitle}</Text>
         <TextInput
           ref={inputRef}
-          keyboardType="decimal-pad"
+          keyboardType={resolveNumericKeyboardType('decimal-pad')}
           placeholder={
             unitSystem === 'imperial'
               ? t('home.weight.placeholderLbs')
@@ -81,8 +84,14 @@ export function WeightInputSheet({
           placeholderTextColor="#9CA3AF"
           style={styles.input}
           value={value}
-          onChangeText={onChange}
-          {...getNumberInputAccessoryProps('decimal-pad')}
+          onChangeText={(text) => {
+            if (!isPartialNumericInput(text, true)) {
+              return;
+            }
+
+            onChange(text);
+          }}
+          {...NUMERIC_DONE_INPUT_PROPS}
         />
         <View style={styles.actions}>
           <Pressable
