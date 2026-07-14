@@ -15,9 +15,21 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.steffen.kolibi",
-      "icon": "./assets/expo.icon",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "aps-environment": "production",
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": []
+      },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "NSHealthShareUsageDescription": "Kolibi liest deine verbrannten Kalorien aus Apple Health, damit dein Tagesziel deine Aktivität berücksichtigt.",
+        "NSHealthUpdateUsageDescription": "Kolibi schreibt deine erfassten Kalorien nach Apple Health, damit sie dort zusammen mit deinen anderen Gesundheitsdaten sichtbar sind."
       }
     },
     "android": {
@@ -45,6 +57,13 @@
           "imageWidth": 76
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/koli-happy.png",
+          "color": "#4F46E5"
+        }
+      ],
       "expo-apple-authentication",
       [
         "@react-native-google-signin/google-signin",
@@ -54,6 +73,7 @@
       ],
       "expo-localization",
       "@react-native-community/datetimepicker",
+      "@kingstinct/react-native-healthkit",
       [
         "expo-image-picker",
         {
@@ -72,7 +92,15 @@
       ],
       "./plugins/with-ios-modular-headers.js",
       "expo-asset",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "kolibi",
+          "organization": "52n34s-group"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

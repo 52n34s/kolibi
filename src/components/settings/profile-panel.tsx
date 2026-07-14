@@ -8,6 +8,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   View,
@@ -19,9 +20,18 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { ProfileHeader } from '@/components/settings/profile-header';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsSection } from '@/components/settings/settings-section';
+import { SubscriptionSection } from '@/components/settings/subscription-section';
+import { SETTINGS_GLASS_DIVIDER_CLASS } from '@/components/ui/glass-styles';
 import { UnitSystemToggle } from '@/components/onboarding/unit-system-toggle';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
+import { requestHealthPermissions } from '@/lib/health';
+import { recalculateCalorieGoalForHealthKitChange } from '@/lib/recalculate-calorie-goal-for-health';
+import {
+  getUserPreference,
+  HEALTH_CONNECTED_PREFERENCE_KEY,
+  setUserPreference,
+} from '@/lib/user-preferences';
 import { SUPPORTED_LANGUAGES, setAppLanguage, type SupportedLanguage } from '@/i18n';
 import { isEmailPasswordUser } from '@/lib/auth-provider';
 import { resolveDisplayName } from '@/lib/home';
@@ -56,6 +66,8 @@ export function ProfilePanel() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [healthConnected, setHealthConnected] = useState(false);
+  const [isUpdatingHealthConnection, setIsUpdatingHealthConnection] = useState(false);
   const { confirmDeleteAccount } = useAccountDeletion();
 
   const displayName = useMemo(
@@ -81,9 +93,112 @@ export function ProfilePanel() {
     }
   }, [error, isError]);
 
+  useEffect(() => {
+    if (!userId) {
+      setHealthConnected(false);
+      return;
+    }
+
+    void getUserPreference(userId, HEALTH_CONNECTED_PREFERENCE_KEY)
+      .then(setHealthConnected)
+      .catch((loadError) => {
+        console.error('[ProfilePanel] health preference load failed:', loadError);
+      });
+  }, [userId]);
+
   async function refreshProfile() {
     await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+    await queryClient.invalidateQueries({ queryKey: ['health-connected-preference', userId] });
     await refetch();
+  }
+
+  async function handleHealthConnectionChange(nextValue: boolean) {
+    if (!userId || isUpdatingHealthConnection) {
+      return;
+    }
+
+    if (nextValue) {
+      Alert.alert(
+        t('settings.health.connectConfirmTitle'),
+        t('settings.health.connectConfirmMessage'),
+        [
+          { text: t('settings.health.connectConfirmCancel'), style: 'cancel' },
+          {
+            text: t('settings.health.connectConfirmAction'),
+            onPress: () => void connectHealth(),
+          },
+        ],
+      );
+      return;
+    }
+
+    Alert.alert(
+      t('settings.health.disconnectConfirmTitle'),
+      t('settings.health.disconnectConfirmMessage'),
+      [
+        { text: t('settings.health.disconnectConfirmCancel'), style: 'cancel' },
+        {
+          text: t('settings.health.disconnectConfirmAction'),
+          onPress: () => void disconnectHealth(),
+        },
+      ],
+    );
+  }
+
+  async function connectHealth() {
+    if (!userId || isUpdatingHealthConnection) {
+      return;
+    }
+
+    setIsUpdatingHealthConnection(true);
+
+    try {
+      const granted = await requestHealthPermissions();
+      if (!granted) {
+        Alert.alert(t('settings.errors.title'), t('settings.health.permissionDenied'));
+        return;
+      }
+
+      await setUserPreference(userId, HEALTH_CONNECTED_PREFERENCE_KEY, true);
+      await recalculateCalorieGoalForHealthKitChange(userId, true);
+      setHealthConnected(true);
+      await queryClient.invalidateQueries({
+        queryKey: ['health-connected-preference', userId],
+      });
+      await queryClient.invalidateQueries({ queryKey: ['active-energy-burned-today'] });
+      await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+    } catch (saveError) {
+      console.error('[ProfilePanel] health connect failed:', saveError);
+      Alert.alert(t('settings.errors.title'), t('settings.health.saveFailed'));
+    } finally {
+      setIsUpdatingHealthConnection(false);
+    }
+  }
+
+  async function disconnectHealth() {
+    if (!userId || isUpdatingHealthConnection) {
+      return;
+    }
+
+    setIsUpdatingHealthConnection(true);
+
+    try {
+      await setUserPreference(userId, HEALTH_CONNECTED_PREFERENCE_KEY, false);
+      await recalculateCalorieGoalForHealthKitChange(userId, false);
+      setHealthConnected(false);
+      await queryClient.invalidateQueries({
+        queryKey: ['health-connected-preference', userId],
+      });
+      await queryClient.invalidateQueries({ queryKey: ['active-energy-burned-today'] });
+      await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+    } catch (saveError) {
+      console.error('[ProfilePanel] health disconnect failed:', saveError);
+      Alert.alert(t('settings.errors.title'), t('settings.health.saveFailed'));
+    } finally {
+      setIsUpdatingHealthConnection(false);
+    }
   }
 
   function openNameEditor() {
@@ -275,6 +390,34 @@ export function ProfilePanel() {
           />
         </SettingsSection>
 
+        <SettingsSection title={t('settings.health.sectionTitle')}>
+          <View className="flex-row items-center justify-between px-4 py-3.5">
+            <Text className="flex-1 text-base text-gray-900">{t('settings.health.toggleLabel')}</Text>
+            <Switch
+              value={healthConnected}
+              disabled={isUpdatingHealthConnection}
+              onValueChange={(value) => void handleHealthConnectionChange(value)}
+              trackColor={{ false: '#D1D5DB', true: '#4F46E5' }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
+            <Text className="text-sm text-gray-500">
+              {healthConnected
+                ? t('settings.health.connectedHint')
+                : t('settings.health.disconnectedHint')}
+            </Text>
+            {healthConnected ? (
+              <>
+                <Text className="mt-2 text-sm text-gray-500">
+                  {t('settings.health.disconnectHint')}
+                </Text>
+                <Text className="mt-2 text-sm text-gray-500">{t('settings.health.revokeHint')}</Text>
+              </>
+            ) : null}
+          </View>
+        </SettingsSection>
+
         <SettingsSection title={t('settings.calorieGoal.sectionTitle')}>
           <SettingsRow
             label={t('settings.calorieGoal.current')}
@@ -292,23 +435,11 @@ export function ProfilePanel() {
           />
         </SettingsSection>
 
-        <SettingsSection title={t('settings.subscription.sectionTitle')}>
-          <View className="px-4 py-4">
-            <Text className="text-base font-medium text-gray-900">
-              {t('settings.subscription.comingSoonTitle')}
-            </Text>
-            <Text className="mt-1 text-sm text-gray-500">
-              {t('settings.subscription.comingSoonMessage')}
-            </Text>
-            {data?.premiumAccess.hasAccess ? (
-              <Text className="mt-2 text-sm font-medium text-[#4F46E5]">
-                {data.premiumAccess.source === 'override'
-                  ? t('settings.subscription.overrideActive')
-                  : t('settings.subscription.active')}
-              </Text>
-            ) : null}
-          </View>
-        </SettingsSection>
+        <SubscriptionSection
+          userId={userId}
+          trialEndsAt={data?.profile.trial_ends_at ?? null}
+          subscription={data?.subscription ?? null}
+        />
 
         {showPasswordSection ? (
           <SettingsSection title={t('settings.password.sectionTitle')}>
@@ -325,7 +456,7 @@ export function ProfilePanel() {
               }
             />
             {showPasswordForm ? (
-              <View className="border-t border-gray-100 px-4 py-4">
+              <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-4`}>
                 <TextInput
                   secureTextEntry
                   placeholder={t('settings.password.current')}

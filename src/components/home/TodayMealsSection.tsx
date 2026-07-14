@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
@@ -8,7 +8,8 @@ import {
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
-import type { TodayMeal } from '@/lib/meals';
+import { formatTodayMealQuantityLabel, type TodayMeal } from '@/lib/meals';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 
 type TodayMealsSectionProps = {
   meals: TodayMeal[] | undefined;
@@ -36,7 +37,13 @@ function formatMealTime(eatenAt: string, locale: string): string {
 
 export function TodayMealsSection({ meals, isLoading, onMealPress }: TodayMealsSectionProps) {
   const { t, i18n } = useTranslation();
+  const unitSystem = useOnboardingStore((state) => state.unitSystem);
+  const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const hasMeals = (meals?.length ?? 0) > 0;
+
+  useEffect(() => {
+    initializeUnitSystem();
+  }, [initializeUnitSystem]);
 
   const mealRows = useMemo(() => meals ?? [], [meals]);
 
@@ -68,7 +75,7 @@ export function TodayMealsSection({ meals, isLoading, onMealPress }: TodayMealsS
                   </Text>
                   <Text className="mt-1 text-sm text-gray-500">
                     {t('home.meals.rowMeta', {
-                      grams: meal.total_quantity_grams,
+                      quantity: formatTodayMealQuantityLabel(meal, t, unitSystem),
                       kcal: meal.total_kcal,
                       time: timeLabel,
                     })}

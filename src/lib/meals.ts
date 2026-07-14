@@ -1,9 +1,12 @@
+import { localDayWindow, localDateKey } from '@/lib/day-window';
 import { supabase } from '@/lib/supabase';
 import {
   includeMealInCalibration,
   MEAL_SOURCE,
   type MealSource,
 } from '@/lib/meal-sources';
+import type { UnitSystem } from '@/lib/unit-system';
+import { gramsToOz, mlToFlOz } from '@/lib/units';
 import {
   getBaselineTotalGrams,
   getItemTotalGrams,
@@ -24,14 +27,6 @@ type InsertedMealItemRow = {
   sort_order: number;
 };
 
-function scaleNutrientFromPer100g(per100g: number, quantityGrams: number): number {
-  return Math.round((per100g / 100) * quantityGrams * 10) / 10;
-}
-
-function scaleKcalFromPer100g(kcalPer100g: number, quantityGrams: number): number {
-  return Math.max(0, Math.round((kcalPer100g / 100) * quantityGrams));
-}
-
 function normalizeKcalPer100g(value: number | null | undefined): number | null {
   if (value == null || !Number.isFinite(value) || value <= 0) {
     return null;
@@ -44,12 +39,37 @@ function normalizeFoodName(canonicalName: string | undefined): string {
   return (canonicalName ?? '').trim().toLowerCase();
 }
 
-function isCountBasedItem(item: EditableMealItem): boolean {
+function isFreeCountItem(item: EditableMealItem): boolean {
   return (
+    item.origin === 'manual' &&
     item.quantityCount != null &&
-    item.gramsPerUnit != null &&
-    item.gramsPerUnit > 0
+    item.quantityCount > 0 &&
+    normalizeKcalPer100g(item.kcalPer100g) == null
   );
+}
+
+function isCountBasedItem(item: EditableMealItem): boolean {
+  if (item.quantityCount == null || item.quantityCount <= 0) {
+    return false;
+  }
+
+  if (item.origin === 'manual') {
+    return isFreeCountItem(item) || (item.gramsPerUnit != null && item.gramsPerUnit > 0);
+  }
+
+  return item.gramsPerUnit != null && item.gramsPerUnit > 0;
+}
+
+function isItemQuantityValid(item: EditableMealItem): boolean {
+  if (isFreeCountItem(item)) {
+    return true;
+  }
+
+  if (isCountBasedItem(item)) {
+    return item.gramsPerUnit != null && item.gramsPerUnit > 0;
+  }
+
+  return getItemTotalGrams(item) > 0;
 }
 
 type FoodAdjustmentRow = {
@@ -57,7 +77,7 @@ type FoodAdjustmentRow = {
   meal_item_id: string;
   food_name_normalized: string;
   food_id: string | null;
-  adjustment_ratio: number;
+  ai_estimated_grams: number;
   corrected_grams: number;
   include_in_calibration: boolean;
 };
@@ -98,7 +118,7 @@ function buildFoodAdjustmentRow(
     meal_item_id: insertedItem.id,
     food_name_normalized: normalizeFoodName(item.canonicalName),
     food_id: item.foodId ?? null,
-    adjustment_ratio: edited ? finalGrams / aiEstimatedGrams : 1,
+    ai_estimated_grams: aiEstimatedGrams,
     corrected_grams: edited ? finalGrams : aiEstimatedGrams,
     include_in_calibration: params.includeInCalibration,
   };
@@ -150,10 +170,15 @@ function buildMealItemPayload(
   const isCountItem = isCountBasedItem(item);
   const quantityType = isCountItem ? 'count' : 'grams';
   const count = isCountItem ? item.quantityCount : null;
-  const gramsPerUnit = isCountItem ? item.gramsPerUnit : null;
+  const hasKnownPieceWeight =
+    isCountItem && item.gramsPerUnit != null && item.gramsPerUnit > 0;
+  const gramsPerUnit = hasKnownPieceWeight ? item.gramsPerUnit : null;
   const quantityGrams = isCountItem
-    ? (count ?? 0) * (gramsPerUnit ?? 0)
+    ? hasKnownPieceWeight
+      ? (count ?? 0) * (gramsPerUnit ?? 0)
+      : 0
     : (item.quantityGrams ?? 0);
+  const displayUnit: 'g' | 'ml' = isCountItem ? 'g' : item.displayUnit;
 
   return {
     meal_id: params.mealId,
@@ -163,6 +188,7 @@ function buildMealItemPayload(
     quantity_grams: quantityGrams,
     count,
     grams_per_unit: gramsPerUnit,
+    display_unit: displayUnit,
     kcal: item.kcal,
     protein_g: 0,
     carbs_g: 0,
@@ -230,9 +256,7 @@ export async function saveScannedMeal(params: {
   }
 
   for (const item of normalizedItems) {
-    const totalGrams = getItemTotalGrams(item);
-
-    if (totalGrams <= 0) {
+    if (!isItemQuantityValid(item)) {
       const error = new Error(
         `Invalid quantity for ingredient "${(item.name ?? '').trim()}".`,
       );
@@ -241,7 +265,7 @@ export async function saveScannedMeal(params: {
         quantityGrams: item.quantityGrams,
         quantityCount: item.quantityCount,
         gramsPerUnit: item.gramsPerUnit,
-        totalGrams,
+        kcalPer100g: item.kcalPer100g,
       });
       throw error;
     }
@@ -287,96 +311,15 @@ export async function saveScannedMeal(params: {
   };
 }
 
-export async function saveBarcodeMeal(params: {
-  userId: string;
-  productName: string;
-  kcalPer100g: number;
-  proteinPer100g: number;
-  carbsPer100g: number;
-  fatPer100g: number;
-  quantityGrams: number;
-  kcal?: number;
-}): Promise<{ mealId: string; totalKcal: number }> {
-  if ((params.productName ?? '').trim().length === 0) {
-    const error = new Error('Product name is required.');
-    console.error('[saveBarcodeMeal] validation failed before insert:', error.message);
-    throw error;
-  }
-
-  if (params.quantityGrams <= 0) {
-    const error = new Error('Quantity must be greater than zero.');
-    console.error('[saveBarcodeMeal] validation failed before insert:', error.message);
-    throw error;
-  }
-
-  const effectiveKcalPer100g =
-    params.kcal != null && params.kcal > 0
-      ? (params.kcal / params.quantityGrams) * 100
-      : params.kcalPer100g;
-  const macroRatio =
-    params.kcalPer100g > 0 ? effectiveKcalPer100g / params.kcalPer100g : 1;
-  const itemKcal =
-    params.kcal != null && params.kcal > 0
-      ? Math.round(params.kcal)
-      : scaleKcalFromPer100g(params.kcalPer100g, params.quantityGrams);
-
-  const mealRow = await insertMealAndReload(params.userId, MEAL_SOURCE.BARCODE);
-
-  const { error: itemsError } = await supabase.from('meal_items').insert({
-    meal_id: mealRow.id,
-    user_id: params.userId,
-    name: (params.productName ?? '').trim(),
-    quantity_type: 'grams',
-    quantity_grams: params.quantityGrams,
-    count: null,
-    grams_per_unit: null,
-    kcal: itemKcal,
-    protein_g: scaleNutrientFromPer100g(params.proteinPer100g * macroRatio, params.quantityGrams),
-    carbs_g: scaleNutrientFromPer100g(params.carbsPer100g * macroRatio, params.quantityGrams),
-    fat_g: scaleNutrientFromPer100g(params.fatPer100g * macroRatio, params.quantityGrams),
-    ai_estimated_grams: null,
-    portion_factor: 1,
-    was_ai_generated: false,
-    was_edited: false,
-    sort_order: 0,
-    kcal_per_100g: normalizeKcalPer100g(params.kcalPer100g),
-  });
-
-  if (itemsError) {
-    await supabase.from('meals').delete().eq('id', mealRow.id);
-    throw itemsError;
-  }
-
-  const savedMeal = await reloadMealTotals(mealRow.id);
-
-  return {
-    mealId: savedMeal.id,
-    totalKcal: Number(savedMeal.total_kcal ?? 0),
-  };
-}
-
-function getUtcDayBounds(date = new Date()): { start: string; end: string } {
-  const start = new Date(date);
-  start.setUTCHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-
-  return {
-    start: start.toISOString(),
-    end: end.toISOString(),
-  };
-}
-
 export async function fetchTodayConsumedCalories(userId: string): Promise<number> {
-  const { start, end } = getUtcDayBounds();
+  const { startISO, endISO } = localDayWindow();
 
   const { data, error } = await supabase
     .from('meals')
     .select('total_kcal')
     .eq('user_id', userId)
-    .gte('eaten_at', start)
-    .lt('eaten_at', end);
+    .gte('eaten_at', startISO)
+    .lt('eaten_at', endISO);
 
   if (error) {
     throw error;
@@ -390,6 +333,10 @@ export type TodayMealItem = {
   name: string;
   kcal: number;
   quantity_grams: number;
+  quantity_type: MealItemQuantityType;
+  count: number | null;
+  grams_per_unit: number | null;
+  display_unit: 'g' | 'ml';
   kcal_per_100g: number | null;
   sort_order: number;
 };
@@ -403,14 +350,14 @@ export type TodayMeal = {
 };
 
 export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
-  const { start, end } = getUtcDayBounds();
+  const { startISO, endISO } = localDayWindow();
 
   const { data: meals, error: mealsError } = await supabase
     .from('meals')
     .select('id, eaten_at, total_kcal')
     .eq('user_id', userId)
-    .gte('eaten_at', start)
-    .lt('eaten_at', end)
+    .gte('eaten_at', startISO)
+    .lt('eaten_at', endISO)
     .order('eaten_at', { ascending: false });
 
   if (mealsError) {
@@ -425,7 +372,9 @@ export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
 
   const { data: items, error: itemsError } = await supabase
     .from('meal_items')
-    .select('id, meal_id, name, kcal, quantity_grams, kcal_per_100g, sort_order')
+    .select(
+      'id, meal_id, name, kcal, quantity_grams, quantity_type, count, grams_per_unit, display_unit, kcal_per_100g, sort_order',
+    )
     .in('meal_id', mealIds)
     .order('sort_order', { ascending: true });
 
@@ -442,6 +391,10 @@ export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
       name: (item.name ?? '').trim(),
       kcal: Number(item.kcal ?? 0),
       quantity_grams: Number(item.quantity_grams ?? 0),
+      quantity_type: (item.quantity_type as MealItemQuantityType) ?? 'grams',
+      count: item.count == null ? null : Number(item.count),
+      grams_per_unit: item.grams_per_unit == null ? null : Number(item.grams_per_unit),
+      display_unit: item.display_unit === 'ml' ? 'ml' : 'g',
       kcal_per_100g:
         item.kcal_per_100g == null ? null : Number(item.kcal_per_100g),
       sort_order: item.sort_order ?? 0,
@@ -466,6 +419,70 @@ export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
   });
 }
 
+/** Display-only conversion for today-meal quantity labels (storage stays in g/ml). */
+function formatStoredMassForDisplay(
+  storedAmount: number,
+  displayUnit: 'g' | 'ml',
+  unitSystem: UnitSystem,
+): { amount: number; unit: string } {
+  if (unitSystem === 'imperial') {
+    if (displayUnit === 'ml') {
+      return { amount: mlToFlOz(storedAmount), unit: 'fl oz' };
+    }
+
+    return { amount: gramsToOz(storedAmount), unit: 'oz' };
+  }
+
+  return { amount: storedAmount, unit: displayUnit };
+}
+
+/** Human-readable quantity label for today-meal list rows. */
+export function formatTodayMealQuantityLabel(
+  meal: TodayMeal,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  unitSystem: UnitSystem = 'metric',
+): string {
+  const items = meal.items;
+
+  if (items.length === 0) {
+    const { amount, unit } = formatStoredMassForDisplay(0, 'g', unitSystem);
+    return t('home.meals.quantityMass', { amount, unit });
+  }
+
+  const allCount = items.every((item) => item.quantity_type === 'count');
+  if (allCount) {
+    const totalCount = items.reduce((sum, item) => sum + (item.count ?? 0), 0);
+    return t('home.meals.quantityCount', { count: totalCount });
+  }
+
+  const totalCount = items
+    .filter((item) => item.quantity_type === 'count')
+    .reduce((sum, item) => sum + (item.count ?? 0), 0);
+
+  const allMl = items.every(
+    (item) => item.quantity_type === 'grams' && item.display_unit === 'ml',
+  );
+  if (allMl) {
+    const { amount, unit } = formatStoredMassForDisplay(
+      meal.total_quantity_grams,
+      'ml',
+      unitSystem,
+    );
+    return t('home.meals.quantityMass', { amount, unit });
+  }
+
+  if (meal.total_quantity_grams <= 0 && totalCount > 0) {
+    return t('home.meals.quantityCount', { count: totalCount });
+  }
+
+  const { amount, unit } = formatStoredMassForDisplay(
+    meal.total_quantity_grams,
+    'g',
+    unitSystem,
+  );
+  return t('home.meals.quantityMass', { amount, unit });
+}
+
 /** Live Postgres enum `quantity_type`: `grams` | `count` (no separate `ml`). */
 export type MealItemQuantityType = 'grams' | 'count';
 
@@ -477,6 +494,7 @@ export type ManualMealEntryInput = {
   unit: ManualMealEntryUnit;
   amount: number;
   gramsPerUnit: number | null;
+  displayUnit?: 'g' | 'ml';
   kcal: number;
   kcalPer100g?: number | null;
   foodId?: string | null;
@@ -495,8 +513,14 @@ export function mapManualMealEntriesToEditableItems(
 
     if (entry.unit === 'count') {
       const count = entry.amount;
-      const gramsPerUnit = entry.gramsPerUnit ?? 0;
-      const totalGrams = count * gramsPerUnit;
+      const linked = normalizeKcalPer100g(entry.kcalPer100g) != null;
+      const hasKnownPieceWeight =
+        linked &&
+        entry.gramsPerUnit != null &&
+        Number.isFinite(entry.gramsPerUnit) &&
+        entry.gramsPerUnit > 0;
+      const gramsPerUnit = hasKnownPieceWeight ? entry.gramsPerUnit : null;
+      const totalGrams = hasKnownPieceWeight ? count * (gramsPerUnit ?? 0) : 0;
 
       return {
         id: entry.id,
@@ -515,10 +539,12 @@ export function mapManualMealEntriesToEditableItems(
         foodId: entry.foodId ?? null,
         kcalPer100g: normalizeKcalPer100g(entry.kcalPer100g),
         quantitySource: 'user',
+        displayUnit: 'g',
       };
     }
 
     const quantityGrams = entry.amount;
+    const displayUnit: 'g' | 'ml' = entry.unit === 'ml' ? 'ml' : 'g';
 
     return {
       id: entry.id,
@@ -537,6 +563,7 @@ export function mapManualMealEntriesToEditableItems(
       foodId: entry.foodId ?? null,
       kcalPer100g: normalizeKcalPer100g(entry.kcalPer100g),
       quantitySource: 'user',
+      displayUnit,
     };
   });
 }
@@ -551,13 +578,20 @@ export function isManualMealEntryValid(entry: ManualMealEntryInput): boolean {
   }
 
   if (entry.unit === 'count') {
-    return (
-      Number.isFinite(entry.amount) &&
-      entry.amount > 0 &&
-      entry.gramsPerUnit != null &&
-      Number.isFinite(entry.gramsPerUnit) &&
-      entry.gramsPerUnit > 0
-    );
+    if (!Number.isFinite(entry.amount) || entry.amount <= 0) {
+      return false;
+    }
+
+    const linked = normalizeKcalPer100g(entry.kcalPer100g) != null;
+    if (linked) {
+      return (
+        entry.gramsPerUnit != null &&
+        Number.isFinite(entry.gramsPerUnit) &&
+        entry.gramsPerUnit > 0
+      );
+    }
+
+    return true;
   }
 
   return Number.isFinite(entry.amount) && entry.amount > 0;
@@ -567,15 +601,15 @@ export async function fetchDailyCalorieTotals(params: {
   userId: string;
   days: number;
 }): Promise<{ date: string; totalCalories: number }[]> {
-  const since = new Date();
-  since.setUTCDate(since.getUTCDate() - (params.days - 1));
-  since.setUTCHours(0, 0, 0, 0);
+  const lookbackStart = new Date();
+  lookbackStart.setDate(lookbackStart.getDate() - (params.days - 1));
+  const { startISO: since } = localDayWindow(lookbackStart);
 
   const { data, error } = await supabase
     .from('meals')
     .select('eaten_at, total_kcal')
     .eq('user_id', params.userId)
-    .gte('eaten_at', since.toISOString())
+    .gte('eaten_at', since)
     .order('eaten_at', { ascending: true });
 
   if (error) {
@@ -585,7 +619,7 @@ export async function fetchDailyCalorieTotals(params: {
   const totalsByDate = new Map<string, number>();
 
   for (const row of data ?? []) {
-    const dateKey = row.eaten_at.split('T')[0];
+    const dateKey = localDateKey(new Date(row.eaten_at));
     const previous = totalsByDate.get(dateKey) ?? 0;
     totalsByDate.set(dateKey, previous + Number(row.total_kcal ?? 0));
   }
@@ -594,8 +628,9 @@ export async function fetchDailyCalorieTotals(params: {
 
   for (let offset = params.days - 1; offset >= 0; offset -= 1) {
     const date = new Date();
-    date.setUTCDate(date.getUTCDate() - offset);
-    const dateKey = date.toISOString().split('T')[0];
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - offset);
+    const dateKey = localDateKey(date);
     result.push({
       date: dateKey,
       totalCalories: totalsByDate.get(dateKey) ?? 0,
@@ -612,6 +647,7 @@ export type MealItemForEdit = {
   quantity_grams: number;
   count: number | null;
   grams_per_unit: number | null;
+  display_unit: 'g' | 'ml';
   kcal: number;
   kcal_per_100g: number | null;
   sort_order: number;
@@ -636,10 +672,20 @@ function buildMealItemRowFromManualEntry(
   const isCountItem = entry.unit === 'count';
   const quantityType: MealItemQuantityType = isCountItem ? 'count' : 'grams';
   const count = isCountItem ? entry.amount : null;
-  const gramsPerUnit = isCountItem ? entry.gramsPerUnit : null;
+  const linked = normalizeKcalPer100g(entry.kcalPer100g) != null;
+  const hasKnownPieceWeight =
+    isCountItem &&
+    linked &&
+    entry.gramsPerUnit != null &&
+    Number.isFinite(entry.gramsPerUnit) &&
+    entry.gramsPerUnit > 0;
+  const gramsPerUnit = hasKnownPieceWeight ? entry.gramsPerUnit : null;
   const quantityGrams = isCountItem
-    ? entry.amount * (entry.gramsPerUnit ?? 0)
+    ? hasKnownPieceWeight
+      ? entry.amount * (gramsPerUnit ?? 0)
+      : 0
     : entry.amount;
+  const displayUnit: 'g' | 'ml' = isCountItem ? 'g' : entry.displayUnit === 'ml' ? 'ml' : 'g';
 
   return {
     meal_id: params.mealId,
@@ -649,6 +695,7 @@ function buildMealItemRowFromManualEntry(
     quantity_grams: quantityGrams,
     count,
     grams_per_unit: gramsPerUnit,
+    display_unit: displayUnit,
     kcal: entry.kcal,
     protein_g: 0,
     carbs_g: 0,
@@ -669,7 +716,7 @@ export async function fetchMealItemsForEdit(
   const { data, error } = await supabase
     .from('meal_items')
     .select(
-      'id, name, quantity_type, quantity_grams, count, grams_per_unit, kcal, kcal_per_100g, sort_order, was_ai_generated',
+      'id, name, quantity_type, quantity_grams, count, grams_per_unit, display_unit, kcal, kcal_per_100g, sort_order, was_ai_generated',
     )
     .eq('meal_id', mealId)
     .eq('user_id', userId)
@@ -686,6 +733,7 @@ export async function fetchMealItemsForEdit(
     quantity_grams: Number(item.quantity_grams ?? 0),
     count: item.count == null ? null : Number(item.count),
     grams_per_unit: item.grams_per_unit == null ? null : Number(item.grams_per_unit),
+    display_unit: item.display_unit === 'ml' ? 'ml' : 'g',
     kcal: Number(item.kcal ?? 0),
     kcal_per_100g:
       item.kcal_per_100g == null ? null : Number(item.kcal_per_100g),
@@ -735,6 +783,7 @@ export async function updateMealWithItems(params: {
           quantity_grams: row.quantity_grams,
           count: row.count,
           grams_per_unit: row.grams_per_unit,
+          display_unit: row.display_unit,
           kcal: row.kcal,
           kcal_per_100g: row.kcal_per_100g,
           was_edited: true,

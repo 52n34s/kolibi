@@ -1,4 +1,5 @@
 import { fetchDailyCalorieTotals } from '@/lib/meals';
+import { localDateKey, localDayWindow } from '@/lib/day-window';
 import { supabase } from '@/lib/supabase';
 
 export type WeightLogEntry = {
@@ -37,14 +38,10 @@ function daysAgoIso(daysAgo: number): string {
   return date.toISOString();
 }
 
-function formatDateKey(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
 function getLookbackDate(days: number): string {
   const date = new Date();
   date.setDate(date.getDate() - days);
-  return date.toISOString();
+  return localDayWindow(date).startISO;
 }
 
 function buildEmptyCalorieDays(days: number): DailyCalorieTotal[] {
@@ -52,9 +49,10 @@ function buildEmptyCalorieDays(days: number): DailyCalorieTotal[] {
 
   for (let offset = days - 1; offset >= 0; offset -= 1) {
     const date = new Date();
+    date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() - offset);
     result.push({
-      date: formatDateKey(date),
+      date: localDateKey(date),
       totalCalories: 0,
     });
   }

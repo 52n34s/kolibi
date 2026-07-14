@@ -141,12 +141,6 @@ function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSch
   const quantityGrams = parseGramsFromLabel(quantityLabel);
   const servingSizeGrams = parseGramsFromLabel(servingSizeLabel);
 
-  console.log('[bc] raw quantity:', product.quantity);
-  console.log('[bc] raw serving_size:', product.serving_size);
-  console.log('[bc] parsed quantityGrams:', quantityGrams);
-  console.log('[bc] parsed servingSizeGrams:', servingSizeGrams);
-  console.log('[bc] kcalPer100g:', kcalPer100g);
-
   return {
     barcode,
     productName: product.product_name!.trim(),

@@ -4,6 +4,7 @@ import {
   Alert,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -12,7 +13,11 @@ import {
 import { ExternalLink } from '@/components/external-link';
 import { SettingsSection } from '@/components/settings/settings-section';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
-import { getGlassCardStyle } from '@/components/ui/glass-styles';
+import {
+  GLASS_SURFACE,
+  SETTINGS_GLASS_DIVIDER_CLASS,
+  getGlassCardStyle,
+} from '@/components/ui/glass-styles';
 import { LEGAL_LINKS } from '@/lib/legal-links';
 
 const SUPPORT_CATEGORIES = [
@@ -73,11 +78,10 @@ export function SupportPanel() {
             return (
               <Pressable
                 key={item.id}
-                className={`rounded-full border px-3 py-2 ${
-                  isActive
-                    ? 'border-[#4F46E5] bg-[#4F46E5]'
-                    : 'border-[rgba(255,255,255,0.78)] bg-[rgba(255,255,255,0.45)]'
-                }`}
+                style={[
+                  styles.categoryChip,
+                  isActive ? styles.categoryChipActive : styles.categoryChipIdle,
+                ]}
                 onPress={() => setCategory(item.id)}>
                 <Text
                   className={`text-xs font-semibold ${
@@ -115,14 +119,14 @@ export function SupportPanel() {
 
       <SettingsSection title={t('settings.support.legalSectionTitle')}>
         <ExternalLink href={LEGAL_LINKS.privacyPolicy} asChild>
-          <Pressable className="border-b border-gray-100 px-4 py-3.5">
+          <Pressable className={`border-b ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
             <Text className="text-base font-semibold text-[#4F46E5]">
               {t('settings.support.legal.privacyPolicy')}
             </Text>
           </Pressable>
         </ExternalLink>
         <ExternalLink href={LEGAL_LINKS.termsOfService} asChild>
-          <Pressable className="border-b border-gray-100 px-4 py-3.5">
+          <Pressable className={`border-b ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
             <Text className="text-base font-semibold text-[#4F46E5]">
               {t('settings.support.legal.termsOfService')}
             </Text>
@@ -139,3 +143,20 @@ export function SupportPanel() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  categoryChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  categoryChipIdle: {
+    backgroundColor: GLASS_SURFACE.backgroundColor,
+    borderColor: GLASS_SURFACE.borderColor,
+  },
+  categoryChipActive: {
+    backgroundColor: ONBOARDING_ACCENT,
+    borderColor: ONBOARDING_ACCENT,
+  },
+});

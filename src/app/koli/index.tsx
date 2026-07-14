@@ -35,7 +35,7 @@ export default function KoliScreen() {
     segment?: string;
     settingsSubSegment?: string;
   }>();
-  const { contentTopPadding } = useMeshScreenInsets({ hasStackHeader: true });
+  const { contentTopPadding } = useMeshScreenInsets();
   const [activeSegment, setActiveSegment] = useState<KoliSegment>(() =>
     resolveInitialSegment(segment),
   );
@@ -46,21 +46,21 @@ export default function KoliScreen() {
 
   return (
     <HomeLayout>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <KoliHeaderTitle accessibilityLabel={t('koli.title')} />,
-          headerBackVisible: false,
-          headerLeft: () => (
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <View className="flex-1">
+        <View className="px-6" style={{ paddingTop: contentTopPadding }}>
+          <View className="relative mb-3 min-h-11 flex-row items-center">
             <SettingsBackButton
               label={t('settings.backToHome')}
               href="/home"
             />
-          ),
-        }}
-      />
-
-      <View className="flex-1">
-        <View className="px-6" style={{ paddingTop: contentTopPadding }}>
+            <View
+              pointerEvents="none"
+              className="absolute inset-x-0 items-center">
+              <KoliHeaderTitle accessibilityLabel={t('koli.title')} />
+            </View>
+          </View>
           <KoliSegmentSwitcher value={activeSegment} onChange={setActiveSegment} />
         </View>
 

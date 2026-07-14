@@ -29,7 +29,6 @@ function SheetSurface({
     variant === 'card'
       ? {
           borderRadius: SHEET_RADIUS,
-          backgroundColor: 'rgba(255, 255, 255, 0.42)',
           overflow: 'hidden',
           maxHeight,
         }
@@ -38,7 +37,6 @@ function SheetSurface({
           borderTopRightRadius: SHEET_RADIUS,
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.42)',
           overflow: 'hidden',
           maxHeight,
         },

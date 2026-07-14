@@ -19,14 +19,17 @@ import {
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
+import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { useHistory } from '@/hooks/use-history';
+import { parseDateOnly } from '@/lib/day-window';
 import { getLatestWeightKg } from '@/lib/history';
 import { formatWeightForDisplay } from '@/lib/weight-logs';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
 function formatShortDayLabel(dateKey: string, locale: string): string {
-  const date = new Date(`${dateKey}T12:00:00`);
+  const date = parseDateOnly(dateKey);
+  date.setHours(12, 0, 0, 0);
   return date.toLocaleDateString(locale, { weekday: 'short' });
 }
 
@@ -186,7 +189,7 @@ export function HistoryPanel() {
         onPress={() => router.replace('/home' as Href)}
         style={({ pressed }) => [
           getOnboardingSecondarySurfaceStyle(),
-          { opacity: pressed ? 0.75 : 1 },
+          pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
         ]}>
         <View className="flex-row items-center justify-center px-4 py-3">
           <Text className="text-sm font-medium text-[#4F46E5]">

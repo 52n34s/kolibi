@@ -17,6 +17,7 @@ export type ProfileSettingsData = {
   activity_level: ActivityLevel | null;
   goal_type: GoalType | null;
   calorie_goal_source: CalorieGoalSource | null;
+  trial_ends_at: string | null;
   latest_weight_kg: number | null;
   daily_calorie_goal: number | null;
 };
@@ -50,7 +51,7 @@ export async function fetchProfileSettings(userId: string): Promise<ProfileSetti
     supabase
       .from('profiles')
       .select(
-        'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source',
+        'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at',
       )
       .eq('id', userId)
       .maybeSingle(),

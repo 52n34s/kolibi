@@ -6,6 +6,7 @@ import {
   ONBOARDING_CARD_RADIUS,
   getOnboardingSecondarySurfaceStyle,
 } from '@/components/onboarding/onboarding-styles';
+import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 
 type WeightMetricCardProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -28,7 +29,8 @@ export function WeightMetricCard({
       style={({ pressed }) => [
         getOnboardingSecondarySurfaceStyle(),
         styles.card,
-        { opacity: pressed ? 0.75 : 1, borderRadius: ONBOARDING_CARD_RADIUS },
+        pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
+        { borderRadius: ONBOARDING_CARD_RADIUS },
       ]}
       onPress={onPress}>
       <View style={styles.iconWrap}>

@@ -58,6 +58,7 @@ type BarcodeFlowModalProps = {
   isSaving: boolean;
   showLookupSlow: boolean;
   onClose: () => void;
+  onDismissed?: () => void;
   onBarcodeScanned: (barcode: string) => void;
   onSaveItems: (items: MealItemRowItem[]) => void;
   onRetryLookup: () => void;
@@ -118,7 +119,7 @@ function BarcodeQuantityContent({
             name: product.productName,
             kcalPer100g: product.kcalPer100g,
             unit: 'g',
-            gramsPerUnit: null,
+            gramsPerUnit: product.servingSizeGrams,
           },
           quantityGrams,
         ),
@@ -321,6 +322,7 @@ export function BarcodeFlowModal({
   isSaving,
   showLookupSlow,
   onClose,
+  onDismissed,
   onBarcodeScanned,
   onSaveItems,
   onRetryLookup,
@@ -392,7 +394,12 @@ export function BarcodeFlowModal({
   }
 
   return (
-    <Modal visible={isOpen} animationType="none" onRequestClose={onClose} transparent>
+    <Modal
+      visible={isOpen}
+      animationType="none"
+      onRequestClose={onClose}
+      onDismiss={onDismissed}
+      transparent>
       {isOpen ? (
         <MealInputBarProvider>
           <View style={state.kind === 'camera' ? styles.cameraRoot : styles.overlayRoot}>

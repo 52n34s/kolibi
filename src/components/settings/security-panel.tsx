@@ -12,6 +12,7 @@ import {
 import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsSection } from '@/components/settings/settings-section';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
+import { getGlassCardStyle, SETTINGS_GLASS_DIVIDER_CLASS } from '@/components/ui/glass-styles';
 import { useAccountDeletion } from '@/hooks/use-account-deletion';
 import type { AuthProvider } from '@/lib/auth-provider';
 import {
@@ -114,7 +115,7 @@ export function SecurityPanel({ onOpenProfile }: SecurityPanelProps) {
               }
               positive={status?.cloudConnected ?? false}
             />
-            <View className="border-t border-gray-100">
+            <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS}`}>
               <StatusRow
                 icon="shield-checkmark-outline"
                 title={t('settings.security.privacy.title')}
@@ -151,6 +152,7 @@ export function SecurityPanel({ onOpenProfile }: SecurityPanelProps) {
         <SettingsRow
           label={t('settings.security.dataRights.export')}
           value={t('settings.security.dataRights.comingSoon')}
+          dimmed
           showChevron={false}
         />
         <SettingsRow
@@ -171,7 +173,7 @@ export function SecurityPanel({ onOpenProfile }: SecurityPanelProps) {
       ) : null}
 
       <Pressable
-        className="h-12 items-center justify-center rounded-xl border border-[#EDE4D8] bg-white/80"
+        style={getGlassCardStyle({ minHeight: 48, alignItems: 'center', justifyContent: 'center' })}
         disabled={isRefreshing}
         onPress={() => void refreshStatus()}>
         {isRefreshing ? (

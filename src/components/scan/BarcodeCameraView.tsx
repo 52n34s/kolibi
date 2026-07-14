@@ -170,7 +170,7 @@ function BarcodeCameraViewComponent({
         <View
           style={[
             styles.guideOverlay,
-            { top: insets.top + TOP_BAR_CONTENT_HEIGHT, bottom: Math.max(insets.bottom, 0) },
+            { top: insets.top + TOP_BAR_CONTENT_HEIGHT, bottom: insets.bottom },
           ]}
           pointerEvents="none">
           <View style={styles.guideFrame}>
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   timeoutOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,

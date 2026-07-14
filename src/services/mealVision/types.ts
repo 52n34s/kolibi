@@ -70,6 +70,8 @@ export type VisionResponse = z.infer<typeof visionResponseSchema>;
 
 export type QuantitySource = 'user' | 'derived' | 'ai';
 
+export type DisplayUnit = 'g' | 'ml';
+
 export type EditableMealItem = {
   id: string;
   name: string;
@@ -87,6 +89,8 @@ export type EditableMealItem = {
   foodId: string | null;
   kcalPer100g: number | null;
   quantitySource: QuantitySource;
+  /** Label only — ml is stored as quantity_type grams with 1:1 density. */
+  displayUnit: DisplayUnit;
 };
 
 export function getItemTotalGrams(item: EditableMealItem): number {
@@ -116,11 +120,13 @@ export function getBaselineTotalGrams(item: EditableMealItem): number {
 export function visionItemToEditable(item: VisionFoodItem, id: string): EditableMealItem {
   const quantityCount = item.estimated_count;
   const gramsPerUnit = item.estimated_grams_per_unit;
-  const isCountItem = quantityCount != null && gramsPerUnit != null;
+  const hasCountPieceWeight =
+    quantityCount != null && gramsPerUnit != null && gramsPerUnit > 0;
+  const isCountItem = hasCountPieceWeight;
   const quantityGrams = isCountItem ? quantityCount * gramsPerUnit : item.estimated_grams;
 
-  const baselineCount = quantityCount;
-  const baselineGramsPerUnit = gramsPerUnit;
+  const baselineCount = hasCountPieceWeight ? quantityCount : null;
+  const baselineGramsPerUnit = hasCountPieceWeight ? gramsPerUnit : null;
   const baselineGrams = isCountItem ? quantityCount * gramsPerUnit : item.estimated_grams;
 
   return {
@@ -129,8 +135,8 @@ export function visionItemToEditable(item: VisionFoodItem, id: string): Editable
     canonicalName: item.canonical_name,
     origin: 'ai',
     quantityGrams,
-    quantityCount,
-    gramsPerUnit,
+    quantityCount: hasCountPieceWeight ? quantityCount : null,
+    gramsPerUnit: hasCountPieceWeight ? gramsPerUnit : null,
     kcal: Math.round(item.estimated_kcal),
     confidence: item.confidence,
     baselineGrams,
@@ -140,6 +146,7 @@ export function visionItemToEditable(item: VisionFoodItem, id: string): Editable
     foodId: null,
     kcalPer100g: null,
     quantitySource: 'ai',
+    displayUnit: 'g',
   };
 }
 
@@ -170,6 +177,7 @@ export function createManualEditableItem(params: {
     foodId: null,
     kcalPer100g: null,
     quantitySource: 'user',
+    displayUnit: 'g',
   };
 }
 

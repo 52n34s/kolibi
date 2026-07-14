@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 
-export type MealStepperField = 'quantity' | 'kcal';
+export type MealStepperField = 'quantity' | 'kcal' | 'name';
 
 export type ActiveMealField = {
   itemId: string;

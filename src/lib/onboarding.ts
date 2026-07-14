@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { upsertTodayWeightLog } from '@/lib/weight-logs';
+import { localDateKey } from '@/lib/day-window';
 import { upsertDailyCalorieGoal } from '@/lib/calorie-goals';
 
 export type BiologicalSex = 'male' | 'female' | 'prefer_not_to_say';
@@ -18,6 +19,16 @@ export const ACTIVITY_FACTORS: Record<ActivityLevel, number> = {
   active: 1.55,
   very_active: 1.725,
 };
+
+/** Sedentary baseline when HealthKit supplies actual active energy at runtime. */
+export const HEALTHKIT_ACTIVITY_LEVEL: ActivityLevel = 'mostly_sitting';
+
+export function resolveActivityLevelForCalorieGoal(
+  activityLevel: ActivityLevel,
+  healthConnected: boolean,
+): ActivityLevel {
+  return healthConnected ? HEALTHKIT_ACTIVITY_LEVEL : activityLevel;
+}
 
 export const MINIMUM_DAILY_CALORIES = {
   female: 1200,
@@ -326,7 +337,7 @@ export async function completeOnboarding(
   const { error: profileError } = await supabase
     .from('profiles')
     .update({
-      birth_date: data.birthDate.toISOString().split('T')[0],
+      birth_date: localDateKey(data.birthDate),
       biological_sex: data.biologicalSex,
       height_cm: data.heightCm,
       activity_level: data.activityLevel,

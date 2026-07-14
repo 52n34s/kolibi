@@ -33,6 +33,7 @@ type MealConfirmationSheetProps = {
   items: VisionFoodItem[];
   isSaving: boolean;
   onClose: () => void;
+  onDismissed?: () => void;
   onSave: (items: EditableMealItem[]) => void;
 };
 
@@ -45,6 +46,7 @@ export function MealConfirmationSheet({
   items,
   isSaving,
   onClose,
+  onDismissed,
   onSave,
 }: MealConfirmationSheetProps) {
   const { t } = useTranslation();
@@ -124,6 +126,7 @@ export function MealConfirmationSheet({
     <GlassBottomSheet
       visible={visible}
       onClose={onClose}
+      onDismissed={onDismissed}
       maxHeightRatio={MEAL_SHEET_MAX_HEIGHT_RATIO}>
       <MealItemsSheetBody
         scrollRef={scrollRef}

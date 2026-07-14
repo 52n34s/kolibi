@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { GlassCard } from '@/components/ui/glass-card';
+import { getGlassCardStyle } from '@/components/ui/glass-styles';
 
 type SettingsSectionProps = {
   title?: string;
@@ -18,7 +18,7 @@ export function SettingsSection({ title, children, unframed = false }: SettingsS
           {title}
         </Text>
       ) : null}
-      {unframed ? children : <GlassCard>{children}</GlassCard>}
+      {unframed ? children : <View style={getGlassCardStyle()}>{children}</View>}
     </View>
   );
 }

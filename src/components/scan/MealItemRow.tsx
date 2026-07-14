@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Keyboard, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, Keyboard, StyleSheet, Text, TextInput, View } from 'react-native';
 import { CompactSegmentToggle } from '@/components/settings/compact-segment-toggle';
 import {
   type MealStepperField,
@@ -10,6 +10,7 @@ import {
 import {
   getDensityUnitLabel,
   isLinkedItem,
+  isPcsUnitAvailable,
   KCAL_STEP,
   type MealItemRowItem,
   type MealItemUnit,
@@ -251,6 +252,7 @@ export function MealItemRow({
   const mealInputBarActions = useMealInputBarActions();
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
+  const [nameFocused, setNameFocused] = useState(false);
 
   useEffect(() => {
     initializeUnitSystem();
@@ -261,6 +263,9 @@ export function MealItemRow({
   const minDisplayQuantity = getMinDisplayQuantity(item.unit, unitSystem);
   const allowDecimalQuantity = unitSystem === 'imperial' && item.unit !== 'pcs';
   const productName = item.name.trim() || t('home.manualEntry.namePlaceholder');
+  const pcsAvailable = isPcsUnitAvailable(item);
+  const currentUnitSegment =
+    item.unit === 'g' ? 'grams' : item.unit === 'ml' ? 'ml' : 'count';
 
   const unitSegments =
     unitSystem === 'imperial'
@@ -280,15 +285,18 @@ export function MealItemRow({
     onChangeQuantity(item.id, stored);
   }
 
-  function activateField(field: MealStepperField, draftText: string, displayValue: string) {
+  function activateField(field: MealStepperField, displayValue: string) {
     mealInputBarActions?.setActiveField({
       itemId: item.id,
       field,
-      productName,
+      productName:
+        field === 'name' ? t('home.manualEntry.namePlaceholder') : productName,
       fieldLabel:
         field === 'quantity'
           ? t('home.mealItemRow.quantityLabel')
-          : t('home.mealItemRow.kcalLabel'),
+          : field === 'kcal'
+            ? t('home.mealItemRow.kcalLabel')
+            : t('home.manualEntry.nameLabel'),
       displayValue,
     });
   }
@@ -307,6 +315,11 @@ export function MealItemRow({
     mealInputBarActions?.updateDisplayValue(formatKcalBarValue(draftText));
   }
 
+  function handleNameDraftChange(name: string) {
+    onChangeName(item.id, name);
+    mealInputBarActions?.updateDisplayValue(name);
+  }
+
   return (
     <View style={[styles.row, invalid && styles.rowInvalid]}>
       <View style={styles.headerRow}>
@@ -314,9 +327,20 @@ export function MealItemRow({
           accessibilityLabel={t('home.manualEntry.namePlaceholder')}
           placeholder={t('home.manualEntry.namePlaceholder')}
           placeholderTextColor="#9CA3AF"
-          style={styles.nameInput}
+          returnKeyType="done"
+          blurOnSubmit
+          onSubmitEditing={() => Keyboard.dismiss()}
+          style={[styles.nameInput, nameFocused && styles.nameInputFocused]}
           value={item.name}
-          onChangeText={(name) => onChangeName(item.id, name)}
+          onBlur={() => {
+            setNameFocused(false);
+            clearField('name');
+          }}
+          onChangeText={handleNameDraftChange}
+          onFocus={() => {
+            setNameFocused(true);
+            activateField('name', item.name);
+          }}
         />
         <View style={styles.headerActions}>
           {onRemove ? (
@@ -333,7 +357,16 @@ export function MealItemRow({
             <CompactSegmentToggle
             variant="unit"
             containerStyle={styles.unitToggle}
-            value={item.unit === 'g' ? 'grams' : item.unit === 'ml' ? 'ml' : 'count'}
+            value={currentUnitSegment}
+            disabledSegmentIds={pcsAvailable ? [] : ['count']}
+            onDisabledSegmentPress={(segmentId) => {
+              if (segmentId === 'count') {
+                Alert.alert(
+                  t('home.mealItemRow.pcsUnavailableTitle'),
+                  t('home.mealItemRow.pcsUnavailableMessage'),
+                );
+              }
+            }}
             onChange={(value) => {
               const unit: MealItemUnit =
                 value === 'ml' ? 'ml' : value === 'count' ? 'pcs' : 'g';
@@ -360,7 +393,6 @@ export function MealItemRow({
           onFocus={(draftText) =>
             activateField(
               'quantity',
-              draftText,
               formatQuantityBarValue(draftText, item.unit, unitSystem, t),
             )
           }
@@ -376,9 +408,7 @@ export function MealItemRow({
           onChange={(value) => onChangeKcal(item.id, value)}
           onBlur={() => clearField('kcal')}
           onDraftChange={handleKcalDraftChange}
-          onFocus={(draftText) =>
-            activateField('kcal', draftText, formatKcalBarValue(draftText))
-          }
+          onFocus={(draftText) => activateField('kcal', formatKcalBarValue(draftText))}
         />
       </View>
 
@@ -435,6 +465,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#111827',
+  },
+  nameInputFocused: {
+    borderColor: '#4F46E5',
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
   },
   unitToggleWrap: {
     flexShrink: 0,

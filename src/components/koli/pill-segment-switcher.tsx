@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ONBOARDING_CARD_COLORS } from '@/components/onboarding/onboarding-styles';
+import { GLASS_SURFACE } from '@/components/ui/glass-styles';
 
 const PILL_RADIUS = 999;
 
@@ -53,8 +54,8 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     flexDirection: 'row',
     padding: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.68)',
-    borderColor: ONBOARDING_CARD_COLORS.border,
+    backgroundColor: GLASS_SURFACE.backgroundColor,
+    borderColor: GLASS_SURFACE.borderColor,
     borderWidth: 1,
     borderRadius: PILL_RADIUS,
   },

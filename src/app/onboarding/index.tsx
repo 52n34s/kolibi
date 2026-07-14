@@ -22,6 +22,7 @@ import { HeightInput } from '@/components/onboarding/height-input';
 import { OnboardingLayout } from '@/components/onboarding/onboarding-layout';
 import { OptionCard } from '@/components/onboarding/option-card';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
+import { parseDateOnly } from '@/lib/day-window';
 import {
   ActivityOptionIcon,
   GoalOptionIcon,
@@ -39,9 +40,11 @@ import {
   getMinimumDailyCalories,
   type GoalType,
   isCalorieGoalFarFromTdee,
+  resolveActivityLevelForCalorieGoal,
   skipOnboarding,
 } from '@/lib/onboarding';
 import { fetchProfileSettings } from '@/lib/profile';
+import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 
@@ -91,6 +94,8 @@ export default function OnboardingScreen() {
   }>();
   const isReviewMode = resolveReviewMode(mode);
   const session = useAuthStore((state) => state.session);
+  const userId = session?.user?.id;
+  const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [step, setStep] = useState(0);
   const [biologicalSex, setBiologicalSex] = useState<BiologicalSex | null>(null);
@@ -127,7 +132,7 @@ export default function OnboardingScreen() {
         }
 
         if (profile.birth_date) {
-          setBirthDate(new Date(profile.birth_date));
+          setBirthDate(parseDateOnly(profile.birth_date));
         }
 
         if (profile.height_cm != null) {
@@ -196,8 +201,16 @@ export default function OnboardingScreen() {
   const parsedCustomCalories = Number(customCalorieGoal);
   const parsedDailyCalories = Number(dailyCalorieGoal);
 
+  const effectiveActivityLevelForCalories = useMemo(() => {
+    if (!activityLevel) {
+      return null;
+    }
+
+    return resolveActivityLevelForCalorieGoal(activityLevel, healthConnectedPreference === true);
+  }, [activityLevel, healthConnectedPreference]);
+
   const maintenanceCalories = useMemo(() => {
-    if (!birthDate || !activityLevel || !parsedHeight || !parsedWeight) {
+    if (!birthDate || !effectiveActivityLevelForCalories || !parsedHeight || !parsedWeight) {
       return null;
     }
 
@@ -206,9 +219,9 @@ export default function OnboardingScreen() {
       birthDate,
       heightCm: parsedHeight,
       weightKg: parsedWeight,
-      activityLevel,
+      activityLevel: effectiveActivityLevelForCalories,
     });
-  }, [activityLevel, birthDate, effectiveSex, parsedHeight, parsedWeight]);
+  }, [birthDate, effectiveActivityLevelForCalories, effectiveSex, parsedHeight, parsedWeight]);
 
   const showCustomGoalFarFromTdeeWarning =
     maintenanceCalories !== null &&
@@ -222,7 +235,7 @@ export default function OnboardingScreen() {
     (summaryManuallyEdited || goalType === 'custom');
 
   const calorieGoalCalculation = useMemo(() => {
-    if (!birthDate || !activityLevel || !goalType || !parsedHeight || !parsedWeight) {
+    if (!birthDate || !effectiveActivityLevelForCalories || !goalType || !parsedHeight || !parsedWeight) {
       return null;
     }
 
@@ -231,13 +244,13 @@ export default function OnboardingScreen() {
       birthDate,
       heightCm: parsedHeight,
       weightKg: parsedWeight,
-      activityLevel,
+      activityLevel: effectiveActivityLevelForCalories,
       goalType,
       customCalorieGoal: goalType === 'custom' ? parsedCustomCalories : null,
     });
   }, [
-    activityLevel,
     birthDate,
+    effectiveActivityLevelForCalories,
     effectiveSex,
     goalType,
     parsedCustomCalories,
@@ -286,15 +299,15 @@ export default function OnboardingScreen() {
           birthDate,
           heightCm: parsedHeight,
           weightKg: parsedWeight,
-          activityLevel,
+          activityLevel: effectiveActivityLevelForCalories,
           goalType,
           customCalorieGoal: goalType === 'custom' ? parsedCustomCalories : null,
         }),
       ),
     );
   }, [
-    activityLevel,
     birthDate,
+    effectiveActivityLevelForCalories,
     effectiveSex,
     goalType,
     parsedCustomCalories,

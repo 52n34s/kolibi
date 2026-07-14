@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -20,7 +21,6 @@ import { ManualEntryButton } from '@/components/home/ManualEntryButton';
 import { ScanMealButton } from '@/components/home/ScanMealButton';
 import { BarcodeFlowModal, type BarcodeFlowState } from '@/components/scan/BarcodeFlowModal';
 import {
-  getRowItemTotalGrams,
   rowItemsToEditable,
   type MealItemRowItem,
 } from '@/components/scan/meal-item-row-model';
@@ -38,12 +38,22 @@ import {
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
+import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { TodayMealsSection } from '@/components/home/TodayMealsSection';
 import { WeightMetricCard } from '@/components/home/weight-metric-card';
 import { WeightInputSheet } from '@/components/home/weight-update-sheet';
+import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useTodayMeals } from '@/hooks/use-today-meals';
-import { getTimeOfDay, getCalorieGoalDisplay, resolveDisplayName } from '@/lib/home';
+import { useHasPremiumAccess, useTrialStatus } from '@/hooks/use-premium-access';
+import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
+import { useActiveEnergyBurnedToday } from '@/hooks/use-active-energy-burned';
+import {
+  getTimeOfDay,
+  getCalorieGoalDisplay,
+  getDynamicCalorieGoalDisplay,
+  resolveDisplayName,
+} from '@/lib/home';
 import { kgToLbs } from '@/lib/units';
 import {
   formatWeightForDisplay,
@@ -53,12 +63,13 @@ import {
   upsertTodayWeightLog,
 } from '@/lib/weight-logs';
 import {
-  saveBarcodeMeal,
   saveScannedMeal,
   deleteMeal,
   updateMealWithItems,
   type TodayMeal,
 } from '@/lib/meals';
+import { registerForPushNotifications } from '@/lib/notifications';
+import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { MEAL_SOURCE, type MealSource } from '@/lib/meal-sources';
 import { pickMealPhotosFromGallery } from '@/lib/pick-meal-gallery';
 import {
@@ -76,6 +87,7 @@ import {
 import type { EditableMealItem, VisionFoodItem } from '@/services/mealVision/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 
 /** Dev-only: set e.g. 2269 to preview over-goal layout in the simulator */
 const DEV_PREVIEW_CONSUMED_CALORIES = 0;
@@ -114,7 +126,14 @@ export default function HomeScreen() {
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const { data, isLoading, isError, error } = useHomeDashboard();
   const { data: todayMeals, isLoading: isTodayMealsLoading } = useTodayMeals();
+  const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
+  const { data: activeEnergyBurnedToday } = useActiveEnergyBurnedToday(
+    healthConnectedPreference === true,
+  );
+  useHasPremiumAccess(userId);
+  const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
 
+  const [showPaywall, setShowPaywall] = useState(false);
   const [weightSheet, setWeightSheet] = useState<WeightSheetKind>(null);
   const [weightDraft, setWeightDraft] = useState('');
   const [isSavingWeight, setIsSavingWeight] = useState(false);
@@ -135,6 +154,8 @@ export default function HomeScreen() {
   const [barcodeFlow, setBarcodeFlow] = useState<BarcodeFlowState>({ kind: 'closed' });
   const [pendingBarcode, setPendingBarcode] = useState<string | null>(null);
   const pendingBarcodeRef = useRef<string | null>(null);
+  const pendingPaywallRef = useRef(false);
+  const paywallDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSavingBarcodeMeal, setIsSavingBarcodeMeal] = useState(false);
   const [showBarcodeLookupSlow, setShowBarcodeLookupSlow] = useState(false);
   const barcodeLookupAbortRef = useRef<AbortController | null>(null);
@@ -143,6 +164,82 @@ export default function HomeScreen() {
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [isSavingMealEdit, setIsSavingMealEdit] = useState(false);
   const [isDeletingMeal, setIsDeletingMeal] = useState(false);
+
+  const secureStore = useMemo(() => createChunkedSecureStoreAdapter(), []);
+
+  const maybeAskForPushAfterFirstMeal = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+
+    const stored = await secureStore.getItem('push_permission_asked');
+    if (stored === 'true') {
+      return;
+    }
+
+    const result = await registerForPushNotifications(userId);
+
+    if (result.status === 'granted' || result.status === 'denied') {
+      await secureStore.setItem('push_permission_asked', 'true');
+    }
+  }, [secureStore, userId]);
+
+  const flushPendingPaywall = useCallback(() => {
+    if (!pendingPaywallRef.current) {
+      return;
+    }
+
+    pendingPaywallRef.current = false;
+    setShowPaywall(true);
+  }, []);
+
+  const beginPaywallAfterSheetDismiss = useCallback(() => {
+    pendingPaywallRef.current = true;
+
+    if (Platform.OS === 'android') {
+      if (paywallDismissTimerRef.current) {
+        clearTimeout(paywallDismissTimerRef.current);
+      }
+
+      paywallDismissTimerRef.current = setTimeout(() => {
+        paywallDismissTimerRef.current = null;
+        flushPendingPaywall();
+      }, 350);
+    }
+  }, [flushPendingPaywall]);
+
+  const handleMealSheetDismissed = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      flushPendingPaywall();
+    }
+  }, [flushPendingPaywall]);
+
+  const gatePremiumAccessOnSave = useCallback(async (): Promise<boolean> => {
+    if (!userId) {
+      return false;
+    }
+
+    try {
+      const hasAccess = await queryClient.ensureQueryData({
+        queryKey: ['has-premium-access', userId],
+        queryFn: () => fetchHasPremiumAccess(userId),
+        staleTime: 60 * 1000,
+      });
+
+      return hasAccess === true;
+    } catch (gateError) {
+      console.error('[Home] premium access check failed:', gateError);
+      return false;
+    }
+  }, [queryClient, userId]);
+
+  useEffect(() => {
+    return () => {
+      if (paywallDismissTimerRef.current) {
+        clearTimeout(paywallDismissTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     initializeUnitSystem();
@@ -200,8 +297,25 @@ export default function HomeScreen() {
       return null;
     }
 
+    if (
+      healthConnectedPreference &&
+      activeEnergyBurnedToday != null
+    ) {
+      return getDynamicCalorieGoalDisplay(
+        dailyCalorieGoal,
+        consumedCaloriesToday,
+        activeEnergyBurnedToday,
+      );
+    }
+
     return getCalorieGoalDisplay(dailyCalorieGoal, consumedCaloriesToday);
-  }, [consumedCaloriesToday, dailyCalorieGoal, hasCalorieGoal]);
+  }, [
+    activeEnergyBurnedToday,
+    consumedCaloriesToday,
+    dailyCalorieGoal,
+    hasCalorieGoal,
+    healthConnectedPreference,
+  ]);
 
   const latestWeightKg = data?.latestWeight?.weight_kg ?? null;
   const targetWeightKg = data?.profile?.target_weight_kg ?? null;
@@ -441,6 +555,12 @@ export default function HomeScreen() {
     setIsSavingMeal(true);
 
     try {
+      if (!(await gatePremiumAccessOnSave())) {
+        beginPaywallAfterSheetDismiss();
+        handleMealConfirmationClose();
+        return;
+      }
+
       await saveScannedMeal({
         userId,
         items,
@@ -450,6 +570,7 @@ export default function HomeScreen() {
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       handleMealConfirmationClose();
+      await maybeAskForPushAfterFirstMeal();
     } catch (saveError) {
       console.error('[Home] meal save failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('home.scan.confirmation.saveError'));
@@ -538,36 +659,26 @@ export default function HomeScreen() {
       return;
     }
 
-    const { product } = barcodeFlow;
     setIsSavingBarcodeMeal(true);
 
     try {
-      if (items.length === 1 && items[0].name.trim() === product.productName.trim()) {
-        const item = items[0];
-        const quantityGrams = getRowItemTotalGrams(item);
-
-        await saveBarcodeMeal({
-          userId,
-          productName: product.productName,
-          kcalPer100g: product.kcalPer100g,
-          proteinPer100g: product.proteinPer100g,
-          carbsPer100g: product.carbsPer100g,
-          fatPer100g: product.fatPer100g,
-          quantityGrams,
-          kcal: item.kcal,
-        });
-      } else {
-        await saveScannedMeal({
-          userId,
-          items: rowItemsToEditable(items),
-          source: MEAL_SOURCE.BARCODE,
-        });
+      if (!(await gatePremiumAccessOnSave())) {
+        beginPaywallAfterSheetDismiss();
+        closeBarcodeFlow();
+        return;
       }
+
+      await saveScannedMeal({
+        userId,
+        items: rowItemsToEditable(items),
+        source: MEAL_SOURCE.BARCODE,
+      });
 
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       closeBarcodeFlow();
+      await maybeAskForPushAfterFirstMeal();
     } catch (saveError) {
       console.error('[Home] barcode meal save failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('home.scan.barcode.saveError'));
@@ -584,6 +695,12 @@ export default function HomeScreen() {
     setIsSavingManualMeal(true);
 
     try {
+      if (!(await gatePremiumAccessOnSave())) {
+        beginPaywallAfterSheetDismiss();
+        setShowManualEntrySheet(false);
+        return;
+      }
+
       await saveScannedMeal({
         userId,
         items,
@@ -593,6 +710,7 @@ export default function HomeScreen() {
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       setShowManualEntrySheet(false);
+      await maybeAskForPushAfterFirstMeal();
     } catch (saveError) {
       console.error('[Home] manual meal save failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('home.manualEntry.saveError'));
@@ -621,6 +739,12 @@ export default function HomeScreen() {
     setIsSavingMealEdit(true);
 
     try {
+      if (!(await gatePremiumAccessOnSave())) {
+        beginPaywallAfterSheetDismiss();
+        handleMealEditClose();
+        return;
+      }
+
       await updateMealWithItems({
         mealId: params.mealId,
         userId,
@@ -688,11 +812,29 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}>
           <Text className="mb-6 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
 
+          {isInTrial ? (
+            trialDaysLeft === 0 ? (
+              <Pressable className="mb-2" onPress={() => setShowPaywall(true)}>
+                <Text className="text-gray-500" style={{ fontSize: 11 }}>
+                  {t('home.trial.endsToday')}
+                </Text>
+              </Pressable>
+            ) : (
+              <Text className="mb-2 text-gray-500" style={{ fontSize: 11 }}>
+                {t('home.trial.daysLeft', { count: trialDaysLeft })}
+              </Text>
+            )
+          ) : null}
+
           {calorieGoalDisplay ? (
             <View style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
               <View className="px-5 py-6">
                 <Text className="mb-2 text-sm font-medium text-gray-500">
-                  {t('home.calorieGoal.label')}
+                  {t(
+                    calorieGoalDisplay.mode === 'dynamic'
+                      ? 'home.calorieGoal.dynamicLabel'
+                      : 'home.calorieGoal.label',
+                  )}
                 </Text>
                 <Text
                   className="text-5xl font-bold"
@@ -710,9 +852,14 @@ export default function HomeScreen() {
                 ) : null}
                 <Text
                   className={`text-sm text-gray-500 ${calorieGoalDisplay.showOverLabel ? 'mt-1' : 'mt-2'}`}>
-                  {t('home.calorieGoal.dailyGoalReference', {
-                    goal: calorieGoalDisplay.dailyGoalContextValue,
-                  })}
+                  {calorieGoalDisplay.mode === 'dynamic'
+                    ? t('home.calorieGoal.dynamicDailyGoalReference', {
+                        goal: calorieGoalDisplay.dailyGoalContextValue,
+                        burned: calorieGoalDisplay.activeEnergyBurned ?? 0,
+                      })
+                    : t('home.calorieGoal.dailyGoalReference', {
+                        goal: calorieGoalDisplay.dailyGoalContextValue,
+                      })}
                 </Text>
               </View>
             </View>
@@ -721,7 +868,7 @@ export default function HomeScreen() {
               onPress={openCalorieGoalSettings}
               style={({ pressed }) => [
                 getOnboardingSecondarySurfaceStyle(),
-                { opacity: pressed ? 0.75 : 1 },
+                pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
               ]}>
               <View className="flex-row items-center px-4 py-3">
                 <Text className="flex-1 text-sm text-gray-500">
@@ -812,6 +959,7 @@ export default function HomeScreen() {
         items={visionItems}
         isSaving={isSavingMeal}
         onClose={handleMealConfirmationClose}
+        onDismissed={handleMealSheetDismissed}
         onSave={(items) => void handleMealSave(items)}
       />
 
@@ -839,6 +987,7 @@ export default function HomeScreen() {
         isSaving={isSavingBarcodeMeal}
         showLookupSlow={showBarcodeLookupSlow}
         onClose={closeBarcodeFlow}
+        onDismissed={handleMealSheetDismissed}
         onBarcodeScanned={handleBarcodeDetected}
         onSaveItems={(items) => void handleBarcodeSave(items)}
         onRetryLookup={() => void handleBarcodeLookupRetry()}
@@ -849,6 +998,7 @@ export default function HomeScreen() {
         visible={showManualEntrySheet}
         isSaving={isSavingManualMeal}
         onClose={() => setShowManualEntrySheet(false)}
+        onDismissed={handleMealSheetDismissed}
         onSave={(items) => void handleManualMealSave(items)}
       />
 
@@ -859,6 +1009,7 @@ export default function HomeScreen() {
         isSaving={isSavingMealEdit}
         isDeleting={isDeletingMeal}
         onClose={handleMealEditClose}
+        onDismissed={handleMealSheetDismissed}
         onSave={(params) => void handleMealEditSave(params)}
         onDeleteMeal={(mealId) => void handleMealDelete(mealId)}
       />
@@ -895,6 +1046,12 @@ export default function HomeScreen() {
         onChange={setWeightDraft}
         onClose={closeWeightSheet}
         onSave={() => void (weightSheet === 'target' ? saveTargetWeight() : saveCurrentWeight())}
+      />
+
+      <PaywallSheet
+        visible={showPaywall}
+        userId={userId}
+        onClose={() => setShowPaywall(false)}
       />
     </HomeLayout>
   );

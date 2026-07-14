@@ -39,6 +39,7 @@ type MealEditSheetProps = {
   isSaving: boolean;
   isDeleting: boolean;
   onClose: () => void;
+  onDismissed?: () => void;
   onSave: (params: {
     mealId: string;
     items: MealItemEditInput[];
@@ -54,6 +55,7 @@ export function MealEditSheet({
   isSaving,
   isDeleting,
   onClose,
+  onDismissed,
   onSave,
   onDeleteMeal,
 }: MealEditSheetProps) {
@@ -198,6 +200,7 @@ export function MealEditSheet({
     <GlassBottomSheet
       visible={visible}
       onClose={onClose}
+      onDismissed={onDismissed}
       maxHeightRatio={MEAL_SHEET_MAX_HEIGHT_RATIO}>
       <View style={styles.sheetBody}>
         <Text style={styles.title}>{t('home.mealEdit.title')}</Text>

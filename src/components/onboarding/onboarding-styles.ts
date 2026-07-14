@@ -18,9 +18,6 @@ export const ONBOARDING_CARD_INNER_RADIUS = 14;
 export const ONBOARDING_GRID_CARD_MIN_HEIGHT = 132;
 
 export const ONBOARDING_SECONDARY_SURFACE = {
-  backgroundColor: '#FFFFFF',
-  borderColor: '#D1D5DB',
-  borderWidth: 1,
   borderRadius: 12,
 } as const;
 

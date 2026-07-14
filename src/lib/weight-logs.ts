@@ -1,4 +1,4 @@
-import { getTodayEffectiveFrom } from '@/lib/calorie-goals';
+import { localDateKey } from '@/lib/day-window';
 import { supabase } from '@/lib/supabase';
 import type { UnitSystem } from '@/lib/unit-system';
 import { kgToLbs, lbsToKg } from '@/lib/units';
@@ -48,7 +48,7 @@ export async function upsertTodayWeightLog(params: {
   source?: string;
 }) {
   const now = new Date().toISOString();
-  const loggedOn = getTodayEffectiveFrom();
+  const loggedOn = localDateKey();
 
   const { data: updatedRows, error: updateError } = await supabase
     .from('weight_logs')
@@ -74,6 +74,7 @@ export async function upsertTodayWeightLog(params: {
     user_id: params.userId,
     weight_kg: params.weightKg,
     logged_at: now,
+    logged_on: loggedOn,
     source: params.source ?? 'manual',
   });
 

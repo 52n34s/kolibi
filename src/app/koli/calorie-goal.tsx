@@ -19,23 +19,27 @@ import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
+import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import {
   calculateMaintenanceCalories,
   getMinimumDailyCalories,
   isCalorieGoalFarFromTdee,
+  resolveActivityLevelForCalorieGoal,
   type BiologicalSex,
 } from '@/lib/onboarding';
 import { logCalorieGoalSaveError } from '@/lib/calorie-goals';
+import { parseDateOnly } from '@/lib/day-window';
 import { updateDailyCalorieGoal } from '@/lib/profile';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function CalorieGoalSettingsScreen() {
   const { t } = useTranslation();
-  const { contentTopPadding } = useMeshScreenInsets({ hasStackHeader: true });
+  const { contentTopPadding } = useMeshScreenInsets();
   const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
   const { data, isLoading, isError, error } = useProfileSettings(userId);
+  const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
 
   const [dailyCalorieGoal, setDailyCalorieGoal] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -74,12 +78,15 @@ export default function CalorieGoalSettingsScreen() {
 
     return calculateMaintenanceCalories({
       biologicalSex: effectiveSex,
-      birthDate: new Date(profile.birth_date),
+      birthDate: parseDateOnly(profile.birth_date),
       heightCm: profile.height_cm,
       weightKg: profile.latest_weight_kg,
-      activityLevel: profile.activity_level,
+      activityLevel: resolveActivityLevelForCalorieGoal(
+        profile.activity_level,
+        healthConnectedPreference === true,
+      ),
     });
-  }, [effectiveSex, profile]);
+  }, [effectiveSex, healthConnectedPreference, profile]);
 
   const showFarFromTdeeWarning =
     maintenanceCalories != null &&
@@ -125,18 +132,14 @@ export default function CalorieGoalSettingsScreen() {
 
   return (
     <HomeLayout>
-      <Stack.Screen
-        options={{
-          title: t('settings.calorieGoal.screenTitle'),
-          headerBackVisible: false,
-          headerLeft: () => (
-            <SettingsBackButton
-              label={t('settings.title')}
-              href={{ pathname: '/koli', params: { segment: 'settings', settingsSubSegment: 'profile' } } as Href}
-            />
-          ),
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <View className="px-6" style={{ paddingTop: contentTopPadding }}>
+        <SettingsBackButton
+          label={t('settings.title')}
+          href={{ pathname: '/koli', params: { segment: 'settings', settingsSubSegment: 'profile' } } as Href}
+        />
+      </View>
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
@@ -154,7 +157,7 @@ export default function CalorieGoalSettingsScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView
             className="flex-1 px-6"
-            contentContainerStyle={{ paddingTop: contentTopPadding, paddingBottom: 32 }}
+            contentContainerStyle={{ paddingTop: 12, paddingBottom: 32 }}
             keyboardShouldPersistTaps="always">
             <Text className="mb-2 text-2xl font-bold text-gray-900">
               {t('settings.calorieGoal.screenTitle')}

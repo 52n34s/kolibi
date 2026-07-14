@@ -15,6 +15,11 @@ export const GLASS_SURFACE = {
   elevation: 4,
 } as const;
 
+/** Pressed-state glass — darkens surface without dimming blur via container opacity. */
+export const GLASS_SURFACE_PRESSED = {
+  backgroundColor: 'rgba(255, 255, 255, 0.28)',
+} as const;
+
 export function getGlassCardStyle(overrides?: ViewStyle): ViewStyle {
   return {
     ...GLASS_SURFACE,
@@ -23,6 +28,9 @@ export function getGlassCardStyle(overrides?: ViewStyle): ViewStyle {
     ...overrides,
   };
 }
+
+/** Subtle divider inside glass settings cards — avoids solid gray bands. */
+export const SETTINGS_GLASS_DIVIDER_CLASS = 'border-white/50';
 
 /** Circular glass surface for icon buttons (e.g. Koli menu). */
 export function getGlassPillStyle(size = 40): ViewStyle {

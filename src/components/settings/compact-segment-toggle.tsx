@@ -2,9 +2,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   ONBOARDING_ACCENT,
-  ONBOARDING_CARD_COLORS,
   ONBOARDING_SECONDARY_SURFACE,
 } from '@/components/onboarding/onboarding-styles';
+import { GLASS_SURFACE } from '@/components/ui/glass-styles';
 
 const segmentRadius = ONBOARDING_SECONDARY_SURFACE.borderRadius - 4;
 
@@ -12,6 +12,8 @@ type CompactSegmentToggleProps = {
   segments: { id: string; label: string }[];
   value: string;
   onChange: (value: string) => void;
+  disabledSegmentIds?: string[];
+  onDisabledSegmentPress?: (segmentId: string) => void;
   /** Language uses solid accent fill; unit uses bordered card segment. */
   variant?: 'language' | 'unit';
   style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
@@ -22,6 +24,8 @@ export function CompactSegmentToggle({
   segments,
   value,
   onChange,
+  disabledSegmentIds = [],
+  onDisabledSegmentPress,
   variant = 'unit',
   style,
   containerStyle,
@@ -31,6 +35,7 @@ export function CompactSegmentToggle({
       <View style={[styles.container, variant === 'language' && styles.containerLanguage, containerStyle]}>
         {segments.map((segment) => {
           const isActive = value === segment.id;
+          const isDisabled = disabledSegmentIds.includes(segment.id);
 
           return (
             <Pressable
@@ -39,13 +44,22 @@ export function CompactSegmentToggle({
                 styles.segment,
                 variant === 'unit' && isActive && styles.segmentActive,
                 variant === 'language' && isActive && styles.segmentActive,
+                isDisabled && styles.segmentDisabled,
               ]}
-              onPress={() => onChange(segment.id)}>
+              onPress={() => {
+                if (isDisabled) {
+                  onDisabledSegmentPress?.(segment.id);
+                  return;
+                }
+
+                onChange(segment.id);
+              }}>
               <Text
                 style={[
                   styles.label,
                   variant === 'unit' && isActive && styles.labelActive,
                   variant === 'language' && isActive && styles.labelActive,
+                  isDisabled && styles.labelDisabled,
                 ]}>
                 {segment.label}
               </Text>
@@ -69,13 +83,13 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     marginBottom: 12,
     padding: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.45)',
-    borderColor: ONBOARDING_CARD_COLORS.border,
-    borderWidth: 1,
+    backgroundColor: GLASS_SURFACE.backgroundColor,
+    borderColor: GLASS_SURFACE.borderColor,
+    borderWidth: GLASS_SURFACE.borderWidth,
     borderRadius: ONBOARDING_SECONDARY_SURFACE.borderRadius,
   },
   containerLanguage: {
-    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    backgroundColor: GLASS_SURFACE.backgroundColor,
   },
   segment: {
     flexGrow: 0,
@@ -96,5 +110,11 @@ const styles = StyleSheet.create({
   labelActive: {
     fontSize: 12,
     color: '#FFFFFF',
+  },
+  segmentDisabled: {
+    opacity: 0.45,
+  },
+  labelDisabled: {
+    color: '#9CA3AF',
   },
 });

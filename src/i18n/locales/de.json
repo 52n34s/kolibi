@@ -125,12 +125,19 @@
     },
     "calorieGoal": {
       "label": "Heute übrig",
+      "dynamicLabel": "Verbleibend heute",
       "overGoal": "kcal drüber",
       "dailyGoalReference": "Tagesziel: {{goal}} kcal",
+      "dynamicDailyGoalReference": "Tagesziel {{goal}} · +{{burned}} verbrannt",
       "notSpecified": "Nicht angegeben",
       "tapToSet": "Tippen, um dein Ziel festzulegen",
       "emptyPrefix": "Kein Kalorienziel gesetzt · ",
       "emptyAction": "Jetzt festlegen"
+    },
+    "trial": {
+      "daysLeft_one": "Testzeitraum: noch {{count}} Tag",
+      "daysLeft_other": "Testzeitraum: noch {{count}} Tage",
+      "endsToday": "Testzeitraum endet heute"
     },
     "weight": {
       "label": "Aktuelles Gewicht",
@@ -151,7 +158,9 @@
       "emptyTitle": "Noch keine Mahlzeiten heute",
       "emptySubtitle": "Scanne deine erste Mahlzeit, um zu starten.",
       "unnamedMeal": "Mahlzeit",
-      "rowMeta": "{{grams}} g · {{kcal}} kcal · {{time}}"
+      "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
+      "quantityMass": "{{amount}} {{unit}}",
+      "quantityCount": "{{count}} Stück"
     },
     "meal": {
       "removeItem": "Produkt entfernen",
@@ -161,7 +170,9 @@
     "mealItemRow": {
       "quantityLabel": "Menge",
       "kcalLabel": "kcal",
-      "densityHint": "{{kcal}} kcal / 100 {{unit}}"
+      "densityHint": "{{kcal}} kcal / 100 {{unit}}",
+      "pcsUnavailableTitle": "Stückgewicht unbekannt",
+      "pcsUnavailableMessage": "Das Stückgewicht für dieses Produkt ist nicht bekannt."
     },
     "manualEntry": {
       "buttonLabel": "Manuell",
@@ -424,6 +435,24 @@
     "units": {
       "sectionTitle": "Einheitensystem"
     },
+    "health": {
+      "sectionTitle": "Apple Health",
+      "toggleLabel": "Verbunden",
+      "disconnectedHint": "Beim Verbinden wird dein Aktivitätslevel durch deine tatsächlichen Health-Daten ersetzt. Dein Grundziel sinkt dadurch, dafür kommen deine verbrannten Kalorien tagesaktuell dazu.",
+      "connectedHint": "Dein Aktivitätslevel aus dem Onboarding wird nicht mehr verwendet. Dein Tagesziel basiert auf deinem Grundumsatz plus den Kalorien, die du laut Apple Health tatsächlich verbrennst.",
+      "revokeHint": "Zugriff vollständig widerrufen kannst du in der Health-App unter Freigabe → Apps.",
+      "connectConfirmTitle": "Aktivitätslevel wird ersetzt",
+      "connectConfirmMessage": "Dein Tagesziel wird ab jetzt aus deinem Grundumsatz und deinen echten Health-Daten berechnet. Es kann sich dadurch ändern.",
+      "connectConfirmCancel": "Abbrechen",
+      "connectConfirmAction": "Verbinden",
+      "disconnectHint": "Beim Trennen wird dein Tagesziel wieder auf dein Aktivitätslevel aus dem Onboarding zurückgesetzt.",
+      "disconnectConfirmTitle": "Aktivitätslevel zurücksetzen?",
+      "disconnectConfirmMessage": "Dein Tagesziel wird wieder mit deinem Aktivitätslevel aus dem Onboarding berechnet, statt mit Apple-Health-Daten. Es kann sich dadurch ändern.",
+      "disconnectConfirmCancel": "Abbrechen",
+      "disconnectConfirmAction": "Trennen",
+      "permissionDenied": "Health-Zugriff wurde nicht erteilt.",
+      "saveFailed": "Health-Verbindung konnte nicht aktualisiert werden. Bitte erneut versuchen."
+    },
     "calorieGoal": {
       "sectionTitle": "Kalorienziel",
       "screenTitle": "Kalorienziel bearbeiten",
@@ -442,10 +471,22 @@
     },
     "subscription": {
       "sectionTitle": "Abo",
-      "comingSoonTitle": "Verwaltung folgt bald",
-      "comingSoonMessage": "Die Abo-Verwaltung wird hier verfügbar, sobald die Abrechnung angebunden ist.",
-      "active": "Premium aktiv",
-      "overrideActive": "Premium-Zugang freigeschaltet"
+      "statusTrial": "Testphase bis {{date}}",
+      "statusActive": "Aktiv bis {{date}}",
+      "statusOverride": "Premium-Zugang freigeschaltet",
+      "statusNone": "Kein aktives Abo",
+      "statusActivePaid": "Kolibi Premium aktiv",
+      "statusTrialDays": "Testzeitraum: noch {{count}} Tage",
+      "renewsOn": "Verlängert sich am {{date}}",
+      "getPremium": "Kolibi Premium holen",
+      "price": "9,99 €/Monat",
+      "manage": "Abo verwalten",
+      "cancel": "Abo kündigen",
+      "cancelHint": "Pflicht nach §312k BGB — Kündigung über deine Apple-ID-Abo-Einstellungen.",
+      "withdraw": "Widerrufsrecht ausüben",
+      "withdrawHint": "Pflicht nach §356a BGB seit 19.06.2026 — Details in unseren AGB.",
+      "placeholderTitle": "Demnächst",
+      "withdrawPlaceholder": "Der Widerrufsprozess wird hier verfügbar, sobald die Abrechnung angebunden ist."
     },
     "signOut": {
       "action": "Abmelden",
@@ -466,5 +507,24 @@
   },
   "common": {
     "done": "Fertig"
+  },
+  "paywall": {
+    "title": "Dein Testzeitraum ist vorbei",
+    "description": "Foto-Scan, Barcode und Tracking — alles in Kolibi Premium.",
+    "priceFallback": "Premium-Abo monatlich",
+    "autoRenew": "Verlängert sich automatisch um einen Monat, bis du kündigst. Jederzeit kündbar.",
+    "subscribe": "Kolibi Premium holen",
+    "restore": "Käufe wiederherstellen",
+    "privacy": "Datenschutz",
+    "terms": "AGB",
+    "dismiss": "Später",
+    "purchaseSuccessTitle": "Willkommen bei Premium!",
+    "purchaseSuccessMessage": "Du hast jetzt vollen Zugang zu Kolibi.",
+    "purchaseError": "Kauf konnte nicht abgeschlossen werden. Bitte erneut versuchen.",
+    "priceUnavailable": "Abo-Preis ist gerade nicht verfügbar. Bitte später erneut versuchen.",
+    "restoreSuccessTitle": "Käufe wiederhergestellt",
+    "restoreSuccessMessage": "Dein Premium-Zugang ist aktiv.",
+    "restoreEmpty": "Kein aktives Abo für dieses Konto gefunden.",
+    "restoreError": "Käufe konnten nicht wiederhergestellt werden. Bitte erneut versuchen."
   }
 }

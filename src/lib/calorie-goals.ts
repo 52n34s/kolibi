@@ -1,16 +1,14 @@
+import { localDateKey } from '@/lib/day-window';
 import { supabase } from '@/lib/supabase';
-
-export function getTodayEffectiveFrom(): string {
-  return new Date().toISOString().split('T')[0];
-}
 
 export async function upsertDailyCalorieGoal(params: {
   userId: string;
   dailyCalorieGoal: number;
   effectiveFrom?: string;
 }) {
-  const effectiveFromDate = params.effectiveFrom ?? getTodayEffectiveFrom();
+  const effectiveFromDate = params.effectiveFrom ?? localDateKey();
 
+  // Upsert on (user_id, effective_from) — safe for multiple HealthKit toggles same day.
   const { error } = await supabase.from('calorie_goals').upsert(
     {
       user_id: params.userId,

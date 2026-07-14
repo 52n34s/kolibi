@@ -17,6 +17,8 @@ type GlassBottomSheetProps = {
   /** Bottom sheet (default) or centered glass dialog — use center for compact numeric forms. */
   presentation?: 'bottom' | 'center';
   onShow?: () => void;
+  /** iOS: fires after the dismiss animation completes. */
+  onDismissed?: () => void;
 };
 
 export function GlassBottomSheet({
@@ -27,6 +29,7 @@ export function GlassBottomSheet({
   numberInputAccessory = false,
   presentation = 'bottom',
   onShow,
+  onDismissed,
 }: GlassBottomSheetProps) {
   const { height: windowHeight } = useWindowDimensions();
   const maxSheetHeight = maxHeightRatio ? windowHeight * maxHeightRatio : undefined;
@@ -38,7 +41,8 @@ export function GlassBottomSheet({
       visible={visible}
       animationType={isCentered ? 'fade' : 'slide'}
       onRequestClose={onClose}
-      onShow={onShow}>
+      onShow={onShow}
+      onDismiss={onDismissed}>
       {visible ? (
         <MealInputBarProvider>
           <View style={styles.modalRoot}>

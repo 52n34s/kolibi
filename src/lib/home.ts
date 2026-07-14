@@ -112,6 +112,8 @@ export type CalorieGoalDisplay = {
   /** Shared label-style context line for both normal and over-goal states. */
   dailyGoalContextValue: number;
   showOverLabel: boolean;
+  mode?: 'static' | 'dynamic';
+  activeEnergyBurned?: number;
 };
 
 export function getCalorieGoalDisplay(
@@ -131,5 +133,23 @@ export function getCalorieGoalDisplay(
     mainValue: isOverGoal ? overAmount : remaining,
     dailyGoalContextValue: dailyGoal,
     showOverLabel: isOverGoal,
+    mode: 'static',
+  };
+}
+
+export function getDynamicCalorieGoalDisplay(
+  dailyGoal: number,
+  consumedToday: number,
+  activeEnergyBurned: number,
+): CalorieGoalDisplay {
+  const adjustedDailyGoal = dailyGoal + activeEnergyBurned;
+  const display = getCalorieGoalDisplay(adjustedDailyGoal, consumedToday);
+
+  return {
+    ...display,
+    dailyGoal,
+    dailyGoalContextValue: dailyGoal,
+    mode: 'dynamic',
+    activeEnergyBurned,
   };
 }

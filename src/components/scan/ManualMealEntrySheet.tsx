@@ -26,6 +26,7 @@ type ManualMealEntrySheetProps = {
   visible: boolean;
   isSaving: boolean;
   onClose: () => void;
+  onDismissed?: () => void;
   onSave: (items: EditableMealItem[]) => void;
 };
 
@@ -33,6 +34,7 @@ export function ManualMealEntrySheet({
   visible,
   isSaving,
   onClose,
+  onDismissed,
   onSave,
 }: ManualMealEntrySheetProps) {
   const { t } = useTranslation();
@@ -98,6 +100,7 @@ export function ManualMealEntrySheet({
     <GlassBottomSheet
       visible={visible}
       onClose={onClose}
+      onDismissed={onDismissed}
       maxHeightRatio={MEAL_SHEET_MAX_HEIGHT_RATIO}>
       <MealItemsSheetBody
         scrollRef={scrollRef}
