@@ -74,6 +74,10 @@ export const mealEntrySheetStyles = StyleSheet.create({
     fontWeight: '600',
     color: '#DC2626',
   },
+  sheetRoot: {
+    position: 'relative',
+    flexGrow: 0,
+  },
   loadingState: {
     alignItems: 'center',
     justifyContent: 'center',

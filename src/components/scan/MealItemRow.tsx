@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, Keyboard, StyleSheet, Text, TextInput, View } from 'react-native';
+import type { NameFieldAnchor } from '@/components/scan/FoodNameAutocompleteDropdown';
 import { CompactSegmentToggle } from '@/components/settings/compact-segment-toggle';
 import {
   type MealStepperField,
@@ -33,6 +34,10 @@ export type MealItemRowProps = {
   onChangeKcal: (id: string, value: number) => void;
   onRemove?: (id: string) => void;
   invalid?: boolean;
+  onNameFieldFocus?: (id: string, anchor: NameFieldAnchor) => void;
+  onQuantityFieldFocus?: (id: string) => void;
+  onKcalFieldFocus?: (id: string) => void;
+  remeasureTrigger?: number;
 };
 
 type StepperFieldProps = {
@@ -239,16 +244,35 @@ export function MealItemRow({
   onChangeKcal,
   onRemove,
   invalid = false,
+  onNameFieldFocus,
+  onQuantityFieldFocus,
+  onKcalFieldFocus,
+  remeasureTrigger = 0,
 }: MealItemRowProps) {
   const { t } = useTranslation();
   const mealInputBarActions = useMealInputBarActions();
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [nameFocused, setNameFocused] = useState(false);
+  const nameInputWrapRef = useRef<View>(null);
 
   useEffect(() => {
     initializeUnitSystem();
   }, [initializeUnitSystem]);
+
+  function reportNameAnchor() {
+    nameInputWrapRef.current?.measureInWindow((x, y, width, height) => {
+      onNameFieldFocus?.(item.id, { x, y, width, height });
+    });
+  }
+
+  useEffect(() => {
+    if (!nameFocused) {
+      return;
+    }
+
+    reportNameAnchor();
+  }, [nameFocused, remeasureTrigger, item.id]);
 
   const displayQuantity = toDisplay(item.quantity, item.unit, unitSystem);
   const quantityStep = getQuantityStep(item.unit, unitSystem);
@@ -315,25 +339,28 @@ export function MealItemRow({
   return (
     <View style={[styles.row, invalid && styles.rowInvalid]}>
       <View style={styles.headerRow}>
-        <TextInput
-          accessibilityLabel={t('home.manualEntry.namePlaceholder')}
-          placeholder={t('home.manualEntry.namePlaceholder')}
-          placeholderTextColor="#9CA3AF"
-          returnKeyType="done"
-          blurOnSubmit
-          onSubmitEditing={() => Keyboard.dismiss()}
-          style={[styles.nameInput, nameFocused && styles.nameInputFocused]}
-          value={item.name}
-          onBlur={() => {
-            setNameFocused(false);
-            clearField('name');
-          }}
-          onChangeText={handleNameDraftChange}
-          onFocus={() => {
-            setNameFocused(true);
-            activateField('name', item.name);
-          }}
-        />
+        <View ref={nameInputWrapRef} style={styles.nameInputWrap} collapsable={false}>
+          <TextInput
+            accessibilityLabel={t('home.manualEntry.namePlaceholder')}
+            placeholder={t('home.manualEntry.namePlaceholder')}
+            placeholderTextColor="#9CA3AF"
+            returnKeyType="done"
+            blurOnSubmit
+            onSubmitEditing={() => Keyboard.dismiss()}
+            style={[styles.nameInput, nameFocused && styles.nameInputFocused]}
+            value={item.name}
+            onBlur={() => {
+              setNameFocused(false);
+              clearField('name');
+            }}
+            onChangeText={handleNameDraftChange}
+            onFocus={() => {
+              setNameFocused(true);
+              activateField('name', item.name);
+              reportNameAnchor();
+            }}
+          />
+        </View>
         <View style={styles.headerActions}>
           {onRemove ? (
             <Pressable
@@ -382,12 +409,13 @@ export function MealItemRow({
           onChange={handleQuantityDisplayChange}
           onBlur={() => clearField('quantity')}
           onDraftChange={handleQuantityDraftChange}
-          onFocus={(draftText) =>
+          onFocus={(draftText) => {
+            onQuantityFieldFocus?.(item.id);
             activateField(
               'quantity',
               formatQuantityBarValue(draftText, item.unit, unitSystem, t),
-            )
-          }
+            );
+          }}
         />
         <StepperField
           allowDecimals={false}
@@ -400,7 +428,10 @@ export function MealItemRow({
           onChange={(value) => onChangeKcal(item.id, value)}
           onBlur={() => clearField('kcal')}
           onDraftChange={handleKcalDraftChange}
-          onFocus={(draftText) => activateField('kcal', formatKcalBarValue(draftText))}
+          onFocus={(draftText) => {
+            onKcalFieldFocus?.(item.id);
+            activateField('kcal', formatKcalBarValue(draftText));
+          }}
         />
       </View>
 
@@ -444,10 +475,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  nameInput: {
+  nameInputWrap: {
     flex: 1,
     minWidth: 0,
     flexShrink: 1,
+  },
+  nameInput: {
+    width: '100%',
     borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.65)',
     borderWidth: 1,

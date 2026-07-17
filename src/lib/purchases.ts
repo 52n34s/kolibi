@@ -43,3 +43,56 @@ export async function purchasePremiumPackage(packageToBuy: PurchasesPackage) {
 export async function restorePremiumPurchases() {
   return Purchases.restorePurchases();
 }
+
+export async function getRevenueCatOriginalTransactionId(): Promise<string | null> {
+  const metadata = await getRevenueCatSubscriptionMetadata();
+  return metadata.rcOriginalTransactionId;
+}
+
+export async function getRevenueCatSubscriptionMetadata(): Promise<{
+  rcOriginalTransactionId: string | null;
+  productId: string | null;
+}> {
+  try {
+    const customerInfo = await Purchases.getCustomerInfo();
+    const entitlements = Object.values(customerInfo.entitlements.active);
+
+    for (const entitlement of entitlements) {
+      const record = entitlement as {
+        productIdentifier?: string | null;
+        storeTransactionId?: string | null;
+        originalTransactionIdentifier?: string | null;
+      };
+
+      const transactionId = record.originalTransactionIdentifier ?? record.storeTransactionId;
+      const productId = record.productIdentifier ?? null;
+
+      if (typeof transactionId === 'string' && transactionId.length > 0) {
+        return {
+          rcOriginalTransactionId: transactionId,
+          productId: typeof productId === 'string' && productId.length > 0 ? productId : null,
+        };
+      }
+
+      if (typeof productId === 'string' && productId.length > 0) {
+        return {
+          rcOriginalTransactionId: null,
+          productId,
+        };
+      }
+    }
+
+    const activeProductId = customerInfo.activeSubscriptions[0] ?? null;
+
+    return {
+      rcOriginalTransactionId: null,
+      productId: activeProductId,
+    };
+  } catch (error) {
+    console.warn('[RevenueCat] getRevenueCatSubscriptionMetadata failed:', error);
+    return {
+      rcOriginalTransactionId: null,
+      productId: null,
+    };
+  }
+}

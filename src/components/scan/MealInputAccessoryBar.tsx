@@ -3,8 +3,11 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { useMealInputBarValues } from '@/components/scan/meal-input-bar-context';
 
-const BAR_HEIGHT = 64;
-const KEYBOARD_GAP = 8;
+export const MEAL_INPUT_BAR_HEIGHT = 64;
+export const MEAL_INPUT_KEYBOARD_GAP = 8;
+
+const BAR_HEIGHT = MEAL_INPUT_BAR_HEIGHT;
+const KEYBOARD_GAP = MEAL_INPUT_KEYBOARD_GAP;
 
 function BarContent({
   productName,

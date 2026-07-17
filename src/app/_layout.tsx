@@ -10,7 +10,7 @@ Sentry.init({
 import '../global.css';
 import '@/i18n';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -20,13 +20,32 @@ import { PostHogProvider } from 'posthog-react-native';
 
 import { useAuthStore } from '@/stores/auth-store';
 import { posthog } from '@/lib/analytics';
+import { registerPremiumAccessCustomerInfoListener } from '@/lib/premium-query-sync';
 import { initPurchases, logOutPurchases } from '@/lib/purchases';
+import {
+  refreshRevenueCatCustomerInfo,
+  resetRevenueCatCustomerInfoStore,
+} from '@/lib/revenuecat-customer-info';
 import { useAppDayRollover } from '@/hooks/use-app-day-rollover';
 
 SplashScreen.preventAutoHideAsync();
 
 function AppLifecycle({ userId }: { userId: string | null }) {
   useAppDayRollover(userId);
+  return null;
+}
+
+function PremiumAccessSync({ userId }: { userId: string | null }) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    return registerPremiumAccessCustomerInfoListener(queryClient, userId);
+  }, [queryClient, userId]);
+
   return null;
 }
 
@@ -52,8 +71,9 @@ function RootLayout() {
     }
 
     if (userId) {
-      void initPurchases(userId);
+      void initPurchases(userId).then(() => refreshRevenueCatCustomerInfo());
     } else {
+      resetRevenueCatCustomerInfoStore();
       void logOutPurchases();
     }
   }, [initialized, userId]);
@@ -65,6 +85,7 @@ function RootLayout() {
   const app = (
     <QueryClientProvider client={queryClient}>
       <AppLifecycle userId={userId} />
+      <PremiumAccessSync userId={userId} />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />

@@ -58,6 +58,8 @@ type MealItemsSheetBodyProps = {
   footer: ReactNode;
   children: ReactNode;
   scrollRef?: RefObject<ScrollView | null>;
+  onScroll?: () => void;
+  onBackgroundPress?: () => void;
 };
 
 export function MealItemsSheetBody({
@@ -65,6 +67,8 @@ export function MealItemsSheetBody({
   footer,
   children,
   scrollRef,
+  onScroll,
+  onBackgroundPress,
 }: MealItemsSheetBodyProps) {
   const { scrollMaxHeight } = useMealItemsSheetLayout();
   useMealInputKeyboardHeight();
@@ -92,8 +96,14 @@ export function MealItemsSheetBody({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
-          nestedScrollEnabled>
-          <Pressable style={styles.dismissTapArea} onPress={Keyboard.dismiss}>
+          nestedScrollEnabled
+          onScroll={onScroll}
+          scrollEventThrottle={16}>
+          <Pressable
+            style={styles.dismissTapArea}
+            onPress={() => {
+              onBackgroundPress?.();
+            }}>
             {children}
           </Pressable>
         </ScrollView>

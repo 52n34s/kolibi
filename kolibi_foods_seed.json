@@ -1,0 +1,1202 @@
+{
+  "_meta": {
+    "source": "USDA National Nutrient Database for Standard Reference (SR28), public domain / CC0",
+    "values": "per 100 g edible portion",
+    "count": 50
+  },
+  "foods": [
+    {
+      "slug": "white_rice",
+      "names": {
+        "de": "Reis, gekocht",
+        "en": "White rice, cooked",
+        "es": "Arroz blanco, cocido"
+      },
+      "search_terms": [
+        "arroz",
+        "arroz blanco",
+        "reis",
+        "rice",
+        "white rice"
+      ],
+      "category": "grain",
+      "form": "cooked",
+      "kcal_per_100g": 130.0,
+      "protein_100g": 2.69,
+      "fat_100g": 0.28,
+      "carbs_100g": 28.17,
+      "source": "usda_sr28",
+      "usda_ndb": "20045",
+      "usda_desc": "RICE,WHITE,LONG-GRAIN,REG,ENR,CKD"
+    },
+    {
+      "slug": "brown_rice",
+      "names": {
+        "de": "Vollkornreis, gekocht",
+        "en": "Brown rice, cooked",
+        "es": "Arroz integral, cocido"
+      },
+      "search_terms": [
+        "arroz integral",
+        "brauner reis",
+        "brown rice",
+        "vollkornreis"
+      ],
+      "category": "grain",
+      "form": "cooked",
+      "kcal_per_100g": 123.0,
+      "protein_100g": 2.74,
+      "fat_100g": 0.97,
+      "carbs_100g": 25.58,
+      "source": "usda_sr28",
+      "usda_ndb": "20037",
+      "usda_desc": "RICE,BROWN,LONG-GRAIN,CKD"
+    },
+    {
+      "slug": "pasta",
+      "names": {
+        "de": "Nudeln, gekocht",
+        "en": "Pasta, cooked",
+        "es": "Pasta, cocida"
+      },
+      "search_terms": [
+        "fideos",
+        "noodles",
+        "nudeln",
+        "pasta",
+        "spaghetti"
+      ],
+      "category": "grain",
+      "form": "cooked",
+      "kcal_per_100g": 158.0,
+      "protein_100g": 5.8,
+      "fat_100g": 0.93,
+      "carbs_100g": 30.86,
+      "source": "usda_sr28",
+      "usda_ndb": "20121",
+      "usda_desc": "PASTA,CKD,ENR,WO/ ADDED SALT"
+    },
+    {
+      "slug": "couscous",
+      "names": {
+        "de": "Couscous, gekocht",
+        "en": "Couscous, cooked",
+        "es": "Cuscús, cocido"
+      },
+      "search_terms": [
+        "couscous",
+        "cuscús",
+        "kuskus"
+      ],
+      "category": "grain",
+      "form": "cooked",
+      "kcal_per_100g": 112.0,
+      "protein_100g": 3.79,
+      "fat_100g": 0.16,
+      "carbs_100g": 23.22,
+      "source": "usda_sr28",
+      "usda_ndb": "20029",
+      "usda_desc": "COUSCOUS,COOKED"
+    },
+    {
+      "slug": "whole_wheat_bread",
+      "names": {
+        "de": "Vollkornbrot",
+        "en": "Whole-wheat bread",
+        "es": "Pan integral"
+      },
+      "search_terms": [
+        "bread",
+        "brot",
+        "pan",
+        "pan integral",
+        "vollkornbrot",
+        "whole-wheat bread"
+      ],
+      "category": "grain",
+      "form": "as_sold",
+      "kcal_per_100g": 252.0,
+      "protein_100g": 12.45,
+      "fat_100g": 3.5,
+      "carbs_100g": 42.71,
+      "source": "usda_sr28",
+      "usda_ndb": "18075",
+      "usda_desc": "BREAD,WHOLE-WHEAT,COMM. PREPARED"
+    },
+    {
+      "slug": "white_bread",
+      "names": {
+        "de": "Weißbrot",
+        "en": "White bread",
+        "es": "Pan blanco"
+      },
+      "search_terms": [
+        "pan blanco",
+        "weissbrot",
+        "weißbrot",
+        "white bread"
+      ],
+      "category": "grain",
+      "form": "as_sold",
+      "kcal_per_100g": 266.0,
+      "protein_100g": 8.85,
+      "fat_100g": 3.33,
+      "carbs_100g": 49.42,
+      "source": "usda_sr28",
+      "usda_ndb": "18069",
+      "usda_desc": "BREAD,WHITE,COMMLY PREP (INCL SOFT BREAD CRUMBS)"
+    },
+    {
+      "slug": "oats",
+      "names": {
+        "de": "Haferflocken",
+        "en": "Oats, dry",
+        "es": "Avena, seca"
+      },
+      "search_terms": [
+        "avena",
+        "hafer",
+        "haferflocken",
+        "oatmeal",
+        "oats"
+      ],
+      "category": "grain",
+      "form": "dry",
+      "kcal_per_100g": 379.0,
+      "protein_100g": 13.15,
+      "fat_100g": 6.52,
+      "carbs_100g": 67.7,
+      "source": "usda_sr28",
+      "usda_ndb": "08120",
+      "usda_desc": "CEREALS,OATS,REG & QUICK,NOT FORT,DRY"
+    },
+    {
+      "slug": "potato",
+      "names": {
+        "de": "Kartoffeln, gekocht",
+        "en": "Potato, boiled",
+        "es": "Patata, cocida"
+      },
+      "search_terms": [
+        "kartoffel",
+        "kartoffeln",
+        "papa",
+        "patata",
+        "potato"
+      ],
+      "category": "vegetable",
+      "form": "cooked",
+      "kcal_per_100g": 86.0,
+      "protein_100g": 1.71,
+      "fat_100g": 0.1,
+      "carbs_100g": 20.01,
+      "source": "usda_sr28",
+      "usda_ndb": "11367",
+      "usda_desc": "POTATOES,BLD,CKD WO/ SKN,FLESH,WO/ SALT"
+    },
+    {
+      "slug": "chicken_breast",
+      "names": {
+        "de": "Hähnchenbrust, gebraten",
+        "en": "Chicken breast, cooked",
+        "es": "Pechuga de pollo, cocida"
+      },
+      "search_terms": [
+        "chicken",
+        "chicken breast",
+        "huhn",
+        "hähnchen",
+        "hähnchenbrust",
+        "pechuga de pollo",
+        "pollo"
+      ],
+      "category": "protein",
+      "form": "cooked",
+      "kcal_per_100g": 165.0,
+      "protein_100g": 31.02,
+      "fat_100g": 3.57,
+      "carbs_100g": 0.0,
+      "source": "usda_sr28",
+      "usda_ndb": "05064",
+      "usda_desc": "CHICKEN,BROILERS OR FRYERS,BREAST,MEAT ONLY,CKD,RSTD"
+    },
+    {
+      "slug": "turkey_breast",
+      "names": {
+        "de": "Putenbrust, gebraten",
+        "en": "Turkey breast, roasted",
+        "es": "Pechuga de pavo, asada"
+      },
+      "search_terms": [
+        "pavo",
+        "pechuga de pavo",
+        "pute",
+        "putenbrust",
+        "turkey",
+        "turkey breast"
+      ],
+      "category": "protein",
+      "form": "cooked",
+      "kcal_per_100g": 147.0,
+      "protein_100g": 30.13,
+      "fat_100g": 2.08,
+      "carbs_100g": 0.0,
+      "source": "usda_sr28",
+      "usda_ndb": "05220",
+      "usda_desc": "TURKEY,BREAST,FROM WHL BIRD,MEAT ONLY,RSTD"
+    },
+    {
+      "slug": "egg",
+      "names": {
+        "de": "Ei",
+        "en": "Egg, whole",
+        "es": "Huevo"
+      },
+      "search_terms": [
+        "egg",
+        "eggs",
+        "ei",
+        "eier",
+        "huevo",
+        "huevos"
+      ],
+      "category": "protein",
+      "form": "raw",
+      "kcal_per_100g": 143.0,
+      "protein_100g": 12.56,
+      "fat_100g": 9.51,
+      "carbs_100g": 0.72,
+      "source": "usda_sr28",
+      "usda_ndb": "01123",
+      "usda_desc": "EGG,WHL,RAW,FRSH"
+    },
+    {
+      "slug": "salmon",
+      "names": {
+        "de": "Lachs, gebraten",
+        "en": "Salmon, cooked",
+        "es": "Salmón, cocido"
+      },
+      "search_terms": [
+        "lachs",
+        "salmon",
+        "salmón"
+      ],
+      "category": "protein",
+      "form": "cooked",
+      "kcal_per_100g": 206.0,
+      "protein_100g": 22.1,
+      "fat_100g": 12.35,
+      "carbs_100g": 0.0,
+      "source": "usda_sr28",
+      "usda_ndb": "15237",
+      "usda_desc": "SALMON,ATLANTIC,FARMED,CKD,DRY HEAT"
+    },
+    {
+      "slug": "tuna",
+      "names": {
+        "de": "Thunfisch, in Wasser",
+        "en": "Tuna, canned in water",
+        "es": "Atún, en agua"
+      },
+      "search_terms": [
+        "atun",
+        "atún",
+        "thunfisch",
+        "tuna"
+      ],
+      "category": "protein",
+      "form": "canned",
+      "kcal_per_100g": 86.0,
+      "protein_100g": 19.44,
+      "fat_100g": 0.96,
+      "carbs_100g": 0.0,
+      "source": "usda_sr28",
+      "usda_ndb": "15121",
+      "usda_desc": "FISH,TUNA,LT,CND IN H2O,DRND SOL"
+    },
+    {
+      "slug": "ground_beef",
+      "names": {
+        "de": "Rinderhackfleisch, gebraten (90/10)",
+        "en": "Ground beef, cooked (90/10)",
+        "es": "Carne picada de res, cocida (90/10)"
+      },
+      "search_terms": [
+        "beef",
+        "carne de res",
+        "carne picada",
+        "carne picada de res",
+        "ground beef",
+        "hackfleisch",
+        "rind",
+        "rinderhack",
+        "rinderhackfleisch"
+      ],
+      "category": "protein",
+      "form": "cooked",
+      "kcal_per_100g": 217.0,
+      "protein_100g": 26.11,
+      "fat_100g": 11.75,
+      "carbs_100g": 0.0,
+      "source": "usda_sr28",
+      "usda_ndb": "23563",
+      "usda_desc": "BEEF,GROUND,90% LN MEAT / 10% FAT,PATTY,CKD,BRLD"
+    },
+    {
+      "slug": "pork_loin",
+      "names": {
+        "de": "Schweinefleisch (Lende), gebraten",
+        "en": "Pork loin, cooked",
+        "es": "Lomo de cerdo, cocido"
+      },
+      "search_terms": [
+        "cerdo",
+        "lomo de cerdo",
+        "pork",
+        "pork loin",
+        "schwein",
+        "schweinefleisch",
+        "schweinefleisch (lende)"
+      ],
+      "category": "protein",
+      "form": "cooked",
+      "kcal_per_100g": 209.0,
+      "protein_100g": 28.62,
+      "fat_100g": 9.63,
+      "carbs_100g": 0.0,
+      "source": "usda_sr28",
+      "usda_ndb": "10027",
+      "usda_desc": "PORK,FRSH,LOIN,WHL,LN,CKD,RSTD"
+    },
+    {
+      "slug": "tofu",
+      "names": {
+        "de": "Tofu",
+        "en": "Tofu, firm",
+        "es": "Tofu firme"
+      },
+      "search_terms": [
+        "tofu",
+        "tofu firme"
+      ],
+      "category": "protein",
+      "form": "as_sold",
+      "kcal_per_100g": 144.0,
+      "protein_100g": 17.27,
+      "fat_100g": 8.72,
+      "carbs_100g": 2.78,
+      "source": "usda_sr28",
+      "usda_ndb": "16426",
+      "usda_desc": "TOFU,RAW,FIRM,PREP W/CA SULFATE"
+    },
+    {
+      "slug": "whole_milk_3_25",
+      "names": {
+        "de": "Vollmilch (3,25 %)",
+        "en": "Whole milk (3.25%)",
+        "es": "Leche entera (3,25%)"
+      },
+      "search_terms": [
+        "leche",
+        "leche entera",
+        "leche entera (3",
+        "milch",
+        "milk",
+        "vollmilch",
+        "vollmilch (3",
+        "whole milk",
+        "whole milk (3.25%)"
+      ],
+      "category": "dairy",
+      "form": "as_sold",
+      "kcal_per_100g": 61.0,
+      "protein_100g": 3.15,
+      "fat_100g": 3.25,
+      "carbs_100g": 4.8,
+      "source": "usda_sr28",
+      "usda_ndb": "01077",
+      "usda_desc": "MILK,WHL,3.25% MILKFAT,W/ ADDED VITAMIN D"
+    },
+    {
+      "slug": "reduced_fat_milk_2",
+      "names": {
+        "de": "Fettarme Milch (2 %)",
+        "en": "Reduced-fat milk (2%)",
+        "es": "Leche semidesnatada (2%)"
+      },
+      "search_terms": [
+        "fettarme milch",
+        "fettarme milch (2 %)",
+        "leche semidesnatada",
+        "leche semidesnatada (2%)",
+        "milch 2%",
+        "reduced fat milk",
+        "reduced-fat milk (2%)"
+      ],
+      "category": "dairy",
+      "form": "as_sold",
+      "kcal_per_100g": 50.0,
+      "protein_100g": 3.3,
+      "fat_100g": 1.98,
+      "carbs_100g": 4.8,
+      "source": "usda_sr28",
+      "usda_ndb": "01079",
+      "usda_desc": "MILK,RED FAT,FLUID,2% MILKFAT,W/ ADDED VIT A & VITAMIN D"
+    },
+    {
+      "slug": "skim_milk",
+      "names": {
+        "de": "Magermilch",
+        "en": "Skim milk",
+        "es": "Leche desnatada"
+      },
+      "search_terms": [
+        "leche desnatada",
+        "magermilch",
+        "skim milk"
+      ],
+      "category": "dairy",
+      "form": "as_sold",
+      "kcal_per_100g": 34.0,
+      "protein_100g": 3.37,
+      "fat_100g": 0.08,
+      "carbs_100g": 4.96,
+      "source": "usda_sr28",
+      "usda_ndb": "01151",
+      "usda_desc": "MILK,NONFAT,FLUID,WO/ ADDED VIT A & VIT D (FAT FREE OR SKIM)"
+    },
+    {
+      "slug": "greek_yogurt",
+      "names": {
+        "de": "Griechischer Joghurt, fettarm",
+        "en": "Greek yogurt, nonfat",
+        "es": "Yogur griego, desnatado"
+      },
+      "search_terms": [
+        "greek yogurt",
+        "griechischer joghurt",
+        "joghurt",
+        "yogur",
+        "yogur griego",
+        "yogurt"
+      ],
+      "category": "dairy",
+      "form": "as_sold",
+      "kcal_per_100g": 59.0,
+      "protein_100g": 10.19,
+      "fat_100g": 0.39,
+      "carbs_100g": 3.6,
+      "source": "usda_sr28",
+      "usda_ndb": "01256",
+      "usda_desc": "YOGURT,GREEK,PLN,NONFAT"
+    },
+    {
+      "slug": "cottage_cheese_2",
+      "names": {
+        "de": "Hüttenkäse (2 %)",
+        "en": "Cottage cheese (2%)",
+        "es": "Requesón (2%)"
+      },
+      "search_terms": [
+        "cottage cheese",
+        "cottage cheese (2%)",
+        "huettenkaese",
+        "hüttenkäse",
+        "hüttenkäse (2 %)",
+        "requeson",
+        "requesón",
+        "requesón (2%)"
+      ],
+      "category": "dairy",
+      "form": "as_sold",
+      "kcal_per_100g": 81.0,
+      "protein_100g": 10.45,
+      "fat_100g": 2.27,
+      "carbs_100g": 4.76,
+      "source": "usda_sr28",
+      "usda_ndb": "01015",
+      "usda_desc": "CHEESE,COTTAGE,LOWFAT,2% MILKFAT"
+    },
+    {
+      "slug": "cheddar_cheese",
+      "names": {
+        "de": "Cheddar",
+        "en": "Cheddar cheese",
+        "es": "Queso cheddar"
+      },
+      "search_terms": [
+        "cheddar",
+        "cheddar cheese",
+        "cheese",
+        "käse",
+        "queso",
+        "queso cheddar"
+      ],
+      "category": "dairy",
+      "form": "as_sold",
+      "kcal_per_100g": 404.0,
+      "protein_100g": 22.87,
+      "fat_100g": 33.31,
+      "carbs_100g": 3.09,
+      "source": "usda_sr28",
+      "usda_ndb": "01009",
+      "usda_desc": "CHEESE,CHEDDAR"
+    },
+    {
+      "slug": "gouda_cheese",
+      "names": {
+        "de": "Gouda",
+        "en": "Gouda cheese",
+        "es": "Queso gouda"
+      },
+      "search_terms": [
+        "cheese",
+        "gouda",
+        "gouda cheese",
+        "käse",
+        "queso",
+        "queso gouda"
+      ],
+      "category": "dairy",
+      "form": "as_sold",
+      "kcal_per_100g": 356.0,
+      "protein_100g": 24.94,
+      "fat_100g": 27.44,
+      "carbs_100g": 2.22,
+      "source": "usda_sr28",
+      "usda_ndb": "01022",
+      "usda_desc": "CHEESE,GOUDA"
+    },
+    {
+      "slug": "mozzarella",
+      "names": {
+        "de": "Mozzarella",
+        "en": "Mozzarella",
+        "es": "Mozzarella"
+      },
+      "search_terms": [
+        "cheese",
+        "käse",
+        "mozzarella",
+        "queso"
+      ],
+      "category": "dairy",
+      "form": "as_sold",
+      "kcal_per_100g": 300.0,
+      "protein_100g": 22.17,
+      "fat_100g": 22.35,
+      "carbs_100g": 2.19,
+      "source": "usda_sr28",
+      "usda_ndb": "01026",
+      "usda_desc": "CHEESE,MOZZARELLA,WHL MILK"
+    },
+    {
+      "slug": "butter",
+      "names": {
+        "de": "Butter",
+        "en": "Butter",
+        "es": "Mantequilla"
+      },
+      "search_terms": [
+        "butter",
+        "mantequilla"
+      ],
+      "category": "fat",
+      "form": "as_sold",
+      "kcal_per_100g": 717.0,
+      "protein_100g": 0.85,
+      "fat_100g": 81.11,
+      "carbs_100g": 0.06,
+      "source": "usda_sr28",
+      "usda_ndb": "01001",
+      "usda_desc": "BUTTER,WITH SALT"
+    },
+    {
+      "slug": "apple",
+      "names": {
+        "de": "Apfel",
+        "en": "Apple",
+        "es": "Manzana"
+      },
+      "search_terms": [
+        "apfel",
+        "apple",
+        "manzana",
+        "äpfel"
+      ],
+      "category": "fruit",
+      "form": "raw",
+      "kcal_per_100g": 52.0,
+      "protein_100g": 0.26,
+      "fat_100g": 0.17,
+      "carbs_100g": 13.81,
+      "source": "usda_sr28",
+      "usda_ndb": "09003",
+      "usda_desc": "APPLES,RAW,WITH SKIN"
+    },
+    {
+      "slug": "banana",
+      "names": {
+        "de": "Banane",
+        "en": "Banana",
+        "es": "Plátano"
+      },
+      "search_terms": [
+        "banana",
+        "banane",
+        "guineo",
+        "platano",
+        "plátano"
+      ],
+      "category": "fruit",
+      "form": "raw",
+      "kcal_per_100g": 89.0,
+      "protein_100g": 1.09,
+      "fat_100g": 0.33,
+      "carbs_100g": 22.84,
+      "source": "usda_sr28",
+      "usda_ndb": "09040",
+      "usda_desc": "BANANAS,RAW"
+    },
+    {
+      "slug": "orange",
+      "names": {
+        "de": "Orange",
+        "en": "Orange",
+        "es": "Naranja"
+      },
+      "search_terms": [
+        "naranja",
+        "orange"
+      ],
+      "category": "fruit",
+      "form": "raw",
+      "kcal_per_100g": 47.0,
+      "protein_100g": 0.94,
+      "fat_100g": 0.12,
+      "carbs_100g": 11.75,
+      "source": "usda_sr28",
+      "usda_ndb": "09200",
+      "usda_desc": "ORANGES,RAW,ALL COMM VAR"
+    },
+    {
+      "slug": "strawberries",
+      "names": {
+        "de": "Erdbeeren",
+        "en": "Strawberries",
+        "es": "Fresas"
+      },
+      "search_terms": [
+        "erdbeere",
+        "erdbeeren",
+        "fresas",
+        "frutillas",
+        "strawberries",
+        "strawberry"
+      ],
+      "category": "fruit",
+      "form": "raw",
+      "kcal_per_100g": 32.0,
+      "protein_100g": 0.67,
+      "fat_100g": 0.3,
+      "carbs_100g": 7.68,
+      "source": "usda_sr28",
+      "usda_ndb": "09316",
+      "usda_desc": "STRAWBERRIES,RAW"
+    },
+    {
+      "slug": "grapes",
+      "names": {
+        "de": "Weintrauben",
+        "en": "Grapes",
+        "es": "Uvas"
+      },
+      "search_terms": [
+        "grapes",
+        "trauben",
+        "uvas",
+        "weintrauben"
+      ],
+      "category": "fruit",
+      "form": "raw",
+      "kcal_per_100g": 67.0,
+      "protein_100g": 0.63,
+      "fat_100g": 0.35,
+      "carbs_100g": 17.15,
+      "source": "usda_sr28",
+      "usda_ndb": "09131",
+      "usda_desc": "GRAPES,AMERICAN TYPE (SLIP SKN),RAW"
+    },
+    {
+      "slug": "blueberries",
+      "names": {
+        "de": "Heidelbeeren",
+        "en": "Blueberries",
+        "es": "Arándanos"
+      },
+      "search_terms": [
+        "arandanos",
+        "arándanos",
+        "blaubeeren",
+        "blueberries",
+        "heidelbeeren"
+      ],
+      "category": "fruit",
+      "form": "raw",
+      "kcal_per_100g": 57.0,
+      "protein_100g": 0.74,
+      "fat_100g": 0.33,
+      "carbs_100g": 14.49,
+      "source": "usda_sr28",
+      "usda_ndb": "09050",
+      "usda_desc": "BLUEBERRIES,RAW"
+    },
+    {
+      "slug": "avocado",
+      "names": {
+        "de": "Avocado",
+        "en": "Avocado",
+        "es": "Aguacate"
+      },
+      "search_terms": [
+        "aguacate",
+        "avocado",
+        "avocados",
+        "palta"
+      ],
+      "category": "fruit",
+      "form": "raw",
+      "kcal_per_100g": 160.0,
+      "protein_100g": 2.0,
+      "fat_100g": 14.66,
+      "carbs_100g": 8.53,
+      "source": "usda_sr28",
+      "usda_ndb": "09037",
+      "usda_desc": "AVOCADOS,RAW,ALL COMM VAR"
+    },
+    {
+      "slug": "tomato",
+      "names": {
+        "de": "Tomate",
+        "en": "Tomato",
+        "es": "Tomate"
+      },
+      "search_terms": [
+        "jitomate",
+        "tomate",
+        "tomaten",
+        "tomato"
+      ],
+      "category": "vegetable",
+      "form": "raw",
+      "kcal_per_100g": 18.0,
+      "protein_100g": 0.88,
+      "fat_100g": 0.2,
+      "carbs_100g": 3.89,
+      "source": "usda_sr28",
+      "usda_ndb": "11529",
+      "usda_desc": "TOMATOES,RED,RIPE,RAW,YEAR RND AVERAGE"
+    },
+    {
+      "slug": "cucumber",
+      "names": {
+        "de": "Gurke",
+        "en": "Cucumber",
+        "es": "Pepino"
+      },
+      "search_terms": [
+        "cucumber",
+        "gurke",
+        "pepino"
+      ],
+      "category": "vegetable",
+      "form": "raw",
+      "kcal_per_100g": 15.0,
+      "protein_100g": 0.65,
+      "fat_100g": 0.11,
+      "carbs_100g": 3.63,
+      "source": "usda_sr28",
+      "usda_ndb": "11205",
+      "usda_desc": "CUCUMBER,WITH PEEL,RAW"
+    },
+    {
+      "slug": "carrot",
+      "names": {
+        "de": "Karotte",
+        "en": "Carrot",
+        "es": "Zanahoria"
+      },
+      "search_terms": [
+        "carrot",
+        "karotte",
+        "moehre",
+        "möhre",
+        "zanahoria"
+      ],
+      "category": "vegetable",
+      "form": "raw",
+      "kcal_per_100g": 41.0,
+      "protein_100g": 0.93,
+      "fat_100g": 0.24,
+      "carbs_100g": 9.58,
+      "source": "usda_sr28",
+      "usda_ndb": "11124",
+      "usda_desc": "CARROTS,RAW"
+    },
+    {
+      "slug": "broccoli",
+      "names": {
+        "de": "Brokkoli",
+        "en": "Broccoli",
+        "es": "Brócoli"
+      },
+      "search_terms": [
+        "broccoli",
+        "brocoli",
+        "brokkoli",
+        "brócoli"
+      ],
+      "category": "vegetable",
+      "form": "raw",
+      "kcal_per_100g": 34.0,
+      "protein_100g": 2.82,
+      "fat_100g": 0.37,
+      "carbs_100g": 6.64,
+      "source": "usda_sr28",
+      "usda_ndb": "11090",
+      "usda_desc": "BROCCOLI,RAW"
+    },
+    {
+      "slug": "spinach",
+      "names": {
+        "de": "Spinat",
+        "en": "Spinach",
+        "es": "Espinaca"
+      },
+      "search_terms": [
+        "espinaca",
+        "espinacas",
+        "spinach",
+        "spinat"
+      ],
+      "category": "vegetable",
+      "form": "raw",
+      "kcal_per_100g": 23.0,
+      "protein_100g": 2.86,
+      "fat_100g": 0.39,
+      "carbs_100g": 3.63,
+      "source": "usda_sr28",
+      "usda_ndb": "11457",
+      "usda_desc": "SPINACH,RAW"
+    },
+    {
+      "slug": "onion",
+      "names": {
+        "de": "Zwiebel",
+        "en": "Onion",
+        "es": "Cebolla"
+      },
+      "search_terms": [
+        "cebolla",
+        "onion",
+        "zwiebel",
+        "zwiebeln"
+      ],
+      "category": "vegetable",
+      "form": "raw",
+      "kcal_per_100g": 40.0,
+      "protein_100g": 1.1,
+      "fat_100g": 0.1,
+      "carbs_100g": 9.34,
+      "source": "usda_sr28",
+      "usda_ndb": "11282",
+      "usda_desc": "ONIONS,RAW"
+    },
+    {
+      "slug": "red_bell_pepper",
+      "names": {
+        "de": "Paprika (rot)",
+        "en": "Red bell pepper",
+        "es": "Pimiento rojo"
+      },
+      "search_terms": [
+        "ají",
+        "bell pepper",
+        "paprika",
+        "paprika (rot)",
+        "pimiento",
+        "pimiento rojo",
+        "red bell pepper",
+        "red pepper"
+      ],
+      "category": "vegetable",
+      "form": "raw",
+      "kcal_per_100g": 31.0,
+      "protein_100g": 0.99,
+      "fat_100g": 0.3,
+      "carbs_100g": 6.03,
+      "source": "usda_sr28",
+      "usda_ndb": "11821",
+      "usda_desc": "PEPPERS,SWT,RED,RAW"
+    },
+    {
+      "slug": "iceberg_lettuce",
+      "names": {
+        "de": "Kopfsalat (Eisberg)",
+        "en": "Iceberg lettuce",
+        "es": "Lechuga"
+      },
+      "search_terms": [
+        "eisbergsalat",
+        "iceberg lettuce",
+        "kopfsalat",
+        "kopfsalat (eisberg)",
+        "lechuga",
+        "lettuce",
+        "salat"
+      ],
+      "category": "vegetable",
+      "form": "raw",
+      "kcal_per_100g": 14.0,
+      "protein_100g": 0.9,
+      "fat_100g": 0.14,
+      "carbs_100g": 2.97,
+      "source": "usda_sr28",
+      "usda_ndb": "11252",
+      "usda_desc": "LETTUCE,ICEBERG (INCL CRISPHEAD TYPES),RAW"
+    },
+    {
+      "slug": "zucchini",
+      "names": {
+        "de": "Zucchini",
+        "en": "Zucchini",
+        "es": "Calabacín"
+      },
+      "search_terms": [
+        "calabacin",
+        "calabacín",
+        "zucchini"
+      ],
+      "category": "vegetable",
+      "form": "raw",
+      "kcal_per_100g": 17.0,
+      "protein_100g": 1.21,
+      "fat_100g": 0.32,
+      "carbs_100g": 3.11,
+      "source": "usda_sr28",
+      "usda_ndb": "11477",
+      "usda_desc": "SQUASH,SMMR,ZUCCHINI,INCL SKN,RAW"
+    },
+    {
+      "slug": "lentils",
+      "names": {
+        "de": "Linsen, gekocht",
+        "en": "Lentils, cooked",
+        "es": "Lentejas, cocidas"
+      },
+      "search_terms": [
+        "lentejas",
+        "lentils",
+        "linsen"
+      ],
+      "category": "legume",
+      "form": "cooked",
+      "kcal_per_100g": 116.0,
+      "protein_100g": 9.02,
+      "fat_100g": 0.38,
+      "carbs_100g": 20.13,
+      "source": "usda_sr28",
+      "usda_ndb": "16070",
+      "usda_desc": "LENTILS,MATURE SEEDS,CKD,BLD,WO/SALT"
+    },
+    {
+      "slug": "chickpeas",
+      "names": {
+        "de": "Kichererbsen, gekocht",
+        "en": "Chickpeas, cooked",
+        "es": "Garbanzos, cocidos"
+      },
+      "search_terms": [
+        "chickpeas",
+        "garbanzos",
+        "kichererbsen"
+      ],
+      "category": "legume",
+      "form": "cooked",
+      "kcal_per_100g": 164.0,
+      "protein_100g": 8.86,
+      "fat_100g": 2.59,
+      "carbs_100g": 27.42,
+      "source": "usda_sr28",
+      "usda_ndb": "16057",
+      "usda_desc": "CHICKPEAS ,MATURE SEEDS,CKD,BLD,WO/SALT"
+    },
+    {
+      "slug": "kidney_beans",
+      "names": {
+        "de": "Kidneybohnen, gekocht",
+        "en": "Kidney beans, cooked",
+        "es": "Frijoles rojos, cocidos"
+      },
+      "search_terms": [
+        "alubias",
+        "beans",
+        "bohnen",
+        "frijoles",
+        "frijoles rojos",
+        "judías",
+        "kidney beans",
+        "kidneybohnen"
+      ],
+      "category": "legume",
+      "form": "cooked",
+      "kcal_per_100g": 127.0,
+      "protein_100g": 8.67,
+      "fat_100g": 0.5,
+      "carbs_100g": 22.8,
+      "source": "usda_sr28",
+      "usda_ndb": "16033",
+      "usda_desc": "BEANS,KIDNEY,RED,MATURE SEEDS,CKD,BLD,WO/SALT"
+    },
+    {
+      "slug": "almonds",
+      "names": {
+        "de": "Mandeln",
+        "en": "Almonds",
+        "es": "Almendras"
+      },
+      "search_terms": [
+        "almendras",
+        "almonds",
+        "mandeln"
+      ],
+      "category": "nut",
+      "form": "raw",
+      "kcal_per_100g": 579.0,
+      "protein_100g": 21.15,
+      "fat_100g": 49.93,
+      "carbs_100g": 21.55,
+      "source": "usda_sr28",
+      "usda_ndb": "12061",
+      "usda_desc": "ALMONDS"
+    },
+    {
+      "slug": "walnuts",
+      "names": {
+        "de": "Walnüsse",
+        "en": "Walnuts",
+        "es": "Nueces"
+      },
+      "search_terms": [
+        "nueces",
+        "walnuesse",
+        "walnuts",
+        "walnüsse"
+      ],
+      "category": "nut",
+      "form": "raw",
+      "kcal_per_100g": 654.0,
+      "protein_100g": 15.23,
+      "fat_100g": 65.21,
+      "carbs_100g": 13.71,
+      "source": "usda_sr28",
+      "usda_ndb": "12155",
+      "usda_desc": "WALNUTS,ENGLISH"
+    },
+    {
+      "slug": "peanut_butter",
+      "names": {
+        "de": "Erdnussbutter",
+        "en": "Peanut butter",
+        "es": "Mantequilla de maní"
+      },
+      "search_terms": [
+        "crema de cacahuete",
+        "erdnussbutter",
+        "mantequilla de maní",
+        "peanut butter"
+      ],
+      "category": "nut",
+      "form": "as_sold",
+      "kcal_per_100g": 598.0,
+      "protein_100g": 22.21,
+      "fat_100g": 51.36,
+      "carbs_100g": 22.31,
+      "source": "usda_sr28",
+      "usda_ndb": "16098",
+      "usda_desc": "PEANUT BUTTER,SMOOTH STYLE,W/ SALT"
+    },
+    {
+      "slug": "olive_oil",
+      "names": {
+        "de": "Olivenöl",
+        "en": "Olive oil",
+        "es": "Aceite de oliva"
+      },
+      "search_terms": [
+        "aceite",
+        "aceite de oliva",
+        "oil",
+        "olive oil",
+        "olivenoel",
+        "olivenöl",
+        "öl"
+      ],
+      "category": "fat",
+      "form": "as_sold",
+      "kcal_per_100g": 884.0,
+      "protein_100g": 0.0,
+      "fat_100g": 100.0,
+      "carbs_100g": 0.0,
+      "source": "usda_sr28",
+      "usda_ndb": "04053",
+      "usda_desc": "OIL,OLIVE,SALAD OR COOKING"
+    },
+    {
+      "slug": "sugar",
+      "names": {
+        "de": "Zucker",
+        "en": "Sugar",
+        "es": "Azúcar"
+      },
+      "search_terms": [
+        "azucar",
+        "azúcar",
+        "sugar",
+        "zucker"
+      ],
+      "category": "other",
+      "form": "as_sold",
+      "kcal_per_100g": 387.0,
+      "protein_100g": 0.0,
+      "fat_100g": 0.0,
+      "carbs_100g": 99.98,
+      "source": "usda_sr28",
+      "usda_ndb": "19335",
+      "usda_desc": "SUGARS,GRANULATED"
+    },
+    {
+      "slug": "honey",
+      "names": {
+        "de": "Honig",
+        "en": "Honey",
+        "es": "Miel"
+      },
+      "search_terms": [
+        "honey",
+        "honig",
+        "miel"
+      ],
+      "category": "other",
+      "form": "as_sold",
+      "kcal_per_100g": 304.0,
+      "protein_100g": 0.3,
+      "fat_100g": 0.0,
+      "carbs_100g": 82.4,
+      "source": "usda_sr28",
+      "usda_ndb": "19296",
+      "usda_desc": "HONEY"
+    }
+  ]
+}

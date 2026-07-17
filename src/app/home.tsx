@@ -638,13 +638,13 @@ export default function HomeScreen() {
     [lookupBarcodeProduct],
   );
 
-  async function handleBarcodeLookupRetry() {
-    if (!pendingBarcode) {
-      closeBarcodeFlow();
-      return;
-    }
-
-    await lookupBarcodeProduct(pendingBarcode);
+  function handleBarcodeLookupRetry() {
+    barcodeLookupAbortRef.current?.abort();
+    barcodeLookupAbortRef.current = null;
+    pendingBarcodeRef.current = null;
+    setPendingBarcode(null);
+    setShowBarcodeLookupSlow(false);
+    setBarcodeFlow({ kind: 'camera' });
   }
 
   function handleBarcodeTakePhotoInstead() {

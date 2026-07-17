@@ -1,4 +1,4 @@
-import type { BarcodeProduct } from '@/services/barcode/OpenFoodFactsService';
+import type { BarcodeProduct, FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
 import {
   getItemTotalGrams,
   type DisplayUnit,
@@ -157,6 +157,60 @@ export function createRowItemFromBarcode(
     quantitySource: 'user',
     gramsPerUnit: product.servingSizeGrams,
     foodId: null,
+  };
+}
+
+export function createRowItemFromFoodSearch(params: {
+  product: FoodSearchProduct;
+  foodId: string | null;
+  quantityGrams?: number;
+}): MealItemRowItem {
+  const quantityGrams = params.quantityGrams ?? DEFAULT_QUANTITY_G;
+  const kcal = Math.max(
+    0,
+    Math.round((params.product.kcalPer100g / 100) * quantityGrams),
+  );
+
+  return {
+    id: createRowItemId(),
+    name: params.product.name,
+    quantity: quantityGrams,
+    kcal,
+    kcalPer100g: params.product.kcalPer100g,
+    unit: 'g',
+    origin: 'manual',
+    quantitySource: 'user',
+    gramsPerUnit: params.product.servingSizeGrams,
+    foodId: params.foodId,
+  };
+}
+
+export function applyOffProductToRow(
+  item: MealItemRowItem,
+  product: FoodSearchProduct,
+  foodId: string | null,
+): MealItemRowItem {
+  const fromSearch = createRowItemFromFoodSearch({
+    product,
+    foodId,
+    quantityGrams: item.quantity,
+  });
+
+  return {
+    ...fromSearch,
+    id: item.id,
+    unit: item.unit,
+    quantity: item.quantity,
+    quantitySource: item.quantitySource,
+    mealItemId: item.mealItemId,
+    wasAiGenerated: item.wasAiGenerated,
+  };
+}
+
+export function createManualRowItemFromQuery(name: string): MealItemRowItem {
+  return {
+    ...createEmptyRowItem(),
+    name: name.trim(),
   };
 }
 

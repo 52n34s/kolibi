@@ -68,6 +68,16 @@ export default function ResetPasswordScreen() {
       await navigateAfterLogin();
     } catch (error) {
       logAuthError('PasswordResetUpdate', error);
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error('[PasswordResetUpdate] Supabase updateUser failed:', {
+          message: (error as { message?: string }).message,
+          status: (error as { status?: number }).status,
+          code: (error as { code?: string }).code,
+          name: (error as { name?: string }).name,
+        });
+      } else {
+        console.error('[PasswordResetUpdate] updateUser failed:', error);
+      }
       setErrorMessage(t('auth.resetPassword.errors.updateFailed'));
     } finally {
       setIsSubmitting(false);

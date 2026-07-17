@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { MealInputFloatingBar } from '@/components/scan/MealInputAccessoryBar';
+import { FoodAutocompleteOverlayProvider } from '@/components/scan/meal-food-autocomplete-overlay';
+import { MealFoodAutocompleteHost } from '@/components/scan/MealFoodAutocompleteHost';
 import { MealInputBarProvider } from '@/components/scan/meal-input-bar-context';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { GlassSheetSurface } from '@/components/shared/GlassSheetSurface';
@@ -45,25 +47,28 @@ export function GlassBottomSheet({
       onDismiss={onDismissed}>
       {visible ? (
         <MealInputBarProvider>
-          <View style={styles.modalRoot}>
-            <Pressable
-              style={[styles.overlay, isCentered && styles.overlayCenter]}
-              onPress={onClose}>
+          <FoodAutocompleteOverlayProvider>
+            <View style={styles.modalRoot}>
               <Pressable
-                style={[
-                  styles.sheetShell,
-                  isCentered && styles.sheetShellCenter,
-                  maxSheetHeight ? { maxHeight: maxSheetHeight } : undefined,
-                ]}
-                onPress={(event) => event.stopPropagation()}>
-                <GlassSheetSurface maxHeight={maxSheetHeight} variant={isCentered ? 'card' : 'sheet'}>
-                  {children}
-                </GlassSheetSurface>
+                style={[styles.overlay, isCentered && styles.overlayCenter]}
+                onPress={onClose}>
+                <Pressable
+                  style={[
+                    styles.sheetShell,
+                    isCentered && styles.sheetShellCenter,
+                    maxSheetHeight ? { maxHeight: maxSheetHeight } : undefined,
+                  ]}
+                  onPress={(event) => event.stopPropagation()}>
+                  <GlassSheetSurface maxHeight={maxSheetHeight} variant={isCentered ? 'card' : 'sheet'}>
+                    {children}
+                  </GlassSheetSurface>
+                </Pressable>
               </Pressable>
-            </Pressable>
-            {numberInputAccessory ? <NumberInputAccessory /> : null}
-            <MealInputFloatingBar />
-          </View>
+              {numberInputAccessory ? <NumberInputAccessory /> : null}
+              <MealInputFloatingBar />
+              <MealFoodAutocompleteHost />
+            </View>
+          </FoodAutocompleteOverlayProvider>
         </MealInputBarProvider>
       ) : null}
     </Modal>
