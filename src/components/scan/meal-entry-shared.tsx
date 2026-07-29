@@ -74,6 +74,35 @@ export const mealEntrySheetStyles = StyleSheet.create({
     fontWeight: '600',
     color: '#DC2626',
   },
+  deleteConfirmBlock: {
+    marginTop: 4,
+    gap: 10,
+  },
+  deleteConfirmMessage: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  deleteConfirmAction: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
+    paddingVertical: 10,
+  },
+  deleteConfirmCancel: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  deleteConfirmCancelLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#4F46E5',
+  },
   sheetRoot: {
     position: 'relative',
     flexGrow: 0,

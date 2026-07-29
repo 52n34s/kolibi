@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -46,6 +45,7 @@ import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useTodayMeals } from '@/hooks/use-today-meals';
 import { useHasPremiumAccess, useTrialStatus } from '@/hooks/use-premium-access';
+import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useActiveEnergyBurnedToday } from '@/hooks/use-active-energy-burned';
 import {
@@ -76,15 +76,18 @@ import {
   BarcodeLookupAbortedError,
   BarcodeNutrimentsMissingError,
   BarcodeProductNotFoundError,
+  barcodeProductToFoodSearchProduct,
   fetchProductByBarcode,
 } from '@/services/barcode/OpenFoodFactsService';
+import { enrichVisionItemsWithResolvedFoods } from '@/lib/resolve-foods';
+import { resolveFoodIdForOffProduct } from '@/lib/foods-cache';
 import {
   MealVisionApiError,
   MealVisionParseError,
   MealVisionRateLimitError,
   MealVisionService,
 } from '@/services/mealVision/MealVisionService';
-import type { EditableMealItem, VisionFoodItem } from '@/services/mealVision/types';
+import type { EditableMealItem } from '@/services/mealVision/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
@@ -117,7 +120,7 @@ function HomeErrorState() {
 }
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { contentTopPadding } = useMeshScreenInsets();
   const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
@@ -132,6 +135,7 @@ export default function HomeScreen() {
   );
   useHasPremiumAccess(userId);
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
+  const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
 
   const [showPaywall, setShowPaywall] = useState(false);
   const [weightSheet, setWeightSheet] = useState<WeightSheetKind>(null);
@@ -142,7 +146,7 @@ export default function HomeScreen() {
   const [scanPhotoCount, setScanPhotoCount] = useState(1);
   const [isAnalyzingMeal, setIsAnalyzingMeal] = useState(false);
   const [showMealConfirmation, setShowMealConfirmation] = useState(false);
-  const [visionItems, setVisionItems] = useState<VisionFoodItem[]>([]);
+  const [visionItems, setVisionItems] = useState<EditableMealItem[]>([]);
   const [isSavingMeal, setIsSavingMeal] = useState(false);
   const [showRateLimitSheet, setShowRateLimitSheet] = useState(false);
   const [rateLimitResetAt, setRateLimitResetAt] = useState<string | null>(null);
@@ -196,27 +200,31 @@ export default function HomeScreen() {
   const beginPaywallAfterSheetDismiss = useCallback(() => {
     pendingPaywallRef.current = true;
 
-    if (Platform.OS === 'android') {
-      if (paywallDismissTimerRef.current) {
-        clearTimeout(paywallDismissTimerRef.current);
-      }
-
-      paywallDismissTimerRef.current = setTimeout(() => {
-        paywallDismissTimerRef.current = null;
-        flushPendingPaywall();
-      }, 350);
+    // Always schedule a fallback: iOS Modal.onDismiss can miss when sheets close
+    // programmatically mid-save, which previously caused a silent access denial.
+    if (paywallDismissTimerRef.current) {
+      clearTimeout(paywallDismissTimerRef.current);
     }
+
+    paywallDismissTimerRef.current = setTimeout(() => {
+      paywallDismissTimerRef.current = null;
+      flushPendingPaywall();
+    }, 350);
   }, [flushPendingPaywall]);
 
   const handleMealSheetDismissed = useCallback(() => {
-    if (Platform.OS === 'ios') {
-      flushPendingPaywall();
-    }
+    flushPendingPaywall();
   }, [flushPendingPaywall]);
 
-  const gatePremiumAccessOnSave = useCallback(async (): Promise<boolean> => {
+  const gatePremiumAccess = useCallback(async (): Promise<boolean> => {
     if (!userId) {
       return false;
+    }
+
+    // RevenueCat entitlement is the immediate source of truth after purchase/restore.
+    // DB has_premium_access() lags behind the webhook and may still be cached as false.
+    if (isPremiumEntitlementActive) {
+      return true;
     }
 
     try {
@@ -231,7 +239,18 @@ export default function HomeScreen() {
       console.error('[Home] premium access check failed:', gateError);
       return false;
     }
-  }, [queryClient, userId]);
+  }, [isPremiumEntitlementActive, queryClient, userId]);
+
+  /** Front gate: block capture UI and show paywall immediately. */
+  const requirePremiumAccessToCapture = useCallback(async (): Promise<boolean> => {
+    const hasAccess = await gatePremiumAccess();
+    if (hasAccess) {
+      return true;
+    }
+
+    setShowPaywall(true);
+    return false;
+  }, [gatePremiumAccess]);
 
   useEffect(() => {
     return () => {
@@ -442,6 +461,14 @@ export default function HomeScreen() {
     router.push('/koli/calorie-goal' as Href);
   }
 
+  async function handleScanPress() {
+    if (!(await requirePremiumAccessToCapture())) {
+      return;
+    }
+
+    setShowScanOptions(true);
+  }
+
   function handleScanCapture(photoCount: number) {
     setScanPhotoCount(photoCount);
     setPendingMealSource(MEAL_SOURCE.PHOTO_CAMERA);
@@ -483,7 +510,11 @@ export default function HomeScreen() {
 
     try {
       const result = await MealVisionService.analyze(photoUris);
-      setVisionItems(result.items);
+      const enrichedItems = await enrichVisionItemsWithResolvedFoods(
+        result.items,
+        i18n.language,
+      );
+      setVisionItems(enrichedItems);
       setShowMealConfirmation(true);
       setPendingPhotoUris([]);
       setShowParseErrorSheet(false);
@@ -555,7 +586,7 @@ export default function HomeScreen() {
     setIsSavingMeal(true);
 
     try {
-      if (!(await gatePremiumAccessOnSave())) {
+      if (!(await gatePremiumAccess())) {
         beginPaywallAfterSheetDismiss();
         handleMealConfirmationClose();
         return;
@@ -579,7 +610,19 @@ export default function HomeScreen() {
     }
   }
 
-  function handleBarcodePress() {
+  async function handleManualEntryPress() {
+    if (!(await requirePremiumAccessToCapture())) {
+      return;
+    }
+
+    setShowManualEntrySheet(true);
+  }
+
+  async function handleBarcodePress() {
+    if (!(await requirePremiumAccessToCapture())) {
+      return;
+    }
+
     setBarcodeFlow({ kind: 'camera' });
   }
 
@@ -602,7 +645,15 @@ export default function HomeScreen() {
 
     try {
       const product = await fetchProductByBarcode(barcode, { signal: controller.signal });
-      setBarcodeFlow({ kind: 'quantity', product });
+
+      let foodId: string | null = null;
+      try {
+        foodId = await resolveFoodIdForOffProduct(barcodeProductToFoodSearchProduct(product));
+      } catch (cacheError) {
+        console.error('[Home] barcode foods cache failed:', cacheError);
+      }
+
+      setBarcodeFlow({ kind: 'quantity', product, foodId });
       pendingBarcodeRef.current = null;
       setPendingBarcode(null);
     } catch (lookupError) {
@@ -662,7 +713,7 @@ export default function HomeScreen() {
     setIsSavingBarcodeMeal(true);
 
     try {
-      if (!(await gatePremiumAccessOnSave())) {
+      if (!(await gatePremiumAccess())) {
         beginPaywallAfterSheetDismiss();
         closeBarcodeFlow();
         return;
@@ -695,7 +746,7 @@ export default function HomeScreen() {
     setIsSavingManualMeal(true);
 
     try {
-      if (!(await gatePremiumAccessOnSave())) {
+      if (!(await gatePremiumAccess())) {
         beginPaywallAfterSheetDismiss();
         setShowManualEntrySheet(false);
         return;
@@ -739,7 +790,7 @@ export default function HomeScreen() {
     setIsSavingMealEdit(true);
 
     try {
-      if (!(await gatePremiumAccessOnSave())) {
+      if (!(await gatePremiumAccess())) {
         beginPaywallAfterSheetDismiss();
         handleMealEditClose();
         return;
@@ -910,7 +961,7 @@ export default function HomeScreen() {
             <View className="items-center">
               <ManualEntryButton
                 accessibilityLabel={t('home.manualEntry.buttonLabel')}
-                onPress={() => setShowManualEntrySheet(true)}
+                onPress={() => void handleManualEntryPress()}
               />
               <Text className="mt-3 text-sm font-medium text-gray-600">
                 {t('home.manualEntry.buttonLabel')}
@@ -920,7 +971,7 @@ export default function HomeScreen() {
             <View className="items-center">
               <ScanMealButton
                 accessibilityLabel={t('home.scan.buttonLabel')}
-                onPress={() => setShowScanOptions(true)}
+                onPress={() => void handleScanPress()}
               />
               <Text className="mt-3 text-sm font-medium text-gray-600">
                 {t('home.scan.buttonLabel')}
@@ -930,7 +981,7 @@ export default function HomeScreen() {
             <View className="items-center">
               <BarcodeScanButton
                 accessibilityLabel={t('home.scan.barcodeLabel')}
-                onPress={handleBarcodePress}
+                onPress={() => void handleBarcodePress()}
               />
               <Text className="mt-3 text-sm font-medium text-gray-600">
                 {t('home.scan.barcodeLabel')}

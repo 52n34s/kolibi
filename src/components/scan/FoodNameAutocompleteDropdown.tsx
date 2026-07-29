@@ -14,6 +14,10 @@ export const FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT = 76;
 export const FOOD_AUTOCOMPLETE_MAX_VISIBLE_ROWS = 5;
 export const FOOD_AUTOCOMPLETE_MAX_HEIGHT =
   FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT * FOOD_AUTOCOMPLETE_MAX_VISIBLE_ROWS;
+/** Partial last row when more results exist than fit — signals scrollability. */
+export const FOOD_AUTOCOMPLETE_RESULT_PEEK = 28;
+/** Gap from screen top safe area when growing the floating-bar dropdown upward. */
+export const FOOD_AUTOCOMPLETE_TOP_SCREEN_PADDING = 24;
 export const FOOD_AUTOCOMPLETE_LOADING_ROW_HEIGHT = 44;
 export const FOOD_AUTOCOMPLETE_STATUS_TEXT_HEIGHT = 42;
 const DROPDOWN_GAP = 8;

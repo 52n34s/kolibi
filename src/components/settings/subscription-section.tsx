@@ -94,7 +94,7 @@ export function SubscriptionSection({
   const [showPaywall, setShowPaywall] = useState(false);
   const [showWithdrawalSheet, setShowWithdrawalSheet] = useState(false);
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
-  const { isPremiumEntitlementActive, entitlementExpirationDate } =
+  const { isPremiumEntitlementActive, entitlementExpirationDate, entitlementWillRenew } =
     useRevenueCatPremiumEntitlement();
 
   const uiMode = resolveSubscriptionUiMode({
@@ -115,6 +115,9 @@ export function SubscriptionSection({
     renewalSource != null
       ? formatSubscriptionStatusDate(renewalSource, i18n.language)
       : null;
+
+  const isCancelledUntilExpiry =
+    subscription?.status === 'cancelled' || entitlementWillRenew === false;
 
   const withdrawalSubmittedDate =
     activeWithdrawal?.submitted_at != null
@@ -143,7 +146,12 @@ export function SubscriptionSection({
         </Text>
         {uiMode === 'paid' && renewalDate ? (
           <Text className="mt-1 text-sm text-gray-500">
-            {t('settings.subscription.renewsOn', { date: renewalDate })}
+            {t(
+              isCancelledUntilExpiry
+                ? 'settings.subscription.expiresOn'
+                : 'settings.subscription.renewsOn',
+              { date: renewalDate },
+            )}
           </Text>
         ) : null}
       </>

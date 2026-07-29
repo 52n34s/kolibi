@@ -1,10 +1,41 @@
 import * as Sentry from '@sentry/react-native';
+import Constants from 'expo-constants';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   sendDefaultPii: false,
   enableLogs: true,
-  tracesSampleRate: 0.2,
+
+  // Umgebung & Version explizit setzen
+  environment: __DEV__ ? 'development' : 'production',
+  release: `kolibi@${Constants.expoConfig?.version ?? '1.0.0'}`,
+  dist: String(Constants.expoConfig?.ios?.buildNumber ?? ''),
+
+  // Performance: im Dev aus, in Prod moderat
+  tracesSampleRate: __DEV__ ? 0 : 0.2,
+
+  // AppHang explizit (Default 2s beibehalten)
+  enableAppHangTracking: true,
+  appHangTimeoutInterval: 2,
+
+  // Rauschen filtern statt wegwerfen
+  beforeSend(event) {
+    // Im Dev nichts an Sentry senden (spart Kontingent, hält Prod-Statistik sauber)
+    if (__DEV__) return null;
+
+    // RevenueCat turbo_module AppHang-Rauschen runterstufen statt verwerfen:
+    const values = event.exception?.values ?? [];
+    const isRcTurboHang = values.some(
+      (v) =>
+        (v.value ?? '').includes('turbo_module') ||
+        (v.value ?? '').includes('subscriber attributes'),
+    );
+    if (isRcTurboHang) {
+      event.level = 'warning';
+      event.tags = { ...(event.tags ?? {}), rc_noise: 'true' };
+    }
+    return event;
+  },
 });
 
 import '../global.css';
@@ -21,7 +52,11 @@ import { PostHogProvider } from 'posthog-react-native';
 import { useAuthStore } from '@/stores/auth-store';
 import { posthog } from '@/lib/analytics';
 import { registerPremiumAccessCustomerInfoListener } from '@/lib/premium-query-sync';
-import { initPurchases, logOutPurchases } from '@/lib/purchases';
+import {
+  configurePurchasesOnce,
+  logInPurchases,
+  logOutPurchases,
+} from '@/lib/purchases';
 import {
   refreshRevenueCatCustomerInfo,
   resetRevenueCatCustomerInfoStore,
@@ -65,17 +100,42 @@ function RootLayout() {
     }
   }, [initialized]);
 
+  // Configure once at app start (no appUserID); identity is applied via logIn below.
   useEffect(() => {
     if (!initialized) {
       return;
     }
 
+    void configurePurchasesOnce().catch(() => {
+      // configurePurchasesOnce already logs; keep UI usable offline.
+    });
+  }, [initialized]);
+
+  useEffect(() => {
+    if (!initialized) {
+      return;
+    }
+
+    let cancelled = false;
+
     if (userId) {
-      void initPurchases(userId).then(() => refreshRevenueCatCustomerInfo());
+      void logInPurchases(userId)
+        .then(() => {
+          if (!cancelled) {
+            return refreshRevenueCatCustomerInfo();
+          }
+        })
+        .catch(() => {
+          // logInPurchases already logs; paywall will retry via ensurePurchasesIdentified.
+        });
     } else {
       resetRevenueCatCustomerInfoStore();
       void logOutPurchases();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [initialized, userId]);
 
   if (!initialized) {

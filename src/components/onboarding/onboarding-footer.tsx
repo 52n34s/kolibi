@@ -78,7 +78,20 @@ export function OnboardingFooter({
         <Pressable
           className="h-12 flex-1 overflow-hidden rounded-xl"
           disabled={footerDisabled}
-          onPress={isLastStep ? onFinish : onNext}>
+          onPress={() => {
+            console.log('[onboarding] Footer primary Pressable', {
+              step,
+              isLastStep,
+              footerDisabled,
+              isSubmitting,
+              actionsDisabled,
+            });
+            if (isLastStep) {
+              onFinish();
+            } else {
+              onNext();
+            }
+          }}>
           <LinearGradient
             colors={['#4F46E5', '#7CE7C7']}
             start={{ x: 0, y: 0 }}
@@ -97,7 +110,14 @@ export function OnboardingFooter({
 
       {/* IMPORTANT: Skip button must always remain visible in non-review onboarding mode (steps 1–6). Do not remove during redesigns. */}
       {showSkip ? (
-        <OnboardingSkipLink label={skipLabel} disabled={footerDisabled} onPress={onSkip} />
+        <OnboardingSkipLink
+          label={skipLabel}
+          disabled={footerDisabled}
+          onPress={() => {
+            console.log('[onboarding] SkipLink Pressable', { step, footerDisabled });
+            onSkip();
+          }}
+        />
       ) : null}
     </View>
   );

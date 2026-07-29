@@ -3,6 +3,7 @@ import {
   getItemTotalGrams,
   type DisplayUnit,
   type EditableMealItem,
+  type KcalPer100gSource,
   type QuantitySource,
 } from '@/services/mealVision/types';
 
@@ -14,6 +15,8 @@ export type MealItemRowItem = {
   quantity: number;
   kcal: number;
   kcalPer100g: number | null;
+  /** See EditableMealItem.kcalPer100gSource — drives kcal-edit coupling. */
+  kcalPer100gSource: KcalPer100gSource | null;
   unit: MealItemUnit;
   origin: EditableMealItem['origin'];
   quantitySource: QuantitySource;
@@ -27,10 +30,17 @@ export type MealItemRowItem = {
 export const QUANTITY_STEP_G = 10;
 export const QUANTITY_STEP_PCS = 1;
 export const KCAL_STEP = 10;
-export const MIN_QUANTITY_G = 10;
+/** Floor for g/ml when clamping user edits / unit switches (integers). Validity is any quantity > 0. */
+export const MIN_QUANTITY_G = 1;
 export const MIN_QUANTITY_PCS = 1;
 export const MIN_KCAL = 0;
 export const DEFAULT_QUANTITY_G = 100;
+
+export type MealRowValidationIssue =
+  | 'missingName'
+  | 'invalidQuantity'
+  | 'invalidKcal'
+  | 'pcsUnavailable';
 
 export function createRowItemId(): string {
   return `meal-row-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -129,6 +139,7 @@ export function createEmptyRowItem(): MealItemRowItem {
     quantity: DEFAULT_QUANTITY_G,
     kcal: 0,
     kcalPer100g: null,
+    kcalPer100gSource: null,
     unit: 'g',
     origin: 'manual',
     quantitySource: 'user',
@@ -140,6 +151,7 @@ export function createEmptyRowItem(): MealItemRowItem {
 export function createRowItemFromBarcode(
   product: BarcodeProduct,
   quantityGrams: number,
+  foodId: string | null = null,
 ): MealItemRowItem {
   const kcal = Math.max(
     0,
@@ -152,11 +164,12 @@ export function createRowItemFromBarcode(
     quantity: quantityGrams,
     kcal,
     kcalPer100g: product.kcalPer100g,
+    kcalPer100gSource: 'database',
     unit: 'g',
     origin: 'manual',
     quantitySource: 'user',
     gramsPerUnit: product.servingSizeGrams,
-    foodId: null,
+    foodId,
   };
 }
 
@@ -177,6 +190,7 @@ export function createRowItemFromFoodSearch(params: {
     quantity: quantityGrams,
     kcal,
     kcalPer100g: params.product.kcalPer100g,
+    kcalPer100gSource: 'database',
     unit: 'g',
     origin: 'manual',
     quantitySource: 'user',
@@ -240,6 +254,21 @@ export function changeRowItemKcal(item: MealItemRowItem, kcal: number): MealItem
     return { ...item, kcal: nextKcal };
   }
 
+  // Derived density: user kcal edit updates the reference; quantity stays put.
+  if (item.kcalPer100gSource === 'derived') {
+    const menge = getLinkedMenge(item);
+    const nextKcalPer100g =
+      menge > 0 ? Math.max(0, (nextKcal / menge) * 100) : item.kcalPer100g;
+
+    return {
+      ...item,
+      kcal: nextKcal,
+      kcalPer100g: nextKcalPer100g,
+      kcalPer100gSource: 'derived',
+    };
+  }
+
+  // Database density: kcal edits rescale quantity; kcalPer100g never changes.
   const nextQuantity = computeQuantityFromKcal(item, nextKcal);
 
   return {
@@ -247,6 +276,7 @@ export function changeRowItemKcal(item: MealItemRowItem, kcal: number): MealItem
     kcal: nextKcal,
     quantity: nextQuantity,
     kcalPer100g: item.kcalPer100g,
+    kcalPer100gSource: item.kcalPer100gSource ?? 'database',
     quantitySource: 'derived',
   };
 }
@@ -306,28 +336,89 @@ export function changeRowItemName(item: MealItemRowItem, name: string): MealItem
   return { ...item, name };
 }
 
-export function isRowItemValid(item: MealItemRowItem): boolean {
+export function getRowItemValidationIssue(item: MealItemRowItem): MealRowValidationIssue | null {
   if (item.name.trim().length === 0) {
-    return false;
+    return 'missingName';
   }
 
   if (!Number.isFinite(item.kcal) || item.kcal <= 0) {
-    return false;
-  }
-
-  if (!Number.isFinite(item.quantity) || item.quantity < getMinQuantity(item.unit)) {
-    return false;
+    return 'invalidKcal';
   }
 
   if (item.unit === 'pcs') {
-    if (isFreeCountRowItem(item)) {
-      return true;
+    if (!Number.isFinite(item.quantity) || item.quantity < MIN_QUANTITY_PCS) {
+      return 'invalidQuantity';
     }
 
-    return isPcsUnitAvailable(item);
+    if (!isFreeCountRowItem(item) && !isPcsUnitAvailable(item)) {
+      return 'pcsUnavailable';
+    }
+
+    return null;
   }
 
-  return getRowItemTotalGrams(item) > 0;
+  // g/ml: any positive amount is valid (incl. photo-scan values under the old 10g floor).
+  if (!Number.isFinite(item.quantity) || item.quantity <= 0 || !(getRowItemTotalGrams(item) > 0)) {
+    return 'invalidQuantity';
+  }
+
+  return null;
+}
+
+export function isRowItemValid(item: MealItemRowItem): boolean {
+  return getRowItemValidationIssue(item) == null;
+}
+
+/** First blocking reason across rows, or null when every row is valid. */
+export function getMealItemsValidationIssue(
+  items: MealItemRowItem[],
+): MealRowValidationIssue | 'empty' | null {
+  if (items.length === 0) {
+    return 'empty';
+  }
+
+  for (const item of items) {
+    const issue = getRowItemValidationIssue(item);
+    if (issue != null) {
+      return issue;
+    }
+  }
+
+  return null;
+}
+
+export function mealValidationIssueToManualEntryKey(
+  issue: MealRowValidationIssue | 'empty',
+): string {
+  switch (issue) {
+    case 'empty':
+      return 'home.manualEntry.validationNoProducts';
+    case 'missingName':
+      return 'home.manualEntry.validationMissingName';
+    case 'invalidQuantity':
+      return 'home.manualEntry.validationQuantityMustBePositive';
+    case 'invalidKcal':
+      return 'home.manualEntry.validationKcalMustBePositive';
+    case 'pcsUnavailable':
+      return 'home.manualEntry.validationPcsUnavailable';
+  }
+}
+
+export function mealValidationIssueToConfirmationKey(
+  issue: MealRowValidationIssue | 'empty',
+): string {
+  switch (issue) {
+    case 'empty':
+      return 'home.scan.confirmation.validationNoIngredients';
+    case 'missingName':
+      return 'home.scan.confirmation.validationMissingName';
+    case 'invalidQuantity':
+      return 'home.scan.confirmation.validationQuantityMustBePositive';
+    case 'invalidKcal':
+      return 'home.scan.confirmation.validationKcalMustBePositive';
+    case 'pcsUnavailable':
+      return 'home.scan.confirmation.validationPcsUnavailable';
+  }
 }
 
 export function sumRowItemsKcal(items: MealItemRowItem[]): number {
@@ -337,6 +428,7 @@ export function sumRowItemsKcal(items: MealItemRowItem[]): number {
 export function editableToRowItem(item: EditableMealItem): MealItemRowItem {
   const quantitySource = item.quantitySource;
   const kcalPer100g = item.kcalPer100g;
+  const kcalPer100gSource = item.kcalPer100gSource;
 
   if (item.quantityCount != null) {
     const linked =
@@ -351,6 +443,7 @@ export function editableToRowItem(item: EditableMealItem): MealItemRowItem {
         quantity: item.quantityCount,
         kcal: item.kcal,
         kcalPer100g,
+        kcalPer100gSource,
         unit: 'pcs',
         origin: item.origin,
         quantitySource,
@@ -366,8 +459,10 @@ export function editableToRowItem(item: EditableMealItem): MealItemRowItem {
     quantity: item.quantityGrams ?? DEFAULT_QUANTITY_G,
     kcal: item.kcal,
     kcalPer100g,
+    kcalPer100gSource,
     unit: item.displayUnit === 'ml' ? 'ml' : 'g',
     origin: item.origin,
+    quantitySource,
     gramsPerUnit: item.gramsPerUnit,
     foodId: item.foodId,
   };
@@ -400,6 +495,7 @@ export function rowItemToEditable(
         baselineKcal: item.kcal,
         foodId: item.foodId ?? null,
         kcalPer100g: item.kcalPer100g,
+        kcalPer100gSource: item.kcalPer100gSource ?? null,
         quantitySource: item.quantitySource,
         displayUnit: 'g',
       };
@@ -423,6 +519,7 @@ export function rowItemToEditable(
         baselineKcal: item.kcal,
         foodId: item.foodId ?? null,
         kcalPer100g: item.kcalPer100g,
+        kcalPer100gSource: item.kcalPer100gSource ?? null,
         quantitySource: item.quantitySource,
         displayUnit: 'g',
       };
@@ -445,6 +542,7 @@ export function rowItemToEditable(
     baselineKcal: item.kcal,
     foodId: item.foodId ?? null,
     kcalPer100g: item.kcalPer100g,
+    kcalPer100gSource: item.kcalPer100gSource ?? null,
     quantitySource: item.quantitySource,
     displayUnit,
   };
@@ -479,6 +577,7 @@ export function mergeRowIntoEditable(
         kcal: row.kcal,
         foodId: row.foodId ?? base.foodId,
         kcalPer100g: row.kcalPer100g,
+        kcalPer100gSource: row.kcalPer100gSource ?? base.kcalPer100gSource ?? null,
         quantitySource: row.quantitySource,
         displayUnit: 'g',
       };
@@ -494,6 +593,7 @@ export function mergeRowIntoEditable(
         kcal: row.kcal,
         foodId: row.foodId ?? base.foodId,
         kcalPer100g: row.kcalPer100g,
+        kcalPer100gSource: row.kcalPer100gSource ?? base.kcalPer100gSource ?? null,
         quantitySource: row.quantitySource,
         displayUnit: 'g',
       };
@@ -509,6 +609,7 @@ export function mergeRowIntoEditable(
         kcal: row.kcal,
         foodId: row.foodId ?? base.foodId,
         kcalPer100g: row.kcalPer100g,
+        kcalPer100gSource: row.kcalPer100gSource ?? base.kcalPer100gSource ?? null,
         quantitySource: row.quantitySource,
         displayUnit,
       };
@@ -524,6 +625,7 @@ export function mergeRowIntoEditable(
     kcal: row.kcal,
     foodId: row.foodId ?? base.foodId,
     kcalPer100g: row.kcalPer100g,
+    kcalPer100gSource: row.kcalPer100gSource ?? base.kcalPer100gSource ?? null,
     quantitySource: row.quantitySource,
     displayUnit,
   };
@@ -548,6 +650,8 @@ export function rowItemToManualInput(
 export function mealItemForEditToRow(item: import('@/lib/meals').MealItemForEdit): MealItemRowItem {
   const kcalPer100g =
     item.kcal_per_100g != null && item.kcal_per_100g > 0 ? item.kcal_per_100g : null;
+  // Persisted meal_items density is treated as database until we store source explicitly.
+  const kcalPer100gSource = kcalPer100g != null ? ('database' as const) : null;
 
   if (item.quantity_type === 'count' && item.count != null) {
     const hasPieceWeight =
@@ -563,6 +667,7 @@ export function mealItemForEditToRow(item: import('@/lib/meals').MealItemForEdit
         quantity: item.count,
         kcal: item.kcal,
         kcalPer100g,
+        kcalPer100gSource,
         unit: 'pcs',
         origin: item.was_ai_generated ? 'ai' : 'manual',
         quantitySource: 'user',
@@ -580,8 +685,10 @@ export function mealItemForEditToRow(item: import('@/lib/meals').MealItemForEdit
     quantity: item.quantity_grams,
     kcal: item.kcal,
     kcalPer100g,
+    kcalPer100gSource,
     unit: item.display_unit === 'ml' ? 'ml' : 'g',
     origin: item.was_ai_generated ? 'ai' : 'manual',
+    quantitySource: 'user',
     gramsPerUnit: null,
     foodId: null,
   };

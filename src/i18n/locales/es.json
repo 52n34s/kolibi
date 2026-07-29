@@ -73,8 +73,8 @@
       "activityRequired": "Selecciona tu nivel de actividad",
       "goalRequired": "Selecciona un objetivo",
       "customCaloriesRequired": "Introduce tu objetivo calórico diario",
-      "customCaloriesInvalid": "Introduce un valor entre {{min}} y 6000 kcal",
-      "summaryCaloriesInvalid": "Introduce un valor entre {{min}} y 6000 kcal"
+      "customCaloriesInvalid": "Introduce un valor entre {{min}} y {{max}} kcal (mínimo {{min}} kcal)",
+      "summaryCaloriesInvalid": "Introduce un valor entre {{min}} y {{max}} kcal (mínimo {{min}} kcal)"
     },
     "sex": {
       "title": "¿Cuál es tu sexo biológico?",
@@ -226,7 +226,12 @@
       "removeProduct": "Eliminar producto",
       "save": "Guardar comida",
       "saveError": "No se pudo guardar la comida. Inténtalo de nuevo.",
-      "validationFixRows": "Completa todos los campos antes de guardar."
+      "validationFixRows": "Completa todos los campos antes de guardar.",
+      "validationNoProducts": "Añade al menos un producto para guardar.",
+      "validationMissingName": "Introduce un nombre.",
+      "validationQuantityMustBePositive": "La cantidad debe ser mayor que 0.",
+      "validationKcalMustBePositive": "Las calorías deben ser mayores que 0.",
+      "validationPcsUnavailable": "Las unidades no están disponibles para este producto — elige g o ml."
     },
     "foodSearch": {
       "buttonLabel": "Buscar alimento",
@@ -268,6 +273,7 @@
         "permissionTitle": "Se necesita acceso a la cámara",
         "permissionBody": "Permite el acceso a la cámara para fotografiar tu comida.",
         "permissionAction": "Permitir cámara",
+        "openSettings": "Abrir Ajustes",
         "captureFailed": "No se pudo tomar la foto, inténtalo de nuevo"
       },
       "referenceObjectHint": "Consejo: pon un tenedor o tu mano al lado – ayuda a estimar el tamaño.",
@@ -288,9 +294,12 @@
         "removeIngredient": "Eliminar ingrediente",
         "validationNoIngredients": "Añade al menos un ingrediente para guardar.",
         "validationFixRows": "Completa o elimina los ingredientes marcados antes de guardar.",
-        "validationMissingName": "Introduce un nombre",
+        "validationMissingName": "Introduce un nombre.",
         "validationMissingGrams": "Introduce gramos",
         "validationMissingKcal": "Introduce kcal",
+        "validationQuantityMustBePositive": "La cantidad debe ser mayor que 0.",
+        "validationKcalMustBePositive": "Las calorías deben ser mayores que 0.",
+        "validationPcsUnavailable": "Las unidades no están disponibles para este producto — elige g o ml.",
         "save": "Guardar comida",
         "analyzing": "Analizando tu comida...",
         "analyzeErrorTitle": "No se pudo analizar",
@@ -368,6 +377,16 @@
     "calories": {
       "sectionTitle": "Últimos 7 días",
       "empty": "Sin datos de calorías — escanea comidas para empezar."
+    },
+    "day": {
+      "sectionTitle": "Detalle del día",
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "addMeal": "Añadir comida",
+      "emptyMeals": "No hay comidas este día.",
+      "readOnlyHint": "Las entradas se pueden editar hasta el día anterior.",
+      "goalNotSet": "Objetivo diario: No establecido",
+      "goalProgress": "{{consumed}} / {{goal}} kcal"
     }
   },
   "settings": {
@@ -436,7 +455,8 @@
     },
     "common": {
       "cancel": "Cancelar",
-      "save": "Guardar"
+      "save": "Guardar",
+      "ok": "OK"
     },
     "errors": {
       "title": "Algo salió mal",
@@ -477,20 +497,17 @@
     },
     "health": {
       "sectionTitle": "Apple Health",
-      "toggleLabel": "Conectado",
-      "disconnectedHint": "Al conectar, tu nivel de actividad se sustituye por tus datos reales de Salud. Tu objetivo base será más bajo, pero las calorías quemadas se suman a lo largo del día.",
+      "toggleLabel": "Apple Health",
+      "disconnectedHint": "Al activarlo, tu nivel de actividad se sustituye por tus datos reales de Salud. Tu objetivo base será más bajo, pero las calorías quemadas se suman a lo largo del día.",
       "connectedHint": "Ya no se usa tu nivel de actividad del onboarding. Tu objetivo diario se basa en tu metabolismo basal más las calorías que Salud muestra que quemas.",
-      "revokeHint": "Para revocar el acceso por completo, abre la app Salud y ve a Compartir → Apps.",
-      "connectConfirmTitle": "El nivel de actividad se sustituirá",
-      "connectConfirmMessage": "Tu objetivo diario se calculará a partir de tu metabolismo basal y tus datos reales de Salud. Puede cambiar como resultado.",
-      "connectConfirmCancel": "Cancelar",
-      "connectConfirmAction": "Conectar",
+      "revokeHint": "Para revocar el acceso por completo, abre la app Salud y ve a Compartir → Apps → Kolibi.",
+      "sharingHintTitle": "Revisa el acceso en Salud",
+      "sharingHintMessage": "Si no aparecen datos de actividad: app Salud → Compartir → Apps → Kolibi.",
       "disconnectHint": "Al desconectar, tu objetivo diario volverá a tu nivel de actividad del onboarding.",
       "disconnectConfirmTitle": "¿Restablecer nivel de actividad?",
       "disconnectConfirmMessage": "Tu objetivo diario se recalculará con tu nivel de actividad del onboarding en lugar de los datos de Salud. Puede cambiar como resultado.",
       "disconnectConfirmCancel": "Cancelar",
       "disconnectConfirmAction": "Desconectar",
-      "permissionDenied": "No se concedió acceso a Salud.",
       "saveFailed": "No se pudo actualizar la conexión con Salud. Inténtalo de nuevo."
     },
     "calorieGoal": {
@@ -502,6 +519,8 @@
       "notSet": "No establecido",
       "missingProfile": "Faltan datos del perfil.",
       "completeOnboardingFirst": "Completa primero tus datos en la revisión del onboarding.",
+      "validationTitle": "Objetivo calórico no válido",
+      "validationOutOfRange": "Introduce un valor entre {{min}} y {{max}} kcal. Mínimo {{min}} kcal.",
       "saveFailed": "No se pudo guardar el objetivo calórico. Inténtalo de nuevo."
     },
     "onboardingReview": {
@@ -518,6 +537,7 @@
       "statusActivePaid": "Kolibi Premium activo",
       "statusTrialDays": "Periodo de prueba: {{count}} días restantes",
       "renewsOn": "Se renueva el {{date}}",
+      "expiresOn": "Finaliza el {{date}}",
       "getPremium": "Obtener Kolibi Premium",
       "manage": "Gestionar suscripción",
       "cancel": "Cancelar suscripción",

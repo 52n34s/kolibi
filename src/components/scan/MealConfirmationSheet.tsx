@@ -13,7 +13,9 @@ import {
   createEmptyRowItem,
   createRowItemId,
   editableToRowItem,
+  getMealItemsValidationIssue,
   isRowItemValid,
+  mealValidationIssueToConfirmationKey,
   rowItemsToEditable,
   sumRowItemsKcal,
   type MealItemRowItem,
@@ -23,14 +25,12 @@ import { MealItemsSheetBody, MEAL_SHEET_MAX_HEIGHT_RATIO } from '@/components/sc
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import {
   createManualEditableItem,
-  visionItemToEditable,
   type EditableMealItem,
-  type VisionFoodItem,
 } from '@/services/mealVision/types';
 
 type MealConfirmationSheetProps = {
   visible: boolean;
-  items: VisionFoodItem[];
+  items: EditableMealItem[];
   isSaving: boolean;
   onClose: () => void;
   onDismissed?: () => void;
@@ -57,9 +57,8 @@ export function MealConfirmationSheet({
 
   useEffect(() => {
     if (visible) {
-      const editables = items.map((item) => visionItemToEditable(item, createItemId()));
-      setRowItems(editables.map((item) => editableToRowItem(item)));
-      setEditableById(new Map(editables.map((item) => [item.id, item])));
+      setRowItems(items.map((item) => editableToRowItem(item)));
+      setEditableById(new Map(items.map((item) => [item.id, item])));
       setShouldScrollToEnd(false);
     }
   }, [items, visible]);
@@ -76,11 +75,8 @@ export function MealConfirmationSheet({
   }, [rowItems.length, shouldScrollToEnd]);
 
   const totalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
-
-  const canSave = useMemo(
-    () => rowItems.length > 0 && rowItems.every((item) => isRowItemValid(item)),
-    [rowItems],
-  );
+  const saveBlockIssue = useMemo(() => getMealItemsValidationIssue(rowItems), [rowItems]);
+  const canSave = saveBlockIssue == null;
 
   function updateRowItem(id: string, updater: (item: MealItemRowItem) => MealItemRowItem) {
     setRowItems((current) =>
@@ -119,9 +115,6 @@ export function MealConfirmationSheet({
     onSave(rowItemsToEditable(rowItems, editableById));
   }
 
-  const sheetIssue =
-    rowItems.length === 0 ? 'noIngredients' : !canSave ? 'fixRows' : null;
-
   return (
     <GlassBottomSheet
       visible={visible}
@@ -148,11 +141,9 @@ export function MealConfirmationSheet({
               <Text style={styles.addButtonLabel}>{t('home.scan.confirmation.addIngredient')}</Text>
             </Pressable>
 
-            {sheetIssue != null ? (
+            {saveBlockIssue != null ? (
               <Text style={styles.saveHint}>
-                {sheetIssue === 'noIngredients'
-                  ? t('home.scan.confirmation.validationNoIngredients')
-                  : t('home.scan.confirmation.validationFixRows')}
+                {t(mealValidationIssueToConfirmationKey(saveBlockIssue))}
               </Text>
             ) : null}
 

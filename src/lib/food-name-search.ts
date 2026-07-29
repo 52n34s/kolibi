@@ -2,8 +2,6 @@ import { supabase } from '@/lib/supabase';
 import type { FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
 
 const SEARCH_RESULT_LIMIT = 15;
-const FOODS_SELECT_COLUMNS =
-  'id, name, name_normalized, names, search_terms, kcal_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g, category';
 
 type FoodSearchRow = {
   id: string;
@@ -37,28 +35,6 @@ function resolveDisplayName(row: FoodSearchRow, languageCode: string): string {
   return row.name.trim();
 }
 
-function rowMatchesQuery(row: FoodSearchRow, normalizedQuery: string): boolean {
-  if (row.name.toLowerCase().includes(normalizedQuery)) {
-    return true;
-  }
-
-  if (row.name_normalized?.toLowerCase().includes(normalizedQuery)) {
-    return true;
-  }
-
-  if (row.search_terms?.some((term) => term.toLowerCase().includes(normalizedQuery))) {
-    return true;
-  }
-
-  if (row.names) {
-    return Object.values(row.names).some((name) =>
-      name.toLowerCase().includes(normalizedQuery),
-    );
-  }
-
-  return false;
-}
-
 function mapFoodRowToSearchProduct(
   row: FoodSearchRow,
   languageCode: string,
@@ -85,23 +61,21 @@ export async function searchFoodsByName(
   query: string,
   languageCode: string,
 ): Promise<FoodSearchProduct[]> {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (normalizedQuery.length < 3) {
+  const trimmedQuery = query.trim();
+  if (trimmedQuery.length < 3) {
     return [];
   }
 
-  const { data, error } = await supabase
-    .from('foods')
-    .select(FOODS_SELECT_COLUMNS)
-    .eq('is_verified', true)
-    .eq('source', 'usda_sr28');
+  const { data, error } = await supabase.rpc('search_foods', {
+    p_query: trimmedQuery,
+    p_limit: SEARCH_RESULT_LIMIT,
+  });
 
   if (error) {
     throw error;
   }
 
-  return ((data ?? []) as FoodSearchRow[])
-    .filter((row) => rowMatchesQuery(row, normalizedQuery))
-    .slice(0, SEARCH_RESULT_LIMIT)
-    .map((row) => mapFoodRowToSearchProduct(row, languageCode));
+  return ((data ?? []) as FoodSearchRow[]).map((row) =>
+    mapFoodRowToSearchProduct(row, languageCode),
+  );
 }

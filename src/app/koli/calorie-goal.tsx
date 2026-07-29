@@ -22,8 +22,10 @@ import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import {
   calculateMaintenanceCalories,
-  getMinimumDailyCalories,
+  HARD_MINIMUM_DAILY_CALORIES,
   isCalorieGoalFarFromTdee,
+  isValidDailyCalorieGoalInput,
+  MAXIMUM_DAILY_CALORIES,
   resolveActivityLevelForCalorieGoal,
   type BiologicalSex,
 } from '@/lib/onboarding';
@@ -63,7 +65,6 @@ export default function CalorieGoalSettingsScreen() {
   }, [error, isError]);
 
   const effectiveSex: BiologicalSex = profile?.biological_sex ?? 'prefer_not_to_say';
-  const minimumDailyCalories = getMinimumDailyCalories(effectiveSex);
   const parsedDailyCalories = Number(dailyCalorieGoal);
 
   const maintenanceCalories = useMemo(() => {
@@ -88,10 +89,10 @@ export default function CalorieGoalSettingsScreen() {
     });
   }, [effectiveSex, healthConnectedPreference, profile]);
 
-  const showFarFromTdeeWarning =
-    maintenanceCalories != null &&
-    parsedDailyCalories > 0 &&
-    isCalorieGoalFarFromTdee(parsedDailyCalories, maintenanceCalories);
+  const showFarFromTdeeWarning = isCalorieGoalFarFromTdee(
+    parsedDailyCalories,
+    maintenanceCalories,
+  );
 
   async function handleSave() {
     if (!userId) {
@@ -99,14 +100,13 @@ export default function CalorieGoalSettingsScreen() {
       return;
     }
 
-    if (
-      !parsedDailyCalories ||
-      parsedDailyCalories < minimumDailyCalories ||
-      parsedDailyCalories > 6000
-    ) {
+    if (!isValidDailyCalorieGoalInput(parsedDailyCalories)) {
       Alert.alert(
-        t('settings.errors.title'),
-        t('onboarding.errors.summaryCaloriesInvalid', { min: minimumDailyCalories }),
+        t('settings.calorieGoal.validationTitle'),
+        t('settings.calorieGoal.validationOutOfRange', {
+          min: HARD_MINIMUM_DAILY_CALORIES,
+          max: MAXIMUM_DAILY_CALORIES,
+        }),
       );
       return;
     }

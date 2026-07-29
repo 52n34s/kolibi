@@ -15,6 +15,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.steffen.kolibi",
+      "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -78,13 +79,13 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow Kolibi to access your photos to set a profile picture.",
-          "cameraPermission": "Allow Kolibi to access your camera to take a profile picture and scan meals."
+          "cameraPermission": "Allow Kolibi to access your camera to take photos of your meals, scan barcodes, and set a profile picture."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Kolibi to access your camera to scan meals and barcodes.",
+          "cameraPermission": "Allow Kolibi to access your camera to take photos of your meals, scan barcodes, and set a profile picture.",
           "microphonePermission": false,
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": true

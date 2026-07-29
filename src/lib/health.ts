@@ -11,9 +11,60 @@ import { localDayWindow } from '@/lib/day-window';
 
 const ACTIVE_ENERGY_TYPE = 'HKQuantityTypeIdentifierActiveEnergyBurned' as const;
 
-export async function requestHealthPermissions(): Promise<boolean> {
-  if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
+/** HKError.errorAuthorizationNotDetermined — expected before the user grants Health access. */
+const HK_ERROR_AUTHORIZATION_NOT_DETERMINED = 5;
+
+function isHealthAuthorizationNotDetermined(error: unknown): boolean {
+  if (error == null) {
     return false;
+  }
+
+  const asText = typeof error === 'string' ? error : '';
+  if (/authorization not determined/i.test(asText)) {
+    return true;
+  }
+
+  if (typeof error !== 'object') {
+    return false;
+  }
+
+  const record = error as {
+    code?: unknown;
+    message?: unknown;
+    domain?: unknown;
+    localizedDescription?: unknown;
+    userInfo?: unknown;
+    nativeStackIOS?: unknown;
+  };
+
+  const code = record.code;
+  if (code === HK_ERROR_AUTHORIZATION_NOT_DETERMINED || code === '5') {
+    return true;
+  }
+
+  const messageParts = [record.message, record.localizedDescription, record.domain]
+    .filter((part): part is string => typeof part === 'string')
+    .join(' ');
+
+  if (/authorization not determined/i.test(messageParts)) {
+    return true;
+  }
+
+  try {
+    return /authorization not determined/i.test(JSON.stringify(error));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Shows the system HealthKit authorization sheet when needed.
+ * iOS does not report whether read access was denied — do not treat the
+ * post-request status as a grant/deny signal.
+ */
+export async function requestHealthPermissions(): Promise<void> {
+  if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
+    return;
   }
 
   try {
@@ -24,40 +75,14 @@ export async function requestHealthPermissions(): Promise<boolean> {
     if (requestStatus === AuthorizationRequestStatus.shouldRequest) {
       await requestAuthorization({ toRead: [ACTIVE_ENERGY_TYPE] });
     }
-
-    const postRequestStatus = await getRequestStatusForAuthorization({
-      toRead: [ACTIVE_ENERGY_TYPE],
-    });
-
-    return postRequestStatus !== AuthorizationRequestStatus.shouldRequest;
   } catch (error) {
     console.error('[Health] permission request failed:', error);
-    return false;
   }
 }
 
-export async function isHealthConnected(): Promise<boolean> {
-  if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
-    return false;
-  }
-
-  try {
-    const status = await getRequestStatusForAuthorization({
-      toRead: [ACTIVE_ENERGY_TYPE],
-    });
-
-    return status !== AuthorizationRequestStatus.shouldRequest;
-  } catch {
-    return false;
-  }
-}
-
+/** Best-effort read. Returns null when HealthKit is unavailable or the query fails. */
 export async function getActiveEnergyBurnedToday(): Promise<number | null> {
   if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
-    return null;
-  }
-
-  if (!(await isHealthConnected())) {
     return null;
   }
 
@@ -80,7 +105,12 @@ export async function getActiveEnergyBurnedToday(): Promise<number | null> {
 
     return Math.round(result.sumQuantity?.quantity ?? 0);
   } catch (error) {
-    console.error('[Health] read active energy failed:', error);
+    if (isHealthAuthorizationNotDetermined(error)) {
+      // Expected before Health permission — avoid LogBox noise in dev.
+      return null;
+    }
+
+    console.warn('[Health] read active energy failed:', error);
     return null;
   }
 }

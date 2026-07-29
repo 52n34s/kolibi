@@ -72,6 +72,9 @@ export type QuantitySource = 'user' | 'derived' | 'ai';
 
 export type DisplayUnit = 'g' | 'ml';
 
+/** Origin of kcalPer100g: verified foods row vs derived from model kcal/grams. */
+export type KcalPer100gSource = 'database' | 'derived';
+
 export type EditableMealItem = {
   id: string;
   name: string;
@@ -88,6 +91,12 @@ export type EditableMealItem = {
   baselineKcal: number;
   foodId: string | null;
   kcalPer100g: number | null;
+  /**
+   * 'database' = foods/OFF density (kcal edits adjust quantity).
+   * 'derived' = inferred from model (kcal edits update density).
+   * null when unlinked.
+   */
+  kcalPer100gSource: KcalPer100gSource | null;
   quantitySource: QuantitySource;
   /** Label only — ml is stored as quantity_type grams with 1:1 density. */
   displayUnit: DisplayUnit;
@@ -145,6 +154,7 @@ export function visionItemToEditable(item: VisionFoodItem, id: string): Editable
     baselineKcal: item.estimated_kcal,
     foodId: null,
     kcalPer100g: null,
+    kcalPer100gSource: null,
     quantitySource: 'ai',
     displayUnit: 'g',
   };
@@ -176,6 +186,7 @@ export function createManualEditableItem(params: {
     baselineKcal,
     foodId: null,
     kcalPer100g: null,
+    kcalPer100gSource: null,
     quantitySource: 'user',
     displayUnit: 'g',
   };

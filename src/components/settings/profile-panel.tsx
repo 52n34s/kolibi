@@ -25,7 +25,7 @@ import { SETTINGS_GLASS_DIVIDER_CLASS } from '@/components/ui/glass-styles';
 import { UnitSystemToggle } from '@/components/onboarding/unit-system-toggle';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
-import { requestHealthPermissions } from '@/lib/health';
+import { requestHealthPermissions, getActiveEnergyBurnedToday } from '@/lib/health';
 import { recalculateCalorieGoalForHealthKitChange } from '@/lib/recalculate-calorie-goal-for-health';
 import {
   getUserPreference,
@@ -118,17 +118,9 @@ export function ProfilePanel() {
     }
 
     if (nextValue) {
-      Alert.alert(
-        t('settings.health.connectConfirmTitle'),
-        t('settings.health.connectConfirmMessage'),
-        [
-          { text: t('settings.health.connectConfirmCancel'), style: 'cancel' },
-          {
-            text: t('settings.health.connectConfirmAction'),
-            onPress: () => void connectHealth(),
-          },
-        ],
-      );
+      // Apple 5.1.1(iv): toggle must trigger the system HealthKit sheet directly —
+      // no pre-alert with Cancel/Connect that can skip the request.
+      void connectHealth();
       return;
     }
 
@@ -153,11 +145,7 @@ export function ProfilePanel() {
     setIsUpdatingHealthConnection(true);
 
     try {
-      const granted = await requestHealthPermissions();
-      if (!granted) {
-        Alert.alert(t('settings.errors.title'), t('settings.health.permissionDenied'));
-        return;
-      }
+      await requestHealthPermissions();
 
       await setUserPreference(userId, HEALTH_CONNECTED_PREFERENCE_KEY, true);
       await recalculateCalorieGoalForHealthKitChange(userId, true);
@@ -168,6 +156,17 @@ export function ProfilePanel() {
       await queryClient.invalidateQueries({ queryKey: ['active-energy-burned-today'] });
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+
+      // Read access is not reported as granted/denied on iOS. If nothing is
+      // readable, show a non-blocking hint pointing to the Health app.
+      const burned = await getActiveEnergyBurnedToday();
+      if (burned == null) {
+        Alert.alert(
+          t('settings.health.sharingHintTitle'),
+          t('settings.health.sharingHintMessage'),
+          [{ text: t('settings.common.ok') }],
+        );
+      }
     } catch (saveError) {
       console.error('[ProfilePanel] health connect failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('settings.health.saveFailed'));

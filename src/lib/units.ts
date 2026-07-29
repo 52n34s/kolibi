@@ -54,7 +54,8 @@ export function fromDisplay(
   }
 
   if (unitSystem === 'metric') {
-    return Math.max(10, Math.round(displayQuantity));
+    // Any positive gram/ml is allowed; floor at 1 for integer metric edits.
+    return Math.max(1, Math.round(displayQuantity));
   }
 
   if (unit === 'ml') {
@@ -95,7 +96,7 @@ export function getMinDisplayQuantity(unit: MealQuantityUnit, unitSystem: UnitSy
     return 1;
   }
 
-  return unitSystem === 'imperial' ? 0.5 : 10;
+  return unitSystem === 'imperial' ? 0.5 : 1;
 }
 
 export function cmToFeetInches(cm: number): { feet: number; inches: number } {

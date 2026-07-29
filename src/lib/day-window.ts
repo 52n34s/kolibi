@@ -24,3 +24,40 @@ export function parseDateOnly(s: string): Date {
 export function deviceTimeZone(): string {
   return Localization.getCalendars()[0]?.timeZone ?? 'UTC';
 }
+
+/** Recent local date keys, newest first: [today, yesterday, …]. */
+export function listRecentLocalDateKeys(days: number, now: Date = new Date()): string[] {
+  const keys: string[] = [];
+
+  for (let offset = 0; offset < days; offset += 1) {
+    const date = new Date(now);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - offset);
+    keys.push(localDateKey(date));
+  }
+
+  return keys;
+}
+
+/** Today and yesterday are editable; older days are view-only. */
+export function isDayEditable(dateKey: string, now: Date = new Date()): boolean {
+  const todayKey = localDateKey(now);
+  const yesterday = new Date(now);
+  yesterday.setHours(0, 0, 0, 0);
+  yesterday.setDate(yesterday.getDate() - 1);
+  return dateKey === todayKey || dateKey === localDateKey(yesterday);
+}
+
+/**
+ * Timestamp for inserting a meal on a history day.
+ * Today → now; past editable day → local noon of that day.
+ */
+export function resolveEatenAtForLocalDate(dateKey: string, now: Date = new Date()): string {
+  if (dateKey === localDateKey(now)) {
+    return now.toISOString();
+  }
+
+  const midday = parseDateOnly(dateKey);
+  midday.setHours(12, 0, 0, 0);
+  return midday.toISOString();
+}

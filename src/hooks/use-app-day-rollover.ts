@@ -7,8 +7,10 @@ import { syncProfileTimezone } from '@/lib/profile-timezone';
 
 function invalidateDayScopedQueries(queryClient: ReturnType<typeof useQueryClient>, userId: string) {
   void queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
+  void queryClient.invalidateQueries({ queryKey: ['day-meals', userId] });
   void queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
   void queryClient.invalidateQueries({ queryKey: ['history', userId] });
+  void queryClient.invalidateQueries({ queryKey: ['calorie-goal-for-date', userId] });
   void queryClient.invalidateQueries({ queryKey: ['active-energy-burned-today', userId] });
 }
 

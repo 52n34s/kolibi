@@ -30,16 +30,13 @@ export function resolveActivityLevelForCalorieGoal(
   return healthConnected ? HEALTHKIT_ACTIVITY_LEVEL : activityLevel;
 }
 
-export const MINIMUM_DAILY_CALORIES = {
-  female: 1200,
-  male: 1500,
-  prefer_not_to_say: 1500,
-} as const satisfies Record<BiologicalSex, number>;
+export const HARD_MINIMUM_DAILY_CALORIES = 1000;
+export const MAXIMUM_DAILY_CALORIES = 6000;
 
 export const KCAL_PER_KG_BODY_WEIGHT = 7700;
 export const DAYS_PER_WEEK = 7;
 export const MAX_TDEE_ADJUSTMENT_FRACTION = 0.25;
-/** Slightly wider than the adjustment cap so predefined goals never self-trigger warnings. */
+/** Soft warning band around maintenance (±30% ≈ below ~70% or above ~130% of TDEE). Save still allowed. */
 export const WARNING_TDEE_DEVIATION_FRACTION = 0.3;
 
 /** Target body-weight change rate per week (% of current body weight). */
@@ -65,18 +62,35 @@ export type CalorieGoalCalculation = {
   clampedToMinimum: boolean;
 };
 
-export function getMinimumDailyCalories(biologicalSex: BiologicalSex): number {
-  return MINIMUM_DAILY_CALORIES[biologicalSex];
+export function getMinimumDailyCalories(_biologicalSex?: BiologicalSex): number {
+  return HARD_MINIMUM_DAILY_CALORIES;
+}
+
+/** Hard range check shared by onboarding custom/summary and settings calorie goal. */
+export function isValidDailyCalorieGoalInput(calories: number): boolean {
+  return (
+    Number.isFinite(calories) &&
+    calories >= HARD_MINIMUM_DAILY_CALORIES &&
+    calories <= MAXIMUM_DAILY_CALORIES
+  );
 }
 
 export function getMaxDailyCalorieAdjustment(maintenanceCalories: number): number {
   return maintenanceCalories * MAX_TDEE_ADJUSTMENT_FRACTION;
 }
 
+/**
+ * Soft warning only (does not block save). True when calories sit outside
+ * ~70%–130% of estimated maintenance. No warning when maintenance is unknown.
+ */
 export function isCalorieGoalFarFromTdee(
   calories: number,
-  maintenanceCalories: number,
+  maintenanceCalories: number | null | undefined,
 ): boolean {
+  if (maintenanceCalories == null || !(maintenanceCalories > 0) || !(calories > 0)) {
+    return false;
+  }
+
   const lowerBound = maintenanceCalories * (1 - WARNING_TDEE_DEVIATION_FRACTION);
   const upperBound = maintenanceCalories * (1 + WARNING_TDEE_DEVIATION_FRACTION);
   return calories < lowerBound || calories > upperBound;
@@ -309,10 +323,16 @@ export function calculateDailyCalorieGoalDetails(params: {
 }
 
 export async function skipOnboarding(userId: string) {
-  const { error } = await supabase
+  const payload = { onboarded_at: new Date().toISOString() };
+  console.log('[onboarding] skipOnboarding before update', { userId, payload });
+
+  const { data, error } = await supabase
     .from('profiles')
-    .update({ onboarded_at: new Date().toISOString() })
-    .eq('id', userId);
+    .update(payload)
+    .eq('id', userId)
+    .select('id, onboarded_at');
+
+  console.log('[onboarding] skipOnboarding after update', { data, error });
 
   if (error) {
     throw error;
@@ -333,32 +353,64 @@ export async function completeOnboarding(
   },
 ) {
   const now = new Date().toISOString();
+  const profilePayload = {
+    birth_date: localDateKey(data.birthDate),
+    biological_sex: data.biologicalSex,
+    height_cm: data.heightCm,
+    activity_level: data.activityLevel,
+    goal_type: data.goalType,
+    calorie_goal_source: data.calorieGoalSource,
+    onboarded_at: now,
+  };
 
-  const { error: profileError } = await supabase
+  console.log('[onboarding] completeOnboarding before profile update', {
+    userId,
+    profilePayload,
+  });
+
+  const { data: profileData, error: profileError } = await supabase
     .from('profiles')
-    .update({
-      birth_date: localDateKey(data.birthDate),
-      biological_sex: data.biologicalSex,
-      height_cm: data.heightCm,
-      activity_level: data.activityLevel,
-      goal_type: data.goalType,
-      calorie_goal_source: data.calorieGoalSource,
-      onboarded_at: now,
-    })
-    .eq('id', userId);
+    .update(profilePayload)
+    .eq('id', userId)
+    .select('id, onboarded_at, biological_sex');
+
+  console.log('[onboarding] completeOnboarding after profile update', {
+    data: profileData,
+    error: profileError,
+  });
 
   if (profileError) {
     throw profileError;
   }
 
-  await upsertTodayWeightLog({
-    userId,
-    weightKg: data.weightKg,
-    source: 'manual',
-  });
+  try {
+    console.log('[onboarding] completeOnboarding before weight upsert', {
+      userId,
+      weightKg: data.weightKg,
+    });
+    await upsertTodayWeightLog({
+      userId,
+      weightKg: data.weightKg,
+      source: 'manual',
+    });
+    console.log('[onboarding] completeOnboarding weight upsert ok');
+  } catch (weightError) {
+    console.log('[onboarding] completeOnboarding weight upsert failed', weightError);
+    throw weightError;
+  }
 
-  await upsertDailyCalorieGoal({
-    userId,
-    dailyCalorieGoal: data.dailyCalorieGoal,
-  });
+  try {
+    console.log('[onboarding] completeOnboarding before calorie goal upsert', {
+      userId,
+      dailyCalorieGoal: data.dailyCalorieGoal,
+    });
+    await upsertDailyCalorieGoal({
+      userId,
+      dailyCalorieGoal: data.dailyCalorieGoal,
+    });
+    console.log('[onboarding] completeOnboarding calorie goal upsert ok');
+  } catch (calorieError) {
+    console.log('[onboarding] completeOnboarding calorie goal upsert failed', calorieError);
+    throw calorieError;
+  }
 }

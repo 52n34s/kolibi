@@ -1,4 +1,4 @@
-import { localDayWindow, localDateKey } from '@/lib/day-window';
+import { localDayWindow, localDateKey, parseDateOnly } from '@/lib/day-window';
 import { supabase } from '@/lib/supabase';
 import {
   includeMealInCalibration,
@@ -127,12 +127,13 @@ function buildFoodAdjustmentRow(
 async function insertMealAndReload(
   userId: string,
   source: MealSource,
+  eatenAt?: string,
 ): Promise<SavedMealRow> {
   const { data: mealRow, error: mealError } = await supabase
     .from('meals')
     .insert({
       user_id: userId,
-      eaten_at: new Date().toISOString(),
+      eaten_at: eatenAt ?? new Date().toISOString(),
       source,
     })
     .select('id')
@@ -199,6 +200,7 @@ function buildMealItemPayload(
     was_edited: wasMealItemEdited(item),
     sort_order: params.sortOrder,
     kcal_per_100g: normalizeKcalPer100g(item.kcalPer100g),
+    food_id: item.foodId ?? null,
   };
 }
 
@@ -246,6 +248,8 @@ export async function saveScannedMeal(params: {
   userId: string;
   items: EditableMealItem[];
   source: MealSource;
+  /** Optional local-day timestamp (e.g. history backfill). Defaults to now. */
+  eatenAt?: string;
 }): Promise<{ mealId: string; totalKcal: number }> {
   const normalizedItems = params.items.filter((item) => (item.name ?? '').trim().length > 0);
 
@@ -272,7 +276,7 @@ export async function saveScannedMeal(params: {
   }
 
   const includeInCalibration = includeMealInCalibration(params.source);
-  const mealRow = await insertMealAndReload(params.userId, params.source);
+  const mealRow = await insertMealAndReload(params.userId, params.source, params.eatenAt);
 
   const mealItemsPayload = normalizedItems.map((item, index) =>
     buildMealItemPayload(item, {
@@ -349,8 +353,11 @@ export type TodayMeal = {
   items: TodayMealItem[];
 };
 
-export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
-  const { startISO, endISO } = localDayWindow();
+export async function fetchMealsForLocalDate(
+  userId: string,
+  dateKey: string,
+): Promise<TodayMeal[]> {
+  const { startISO, endISO } = localDayWindow(parseDateOnly(dateKey));
 
   const { data: meals, error: mealsError } = await supabase
     .from('meals')
@@ -417,6 +424,10 @@ export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
       items: mealItems,
     };
   });
+}
+
+export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
+  return fetchMealsForLocalDate(userId, localDateKey());
 }
 
 /** Display-only conversion for today-meal quantity labels (storage stays in g/ml). */
@@ -538,6 +549,8 @@ export function mapManualMealEntriesToEditableItems(
         baselineKcal: entry.kcal,
         foodId: entry.foodId ?? null,
         kcalPer100g: normalizeKcalPer100g(entry.kcalPer100g),
+        kcalPer100gSource:
+          normalizeKcalPer100g(entry.kcalPer100g) != null ? 'database' : null,
         quantitySource: 'user',
         displayUnit: 'g',
       };
@@ -562,6 +575,8 @@ export function mapManualMealEntriesToEditableItems(
       baselineKcal: entry.kcal,
       foodId: entry.foodId ?? null,
       kcalPer100g: normalizeKcalPer100g(entry.kcalPer100g),
+      kcalPer100gSource:
+        normalizeKcalPer100g(entry.kcalPer100g) != null ? 'database' : null,
       quantitySource: 'user',
       displayUnit,
     };

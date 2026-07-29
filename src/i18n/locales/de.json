@@ -73,8 +73,8 @@
       "activityRequired": "Bitte wähle dein Aktivitätslevel",
       "goalRequired": "Bitte wähle ein Ziel",
       "customCaloriesRequired": "Bitte gib dein tägliches Kalorienziel ein",
-      "customCaloriesInvalid": "Bitte gib einen Wert zwischen {{min}} und 6000 kcal ein",
-      "summaryCaloriesInvalid": "Bitte gib einen Wert zwischen {{min}} und 6000 kcal ein"
+      "customCaloriesInvalid": "Bitte gib einen Wert zwischen {{min}} und {{max}} kcal ein (mindestens {{min}} kcal)",
+      "summaryCaloriesInvalid": "Bitte gib einen Wert zwischen {{min}} und {{max}} kcal ein (mindestens {{min}} kcal)"
     },
     "sex": {
       "title": "Was ist dein biologisches Geschlecht?",
@@ -226,7 +226,12 @@
       "removeProduct": "Produkt entfernen",
       "save": "Mahlzeit speichern",
       "saveError": "Die Mahlzeit konnte nicht gespeichert werden. Bitte erneut versuchen.",
-      "validationFixRows": "Bitte alle Produktfelder ausfüllen, bevor du speicherst."
+      "validationFixRows": "Bitte alle Produktfelder ausfüllen, bevor du speicherst.",
+      "validationNoProducts": "Füge mindestens ein Produkt hinzu, um zu speichern.",
+      "validationMissingName": "Bitte einen Namen eingeben.",
+      "validationQuantityMustBePositive": "Die Menge muss größer als 0 sein.",
+      "validationKcalMustBePositive": "Die Kalorien müssen größer als 0 sein.",
+      "validationPcsUnavailable": "Stück ist für dieses Produkt nicht verfügbar — wähle g oder ml."
     },
     "foodSearch": {
       "buttonLabel": "Lebensmittel suchen",
@@ -268,6 +273,7 @@
         "permissionTitle": "Kamerazugriff erforderlich",
         "permissionBody": "Erlaube den Kamerazugriff, um deine Mahlzeit zu fotografieren.",
         "permissionAction": "Kamera erlauben",
+        "openSettings": "In Einstellungen öffnen",
         "captureFailed": "Foto konnte nicht aufgenommen werden, nochmal versuchen"
       },
       "referenceObjectHint": "Tipp: Leg eine Gabel oder Hand daneben – das hilft bei der Größenschätzung.",
@@ -288,9 +294,12 @@
         "removeIngredient": "Zutat entfernen",
         "validationNoIngredients": "Füge mindestens eine Zutat hinzu, um zu speichern.",
         "validationFixRows": "Vervollständige oder entferne markierte Zutaten vor dem Speichern.",
-        "validationMissingName": "Name eingeben",
+        "validationMissingName": "Bitte einen Namen eingeben.",
         "validationMissingGrams": "Gramm eingeben",
         "validationMissingKcal": "kcal eingeben",
+        "validationQuantityMustBePositive": "Die Menge muss größer als 0 sein.",
+        "validationKcalMustBePositive": "Die Kalorien müssen größer als 0 sein.",
+        "validationPcsUnavailable": "Stück ist für dieses Produkt nicht verfügbar — wähle g oder ml.",
         "save": "Mahlzeit speichern",
         "analyzing": "Mahlzeit wird analysiert...",
         "analyzeErrorTitle": "Analyse fehlgeschlagen",
@@ -368,6 +377,16 @@
     "calories": {
       "sectionTitle": "Letzte 7 Tage",
       "empty": "Noch keine Kaloriendaten – scanne Mahlzeiten, um zu starten."
+    },
+    "day": {
+      "sectionTitle": "Tagesdetails",
+      "today": "Heute",
+      "yesterday": "Gestern",
+      "addMeal": "Mahlzeit hinzufügen",
+      "emptyMeals": "Keine Mahlzeiten an diesem Tag.",
+      "readOnlyHint": "Einträge lassen sich bis zum Vortag bearbeiten.",
+      "goalNotSet": "Tagesziel: Nicht gesetzt",
+      "goalProgress": "{{consumed}} / {{goal}} kcal"
     }
   },
   "settings": {
@@ -436,7 +455,8 @@
     },
     "common": {
       "cancel": "Abbrechen",
-      "save": "Speichern"
+      "save": "Speichern",
+      "ok": "OK"
     },
     "errors": {
       "title": "Etwas ist schiefgelaufen",
@@ -477,20 +497,17 @@
     },
     "health": {
       "sectionTitle": "Apple Health",
-      "toggleLabel": "Verbunden",
-      "disconnectedHint": "Beim Verbinden wird dein Aktivitätslevel durch deine tatsächlichen Health-Daten ersetzt. Dein Grundziel sinkt dadurch, dafür kommen deine verbrannten Kalorien tagesaktuell dazu.",
+      "toggleLabel": "Apple Health",
+      "disconnectedHint": "Beim Einschalten wird dein Aktivitätslevel durch deine tatsächlichen Health-Daten ersetzt. Dein Grundziel sinkt dadurch, dafür kommen deine verbrannten Kalorien tagesaktuell dazu.",
       "connectedHint": "Dein Aktivitätslevel aus dem Onboarding wird nicht mehr verwendet. Dein Tagesziel basiert auf deinem Grundumsatz plus den Kalorien, die du laut Apple Health tatsächlich verbrennst.",
-      "revokeHint": "Zugriff vollständig widerrufen kannst du in der Health-App unter Freigabe → Apps.",
-      "connectConfirmTitle": "Aktivitätslevel wird ersetzt",
-      "connectConfirmMessage": "Dein Tagesziel wird ab jetzt aus deinem Grundumsatz und deinen echten Health-Daten berechnet. Es kann sich dadurch ändern.",
-      "connectConfirmCancel": "Abbrechen",
-      "connectConfirmAction": "Verbinden",
+      "revokeHint": "Zugriff vollständig widerrufen kannst du in der Health-App unter Freigabe → Apps → Kolibi.",
+      "sharingHintTitle": "Health-Freigabe prüfen",
+      "sharingHintMessage": "Wenn keine Aktivitätsdaten erscheinen: Health-App → Freigabe → Apps → Kolibi.",
       "disconnectHint": "Beim Trennen wird dein Tagesziel wieder auf dein Aktivitätslevel aus dem Onboarding zurückgesetzt.",
       "disconnectConfirmTitle": "Aktivitätslevel zurücksetzen?",
       "disconnectConfirmMessage": "Dein Tagesziel wird wieder mit deinem Aktivitätslevel aus dem Onboarding berechnet, statt mit Apple-Health-Daten. Es kann sich dadurch ändern.",
       "disconnectConfirmCancel": "Abbrechen",
       "disconnectConfirmAction": "Trennen",
-      "permissionDenied": "Health-Zugriff wurde nicht erteilt.",
       "saveFailed": "Health-Verbindung konnte nicht aktualisiert werden. Bitte erneut versuchen."
     },
     "calorieGoal": {
@@ -502,6 +519,8 @@
       "notSet": "Nicht gesetzt",
       "missingProfile": "Profildaten fehlen.",
       "completeOnboardingFirst": "Bitte vervollständige zuerst deine Angaben über „Meine Angaben überprüfen“.",
+      "validationTitle": "Ungültiges Kalorienziel",
+      "validationOutOfRange": "Bitte gib einen Wert zwischen {{min}} und {{max}} kcal ein. Mindestens {{min}} kcal.",
       "saveFailed": "Kalorienziel konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
     "onboardingReview": {
@@ -518,6 +537,7 @@
       "statusActivePaid": "Kolibi Premium aktiv",
       "statusTrialDays": "Testzeitraum: noch {{count}} Tage",
       "renewsOn": "Verlängert sich am {{date}}",
+      "expiresOn": "Läuft aus am {{date}}",
       "getPremium": "Kolibi Premium holen",
       "manage": "Abo verwalten",
       "cancel": "Abo kündigen",

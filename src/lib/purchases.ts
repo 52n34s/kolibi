@@ -1,22 +1,129 @@
 import Purchases, { LOG_LEVEL, type PurchasesPackage } from 'react-native-purchases';
 
-export async function initPurchases(userId: string | null) {
-  try {
-    await Purchases.setLogLevel(LOG_LEVEL.WARN);
-    await Purchases.configure({
-      apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY!,
-      appUserID: userId ?? undefined,
-    });
-  } catch (error) {
-    console.error('[RevenueCat] configure failed:', error);
+let configurePromise: Promise<void> | null = null;
+let identifiedUserId: string | null = null;
+let identifyPromise: Promise<void> | null = null;
+
+function isRevenueCatSandboxNoise(message: string): boolean {
+  return (
+    /syncing subscriber attributes/i.test(message) ||
+    /BackendError(?:\s+error)?\s*0\b/i.test(message)
+  );
+}
+
+function installRevenueCatLogHandler() {
+  Purchases.setLogHandler((logLevel, message) => {
+    if (isRevenueCatSandboxNoise(message)) {
+      // Sandbox churn — keep visible in console without tripping LogBox.
+      console.warn(`[RevenueCat] ${message}`);
+      return;
+    }
+
+    switch (logLevel) {
+      case LOG_LEVEL.VERBOSE:
+      case LOG_LEVEL.DEBUG:
+        if (__DEV__) {
+          console.log(`[RevenueCat] ${message}`);
+        }
+        break;
+      case LOG_LEVEL.INFO:
+        console.log(`[RevenueCat] ${message}`);
+        break;
+      case LOG_LEVEL.WARN:
+        console.warn(`[RevenueCat] ${message}`);
+        break;
+      case LOG_LEVEL.ERROR:
+      default:
+        console.error(`[RevenueCat] ${message}`);
+        break;
+    }
+  });
+}
+
+/**
+ * Configure RevenueCat exactly once at app start (anonymous until logIn).
+ * Subsequent calls reuse the same configure promise.
+ */
+export async function configurePurchasesOnce(): Promise<void> {
+  if (configurePromise) {
+    return configurePromise;
   }
+
+  configurePromise = (async () => {
+    try {
+      await Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.WARN : LOG_LEVEL.ERROR);
+      installRevenueCatLogHandler();
+      await Purchases.configure({
+        apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY!,
+      });
+    } catch (error) {
+      configurePromise = null;
+      console.error('[RevenueCat] configure failed:', error);
+      throw error;
+    }
+  })();
+
+  return configurePromise;
+}
+
+/**
+ * Bind the SDK to the authenticated Supabase user via logIn.
+ * Must complete before any purchase so the webhook receives a real app_user_id.
+ */
+export async function logInPurchases(userId: string): Promise<void> {
+  await configurePurchasesOnce();
+
+  if (identifiedUserId === userId) {
+    return;
+  }
+
+  if (identifyPromise) {
+    await identifyPromise;
+    if (identifiedUserId === userId) {
+      return;
+    }
+  }
+
+  identifyPromise = (async () => {
+    try {
+      await Purchases.logIn(userId);
+      identifiedUserId = userId;
+    } catch (error) {
+      console.error('[RevenueCat] logIn failed:', error);
+      throw error;
+    } finally {
+      identifyPromise = null;
+    }
+  })();
+
+  return identifyPromise;
+}
+
+/** Ensure configure + logIn finished for this user before offerings/purchase/restore. */
+export async function ensurePurchasesIdentified(userId: string): Promise<void> {
+  await logInPurchases(userId);
 }
 
 export async function logOutPurchases() {
   try {
+    if (!configurePromise) {
+      identifiedUserId = null;
+      return;
+    }
+
+    await configurePromise;
+
+    // logOut() throws when the SDK user is still anonymous (configure without logIn).
+    if (await Purchases.isAnonymous()) {
+      identifiedUserId = null;
+      return;
+    }
+
     await Purchases.logOut();
   } catch (error) {
     console.error('[RevenueCat] logOut failed:', error);
+  } finally {
+    identifiedUserId = null;
   }
 }
 

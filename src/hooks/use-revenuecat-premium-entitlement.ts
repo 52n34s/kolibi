@@ -3,6 +3,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import {
   getCustomerInfoSnapshot,
   getPremiumEntitlementExpirationDate,
+  getPremiumEntitlementWillRenew,
   hasActivePremiumEntitlement,
   refreshRevenueCatCustomerInfo,
   subscribeToCustomerInfo,
@@ -21,10 +22,12 @@ export function useRevenueCatPremiumEntitlement() {
 
   const isPremiumEntitlementActive = hasActivePremiumEntitlement(customerInfo);
   const entitlementExpirationDate = getPremiumEntitlementExpirationDate(customerInfo);
+  const entitlementWillRenew = getPremiumEntitlementWillRenew(customerInfo);
 
   return {
     customerInfo,
     isPremiumEntitlementActive,
     entitlementExpirationDate,
+    entitlementWillRenew,
   };
 }

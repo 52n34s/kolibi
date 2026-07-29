@@ -3,13 +3,14 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { CameraPermissionGate } from '@/components/scan/CameraPermissionGate';
 
 const SCAN_TIMEOUT_MS = 15_000;
 
@@ -44,7 +45,7 @@ function BarcodeCameraViewComponent({
   }, []);
 
   useEffect(() => {
-    if (scanPaused || scanTimedOut) {
+    if (!permission?.granted || scanPaused || scanTimedOut) {
       return;
     }
 
@@ -56,7 +57,7 @@ function BarcodeCameraViewComponent({
     }, SCAN_TIMEOUT_MS);
 
     return () => clearTimeout(timeoutId);
-  }, [scanPaused, scanTimedOut]);
+  }, [permission?.granted, scanPaused, scanTimedOut]);
 
   const handleCancel = useCallback(() => {
     resetSession();
@@ -92,42 +93,17 @@ function BarcodeCameraViewComponent({
     [onBarcodeScanned],
   );
 
-  if (!permission) {
+  if (!permission?.granted) {
     return (
-      <View style={styles.centeredState}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('settings.common.cancel')}
-          style={[styles.permissionCloseButton, { top: insets.top + 8 }]}
-          onPress={handleCancel}>
-          <Ionicons name="close" size={24} color="#FFFFFF" />
-        </Pressable>
-        <ActivityIndicator color="#FFFFFF" />
-      </View>
-    );
-  }
-
-  if (!permission.granted) {
-    return (
-      <View style={styles.centeredState}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('settings.common.cancel')}
-          style={[styles.permissionCloseButton, { top: insets.top + 8 }]}
-          onPress={handleCancel}>
-          <Ionicons name="close" size={24} color="#FFFFFF" />
-        </Pressable>
-        <Text style={styles.permissionTitle}>{t('home.scan.camera.permissionTitle')}</Text>
-        <Text style={styles.permissionBody}>{t('home.scan.camera.permissionBody')}</Text>
-        <Pressable style={styles.permissionButton} onPress={() => void requestPermission()}>
-          <Text style={styles.permissionButtonLabel}>
-            {t('home.scan.camera.permissionAction')}
-          </Text>
-        </Pressable>
-        <Pressable style={styles.cancelTextButton} onPress={handleCancel}>
-          <Text style={styles.cancelTextLabel}>{t('settings.common.cancel')}</Text>
-        </Pressable>
-      </View>
+      <CameraPermissionGate
+        permission={permission}
+        requestPermission={requestPermission}
+        onClose={handleCancel}
+        title={t('home.scan.camera.permissionTitle')}
+        body={t('home.scan.camera.permissionBody')}
+        openSettingsLabel={t('home.scan.camera.openSettings')}
+        closeAccessibilityLabel={t('settings.common.cancel')}
+      />
     );
   }
 
@@ -332,55 +308,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  centeredState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.88)',
-  },
-  permissionCloseButton: {
-    position: 'absolute',
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-  },
-  permissionTitle: {
-    marginBottom: 8,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  permissionBody: {
-    marginBottom: 20,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.78)',
-    textAlign: 'center',
-  },
-  permissionButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#4F46E5',
-  },
-  permissionButtonLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  cancelTextButton: {
-    marginTop: 16,
-    padding: 8,
-  },
-  cancelTextLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.82)',
   },
 });

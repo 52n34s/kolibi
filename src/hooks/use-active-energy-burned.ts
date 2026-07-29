@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { localDateKey } from '@/lib/day-window';
-import { getActiveEnergyBurnedToday, isHealthConnected } from '@/lib/health';
+import { getActiveEnergyBurnedToday } from '@/lib/health';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function useActiveEnergyBurnedToday(enabled: boolean) {
@@ -12,12 +12,6 @@ export function useActiveEnergyBurnedToday(enabled: boolean) {
     enabled: enabled && !!userId,
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
-    queryFn: async () => {
-      if (!(await isHealthConnected())) {
-        return null;
-      }
-
-      return getActiveEnergyBurnedToday();
-    },
+    queryFn: async () => getActiveEnergyBurnedToday(),
   });
 }

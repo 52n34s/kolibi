@@ -57,6 +57,7 @@ const openFoodFactsResponseSchema = z.object({
 export type BarcodeProduct = {
   barcode: string;
   productName: string;
+  brand: string | null;
   quantityLabel: string | null;
   servingSizeLabel: string | null;
   quantityGrams: number | null;
@@ -126,6 +127,24 @@ export type FoodSearchProduct = {
   servingSizeLabel: string | null;
   category: string | null;
 };
+
+export function barcodeProductToFoodSearchProduct(product: BarcodeProduct): FoodSearchProduct {
+  return {
+    offId: product.barcode,
+    name: product.productName,
+    brand: product.brand,
+    kcalPer100g: product.kcalPer100g,
+    proteinPer100g: product.proteinPer100g,
+    carbsPer100g: product.carbsPer100g,
+    fatPer100g: product.fatPer100g,
+    fiberPer100g: null,
+    sugarPer100g: null,
+    sodiumPer100g: null,
+    servingSizeGrams: product.servingSizeGrams,
+    servingSizeLabel: product.servingSizeLabel,
+    category: null,
+  };
+}
 
 export type OpenFoodFactsSearchLocale = {
   languageCode: string;
@@ -415,6 +434,7 @@ function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSch
   return {
     barcode,
     productName: resolveBarcodeProductName(product),
+    brand: product.brands?.split(',')[0]?.trim() || null,
     quantityLabel,
     servingSizeLabel,
     quantityGrams,

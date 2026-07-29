@@ -73,8 +73,8 @@
       "activityRequired": "Please select your activity level",
       "goalRequired": "Please select a goal",
       "customCaloriesRequired": "Please enter your daily calorie target",
-      "customCaloriesInvalid": "Please enter a value between {{min}} and 6000 kcal",
-      "summaryCaloriesInvalid": "Please enter a value between {{min}} and 6000 kcal"
+      "customCaloriesInvalid": "Please enter a value between {{min}} and {{max}} kcal (minimum {{min}} kcal)",
+      "summaryCaloriesInvalid": "Please enter a value between {{min}} and {{max}} kcal (minimum {{min}} kcal)"
     },
     "sex": {
       "title": "What's your biological sex?",
@@ -226,7 +226,12 @@
       "removeProduct": "Remove product",
       "save": "Save meal",
       "saveError": "Could not save your meal. Please try again.",
-      "validationFixRows": "Complete all product fields before saving."
+      "validationFixRows": "Complete all product fields before saving.",
+      "validationNoProducts": "Add at least one product to save.",
+      "validationMissingName": "Please enter a name.",
+      "validationQuantityMustBePositive": "Quantity must be greater than 0.",
+      "validationKcalMustBePositive": "Calories must be greater than 0.",
+      "validationPcsUnavailable": "Pieces aren't available for this product — choose g or ml."
     },
     "foodSearch": {
       "buttonLabel": "Search food",
@@ -268,6 +273,7 @@
         "permissionTitle": "Camera access needed",
         "permissionBody": "Allow camera access to photograph your meal.",
         "permissionAction": "Allow camera",
+        "openSettings": "Open Settings",
         "captureFailed": "Could not take the photo, please try again"
       },
       "referenceObjectHint": "Tip: place a fork or your hand next to the food – it helps estimate size.",
@@ -288,9 +294,12 @@
         "removeIngredient": "Remove ingredient",
         "validationNoIngredients": "Add at least one ingredient to save.",
         "validationFixRows": "Complete or remove highlighted ingredients before saving.",
-        "validationMissingName": "Enter a name",
+        "validationMissingName": "Please enter a name.",
         "validationMissingGrams": "Enter grams",
         "validationMissingKcal": "Enter kcal",
+        "validationQuantityMustBePositive": "Quantity must be greater than 0.",
+        "validationKcalMustBePositive": "Calories must be greater than 0.",
+        "validationPcsUnavailable": "Pieces aren't available for this product — choose g or ml.",
         "save": "Save meal",
         "analyzing": "Analyzing your meal...",
         "analyzeErrorTitle": "Could not analyze meal",
@@ -368,6 +377,16 @@
     "calories": {
       "sectionTitle": "Last 7 days",
       "empty": "No calorie data yet — scan meals to start tracking."
+    },
+    "day": {
+      "sectionTitle": "Day details",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "addMeal": "Add meal",
+      "emptyMeals": "No meals on this day.",
+      "readOnlyHint": "Entries can be edited up to the previous day.",
+      "goalNotSet": "Daily goal: Not set",
+      "goalProgress": "{{consumed}} / {{goal}} kcal"
     }
   },
   "settings": {
@@ -436,7 +455,8 @@
     },
     "common": {
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "ok": "OK"
     },
     "errors": {
       "title": "Something went wrong",
@@ -477,20 +497,17 @@
     },
     "health": {
       "sectionTitle": "Apple Health",
-      "toggleLabel": "Connected",
-      "disconnectedHint": "When you connect, your activity level is replaced by your actual Health data. Your base goal will be lower, but calories you burn are added throughout the day.",
+      "toggleLabel": "Apple Health",
+      "disconnectedHint": "When you turn this on, your activity level is replaced by your actual Health data. Your base goal will be lower, but calories you burn are added throughout the day.",
       "connectedHint": "Your onboarding activity level is no longer used. Your daily goal is based on your basal metabolic rate plus the calories Apple Health shows you actually burn.",
-      "revokeHint": "To fully revoke access, open the Health app and go to Sharing → Apps.",
-      "connectConfirmTitle": "Activity level will be replaced",
-      "connectConfirmMessage": "Your daily goal will now be calculated from your basal metabolic rate and your real Health data. It may change as a result.",
-      "connectConfirmCancel": "Cancel",
-      "connectConfirmAction": "Connect",
+      "revokeHint": "To fully revoke access, open the Health app and go to Sharing → Apps → Kolibi.",
+      "sharingHintTitle": "Check Health sharing",
+      "sharingHintMessage": "If activity data does not appear: Health app → Sharing → Apps → Kolibi.",
       "disconnectHint": "If you disconnect, your daily goal will be reset to your onboarding activity level.",
       "disconnectConfirmTitle": "Reset activity level?",
       "disconnectConfirmMessage": "Your daily goal will be recalculated using your onboarding activity level instead of Apple Health data. It may change as a result.",
       "disconnectConfirmCancel": "Cancel",
       "disconnectConfirmAction": "Disconnect",
-      "permissionDenied": "Health access was not granted.",
       "saveFailed": "Could not update your Health connection. Please try again."
     },
     "calorieGoal": {
@@ -502,6 +519,8 @@
       "notSet": "Not set",
       "missingProfile": "Profile data is missing.",
       "completeOnboardingFirst": "Please complete your profile in onboarding review first.",
+      "validationTitle": "Invalid calorie goal",
+      "validationOutOfRange": "Please enter a value between {{min}} and {{max}} kcal. Minimum {{min}} kcal.",
       "saveFailed": "Could not save your calorie goal. Please try again."
     },
     "onboardingReview": {
@@ -518,6 +537,7 @@
       "statusActivePaid": "Kolibi Premium active",
       "statusTrialDays": "Trial: {{count}} days left",
       "renewsOn": "Renews on {{date}}",
+      "expiresOn": "Expires on {{date}}",
       "getPremium": "Get Kolibi Premium",
       "manage": "Manage subscription",
       "cancel": "Cancel subscription",

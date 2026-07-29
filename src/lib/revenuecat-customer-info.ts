@@ -76,3 +76,15 @@ export function getPremiumEntitlementExpirationDate(
 
   return entitlement.expirationDate;
 }
+
+/** false when the active entitlement will not renew (e.g. cancelled until period end). */
+export function getPremiumEntitlementWillRenew(
+  customerInfo: CustomerInfo | null,
+): boolean | null {
+  const entitlement = customerInfo?.entitlements.active[REVENUECAT_PREMIUM_ENTITLEMENT];
+  if (!entitlement) {
+    return null;
+  }
+
+  return entitlement.willRenew === true;
+}

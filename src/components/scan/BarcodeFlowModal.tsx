@@ -33,7 +33,9 @@ import {
   changeRowItemUnit,
   createEmptyRowItem,
   createRowItemFromBarcode,
+  getMealItemsValidationIssue,
   isRowItemValid,
+  mealValidationIssueToManualEntryKey,
   sumRowItemsKcal,
   type MealItemRowItem,
 } from '@/components/scan/meal-item-row-model';
@@ -48,7 +50,7 @@ export type BarcodeFlowState =
   | { kind: 'closed' }
   | { kind: 'camera' }
   | { kind: 'loading' }
-  | { kind: 'quantity'; product: BarcodeProduct }
+  | { kind: 'quantity'; product: BarcodeProduct; foodId: string | null }
   | { kind: 'notFound' }
   | { kind: 'nutrimentsMissing' }
   | { kind: 'lookupError' };
@@ -69,10 +71,12 @@ const DEFAULT_CUSTOM_GRAMS = 100;
 
 function BarcodeQuantityContent({
   product,
+  foodId,
   isSaving,
   onSave,
 }: {
   product: BarcodeProduct;
+  foodId: string | null;
   isSaving: boolean;
   onSave: (items: MealItemRowItem[]) => void;
 }) {
@@ -85,15 +89,13 @@ function BarcodeQuantityContent({
     const customGrams = getDefaultCustomGrams(product, DEFAULT_CUSTOM_GRAMS);
     const quantityGrams = getQuantityGramsForOption(option, product, customGrams);
     setSelectedOption(option);
-    setRowItems([createRowItemFromBarcode(product, quantityGrams)]);
-  }, [product]);
+    setRowItems([createRowItemFromBarcode(product, quantityGrams, foodId)]);
+  }, [product, foodId]);
 
   const availableOptions = useMemo(() => getAvailableQuantityOptions(product), [product]);
   const totalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
-  const canSave = useMemo(
-    () => rowItems.length > 0 && rowItems.every((item) => isRowItemValid(item)),
-    [rowItems],
-  );
+  const saveBlockIssue = useMemo(() => getMealItemsValidationIssue(rowItems), [rowItems]);
+  const canSave = saveBlockIssue == null;
 
   function updateRowItem(id: string, updater: (item: MealItemRowItem) => MealItemRowItem) {
     setRowItems((current) =>
@@ -108,7 +110,7 @@ function BarcodeQuantityContent({
 
     setRowItems((current) => {
       if (current.length === 0) {
-        return [createRowItemFromBarcode(product, quantityGrams)];
+        return [createRowItemFromBarcode(product, quantityGrams, foodId)];
       }
 
       const [first, ...rest] = current;
@@ -118,8 +120,10 @@ function BarcodeQuantityContent({
             ...first,
             name: product.productName,
             kcalPer100g: product.kcalPer100g,
+            kcalPer100gSource: 'database',
             unit: 'g',
             gramsPerUnit: product.servingSizeGrams,
+            foodId,
           },
           quantityGrams,
         ),
@@ -181,8 +185,10 @@ function BarcodeQuantityContent({
       }
       footer={
         <>
-          {!canSave ? (
-            <Text style={mealEntrySheetStyles.saveHint}>{t('home.manualEntry.validationFixRows')}</Text>
+          {!canSave && saveBlockIssue != null ? (
+            <Text style={mealEntrySheetStyles.saveHint}>
+              {t(mealValidationIssueToManualEntryKey(saveBlockIssue))}
+            </Text>
           ) : null}
 
           <Pressable
@@ -349,6 +355,7 @@ export function BarcodeFlowModal({
           <BarcodeSheetLayout onClose={onClose}>
             <BarcodeQuantityContent
               product={state.product}
+              foodId={state.foodId}
               isSaving={isSaving}
               onSave={onSaveItems}
             />

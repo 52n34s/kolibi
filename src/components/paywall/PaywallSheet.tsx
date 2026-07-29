@@ -25,10 +25,12 @@ import {
   invalidatePremiumAccessQueries,
 } from '@/lib/premium-query-sync';
 import {
+  ensurePurchasesIdentified,
   getDefaultMonthlyPackage,
   purchasePremiumPackage,
   restorePremiumPurchases,
 } from '@/lib/purchases';
+import { refreshRevenueCatCustomerInfo } from '@/lib/revenuecat-customer-info';
 
 type PurchaseFlowPhase = 'idle' | 'purchasing';
 
@@ -90,9 +92,23 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
     async function loadOffering() {
       setIsLoadingOffering(true);
       try {
+        // Never fetch offerings / purchase on $RCAnonymousID — wait for Supabase user logIn.
+        if (userId) {
+          await ensurePurchasesIdentified(userId);
+        }
+
+        if (cancelled) {
+          return;
+        }
+
         const pkg = await getDefaultMonthlyPackage();
         if (!cancelled) {
           setMonthlyPackage(pkg);
+        }
+      } catch (error) {
+        console.error('[Paywall] identify/offerings failed:', error);
+        if (!cancelled) {
+          setMonthlyPackage(null);
         }
       } finally {
         if (!cancelled) {
@@ -106,7 +122,7 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
     return () => {
       cancelled = true;
     };
-  }, [visible]);
+  }, [visible, userId]);
 
   useEffect(() => {
     return () => {
@@ -115,11 +131,15 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
   }, []);
 
   async function refreshPremiumAccessAfterCustomerInfoUpdate(userId: string | undefined) {
+    // Refresh entitlement store first so home gate / subscription card see premium immediately.
+    await refreshRevenueCatCustomerInfo();
+
     if (!userId) {
       return;
     }
 
     await invalidatePremiumAccessQueries(queryClient, userId);
+    await queryClient.invalidateQueries({ queryKey: ['has-premium-access', userId] });
   }
 
   async function handlePurchase() {
@@ -128,10 +148,20 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
       return;
     }
 
+    if (!userId) {
+      Alert.alert(t('settings.errors.title'), t('paywall.purchaseError'));
+      return;
+    }
+
     const signal = beginPurchaseFlowSignal();
     setPurchaseFlowPhase('purchasing');
 
     try {
+      await ensurePurchasesIdentified(userId);
+      if (signal.aborted) {
+        return;
+      }
+
       await purchasePremiumPackage(monthlyPackage);
 
       if (signal.aborted) {
@@ -166,10 +196,20 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
   }
 
   async function handleRestore() {
+    if (!userId) {
+      Alert.alert(t('settings.errors.title'), t('paywall.restoreError'));
+      return;
+    }
+
     const signal = beginPurchaseFlowSignal();
     setIsRestoring(true);
 
     try {
+      await ensurePurchasesIdentified(userId);
+      if (signal.aborted) {
+        return;
+      }
+
       const customerInfo = await restorePremiumPurchases();
 
       if (signal.aborted) {

@@ -23,6 +23,34 @@ export async function upsertDailyCalorieGoal(params: {
   }
 }
 
+/**
+ * Goal active on a given local calendar day: latest row with effective_from <= dateKey.
+ * Returns null when no goal existed yet (same as Home "Not set").
+ */
+export async function fetchCalorieGoalForDate(
+  userId: string,
+  dateKey: string,
+): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('calorie_goals')
+    .select('daily_calorie_goal')
+    .eq('user_id', userId)
+    .lte('effective_from', dateKey)
+    .order('effective_from', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (data?.daily_calorie_goal == null) {
+    return null;
+  }
+
+  return Number(data.daily_calorie_goal);
+}
+
 export function logCalorieGoalSaveError(context: string, error: unknown) {
   console.error(`[${context}] save failed:`, error);
 

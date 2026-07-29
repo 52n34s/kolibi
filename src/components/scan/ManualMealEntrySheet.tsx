@@ -9,7 +9,10 @@ import {
   type SheetLayout,
 } from '@/components/scan/FoodNameAutocompleteDropdown';
 import { MealItemRow } from '@/components/scan/MealItemRow';
-import { useMealInputBarValues } from '@/components/scan/meal-input-bar-context';
+import {
+  useMealInputBarActions,
+  useMealInputBarValues,
+} from '@/components/scan/meal-input-bar-context';
 import {
   resolveFoodAutocompletePlacementMode,
   useFoodAutocompleteOverlayActions,
@@ -21,7 +24,9 @@ import {
   changeRowItemQuantity,
   changeRowItemUnit,
   createEmptyRowItem,
+  getMealItemsValidationIssue,
   isRowItemValid,
+  mealValidationIssueToManualEntryKey,
   rowItemsToEditable,
   sumRowItemsKcal,
   type MealItemRowItem,
@@ -74,6 +79,7 @@ function ManualMealEntrySheetContent({
   const { t } = useTranslation();
   const { height: windowHeight } = useWindowDimensions();
   const mealInputBarValues = useMealInputBarValues();
+  const mealInputBarActions = useMealInputBarActions();
   const overlayActions = useFoodAutocompleteOverlayActions();
   const keyboardHeight = mealInputBarValues?.keyboardHeight ?? 0;
   const scrollRef = useRef<ScrollView>(null);
@@ -145,10 +151,8 @@ function ManualMealEntrySheetContent({
 
   const totalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
 
-  const canSave = useMemo(
-    () => rowItems.length > 0 && rowItems.every((item) => isRowItemValid(item)),
-    [rowItems],
-  );
+  const saveBlockIssue = useMemo(() => getMealItemsValidationIssue(rowItems), [rowItems]);
+  const canSave = saveBlockIssue == null;
 
   function updateRowItem(id: string, updater: (item: MealItemRowItem) => MealItemRowItem) {
     setRowItems((current) =>
@@ -240,6 +244,7 @@ function ManualMealEntrySheetContent({
   }
 
   async function handleSelectOffProduct(itemId: string, product: FoodSearchProduct) {
+    // Close dropdown before applying — search session ends with the selection.
     clearAutocomplete();
 
     const knownFoodId = product.foodId ?? null;
@@ -247,6 +252,10 @@ function ManualMealEntrySheetContent({
     updateRowItem(itemId, (row) =>
       applyOffProductToRow(row, product, knownFoodId),
     );
+
+    // Name TextInput is controlled by item.name, but the floating bar keeps its own
+    // displayValue from typing — sync it to the chosen product name.
+    mealInputBarActions?.updateDisplayValue(product.name);
 
     if (knownFoodId) {
       return;
@@ -340,8 +349,8 @@ function ManualMealEntrySheetContent({
           }
           footer={
             <>
-              {!canSave ? (
-                <Text style={styles.saveHint}>{t('home.manualEntry.validationFixRows')}</Text>
+              {!canSave && saveBlockIssue != null ? (
+                <Text style={styles.saveHint}>{t(mealValidationIssueToManualEntryKey(saveBlockIssue))}</Text>
               ) : null}
 
               <Pressable

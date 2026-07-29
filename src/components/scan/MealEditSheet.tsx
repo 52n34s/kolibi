@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -18,8 +17,10 @@ import {
   changeRowItemQuantity,
   changeRowItemUnit,
   createEmptyRowItem,
+  getMealItemsValidationIssue,
   isRowItemValid,
   mealItemForEditToRow,
+  mealValidationIssueToManualEntryKey,
   rowItemToManualInput,
   sumRowItemsKcal,
   type MealItemRowItem,
@@ -66,6 +67,7 @@ export function MealEditSheet({
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (!visible || !mealId || !userId) {
@@ -113,6 +115,7 @@ export function MealEditSheet({
       setInitialMealItemIds([]);
       setLoadError(false);
       setShouldScrollToEnd(false);
+      setConfirmingDelete(false);
     }
   }, [visible]);
 
@@ -129,13 +132,19 @@ export function MealEditSheet({
 
   const totalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
 
+  const saveBlockIssue = useMemo(() => {
+    if (isLoading || loadError) {
+      return null;
+    }
+    return getMealItemsValidationIssue(rowItems);
+  }, [rowItems, isLoading, loadError]);
+
   const canSave = useMemo(() => {
-    if (rowItems.length === 0 || isLoading || loadError) {
+    if (isLoading || loadError) {
       return false;
     }
-
-    return rowItems.every((item) => isRowItemValid(item));
-  }, [rowItems, isLoading, loadError]);
+    return saveBlockIssue == null;
+  }, [isLoading, loadError, saveBlockIssue]);
 
   function updateRowItem(id: string, updater: (item: MealItemRowItem) => MealItemRowItem) {
     setRowItems((current) =>
@@ -186,14 +195,16 @@ export function MealEditSheet({
       return;
     }
 
-    Alert.alert(t('home.meal.deleteMeal'), t('home.meal.deleteMealConfirm'), [
-      { text: t('settings.common.cancel'), style: 'cancel' },
-      {
-        text: t('home.meal.deleteMeal'),
-        style: 'destructive',
-        onPress: () => onDeleteMeal(mealId),
-      },
-    ]);
+    // Inline confirm — never Alert.alert during Modal presentation (iOS deadlock).
+    setConfirmingDelete(true);
+  }
+
+  function handleConfirmDelete() {
+    if (!mealId || isSaving || isDeleting) {
+      return;
+    }
+
+    onDeleteMeal(mealId);
   }
 
   return (
@@ -224,52 +235,83 @@ export function MealEditSheet({
               </>
             }
             footer={
-              <>
-                {!canSave ? (
-                  <Text style={styles.saveHint}>{t('home.manualEntry.validationFixRows')}</Text>
-                ) : null}
-
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('home.manualEntry.addProduct')}
-                  style={styles.addButton}
-                  onPress={handleAddProduct}>
-                  <Ionicons name="add-circle-outline" size={18} color="#4F46E5" />
-                  <Text style={styles.addButtonLabel}>{t('home.manualEntry.addProduct')}</Text>
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('home.mealEdit.save')}
-                  disabled={isSaving || isDeleting || !canSave}
-                  style={[styles.saveShell, (isSaving || isDeleting || !canSave) && styles.saveDisabled]}
-                  onPress={handleSavePress}>
-                  <LinearGradient
-                    colors={['#4F46E5', '#7CE7C7']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.saveGradient}>
-                    {isSaving ? (
-                      <ActivityIndicator color="#FFFFFF" />
+              confirmingDelete ? (
+                <View style={styles.deleteConfirmBlock}>
+                  <Text style={styles.deleteConfirmMessage}>
+                    {t('home.meal.deleteMealConfirm')}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('home.meal.deleteMeal')}
+                    disabled={isSaving || isDeleting}
+                    style={styles.deleteConfirmAction}
+                    onPress={handleConfirmDelete}>
+                    {isDeleting ? (
+                      <ActivityIndicator color="#DC2626" />
                     ) : (
-                      <Text style={styles.saveLabel}>{t('home.mealEdit.save')}</Text>
+                      <Text style={styles.deleteMealLabel}>{t('home.meal.deleteMeal')}</Text>
                     )}
-                  </LinearGradient>
-                </Pressable>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('settings.common.cancel')}
+                    disabled={isDeleting}
+                    style={styles.deleteConfirmCancel}
+                    onPress={() => setConfirmingDelete(false)}>
+                    <Text style={styles.deleteConfirmCancelLabel}>
+                      {t('settings.common.cancel')}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <>
+                  {!canSave && saveBlockIssue != null ? (
+                    <Text style={styles.saveHint}>
+                      {t(mealValidationIssueToManualEntryKey(saveBlockIssue))}
+                    </Text>
+                  ) : null}
 
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('home.meal.deleteMeal')}
-                  disabled={isSaving || isDeleting}
-                  style={styles.deleteMealButton}
-                  onPress={handleDeleteMealPress}>
-                  {isDeleting ? (
-                    <ActivityIndicator color="#DC2626" />
-                  ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('home.manualEntry.addProduct')}
+                    style={styles.addButton}
+                    onPress={handleAddProduct}>
+                    <Ionicons name="add-circle-outline" size={18} color="#4F46E5" />
+                    <Text style={styles.addButtonLabel}>{t('home.manualEntry.addProduct')}</Text>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('home.mealEdit.save')}
+                    disabled={isSaving || isDeleting || !canSave}
+                    style={[
+                      styles.saveShell,
+                      (isSaving || isDeleting || !canSave) && styles.saveDisabled,
+                    ]}
+                    onPress={handleSavePress}>
+                    <LinearGradient
+                      colors={['#4F46E5', '#7CE7C7']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.saveGradient}>
+                      {isSaving ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.saveLabel}>{t('home.mealEdit.save')}</Text>
+                      )}
+                    </LinearGradient>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('home.meal.deleteMeal')}
+                    disabled={isSaving || isDeleting}
+                    style={styles.deleteMealButton}
+                    onPress={handleDeleteMealPress}>
                     <Text style={styles.deleteMealLabel}>{t('home.meal.deleteMeal')}</Text>
-                  )}
-                </Pressable>
-              </>
+                  </Pressable>
+                </>
+              )
             }>
             {rowItems.map((item) => (
               <MealItemRow

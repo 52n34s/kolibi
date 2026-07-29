@@ -37,9 +37,11 @@ import {
   calculateMaintenanceCalories,
   completeOnboarding,
   formatAppDate,
-  getMinimumDailyCalories,
+  HARD_MINIMUM_DAILY_CALORIES,
   type GoalType,
   isCalorieGoalFarFromTdee,
+  isValidDailyCalorieGoalInput,
+  MAXIMUM_DAILY_CALORIES,
   resolveActivityLevelForCalorieGoal,
   skipOnboarding,
 } from '@/lib/onboarding';
@@ -114,6 +116,26 @@ export default function OnboardingScreen() {
   const isFooterDisabled = isSubmitting || !isSessionReady;
   const [summaryManuallyEdited, setSummaryManuallyEdited] = useState(false);
   const [isPrefillingReview, setIsPrefillingReview] = useState(isReviewMode);
+
+  useEffect(() => {
+    console.log('[onboarding] footer gate', {
+      step,
+      isSubmitting,
+      authInitialized,
+      hasUserId: Boolean(userId),
+      isSessionReady,
+      isFooterDisabled,
+      biologicalSex,
+    });
+  }, [
+    step,
+    isSubmitting,
+    authInitialized,
+    userId,
+    isSessionReady,
+    isFooterDisabled,
+    biologicalSex,
+  ]);
 
   useEffect(() => {
     if (!isReviewMode || !session?.user?.id) {
@@ -197,7 +219,6 @@ export default function OnboardingScreen() {
   }, []);
 
   const effectiveSex: BiologicalSex = biologicalSex ?? 'prefer_not_to_say';
-  const minimumDailyCalories = getMinimumDailyCalories(effectiveSex);
 
   const parsedHeight = Number(heightCm);
   const parsedWeight = Number(weightKg);
@@ -226,14 +247,12 @@ export default function OnboardingScreen() {
     });
   }, [birthDate, effectiveActivityLevelForCalories, effectiveSex, parsedHeight, parsedWeight]);
 
-  const showCustomGoalFarFromTdeeWarning =
-    maintenanceCalories !== null &&
-    parsedCustomCalories > 0 &&
-    isCalorieGoalFarFromTdee(parsedCustomCalories, maintenanceCalories);
+  const showCustomGoalFarFromTdeeWarning = isCalorieGoalFarFromTdee(
+    parsedCustomCalories,
+    maintenanceCalories,
+  );
 
   const showSummaryFarFromTdeeWarning =
-    maintenanceCalories !== null &&
-    parsedDailyCalories > 0 &&
     isCalorieGoalFarFromTdee(parsedDailyCalories, maintenanceCalories) &&
     (summaryManuallyEdited || goalType === 'custom');
 
@@ -364,22 +383,20 @@ export default function OnboardingScreen() {
           if (!customCalorieGoal.trim()) {
             return t('onboarding.errors.customCaloriesRequired');
           }
-          if (
-            !parsedCustomCalories ||
-            parsedCustomCalories < minimumDailyCalories ||
-            parsedCustomCalories > 6000
-          ) {
-            return t('onboarding.errors.customCaloriesInvalid', { min: minimumDailyCalories });
+          if (!isValidDailyCalorieGoalInput(parsedCustomCalories)) {
+            return t('onboarding.errors.customCaloriesInvalid', {
+              min: HARD_MINIMUM_DAILY_CALORIES,
+              max: MAXIMUM_DAILY_CALORIES,
+            });
           }
         }
         return null;
       case 6:
-        if (
-          !parsedDailyCalories ||
-          parsedDailyCalories < minimumDailyCalories ||
-          parsedDailyCalories > 6000
-        ) {
-          return t('onboarding.errors.summaryCaloriesInvalid', { min: minimumDailyCalories });
+        if (!isValidDailyCalorieGoalInput(parsedDailyCalories)) {
+          return t('onboarding.errors.summaryCaloriesInvalid', {
+            min: HARD_MINIMUM_DAILY_CALORIES,
+            max: MAXIMUM_DAILY_CALORIES,
+          });
         }
         return null;
       default:
@@ -388,17 +405,32 @@ export default function OnboardingScreen() {
   }
 
   function handleNext() {
+    console.log('[onboarding] Weiter onPress', {
+      fires: true,
+      step,
+      biologicalSex,
+      isFooterDisabled,
+      isSessionReady,
+      isSubmitting,
+    });
+
     const validationError = validateCurrentStep();
+    console.log('[onboarding] Weiter validation', { step, validationError });
     if (validationError) {
       setErrorMessage(validationError);
       return;
     }
 
     setErrorMessage(null);
-    setStep((current) => Math.min(current + 1, TOTAL_STEPS - 1));
+    setStep((current) => {
+      const next = Math.min(current + 1, TOTAL_STEPS - 1);
+      console.log('[onboarding] Weiter setStep', { from: current, to: next });
+      return next;
+    });
   }
 
   function handleBack() {
+    console.log('[onboarding] Zurück onPress', { step, isFooterDisabled });
     setErrorMessage(null);
     setStep((current) => Math.max(current - 1, 0));
   }
@@ -430,11 +462,20 @@ export default function OnboardingScreen() {
   }
 
   async function finishOnboarding(skipped: boolean) {
+    console.log('[onboarding] finishOnboarding enter', {
+      skipped,
+      step,
+      biologicalSex,
+      isFooterDisabled,
+      isSessionReady,
+    });
+
     const currentUserId = useAuthStore.getState().session?.user?.id;
     if (!currentUserId) {
-      console.error('[Onboarding] finishOnboarding aborted: session not ready', {
+      console.error('[onboarding] finishOnboarding aborted: session not ready', {
         skipped,
         initialized: useAuthStore.getState().initialized,
+        session: useAuthStore.getState().session,
       });
       setErrorMessage(t('onboarding.errors.sessionNotReady'));
       return;
@@ -445,14 +486,34 @@ export default function OnboardingScreen() {
 
     try {
       if (skipped) {
+        console.log('[onboarding] finishOnboarding calling skipOnboarding', {
+          currentUserId,
+        });
         await skipOnboarding(currentUserId);
       } else {
         if (!birthDate || !activityLevel || !goalType) {
+          console.log('[onboarding] finishOnboarding missing required fields', {
+            birthDate,
+            activityLevel,
+            goalType,
+          });
           throw new Error(t('onboarding.errors.saveFailed'));
         }
 
         const calorieGoalSource =
           goalType === 'custom' || summaryManuallyEdited ? 'custom' : 'calculated';
+
+        console.log('[onboarding] finishOnboarding calling completeOnboarding', {
+          currentUserId,
+          biologicalSex: effectiveSex,
+          birthDate,
+          heightCm: parsedHeight,
+          weightKg: parsedWeight,
+          activityLevel,
+          goalType,
+          calorieGoalSource,
+          dailyCalorieGoal: parsedDailyCalories,
+        });
 
         await completeOnboarding(currentUserId, {
           biologicalSex: effectiveSex,
@@ -466,7 +527,11 @@ export default function OnboardingScreen() {
         });
       }
 
+      console.log('[onboarding] finishOnboarding refreshOnboardingStatus start');
       await useAuthStore.getState().refreshOnboardingStatus();
+      console.log('[onboarding] finishOnboarding refreshOnboardingStatus done', {
+        isReviewMode,
+      });
 
       if (isReviewMode) {
         router.back();
@@ -475,6 +540,7 @@ export default function OnboardingScreen() {
 
       router.replace('/home' as Href);
     } catch (error) {
+      console.log('[onboarding] finishOnboarding catch full error', error);
       console.error('[Onboarding] save failed:', error);
 
       if (error && typeof error === 'object') {
@@ -485,25 +551,55 @@ export default function OnboardingScreen() {
           hint?: string;
         };
 
-        console.error('[Onboarding] save failed details:', {
+        console.log('[onboarding] finishOnboarding catch details', {
           code: supabaseError.code,
           message: supabaseError.message,
           details: supabaseError.details,
           hint: supabaseError.hint,
+          keys: Object.keys(error as object),
+          stringified: JSON.stringify(error),
         });
       }
 
       setErrorMessage(t('onboarding.errors.saveFailed'));
     } finally {
       setIsSubmitting(false);
+      console.log('[onboarding] finishOnboarding finally', { skipped });
     }
   }
 
   function handleSkip() {
+    console.log('[onboarding] Überspringen onPress', {
+      fires: true,
+      step,
+      biologicalSex,
+      isFooterDisabled,
+      isSessionReady,
+      isSubmitting,
+    });
+    void finishOnboarding(true);
+  }
+
+  /** Cancel = same persistence as Skip: set onboarded_at, then leave the flow. */
+  function handleCancel() {
+    console.log('[onboarding] Cancel onPress', {
+      fires: true,
+      step,
+      isReviewMode,
+      isFooterDisabled,
+      isSessionReady,
+      isSubmitting,
+    });
     void finishOnboarding(true);
   }
 
   function handleFinish() {
+    console.log('[onboarding] Finish onPress', {
+      fires: true,
+      step,
+      biologicalSex,
+      isFooterDisabled,
+    });
     const validationError = validateCurrentStep();
     if (validationError) {
       setErrorMessage(validationError);
@@ -705,14 +801,14 @@ export default function OnboardingScreen() {
     <OnboardingLayout>
       <View className="flex-1">
         <View className="px-6 pt-2">
-          {isReviewMode ? (
-            <View className="mb-2">
-              <OnboardingReviewCancelButton
-                label={t('settings.common.cancel')}
-                accessibilityLabel={t('settings.common.cancel')}
-              />
-            </View>
-          ) : null}
+          <View className="mb-2">
+            <OnboardingReviewCancelButton
+              label={t('settings.common.cancel')}
+              accessibilityLabel={t('settings.common.cancel')}
+              disabled={isFooterDisabled}
+              onPress={handleCancel}
+            />
+          </View>
           <Text className="mb-4 text-sm text-gray-500">
             {t('onboarding.stepOf', { current: step + 1, total: TOTAL_STEPS })}
           </Text>
@@ -776,10 +872,21 @@ export default function OnboardingScreen() {
             hideSkip={isReviewMode}
             onBack={handleBack}
             onSkip={() => {
-              console.log('[skip] pressed');
+              console.log('[onboarding] Footer onSkip wrapper', {
+                step,
+                isFooterDisabled,
+                biologicalSex,
+              });
               handleSkip();
             }}
-            onNext={handleNext}
+            onNext={() => {
+              console.log('[onboarding] Footer onNext wrapper', {
+                step,
+                isFooterDisabled,
+                biologicalSex,
+              });
+              handleNext();
+            }}
             onFinish={handleFinish}
           />
         </View>

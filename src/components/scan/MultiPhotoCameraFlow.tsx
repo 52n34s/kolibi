@@ -13,6 +13,8 @@ import {
 import { prepareMealPhotoUri } from '@/lib/meal-photo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CameraPermissionGate } from '@/components/scan/CameraPermissionGate';
+
 type MultiPhotoCameraFlowProps = {
   visible: boolean;
   photoCount: number;
@@ -97,31 +99,26 @@ export function MultiPhotoCameraFlow({
     return null;
   }
 
-  if (!permission) {
-    return (
-      <Modal visible transparent animationType="fade" onRequestClose={handleCancel}>
-        <View style={styles.centeredState}>
-          <ActivityIndicator color="#FFFFFF" />
-        </View>
-      </Modal>
-    );
-  }
+  if (!permission?.granted) {
+    const canClosePermissionGate =
+      permission != null &&
+      !permission.granted &&
+      (permission.status === 'denied' || permission.canAskAgain === false);
 
-  if (!permission.granted) {
     return (
-      <Modal visible transparent animationType="fade" onRequestClose={handleCancel}>
-        <View style={styles.centeredState}>
-          <Text style={styles.permissionTitle}>{t('home.scan.camera.permissionTitle')}</Text>
-          <Text style={styles.permissionBody}>{t('home.scan.camera.permissionBody')}</Text>
-          <Pressable style={styles.permissionButton} onPress={() => void requestPermission()}>
-            <Text style={styles.permissionButtonLabel}>
-              {t('home.scan.camera.permissionAction')}
-            </Text>
-          </Pressable>
-          <Pressable style={styles.cancelTextButton} onPress={handleCancel}>
-            <Text style={styles.cancelTextLabel}>{t('settings.common.cancel')}</Text>
-          </Pressable>
-        </View>
+      <Modal
+        visible
+        animationType="fade"
+        onRequestClose={canClosePermissionGate ? handleCancel : undefined}>
+        <CameraPermissionGate
+          permission={permission}
+          requestPermission={requestPermission}
+          onClose={handleCancel}
+          title={t('home.scan.camera.permissionTitle')}
+          body={t('home.scan.camera.permissionBody')}
+          openSettingsLabel={t('home.scan.camera.openSettings')}
+          closeAccessibilityLabel={t('settings.common.cancel')}
+        />
       </Modal>
     );
   }
@@ -254,45 +251,5 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 29,
     backgroundColor: '#FFFFFF',
-  },
-  centeredState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.88)',
-  },
-  permissionTitle: {
-    marginBottom: 8,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  permissionBody: {
-    marginBottom: 20,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.78)',
-    textAlign: 'center',
-  },
-  permissionButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#4F46E5',
-  },
-  permissionButtonLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  cancelTextButton: {
-    marginTop: 16,
-    padding: 8,
-  },
-  cancelTextLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.82)',
   },
 });

@@ -7,19 +7,22 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   MEAL_INPUT_BAR_HEIGHT,
   MEAL_INPUT_KEYBOARD_GAP,
 } from '@/components/scan/MealInputAccessoryBar';
 import { useFoodAutocompleteOverlayState } from '@/components/scan/meal-food-autocomplete-overlay';
-import type { FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
 
 import {
   FOOD_AUTOCOMPLETE_LOADING_ROW_HEIGHT,
   FOOD_AUTOCOMPLETE_MAX_HEIGHT,
+  FOOD_AUTOCOMPLETE_MAX_VISIBLE_ROWS,
+  FOOD_AUTOCOMPLETE_RESULT_PEEK,
   FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT,
   FOOD_AUTOCOMPLETE_STATUS_TEXT_HEIGHT,
+  FOOD_AUTOCOMPLETE_TOP_SCREEN_PADDING,
   type NameFieldAnchor,
   type SheetLayout,
 } from './FoodNameAutocompleteDropdown';
@@ -53,6 +56,41 @@ function resolveResultsContentHeight(resultCount: number): number {
   return resultCount * FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT;
 }
 
+/**
+ * Visible results height: grows with count up to 5 rows, capped by screen space.
+ * When more content exists than fits, clip the last visible row (peek) so scroll is obvious.
+ */
+export function resolveResultsViewportHeight(options: {
+  resultCount: number;
+  maxHeightCap: number;
+}): number {
+  const { resultCount, maxHeightCap } = options;
+  if (resultCount <= 0) {
+    return MIN_DROPDOWN_HEIGHT;
+  }
+
+  const contentHeight = resolveResultsContentHeight(resultCount);
+  const idealVisible =
+    Math.min(resultCount, FOOD_AUTOCOMPLETE_MAX_VISIBLE_ROWS) *
+    FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT;
+  const capped = Math.min(idealVisible, Math.max(MIN_DROPDOWN_HEIGHT, maxHeightCap));
+
+  if (contentHeight <= capped) {
+    return contentHeight;
+  }
+
+  const peek = FOOD_AUTOCOMPLETE_RESULT_PEEK;
+  const fullRows = Math.floor(
+    Math.max(0, capped - peek) / FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT,
+  );
+
+  if (fullRows <= 0) {
+    return Math.min(capped, FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT);
+  }
+
+  return Math.min(capped, fullRows * FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT + peek);
+}
+
 function resolvePanelHeight(options: {
   maxHeightCap: number;
   isSearching: boolean;
@@ -60,33 +98,44 @@ function resolvePanelHeight(options: {
   showEmptyState: boolean;
   resultCount: number;
 }): number {
-  let contentHeight = MIN_DROPDOWN_HEIGHT;
-
   if (options.isSearching) {
-    contentHeight = FOOD_AUTOCOMPLETE_LOADING_ROW_HEIGHT;
-  } else if (options.showStatusMessage || options.showEmptyState) {
-    contentHeight = FOOD_AUTOCOMPLETE_STATUS_TEXT_HEIGHT;
-  } else if (options.resultCount > 0) {
-    contentHeight = resolveResultsContentHeight(options.resultCount);
+    return Math.min(FOOD_AUTOCOMPLETE_LOADING_ROW_HEIGHT, options.maxHeightCap);
   }
 
-  return Math.min(contentHeight, options.maxHeightCap);
+  if (options.showStatusMessage || options.showEmptyState) {
+    return Math.min(FOOD_AUTOCOMPLETE_STATUS_TEXT_HEIGHT, options.maxHeightCap);
+  }
+
+  if (options.resultCount > 0) {
+    return resolveResultsViewportHeight({
+      resultCount: options.resultCount,
+      maxHeightCap: options.maxHeightCap,
+    });
+  }
+
+  return Math.min(MIN_DROPDOWN_HEIGHT, options.maxHeightCap);
 }
 
-export function resolveFloatingBarDropdownPlacement(
-  sheetLayout: SheetLayout,
-  options: {
-    keyboardHeight: number;
-    windowHeight: number;
-    preferredMaxHeight?: number;
-  },
-): FloatingBarDropdownPlacement {
+/**
+ * Floating-bar placement: grow upward from the input bar, overlaying sheet content.
+ * Available height = dropdown bottom → top safe-area (+ padding), not sheet top edge.
+ */
+export function resolveFloatingBarDropdownPlacement(options: {
+  keyboardHeight: number;
+  windowHeight: number;
+  topInset: number;
+  preferredMaxHeight?: number;
+}): FloatingBarDropdownPlacement {
   const preferredMaxHeight = options.preferredMaxHeight ?? FOOD_AUTOCOMPLETE_MAX_HEIGHT;
   const keyboardHeight = Math.max(0, options.keyboardHeight);
   const windowHeight = Math.max(0, options.windowHeight);
+  const topInset = Math.max(0, options.topInset);
 
-  const barTop = windowHeight - keyboardHeight - MEAL_INPUT_KEYBOARD_GAP - MEAL_INPUT_BAR_HEIGHT;
-  const spaceAbove = Math.max(0, barTop - sheetLayout.y - DROPDOWN_GAP);
+  const bottom =
+    keyboardHeight + MEAL_INPUT_KEYBOARD_GAP + MEAL_INPUT_BAR_HEIGHT + DROPDOWN_GAP;
+  const dropdownBottomY = windowHeight - bottom;
+  const usableTop = topInset + FOOD_AUTOCOMPLETE_TOP_SCREEN_PADDING;
+  const spaceAbove = Math.max(0, dropdownBottomY - usableTop);
   const maxHeight = Math.min(
     preferredMaxHeight,
     Math.max(MIN_DROPDOWN_HEIGHT, spaceAbove),
@@ -94,7 +143,7 @@ export function resolveFloatingBarDropdownPlacement(
 
   return {
     mode: 'floating-bar',
-    bottom: keyboardHeight + MEAL_INPUT_KEYBOARD_GAP + MEAL_INPUT_BAR_HEIGHT + DROPDOWN_GAP,
+    bottom,
     left: 0,
     right: 0,
     maxHeight,
@@ -143,6 +192,7 @@ export function resolveFieldDropdownPlacement(
 export function MealFoodAutocompleteHost() {
   const overlay = useFoodAutocompleteOverlayState();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   if (!overlay?.visible || !overlay.sheetLayout) {
     return null;
@@ -156,13 +206,18 @@ export function MealFoodAutocompleteHost() {
     return null;
   }
 
+  const preferredMaxHeight = FOOD_AUTOCOMPLETE_MAX_HEIGHT;
   const basePlacement: ModalDropdownPlacement =
     overlay.placementMode === 'floating-bar'
-      ? resolveFloatingBarDropdownPlacement(overlay.sheetLayout, {
+      ? resolveFloatingBarDropdownPlacement({
           keyboardHeight: overlay.keyboardHeight,
           windowHeight: overlay.windowHeight,
+          topInset: insets.top,
+          preferredMaxHeight,
         })
-      : resolveFieldDropdownPlacement(overlay.anchor!, overlay.sheetLayout);
+      : resolveFieldDropdownPlacement(overlay.anchor!, overlay.sheetLayout, {
+          preferredMaxHeight,
+        });
 
   const showEmptyState =
     !overlay.isSearching &&
@@ -171,24 +226,93 @@ export function MealFoodAutocompleteHost() {
     overlay.results.length === 0;
   const showStatusMessage = overlay.rateLimited || overlay.searchUnavailable;
 
+  const resultCount = overlay.results.length;
+  const idealVisible =
+    Math.min(resultCount, FOOD_AUTOCOMPLETE_MAX_VISIBLE_ROWS) *
+    FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT;
+  const maxHeightCap = basePlacement.maxHeight;
+
   const panelHeight = resolvePanelHeight({
-    maxHeightCap: basePlacement.maxHeight,
+    maxHeightCap,
     isSearching: overlay.isSearching,
     showStatusMessage,
     showEmptyState,
-    resultCount: overlay.results.length,
+    resultCount,
   });
 
   const placement: ModalDropdownPlacement =
     overlay.placementMode === 'floating-bar'
       ? basePlacement
       : resolveFieldDropdownPlacement(overlay.anchor!, overlay.sheetLayout, {
+          preferredMaxHeight,
           panelHeight,
         });
 
-  const resultsContentHeight = resolveResultsContentHeight(overlay.results.length);
-  const resultsViewportHeight = Math.min(resultsContentHeight, placement.maxHeight);
+  const resultsContentHeight = resolveResultsContentHeight(resultCount);
+  const resultsViewportHeight =
+    resultCount > 0
+      ? resolveResultsViewportHeight({
+          resultCount,
+          maxHeightCap: placement.maxHeight,
+        })
+      : panelHeight;
   const resultsScrollEnabled = resultsContentHeight > resultsViewportHeight;
+
+  // Floating-bar space math (mirrors resolveFloatingBarDropdownPlacement) for diagnostics.
+  const floatingBottom =
+    Math.max(0, overlay.keyboardHeight) +
+    MEAL_INPUT_KEYBOARD_GAP +
+    MEAL_INPUT_BAR_HEIGHT +
+    DROPDOWN_GAP;
+  const dropdownBottomY = Math.max(0, overlay.windowHeight) - floatingBottom;
+  const usableTop = Math.max(0, insets.top) + FOOD_AUTOCOMPLETE_TOP_SCREEN_PADDING;
+  const spaceAboveFloating = Math.max(0, dropdownBottomY - usableTop);
+
+  console.log('[autocomplete] height', {
+    resultsLength: resultCount,
+    placementMode: overlay.placementMode,
+    keyboardHeight: overlay.keyboardHeight,
+    windowHeight: overlay.windowHeight,
+    topInset: insets.top,
+    preferredMaxHeight,
+    rowHeight: FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT,
+    maxVisibleRows: FOOD_AUTOCOMPLETE_MAX_VISIBLE_ROWS,
+    idealVisible: `min(${resultCount}, ${FOOD_AUTOCOMPLETE_MAX_VISIBLE_ROWS}) * ${FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT} = ${idealVisible}`,
+    floating: {
+      bottom: floatingBottom,
+      dropdownBottomY,
+      usableTop,
+      spaceAbove: spaceAboveFloating,
+    },
+    field:
+      overlay.placementMode === 'field' && overlay.anchor
+        ? {
+            anchorY: overlay.anchor.y,
+            sheetY: overlay.sheetLayout.y,
+            sheetHeight: overlay.sheetLayout.height,
+            spaceAbove: Math.max(
+              0,
+              overlay.anchor.y - overlay.sheetLayout.y - DROPDOWN_GAP,
+            ),
+            spaceBelow: Math.max(
+              0,
+              overlay.sheetLayout.y +
+                overlay.sheetLayout.height -
+                (overlay.anchor.y + overlay.anchor.height) -
+                DROPDOWN_GAP_DOWN,
+            ),
+          }
+        : null,
+    maxHeightCap,
+    placementMaxHeight: placement.maxHeight,
+    panelHeight,
+    resultsContentHeight,
+    resultsViewportHeight,
+    resultsScrollEnabled,
+    isSearching: overlay.isSearching,
+    showStatusMessage,
+    showEmptyState,
+  });
 
   const containerStyle =
     placement.mode === 'floating-bar'

@@ -61,9 +61,39 @@ export async function requestPasswordReset(email: string) {
 }
 
 export async function updatePassword(password: string) {
-  const { error } = await supabase.auth.updateUser({ password });
+  const {
+    data: sessionData,
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  console.log('[reset] updatePassword getSession before updateUser', {
+    sessionError,
+    hasSession: Boolean(sessionData.session),
+    userId: sessionData.session?.user?.id ?? null,
+    expiresAt: sessionData.session?.expires_at ?? null,
+    accessTokenMasked: sessionData.session?.access_token
+      ? `${sessionData.session.access_token.slice(0, 4)}…${sessionData.session.access_token.slice(-4)} (len=${sessionData.session.access_token.length})`
+      : null,
+  });
+
+  const { data, error } = await supabase.auth.updateUser({ password });
+
+  console.log('[reset] updatePassword updateUser result', {
+    data: {
+      userId: data.user?.id ?? null,
+      email: data.user?.email ?? null,
+    },
+    error,
+  });
 
   if (error) {
+    console.log('[reset] updatePassword updateUser error details', {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+      name: error.name,
+      stringified: JSON.stringify(error),
+    });
     throw error;
   }
 }
