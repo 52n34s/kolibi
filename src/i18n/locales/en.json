@@ -42,7 +42,9 @@
       }
     },
     "errors": {
-      "invalidCredentials": "Invalid email or password.",
+      "invalidCredentials": "Email or password is incorrect.",
+      "emailAlreadyRegistered": "This email is already registered. Please sign in.",
+      "weakPassword": "Please choose a stronger password.",
       "signUpFailed": "Could not create your account. Please try again.",
       "signInFailed": "Sign in failed.",
       "appleSignInFailed": "Apple sign in failed.",
@@ -437,12 +439,13 @@
       "sending": "Sending...",
       "sentTitle": "Message received",
       "sentMessage": "Thanks for reaching out. We'll get back to you as soon as we can.",
+      "sendFailed": "Couldn't send your message. Please try again.",
       "legalSectionTitle": "Legal",
       "categories": {
         "bug": "Bug",
-        "dataIssue": "Data issue",
-        "featureRequest": "Feature request",
-        "securityConcern": "Security concern",
+        "data_issue": "Data issue",
+        "feature_request": "Feature request",
+        "security_concern": "Security concern",
         "question": "Question",
         "praise": "Praise",
         "other": "Other"

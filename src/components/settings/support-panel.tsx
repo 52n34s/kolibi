@@ -19,35 +19,28 @@ import {
   getGlassCardStyle,
 } from '@/components/ui/glass-styles';
 import { LEGAL_LINKS } from '@/lib/legal-links';
-
-const SUPPORT_CATEGORIES = [
-  'bug',
-  'dataIssue',
-  'featureRequest',
-  'securityConcern',
-  'question',
-  'praise',
-  'other',
-] as const;
-
-type SupportCategory = (typeof SUPPORT_CATEGORIES)[number];
+import {
+  SUPPORT_MESSAGE_CATEGORIES,
+  submitSupportMessage,
+  type SupportMessageCategory,
+} from '@/lib/support';
 
 export function SupportPanel() {
   const { t } = useTranslation();
-  const [category, setCategory] = useState<SupportCategory>('question');
+  const [category, setCategory] = useState<SupportMessageCategory>('question');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
 
   const categories = useMemo(
     () =>
-      SUPPORT_CATEGORIES.map((id) => ({
+      SUPPORT_MESSAGE_CATEGORIES.map((id) => ({
         id,
         label: t(`settings.support.categories.${id}`),
       })),
     [t],
   );
 
-  function handleSend() {
+  async function handleSend() {
     if (!message.trim()) {
       Alert.alert(t('settings.errors.title'), t('settings.support.messageRequired'));
       return;
@@ -55,11 +48,17 @@ export function SupportPanel() {
 
     setIsSending(true);
 
-    setTimeout(() => {
-      setIsSending(false);
+    try {
+      await submitSupportMessage({ category, message });
       Alert.alert(t('settings.support.sentTitle'), t('settings.support.sentMessage'));
       setMessage('');
-    }, 600);
+    } catch (error) {
+      console.warn('[Support] send failed:', error);
+      // Keep message text so the user does not have to retype.
+      Alert.alert(t('settings.errors.title'), t('settings.support.sendFailed'));
+    } finally {
+      setIsSending(false);
+    }
   }
 
   return (
@@ -103,15 +102,21 @@ export function SupportPanel() {
           placeholder={t('settings.support.messagePlaceholder')}
           value={message}
           onChangeText={setMessage}
+          editable={!isSending}
           className="min-h-[140px] w-full self-stretch px-3 py-3 text-base text-gray-900"
-          style={getGlassCardStyle({ borderRadius: 12, minHeight: 140, width: '100%', alignSelf: 'stretch' })}
+          style={getGlassCardStyle({
+            borderRadius: 12,
+            minHeight: 140,
+            width: '100%',
+            alignSelf: 'stretch',
+          })}
         />
       </SettingsSection>
 
       <Pressable
         className="mb-8 h-12 items-center justify-center rounded-xl bg-[#4F46E5]"
         disabled={isSending}
-        onPress={handleSend}>
+        onPress={() => void handleSend()}>
         <Text className="text-base font-semibold text-white">
           {isSending ? t('settings.support.sending') : t('settings.support.send')}
         </Text>

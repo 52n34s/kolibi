@@ -42,7 +42,9 @@
       }
     },
     "errors": {
-      "invalidCredentials": "Correo electrónico o contraseña no válidos.",
+      "invalidCredentials": "El correo o la contraseña es incorrecto.",
+      "emailAlreadyRegistered": "Este correo ya está registrado. Inicia sesión.",
+      "weakPassword": "Elige una contraseña más segura.",
       "signUpFailed": "No se pudo crear tu cuenta. Inténtalo de nuevo.",
       "signInFailed": "Error al iniciar sesión.",
       "appleSignInFailed": "Error al iniciar sesión con Apple.",
@@ -437,12 +439,13 @@
       "sending": "Enviando...",
       "sentTitle": "Mensaje recibido",
       "sentMessage": "Gracias por escribirnos. Te responderemos lo antes posible.",
+      "sendFailed": "No se pudo enviar el mensaje. Inténtalo de nuevo.",
       "legalSectionTitle": "Legal",
       "categories": {
         "bug": "Error",
-        "dataIssue": "Problema de datos",
-        "featureRequest": "Solicitud",
-        "securityConcern": "Seguridad",
+        "data_issue": "Problema de datos",
+        "feature_request": "Solicitud",
+        "security_concern": "Seguridad",
         "question": "Pregunta",
         "praise": "Elogio",
         "other": "Otro"

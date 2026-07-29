@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
@@ -21,12 +21,17 @@ import { GoogleIcon } from '@/components/google-icon';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
 import {
+  setDisplayNameIfEmpty,
   signInWithAppleIdentityToken,
   signInWithEmail,
   signInWithGoogleIdToken,
   signUpWithEmail,
 } from '@/lib/auth';
-import { getEmailAuthErrorKey, logAuthError } from '@/lib/auth-errors';
+import {
+  EmailAuthError,
+  getEmailAuthErrorKey,
+  logAuthError,
+} from '@/lib/auth-errors';
 import { isPasswordRecoveryFlowActive } from '@/lib/auth-redirect';
 import { configureGoogleSignIn } from '@/lib/google-signin';
 import { useAuthStore } from '@/stores/auth-store';
@@ -56,10 +61,12 @@ export default function LoginScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAppleAvailable, setIsAppleAvailable] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const passwordInputRef = useRef<TextInput>(null);
 
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<EmailFormValues>({
     defaultValues: { email: '', password: '' },
@@ -97,7 +104,25 @@ export default function LoginScreen() {
       await action();
     } catch (error) {
       logAuthError(mode === 'signUp' ? 'EmailSignUp' : 'EmailSignIn', error);
-      setErrorMessage(t(getEmailAuthErrorKey(mode)));
+
+      if (error instanceof EmailAuthError && error.kind === 'emailAlreadyRegistered') {
+        setIsSignUpMode(false);
+        setValue('password', '');
+        setErrorMessage(t('auth.errors.emailAlreadyRegistered'));
+        requestAnimationFrame(() => {
+          passwordInputRef.current?.focus();
+        });
+        return;
+      }
+
+      if (error instanceof EmailAuthError) {
+        setErrorMessage(t(getEmailAuthErrorKey(error.kind, mode)));
+        return;
+      }
+
+      setErrorMessage(
+        t(mode === 'signUp' ? 'auth.errors.signUpFailed' : 'auth.errors.signInFailed'),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -120,6 +145,11 @@ export default function LoginScreen() {
       }
 
       await signInWithAppleIdentityToken(credential.identityToken);
+
+      const givenName = credential.fullName?.givenName?.trim();
+      if (givenName) {
+        await setDisplayNameIfEmpty(givenName);
+      }
     } catch (error) {
       if (
         error instanceof Error &&
@@ -271,6 +301,7 @@ export default function LoginScreen() {
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
+              ref={passwordInputRef}
               autoCapitalize="none"
               autoComplete="password"
               className="mb-2 text-base text-gray-900"

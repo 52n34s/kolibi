@@ -1,6 +1,7 @@
 import { Href, router } from 'expo-router';
 
 import { PASSWORD_RESET_REDIRECT_URL } from '@/lib/auth-redirect';
+import { mapSignInAuthError, mapSignUpAuthError } from '@/lib/auth-errors';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -14,14 +15,52 @@ export async function navigateAfterLogin() {
 
 export async function signInWithEmail(email: string, password: string) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  if (error) {
+    throw mapSignInAuthError(error);
+  }
   await navigateAfterLogin();
 }
 
 export async function signUpWithEmail(email: string, password: string) {
   const { error } = await supabase.auth.signUp({ email, password });
-  if (error) throw error;
+  if (error) {
+    throw mapSignUpAuthError(error);
+  }
   await navigateAfterLogin();
+}
+
+/**
+ * Sets profiles.display_name from Apple givenName only when the column is currently null.
+ * Never overwrites an existing name; never writes null.
+ */
+export async function setDisplayNameIfEmpty(displayName: string): Promise<void> {
+  const trimmed = displayName.trim();
+  if (!trimmed) {
+    return;
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw userError;
+  }
+
+  if (!user?.id) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: trimmed })
+    .eq('id', user.id)
+    .is('display_name', null);
+
+  if (error) {
+    console.warn('[auth] setDisplayNameIfEmpty failed:', error);
+  }
 }
 
 export async function signInWithAppleIdentityToken(identityToken: string) {

@@ -42,7 +42,9 @@
       }
     },
     "errors": {
-      "invalidCredentials": "Ungültige E-Mail oder Passwort.",
+      "invalidCredentials": "E-Mail oder Passwort ist falsch.",
+      "emailAlreadyRegistered": "Diese E-Mail ist bereits registriert. Melde dich an.",
+      "weakPassword": "Bitte wähle ein stärkeres Passwort.",
       "signUpFailed": "Konto konnte nicht erstellt werden. Bitte versuche es erneut.",
       "signInFailed": "Anmeldung fehlgeschlagen.",
       "appleSignInFailed": "Apple-Anmeldung fehlgeschlagen.",
@@ -437,12 +439,13 @@
       "sending": "Wird gesendet...",
       "sentTitle": "Nachricht erhalten",
       "sentMessage": "Danke für deine Nachricht. Wir melden uns so schnell wie möglich.",
+      "sendFailed": "Nachricht konnte nicht gesendet werden. Bitte erneut versuchen.",
       "legalSectionTitle": "Rechtliches",
       "categories": {
         "bug": "Fehler",
-        "dataIssue": "Datenproblem",
-        "featureRequest": "Feature-Wunsch",
-        "securityConcern": "Sicherheit",
+        "data_issue": "Datenproblem",
+        "feature_request": "Feature-Wunsch",
+        "security_concern": "Sicherheit",
         "question": "Frage",
         "praise": "Lob",
         "other": "Sonstiges"
