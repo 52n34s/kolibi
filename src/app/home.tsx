@@ -5,9 +5,9 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -489,6 +489,7 @@ export default function HomeScreen() {
         permissionDeniedMessage: t('home.scan.gallery.permissionBody'),
         openSettingsLabel: t('home.scan.gallery.openSettings'),
         cancelLabel: t('settings.common.cancel'),
+        onPhotosSelected: () => setIsAnalyzingMeal(true),
       });
 
       if (result.status === 'canceled' || result.status === 'permission_denied') {
@@ -502,6 +503,8 @@ export default function HomeScreen() {
       await analyzeMealPhotos(result.uris);
     } finally {
       setIsPickingGalleryPhotos(false);
+      // Clears overlay if prepareMealPhotoUri failed before analyzeMealPhotos ran.
+      setIsAnalyzingMeal(false);
     }
   }
 
@@ -1066,19 +1069,6 @@ export default function HomeScreen() {
       />
 
 
-      <Modal
-        transparent
-        visible={isAnalyzingMeal}
-        animationType="fade"
-        onRequestClose={() => undefined}>
-        <View className="flex-1 items-center justify-center bg-black/55 px-6">
-          <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text className="mt-4 text-center text-base font-medium text-white">
-            {t('home.scan.confirmation.analyzing')}
-          </Text>
-        </View>
-      </Modal>
-
       <WeightInputSheet
         visible={weightSheet != null}
         title={
@@ -1104,6 +1094,18 @@ export default function HomeScreen() {
         userId={userId}
         onClose={() => setShowPaywall(false)}
       />
+
+      {isAnalyzingMeal ? (
+        <View
+          pointerEvents="auto"
+          style={StyleSheet.absoluteFill}
+          className="z-50 items-center justify-center bg-black/55 px-6">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text className="mt-4 text-center text-base font-medium text-white">
+            {t('home.scan.confirmation.analyzing')}
+          </Text>
+        </View>
+      ) : null}
     </HomeLayout>
   );
 }

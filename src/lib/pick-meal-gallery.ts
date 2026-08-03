@@ -14,6 +14,8 @@ type PickMealGalleryParams = {
   permissionDeniedMessage: string;
   openSettingsLabel: string;
   cancelLabel: string;
+  /** Called after a non-canceled picker result, before prepareMealPhotoUri. */
+  onPhotosSelected?: () => void;
 };
 
 export async function pickMealPhotosFromGallery(
@@ -50,6 +52,8 @@ export async function pickMealPhotosFromGallery(
   if (pickerResult.canceled || pickerResult.assets.length === 0) {
     return { status: 'canceled' };
   }
+
+  params.onPhotosSelected?.();
 
   const uris = await Promise.all(
     pickerResult.assets.map((asset) => prepareMealPhotoUri(asset.uri)),
