@@ -399,7 +399,11 @@ async function writeScanLog(
   }
 }
 
-async function callAnthropic(apiKey: string, images: MealVisionImage[]): Promise<AnthropicResponse> {
+async function callAnthropic(
+  apiKey: string,
+  images: MealVisionImage[],
+  userPromptText: string,
+): Promise<AnthropicResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ANTHROPIC_TIMEOUT_MS);
 
@@ -429,7 +433,7 @@ async function callAnthropic(apiKey: string, images: MealVisionImage[]): Promise
               })),
               {
                 type: 'text',
-                text: USER_PROMPT,
+                text: userPromptText,
               },
             ],
           },
@@ -457,6 +461,74 @@ async function callAnthropic(apiKey: string, images: MealVisionImage[]): Promise
     return payload;
   } finally {
     clearTimeout(timeoutId);
+  }
+}
+
+const CUISINE_PROMPT_LABELS: Record<string, string> = {
+  western: 'European/Western',
+  mediterranean: 'Mediterranean and Middle Eastern',
+  east_asian: 'East Asian',
+  south_asian: 'South Asian',
+  latin_american: 'Latin American',
+  african: 'African',
+};
+
+type FoodContextProfile = {
+  diet_preference: string | null;
+  cuisine_context: string[] | null;
+};
+
+function buildFoodContextPromptBlock(profile: FoodContextProfile | null): string {
+  if (!profile) {
+    return '';
+  }
+
+  const blocks: string[] = [];
+  const diet = profile.diet_preference;
+
+  if (diet === 'vegan' || diet === 'vegetarian' || diet === 'pescatarian') {
+    blocks.push(
+      `Context: this user eats a ${diet} diet. When a component is visually ambiguous between an animal product and a plant-based alternative (e.g. minced meat vs. soy mince, chicken vs. tofu, dairy vs. plant milk), prefer the plant-based interpretation. This is a prior, not a rule — if the image clearly shows an animal product, identify it as such.`,
+    );
+  }
+
+  const cuisines = Array.isArray(profile.cuisine_context)
+    ? profile.cuisine_context.filter((value) => typeof value === 'string' && value.length > 0)
+    : [];
+  const isWesternOnly = cuisines.length === 1 && cuisines[0] === 'western';
+
+  if (cuisines.length > 0 && !isWesternOnly) {
+    const labels = cuisines
+      .map((value) => CUISINE_PROMPT_LABELS[value] ?? value.replace(/_/g, ' '))
+      .join(', ');
+    blocks.push(
+      `Context: this user commonly eats ${labels} cuisine. Use this to disambiguate visually similar staples (e.g. rice vs. couscous vs. bulgur, sauces, breads) and to choose more accurate dish names.`,
+    );
+  }
+
+  return blocks.join('\n\n');
+}
+
+async function loadFoodContextPromptBlock(
+  serviceClient: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<string> {
+  try {
+    const { data: profile, error } = await serviceClient
+      .from('profiles')
+      .select('diet_preference, cuisine_context')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Failed to load food context profile for meal vision:', error);
+      return '';
+    }
+
+    return buildFoodContextPromptBlock(profile as FoodContextProfile | null);
+  } catch (error) {
+    console.error('Food context profile query threw:', error);
+    return '';
   }
 }
 
@@ -590,7 +662,12 @@ serve(async (req) => {
   let outputTokens: number | null = null;
 
   try {
-    const anthropicResponse = await callAnthropic(anthropicApiKey, images);
+    const foodContextBlock = await loadFoodContextPromptBlock(serviceClient, user.id);
+    const userPromptText = foodContextBlock
+      ? `${USER_PROMPT}\n\n${foodContextBlock}`
+      : USER_PROMPT;
+
+    const anthropicResponse = await callAnthropic(anthropicApiKey, images, userPromptText);
     const latencyMs = Date.now() - startedAt;
     inputTokens = anthropicResponse.usage?.input_tokens ?? null;
     outputTokens = anthropicResponse.usage?.output_tokens ?? null;

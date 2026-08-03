@@ -483,7 +483,29 @@
       "avatarUploadFailed": "Could not upload your profile photo. Please try again.",
       "editNameTitle": "Edit name",
       "editNamePlaceholder": "Your name",
-      "nameSaveFailed": "Could not save your name. Please try again."
+      "nameSaveFailed": "Could not save your name. Please try again.",
+      "foodContext": {
+        "title": "Food context",
+        "description": "Helps Kolibi recognize your meals more accurately. Both are optional.",
+        "dietLabel": "Diet",
+        "cuisineLabel": "Cuisine",
+        "saveFailed": "Could not save your food context. Please try again.",
+        "diet": {
+          "none": "Not specified",
+          "omnivore": "Everything",
+          "pescatarian": "Pescatarian",
+          "vegetarian": "Vegetarian",
+          "vegan": "Vegan"
+        },
+        "cuisine": {
+          "western": "European",
+          "mediterranean": "Mediterranean & Middle Eastern",
+          "eastAsian": "East Asian",
+          "southAsian": "South Asian",
+          "latinAmerican": "Latin American",
+          "african": "African"
+        }
+      }
     },
     "password": {
       "sectionTitle": "Password",

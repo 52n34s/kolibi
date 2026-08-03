@@ -16,6 +16,10 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 
 import { CompactSegmentToggle } from '@/components/settings/compact-segment-toggle';
+import {
+  CuisineMultiSelectChips,
+  DIET_PREFERENCE_OPTIONS,
+} from '@/components/settings/food-context-controls';
 import { GlassCard } from '@/components/ui/glass-card';
 import { ProfileHeader } from '@/components/settings/profile-header';
 import { SettingsRow } from '@/components/settings/settings-row';
@@ -39,6 +43,7 @@ import { useAccountDeletion } from '@/hooks/use-account-deletion';
 import {
   changePassword,
   updateDisplayName,
+  updateFoodContext,
   uploadAvatar,
 } from '@/lib/profile';
 import { useAuthStore } from '@/stores/auth-store';
@@ -68,6 +73,9 @@ export function ProfilePanel() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [healthConnected, setHealthConnected] = useState(false);
   const [isUpdatingHealthConnection, setIsUpdatingHealthConnection] = useState(false);
+  const [dietPreference, setDietPreference] = useState<string | null>(null);
+  const [cuisineContext, setCuisineContext] = useState<string[]>([]);
+  const [isSavingFoodContext, setIsSavingFoodContext] = useState(false);
   const { confirmDeleteAccount } = useAccountDeletion();
 
   const displayName = useMemo(
@@ -86,6 +94,15 @@ export function ProfilePanel() {
   useEffect(() => {
     initializeUnitSystem();
   }, [initializeUnitSystem]);
+
+  useEffect(() => {
+    if (!data?.profile) {
+      return;
+    }
+
+    setDietPreference(data.profile.diet_preference ?? null);
+    setCuisineContext(data.profile.cuisine_context ?? []);
+  }, [data?.profile]);
 
   useEffect(() => {
     if (isError && error) {
@@ -216,6 +233,33 @@ export function ProfilePanel() {
       Alert.alert(t('settings.errors.title'), t('settings.profile.nameSaveFailed'));
     } finally {
       setIsSavingName(false);
+    }
+  }
+
+  async function persistFoodContext(nextDiet: string | null, nextCuisine: string[]) {
+    if (isSavingFoodContext) {
+      return;
+    }
+
+    const previousDiet = dietPreference;
+    const previousCuisine = cuisineContext;
+    setDietPreference(nextDiet);
+    setCuisineContext(nextCuisine);
+    setIsSavingFoodContext(true);
+
+    try {
+      await updateFoodContext({
+        dietPreference: nextDiet,
+        cuisineContext: nextCuisine,
+      });
+      await refreshProfile();
+    } catch (saveError) {
+      console.error('[ProfilePanel] food context save failed:', saveError);
+      setDietPreference(previousDiet);
+      setCuisineContext(previousCuisine);
+      Alert.alert(t('settings.errors.title'), t('settings.profile.foodContext.saveFailed'));
+    } finally {
+      setIsSavingFoodContext(false);
     }
   }
 
@@ -367,6 +411,46 @@ export function ProfilePanel() {
           onPressAvatar={openAvatarPicker}
           onPressName={openNameEditor}
         />
+
+        <SettingsSection title={t('settings.profile.foodContext.title')} unframed>
+          <Text className="mb-3 text-sm text-gray-500">
+            {t('settings.profile.foodContext.description')}
+          </Text>
+          <Text className="mb-2 text-sm font-medium text-gray-700">
+            {t('settings.profile.foodContext.dietLabel')}
+          </Text>
+          <CompactSegmentToggle
+            variant="language"
+            value={dietPreference ?? 'none'}
+            style={{ marginBottom: 12, alignSelf: 'stretch' }}
+            containerStyle={{ flexWrap: 'wrap', width: '100%' }}
+            segments={DIET_PREFERENCE_OPTIONS.map((option) => ({
+              id: option.id,
+              label: t(`settings.profile.foodContext.diet.${option.id}`),
+            }))}
+            onChange={(nextId) => {
+              const option = DIET_PREFERENCE_OPTIONS.find((entry) => entry.id === nextId);
+              void persistFoodContext(option?.value ?? null, cuisineContext);
+            }}
+          />
+          <Text className="mb-2 mt-1 text-sm font-medium text-gray-700">
+            {t('settings.profile.foodContext.cuisineLabel')}
+          </Text>
+          <CuisineMultiSelectChips
+            values={cuisineContext}
+            labels={{
+              western: t('settings.profile.foodContext.cuisine.western'),
+              mediterranean: t('settings.profile.foodContext.cuisine.mediterranean'),
+              east_asian: t('settings.profile.foodContext.cuisine.eastAsian'),
+              south_asian: t('settings.profile.foodContext.cuisine.southAsian'),
+              latin_american: t('settings.profile.foodContext.cuisine.latinAmerican'),
+              african: t('settings.profile.foodContext.cuisine.african'),
+            }}
+            onChange={(nextCuisine) => {
+              void persistFoodContext(dietPreference, nextCuisine);
+            }}
+          />
+        </SettingsSection>
 
         <SettingsSection title={t('settings.language.sectionTitle')} unframed>
           <CompactSegmentToggle

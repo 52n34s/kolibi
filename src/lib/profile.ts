@@ -18,6 +18,8 @@ export type ProfileSettingsData = {
   goal_type: GoalType | null;
   calorie_goal_source: CalorieGoalSource | null;
   trial_ends_at: string | null;
+  diet_preference: string | null;
+  cuisine_context: string[] | null;
   latest_weight_kg: number | null;
   daily_calorie_goal: number | null;
 };
@@ -51,7 +53,7 @@ export async function fetchProfileSettings(userId: string): Promise<ProfileSetti
     supabase
       .from('profiles')
       .select(
-        'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at',
+        'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context',
       )
       .eq('id', userId)
       .maybeSingle(),
@@ -89,6 +91,10 @@ export async function fetchProfileSettings(userId: string): Promise<ProfileSetti
 
   return {
     ...profileResult.data,
+    diet_preference: profileResult.data.diet_preference ?? null,
+    cuisine_context: Array.isArray(profileResult.data.cuisine_context)
+      ? profileResult.data.cuisine_context
+      : null,
     latest_weight_kg: weightResult.data?.weight_kg ?? null,
     daily_calorie_goal: calorieGoalResult.data?.daily_calorie_goal ?? null,
   };
@@ -169,6 +175,28 @@ export async function updateDisplayName(displayName: string) {
 
   if (profileError) {
     throw profileError;
+  }
+}
+
+export async function updateFoodContext(params: {
+  dietPreference: string | null;
+  cuisineContext: string[];
+}) {
+  const userId = (await supabase.auth.getUser()).data.user?.id;
+  if (!userId) {
+    throw new Error('Not authenticated');
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      diet_preference: params.dietPreference,
+      cuisine_context: params.cuisineContext,
+    })
+    .eq('id', userId);
+
+  if (error) {
+    throw error;
   }
 }
 

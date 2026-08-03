@@ -483,7 +483,29 @@
       "avatarUploadFailed": "Profilbild konnte nicht hochgeladen werden. Bitte erneut versuchen.",
       "editNameTitle": "Name bearbeiten",
       "editNamePlaceholder": "Dein Name",
-      "nameSaveFailed": "Name konnte nicht gespeichert werden. Bitte erneut versuchen."
+      "nameSaveFailed": "Name konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      "foodContext": {
+        "title": "Ernährungskontext",
+        "description": "Hilft Kolibi, deine Mahlzeiten genauer zu erkennen. Beides ist optional.",
+        "dietLabel": "Ernährung",
+        "cuisineLabel": "Küche",
+        "saveFailed": "Ernährungskontext konnte nicht gespeichert werden. Bitte erneut versuchen.",
+        "diet": {
+          "none": "Keine Angabe",
+          "omnivore": "Alles",
+          "pescatarian": "Pescetarisch",
+          "vegetarian": "Vegetarisch",
+          "vegan": "Vegan"
+        },
+        "cuisine": {
+          "western": "Europäisch",
+          "mediterranean": "Mediterran & Nahost",
+          "eastAsian": "Ostasiatisch",
+          "southAsian": "Südasiatisch",
+          "latinAmerican": "Lateinamerikanisch",
+          "african": "Afrikanisch"
+        }
+      }
     },
     "password": {
       "sectionTitle": "Passwort",
