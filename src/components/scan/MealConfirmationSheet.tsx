@@ -22,6 +22,7 @@ import {
 } from '@/components/scan/meal-item-row-model';
 import { mealEntrySheetStyles as styles } from '@/components/scan/meal-entry-shared';
 import { MealItemsSheetBody, MEAL_SHEET_MAX_HEIGHT_RATIO } from '@/components/scan/MealItemsSheetBody';
+import { MealPortionFactorChips } from '@/components/scan/MealPortionFactorChips';
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import {
   createManualEditableItem,
@@ -34,7 +35,7 @@ type MealConfirmationSheetProps = {
   isSaving: boolean;
   onClose: () => void;
   onDismissed?: () => void;
-  onSave: (items: EditableMealItem[]) => void;
+  onSave: (items: EditableMealItem[], portionFactor: number) => void;
 };
 
 function createItemId(): string {
@@ -54,12 +55,14 @@ export function MealConfirmationSheet({
   const [rowItems, setRowItems] = useState<MealItemRowItem[]>([]);
   const [editableById, setEditableById] = useState<Map<string, EditableMealItem>>(new Map());
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState(false);
+  const [portionFactor, setPortionFactor] = useState(1);
 
   useEffect(() => {
     if (visible) {
       setRowItems(items.map((item) => editableToRowItem(item)));
       setEditableById(new Map(items.map((item) => [item.id, item])));
       setShouldScrollToEnd(false);
+      setPortionFactor(1);
     }
   }, [items, visible]);
 
@@ -74,7 +77,11 @@ export function MealConfirmationSheet({
     });
   }, [rowItems.length, shouldScrollToEnd]);
 
-  const totalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
+  const plateTotalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
+  const totalKcal = useMemo(
+    () => Math.round(plateTotalKcal * portionFactor),
+    [plateTotalKcal, portionFactor],
+  );
   const saveBlockIssue = useMemo(() => getMealItemsValidationIssue(rowItems), [rowItems]);
   const canSave = saveBlockIssue == null;
 
@@ -112,7 +119,7 @@ export function MealConfirmationSheet({
       return;
     }
 
-    onSave(rowItemsToEditable(rowItems, editableById));
+    onSave(rowItemsToEditable(rowItems, editableById), portionFactor);
   }
 
   return (
@@ -128,6 +135,12 @@ export function MealConfirmationSheet({
             <Text style={styles.title}>{t('home.scan.confirmation.title')}</Text>
             <Text style={styles.totalKcal}>{totalKcal}</Text>
             <Text style={styles.totalLabel}>{t('home.scan.confirmation.totalKcal')}</Text>
+            {portionFactor !== 1 ? (
+              <Text style={styles.portionHint}>
+                {t('home.scan.portion.hint', { total: plateTotalKcal })}
+              </Text>
+            ) : null}
+            <MealPortionFactorChips value={portionFactor} onChange={setPortionFactor} />
           </>
         }
         footer={

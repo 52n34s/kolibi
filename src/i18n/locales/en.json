@@ -280,6 +280,13 @@
       },
       "referenceObjectHint": "Tip: place a fork or your hand next to the food – it helps estimate size.",
       "referenceObjectHintMultiPhoto": "For even more accuracy: take 2–3 photos from different angles.",
+      "portion": {
+        "all": "Ate it all",
+        "mostly": "Left some",
+        "half": "Half",
+        "third": "A third",
+        "hint": "of {{total}} kcal on the plate"
+      },
       "confirmation": {
         "title": "Confirm your meal",
         "totalKcal": "Total kcal",

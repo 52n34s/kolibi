@@ -280,6 +280,13 @@
       },
       "referenceObjectHint": "Tipp: Leg eine Gabel oder Hand daneben – das hilft bei der Größenschätzung.",
       "referenceObjectHintMultiPhoto": "Für noch mehr Genauigkeit: 2–3 Fotos aus verschiedenen Winkeln machen.",
+      "portion": {
+        "all": "Alles gegessen",
+        "mostly": "Etwas übrig",
+        "half": "Die Hälfte",
+        "third": "Ein Drittel",
+        "hint": "von {{total}} kcal auf dem Teller"
+      },
       "confirmation": {
         "title": "Mahlzeit bestätigen",
         "totalKcal": "Gesamt-kcal",

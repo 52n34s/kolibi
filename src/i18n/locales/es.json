@@ -280,6 +280,13 @@
       },
       "referenceObjectHint": "Consejo: pon un tenedor o tu mano al lado – ayuda a estimar el tamaño.",
       "referenceObjectHintMultiPhoto": "Para aún más precisión: haz 2–3 fotos desde distintos ángulos.",
+      "portion": {
+        "all": "Todo",
+        "mostly": "Sobró algo",
+        "half": "La mitad",
+        "third": "Un tercio",
+        "hint": "de {{total}} kcal en el plato"
+      },
       "confirmation": {
         "title": "Confirma tu comida",
         "totalKcal": "Kcal totales",

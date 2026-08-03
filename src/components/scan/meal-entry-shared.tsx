@@ -18,10 +18,17 @@ export const mealEntrySheetStyles = StyleSheet.create({
     textAlign: 'center',
   },
   totalLabel: {
-    marginBottom: 16,
+    marginBottom: 8,
     fontSize: 14,
     fontWeight: '500',
     color: '#6B7280',
+    textAlign: 'center',
+  },
+  portionHint: {
+    marginBottom: 12,
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#9CA3AF',
     textAlign: 'center',
   },
   saveHint: {

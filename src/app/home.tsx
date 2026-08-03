@@ -581,7 +581,7 @@ export default function HomeScreen() {
     setVisionItems([]);
   }
 
-  async function handleMealSave(items: EditableMealItem[]) {
+  async function handleMealSave(items: EditableMealItem[], portionFactor = 1) {
     if (!userId) {
       return;
     }
@@ -599,6 +599,7 @@ export default function HomeScreen() {
         userId,
         items,
         source: pendingMealSource,
+        portionFactor,
       });
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
@@ -785,6 +786,7 @@ export default function HomeScreen() {
     mealId: string;
     items: Parameters<typeof updateMealWithItems>[0]['items'];
     removedMealItemIds: string[];
+    portionFactor: number;
   }) {
     if (!userId) {
       return;
@@ -804,6 +806,7 @@ export default function HomeScreen() {
         userId,
         items: params.items,
         removedMealItemIds: params.removedMealItemIds,
+        portionFactor: params.portionFactor,
       });
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
@@ -1027,7 +1030,7 @@ export default function HomeScreen() {
         isSaving={isSavingMeal}
         onClose={handleMealConfirmationClose}
         onDismissed={handleMealSheetDismissed}
-        onSave={(items) => void handleMealSave(items)}
+        onSave={(items, portionFactor) => void handleMealSave(items, portionFactor)}
       />
 
       <ScanRateLimitSheet

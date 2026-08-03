@@ -211,6 +211,7 @@ export function HistoryPanel() {
     mealId: string;
     items: Parameters<typeof updateMealWithItems>[0]['items'];
     removedMealItemIds: string[];
+    portionFactor: number;
   }) {
     if (!userId) {
       return;
@@ -229,6 +230,7 @@ export function HistoryPanel() {
         userId,
         items: params.items,
         removedMealItemIds: params.removedMealItemIds,
+        portionFactor: params.portionFactor,
       });
       await invalidateDayQueries();
       setSheetMode({ kind: 'none' });

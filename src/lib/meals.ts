@@ -166,6 +166,7 @@ function buildMealItemPayload(
     mealId: string;
     userId: string;
     sortOrder: number;
+    portionFactor: number;
   },
 ) {
   const isCountItem = isCountBasedItem(item);
@@ -195,7 +196,7 @@ function buildMealItemPayload(
     carbs_g: 0,
     fat_g: 0,
     ai_estimated_grams: getBaselineTotalGrams(item),
-    portion_factor: 1,
+    portion_factor: params.portionFactor,
     was_ai_generated: item.origin === 'ai',
     was_edited: wasMealItemEdited(item),
     sort_order: params.sortOrder,
@@ -248,10 +249,13 @@ export async function saveScannedMeal(params: {
   userId: string;
   items: EditableMealItem[];
   source: MealSource;
+  /** Shared meal portion factor (plate values stay unscaled). Defaults to 1. */
+  portionFactor?: number;
   /** Optional local-day timestamp (e.g. history backfill). Defaults to now. */
   eatenAt?: string;
 }): Promise<{ mealId: string; totalKcal: number }> {
   const normalizedItems = params.items.filter((item) => (item.name ?? '').trim().length > 0);
+  const portionFactor = params.portionFactor ?? 1;
 
   if (normalizedItems.length === 0) {
     const error = new Error('At least one ingredient is required.');
@@ -283,6 +287,7 @@ export async function saveScannedMeal(params: {
       mealId: mealRow.id,
       userId: params.userId,
       sortOrder: index,
+      portionFactor,
     }),
   );
 
@@ -665,6 +670,7 @@ export type MealItemForEdit = {
   display_unit: 'g' | 'ml';
   kcal: number;
   kcal_per_100g: number | null;
+  portion_factor: number;
   sort_order: number;
   was_ai_generated: boolean;
 };
@@ -681,6 +687,7 @@ function buildMealItemRowFromManualEntry(
     userId: string;
     sortOrder: number;
     wasAiGenerated: boolean;
+    portionFactor: number;
   },
 ) {
   const [editable] = mapManualMealEntriesToEditableItems([entry]);
@@ -716,7 +723,7 @@ function buildMealItemRowFromManualEntry(
     carbs_g: 0,
     fat_g: 0,
     ai_estimated_grams: editable.baselineGrams ?? quantityGrams,
-    portion_factor: 1,
+    portion_factor: params.portionFactor,
     was_ai_generated: params.wasAiGenerated,
     was_edited: true,
     sort_order: params.sortOrder,
@@ -731,7 +738,7 @@ export async function fetchMealItemsForEdit(
   const { data, error } = await supabase
     .from('meal_items')
     .select(
-      'id, name, quantity_type, quantity_grams, count, grams_per_unit, display_unit, kcal, kcal_per_100g, sort_order, was_ai_generated',
+      'id, name, quantity_type, quantity_grams, count, grams_per_unit, display_unit, kcal, kcal_per_100g, portion_factor, sort_order, was_ai_generated',
     )
     .eq('meal_id', mealId)
     .eq('user_id', userId)
@@ -752,6 +759,7 @@ export async function fetchMealItemsForEdit(
     kcal: Number(item.kcal ?? 0),
     kcal_per_100g:
       item.kcal_per_100g == null ? null : Number(item.kcal_per_100g),
+    portion_factor: Number(item.portion_factor ?? 1),
     sort_order: item.sort_order ?? 0,
     was_ai_generated: Boolean(item.was_ai_generated),
   }));
@@ -762,10 +770,14 @@ export async function updateMealWithItems(params: {
   userId: string;
   items: MealItemEditInput[];
   removedMealItemIds: string[];
+  /** Shared meal portion factor (plate values stay unscaled). Defaults to 1. */
+  portionFactor?: number;
 }): Promise<{ mealId: string; totalKcal: number }> {
   if (params.items.length === 0) {
     throw new Error('At least one meal item is required');
   }
+
+  const portionFactor = params.portionFactor ?? 1;
 
   if (params.removedMealItemIds.length > 0) {
     const { error: deleteError } = await supabase
@@ -787,6 +799,7 @@ export async function updateMealWithItems(params: {
       userId: params.userId,
       sortOrder: index,
       wasAiGenerated: item.wasAiGenerated,
+      portionFactor,
     });
 
     if (item.mealItemId) {
@@ -801,6 +814,7 @@ export async function updateMealWithItems(params: {
           display_unit: row.display_unit,
           kcal: row.kcal,
           kcal_per_100g: row.kcal_per_100g,
+          portion_factor: row.portion_factor,
           was_edited: true,
           sort_order: row.sort_order,
         })

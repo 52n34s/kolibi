@@ -27,6 +27,10 @@ import {
 } from '@/components/scan/meal-item-row-model';
 import { mealEntrySheetStyles as styles } from '@/components/scan/meal-entry-shared';
 import { MealItemsSheetBody, MEAL_SHEET_MAX_HEIGHT_RATIO } from '@/components/scan/MealItemsSheetBody';
+import {
+  MealPortionFactorChips,
+  normalizeMealPortionFactor,
+} from '@/components/scan/MealPortionFactorChips';
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import {
   fetchMealItemsForEdit,
@@ -45,6 +49,7 @@ type MealEditSheetProps = {
     mealId: string;
     items: MealItemEditInput[];
     removedMealItemIds: string[];
+    portionFactor: number;
   }) => void;
   onDeleteMeal: (mealId: string) => void;
 };
@@ -68,6 +73,7 @@ export function MealEditSheet({
   const [loadError, setLoadError] = useState(false);
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [portionFactor, setPortionFactor] = useState(1);
 
   useEffect(() => {
     if (!visible || !mealId || !userId) {
@@ -88,12 +94,14 @@ export function MealEditSheet({
 
         setRowItems(items.map(mealItemForEditToRow));
         setInitialMealItemIds(items.map((item) => item.id));
+        setPortionFactor(normalizeMealPortionFactor(items[0]?.portion_factor ?? 1));
       } catch (error) {
         console.error('[MealEditSheet] failed to load meal items:', error);
         if (!cancelled) {
           setLoadError(true);
           setRowItems([]);
           setInitialMealItemIds([]);
+          setPortionFactor(1);
         }
       } finally {
         if (!cancelled) {
@@ -116,6 +124,7 @@ export function MealEditSheet({
       setLoadError(false);
       setShouldScrollToEnd(false);
       setConfirmingDelete(false);
+      setPortionFactor(1);
     }
   }, [visible]);
 
@@ -130,7 +139,11 @@ export function MealEditSheet({
     });
   }, [rowItems.length, shouldScrollToEnd]);
 
-  const totalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
+  const plateTotalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
+  const totalKcal = useMemo(
+    () => Math.round(plateTotalKcal * portionFactor),
+    [plateTotalKcal, portionFactor],
+  );
 
   const saveBlockIssue = useMemo(() => {
     if (isLoading || loadError) {
@@ -187,6 +200,7 @@ export function MealEditSheet({
       mealId,
       items,
       removedMealItemIds,
+      portionFactor,
     });
   }
 
@@ -232,6 +246,12 @@ export function MealEditSheet({
               <>
                 <Text style={styles.totalKcal}>{totalKcal}</Text>
                 <Text style={styles.totalLabel}>{t('home.manualEntry.totalKcal')}</Text>
+                {portionFactor !== 1 ? (
+                  <Text style={styles.portionHint}>
+                    {t('home.scan.portion.hint', { total: plateTotalKcal })}
+                  </Text>
+                ) : null}
+                <MealPortionFactorChips value={portionFactor} onChange={setPortionFactor} />
               </>
             }
             footer={
