@@ -49,14 +49,11 @@ function lookupResolution(
 
 /**
  * Derive kcal/100g from model kcal + grams for unmatched vision items.
- * Skip count/piece items and invalid grams (incl. estimated_grams_per_unit = 0).
+ * Works for both weight-based and countable items: for countable items
+ * quantityGrams is already count × gramsPerUnit (only set when gramsPerUnit > 0).
+ * Invalid or missing grams (incl. estimated_grams_per_unit = 0) yield null.
  */
 export function deriveKcalPer100gFromModel(item: EditableMealItem): number | null {
-  // Countable / piece items: do not invent a weight density.
-  if (item.quantityCount != null) {
-    return null;
-  }
-
   const grams = item.quantityGrams;
   if (grams == null || grams <= 0) {
     return null;

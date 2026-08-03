@@ -855,7 +855,20 @@ export default function HomeScreen() {
   }
 
   return (
-    <HomeLayout>
+    <HomeLayout
+      overlay={
+        isAnalyzingMeal ? (
+          <View
+            pointerEvents="auto"
+            style={StyleSheet.absoluteFill}
+            className="z-50 items-center justify-center bg-black/55 px-6">
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text className="mt-4 text-center text-base font-medium text-white">
+              {t('home.scan.confirmation.analyzing')}
+            </Text>
+          </View>
+        ) : null
+      }>
       <View className="absolute right-6 z-10" style={{ top: contentTopPadding }}>
         <HistoryKoliButton accessibilityLabel={t('koli.title')} />
       </View>
@@ -1094,18 +1107,6 @@ export default function HomeScreen() {
         userId={userId}
         onClose={() => setShowPaywall(false)}
       />
-
-      {isAnalyzingMeal ? (
-        <View
-          pointerEvents="auto"
-          style={StyleSheet.absoluteFill}
-          className="z-50 items-center justify-center bg-black/55 px-6">
-          <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text className="mt-4 text-center text-base font-medium text-white">
-            {t('home.scan.confirmation.analyzing')}
-          </Text>
-        </View>
-      ) : null}
     </HomeLayout>
   );
 }

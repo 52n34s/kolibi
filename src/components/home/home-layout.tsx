@@ -45,6 +45,8 @@ export function useMeshScreenInsets(options?: MeshScreenInsetsOptions) {
 
 type HomeLayoutProps = {
   children: ReactNode;
+  /** Rendered outside SafeAreaView so it can cover the full screen including home indicator. */
+  overlay?: ReactNode;
 };
 
 /**
@@ -52,16 +54,16 @@ type HomeLayoutProps = {
  * the gradient reaches behind the status bar; use useMeshScreenInsets() for
  * scroll content offsets on each screen.
  */
-export function HomeLayout({ children }: HomeLayoutProps) {
+export function HomeLayout({ children, overlay }: HomeLayoutProps) {
   return (
-    <SafeAreaView
-      className="flex-1"
-      edges={['bottom', 'left', 'right']}
-      style={{ backgroundColor: ONBOARDING_BACKGROUND }}>
-      <View className="flex-1">
-        <OnboardingMeshBackground />
-        <View className="flex-1">{children}</View>
-      </View>
-    </SafeAreaView>
+    <View className="flex-1" style={{ backgroundColor: ONBOARDING_BACKGROUND }}>
+      <SafeAreaView className="flex-1" edges={['bottom', 'left', 'right']}>
+        <View className="flex-1">
+          <OnboardingMeshBackground />
+          <View className="flex-1">{children}</View>
+        </View>
+      </SafeAreaView>
+      {overlay}
+    </View>
   );
 }
