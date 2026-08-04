@@ -25,6 +25,7 @@ import {
 import { isPartialNumericInput } from '@/lib/numeric-input';
 import type { UnitSystem } from '@/lib/unit-system';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { formatKcal } from '@/utils/format';
 
 export type MealItemRowProps = {
   item: MealItemRowItem;
@@ -438,7 +439,7 @@ export function MealItemRow({
       {isLinkedItem(item) ? (
         <Text style={styles.densityHint}>
           {t('home.mealItemRow.densityHint', {
-            kcal: Math.round(item.kcalPer100g!),
+            kcal: formatKcal(item.kcalPer100g!),
             unit: getDensityUnitLabel(item.unit),
           })}
         </Text>

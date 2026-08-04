@@ -23,6 +23,7 @@ import {
 } from '@/lib/day-window';
 import { formatTodayMealQuantityLabel, type TodayMeal } from '@/lib/meals';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { formatKcal } from '@/utils/format';
 
 const HISTORY_DAY_COUNT = 7;
 
@@ -105,8 +106,8 @@ export function HistoryDayDetail({
     }
 
     return t('history.day.goalProgress', {
-      consumed: Math.round(dayTotalKcal),
-      goal: Math.round(dayGoal),
+      consumed: formatKcal(dayTotalKcal),
+      goal: formatKcal(dayGoal),
     });
   }, [dayGoal, dayTotalKcal, goalLoading, t]);
 
@@ -181,7 +182,7 @@ export function HistoryDayDetail({
                     <Text className="mt-1 text-sm text-gray-500">
                       {t('home.meals.rowMeta', {
                         quantity: formatTodayMealQuantityLabel(meal, t, unitSystem),
-                        kcal: meal.total_kcal,
+                        kcal: formatKcal(meal.total_kcal),
                         time: formatMealTime(meal.eaten_at, i18n.language),
                       })}
                     </Text>

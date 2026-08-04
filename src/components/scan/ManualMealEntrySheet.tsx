@@ -38,6 +38,7 @@ import { useFoodNameSearch } from '@/hooks/use-food-name-search';
 import { resolveFoodIdForOffProduct } from '@/lib/foods-cache';
 import type { FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
 import type { EditableMealItem } from '@/services/mealVision/types';
+import { formatKcal } from '@/utils/format';
 
 const SCROLL_REMEASURE_DEBOUNCE_MS = 100;
 
@@ -343,7 +344,7 @@ function ManualMealEntrySheetContent({
           header={
             <>
               <Text style={styles.title}>{t('home.manualEntry.title')}</Text>
-              <Text style={styles.totalKcal}>{totalKcal}</Text>
+              <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
               <Text style={styles.totalLabel}>{t('home.manualEntry.totalKcal')}</Text>
             </>
           }

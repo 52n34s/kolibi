@@ -45,6 +45,7 @@ import { MealInputFloatingBar } from '@/components/scan/MealInputAccessoryBar';
 import { MealInputBarProvider } from '@/components/scan/meal-input-bar-context';
 import { GlassSheetSurface } from '@/components/shared/GlassSheetSurface';
 import type { BarcodeProduct } from '@/services/barcode/OpenFoodFactsService';
+import { formatKcal } from '@/utils/format';
 
 export type BarcodeFlowState =
   | { kind: 'closed' }
@@ -160,7 +161,7 @@ function BarcodeQuantityContent({
     <MealItemsSheetBody
       header={
         <>
-          <Text style={mealEntrySheetStyles.totalKcal}>{totalKcal}</Text>
+          <Text style={mealEntrySheetStyles.totalKcal}>{formatKcal(totalKcal)}</Text>
           <Text style={mealEntrySheetStyles.totalLabel}>{t('home.scan.confirmation.totalKcal')}</Text>
 
           <View style={quantityStyles.pillWrap}>

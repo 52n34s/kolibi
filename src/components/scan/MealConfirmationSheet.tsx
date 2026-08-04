@@ -28,6 +28,7 @@ import {
   createManualEditableItem,
   type EditableMealItem,
 } from '@/services/mealVision/types';
+import { formatKcal } from '@/utils/format';
 
 type MealConfirmationSheetProps = {
   visible: boolean;
@@ -133,11 +134,11 @@ export function MealConfirmationSheet({
         header={
           <>
             <Text style={styles.title}>{t('home.scan.confirmation.title')}</Text>
-            <Text style={styles.totalKcal}>{totalKcal}</Text>
+            <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
             <Text style={styles.totalLabel}>{t('home.scan.confirmation.totalKcal')}</Text>
             {portionFactor !== 1 ? (
               <Text style={styles.portionHint}>
-                {t('home.scan.portion.hint', { total: plateTotalKcal })}
+                {t('home.scan.portion.hint', { total: formatKcal(plateTotalKcal) })}
               </Text>
             ) : null}
             <MealPortionFactorChips value={portionFactor} onChange={setPortionFactor} />

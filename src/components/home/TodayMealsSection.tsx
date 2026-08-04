@@ -10,6 +10,7 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { formatTodayMealQuantityLabel, type TodayMeal } from '@/lib/meals';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { formatKcal } from '@/utils/format';
 
 type TodayMealsSectionProps = {
   meals: TodayMeal[] | undefined;
@@ -76,7 +77,7 @@ export function TodayMealsSection({ meals, isLoading, onMealPress }: TodayMealsS
                   <Text className="mt-1 text-sm text-gray-500">
                     {t('home.meals.rowMeta', {
                       quantity: formatTodayMealQuantityLabel(meal, t, unitSystem),
-                      kcal: meal.total_kcal,
+                      kcal: formatKcal(meal.total_kcal),
                       time: timeLabel,
                     })}
                   </Text>

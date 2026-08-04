@@ -48,6 +48,7 @@ import {
 } from '@/lib/profile';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { formatKcal } from '@/utils/format';
 
 export function ProfilePanel() {
   const { t, i18n } = useTranslation();
@@ -376,7 +377,9 @@ export function ProfilePanel() {
 
   const calorieGoalLabel =
     data?.profile.daily_calorie_goal != null
-      ? t('settings.calorieGoal.value', { calories: data.profile.daily_calorie_goal })
+      ? t('settings.calorieGoal.value', {
+          calories: formatKcal(data.profile.daily_calorie_goal),
+        })
       : t('settings.calorieGoal.notSet');
 
   if (isLoading) {

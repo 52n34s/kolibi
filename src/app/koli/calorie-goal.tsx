@@ -33,6 +33,7 @@ import { logCalorieGoalSaveError } from '@/lib/calorie-goals';
 import { parseDateOnly } from '@/lib/day-window';
 import { updateDailyCalorieGoal } from '@/lib/profile';
 import { useAuthStore } from '@/stores/auth-store';
+import { formatKcal } from '@/utils/format';
 
 export default function CalorieGoalSettingsScreen() {
   const { t } = useTranslation();
@@ -168,7 +169,7 @@ export default function CalorieGoalSettingsScreen() {
 
             {maintenanceCalories != null ? (
               <Text className="mb-4 text-sm text-gray-500">
-                {t('onboarding.summary.tdee', { calories: maintenanceCalories })}
+                {t('onboarding.summary.tdee', { calories: formatKcal(maintenanceCalories) })}
               </Text>
             ) : null}
 

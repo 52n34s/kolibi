@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import type { FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
+import { formatKcal } from '@/utils/format';
 
 export const FOOD_AUTOCOMPLETE_RESULT_ROW_HEIGHT = 76;
 export const FOOD_AUTOCOMPLETE_MAX_VISIBLE_ROWS = 5;
@@ -187,7 +188,7 @@ export function FoodNameAutocompleteDropdown({
                 ) : null}
                 <Text style={styles.resultKcal}>
                   {t('home.foodSearch.kcalPer100g', {
-                    kcal: Math.round(product.kcalPer100g),
+                    kcal: formatKcal(product.kcalPer100g),
                   })}
                 </Text>
               </Pressable>

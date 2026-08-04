@@ -36,6 +36,7 @@ import {
   fetchMealItemsForEdit,
   type MealItemEditInput,
 } from '@/lib/meals';
+import { formatKcal } from '@/utils/format';
 
 type MealEditSheetProps = {
   visible: boolean;
@@ -244,11 +245,11 @@ export function MealEditSheet({
             scrollRef={scrollRef}
             header={
               <>
-                <Text style={styles.totalKcal}>{totalKcal}</Text>
+                <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
                 <Text style={styles.totalLabel}>{t('home.manualEntry.totalKcal')}</Text>
                 {portionFactor !== 1 ? (
                   <Text style={styles.portionHint}>
-                    {t('home.scan.portion.hint', { total: plateTotalKcal })}
+                    {t('home.scan.portion.hint', { total: formatKcal(plateTotalKcal) })}
                   </Text>
                 ) : null}
                 <MealPortionFactorChips value={portionFactor} onChange={setPortionFactor} />

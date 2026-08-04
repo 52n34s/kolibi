@@ -48,6 +48,7 @@ import { useHasPremiumAccess, useTrialStatus } from '@/hooks/use-premium-access'
 import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useActiveEnergyBurnedToday } from '@/hooks/use-active-energy-burned';
+import { formatKcal } from '@/utils/format';
 import {
   getTimeOfDay,
   getCalorieGoalDisplay,
@@ -913,7 +914,7 @@ export default function HomeScreen() {
                       ? CALORIE_OVER_GOAL_COLOR
                       : CALORIE_GOAL_ACCENT,
                   }}>
-                  {calorieGoalDisplay.mainValue}
+                  {formatKcal(calorieGoalDisplay.mainValue)}
                 </Text>
                 {calorieGoalDisplay.showOverLabel ? (
                   <Text className="mt-2 text-base font-medium text-amber-700">
@@ -924,11 +925,11 @@ export default function HomeScreen() {
                   className={`text-sm text-gray-500 ${calorieGoalDisplay.showOverLabel ? 'mt-1' : 'mt-2'}`}>
                   {calorieGoalDisplay.mode === 'dynamic'
                     ? t('home.calorieGoal.dynamicDailyGoalReference', {
-                        goal: calorieGoalDisplay.dailyGoalContextValue,
-                        burned: calorieGoalDisplay.activeEnergyBurned ?? 0,
+                        goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
+                        burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
                       })
                     : t('home.calorieGoal.dailyGoalReference', {
-                        goal: calorieGoalDisplay.dailyGoalContextValue,
+                        goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
                       })}
                 </Text>
               </View>

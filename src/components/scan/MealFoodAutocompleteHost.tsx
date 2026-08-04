@@ -14,6 +14,7 @@ import {
   MEAL_INPUT_KEYBOARD_GAP,
 } from '@/components/scan/MealInputAccessoryBar';
 import { useFoodAutocompleteOverlayState } from '@/components/scan/meal-food-autocomplete-overlay';
+import { formatKcal } from '@/utils/format';
 
 import {
   FOOD_AUTOCOMPLETE_LOADING_ROW_HEIGHT,
@@ -376,7 +377,7 @@ export function MealFoodAutocompleteHost() {
                 ) : null}
                 <Text style={styles.resultKcal}>
                   {t('home.foodSearch.kcalPer100g', {
-                    kcal: Math.round(product.kcalPer100g),
+                    kcal: formatKcal(product.kcalPer100g),
                   })}
                 </Text>
               </Pressable>

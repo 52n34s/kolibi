@@ -49,6 +49,7 @@ import { fetchProfileSettings } from '@/lib/profile';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { formatKcal } from '@/utils/format';
 
 const TOTAL_STEPS = 7;
 
@@ -757,11 +758,13 @@ export default function OnboardingScreen() {
               subtitle={t('onboarding.summary.subtitle')}
             />
             <Text className="mb-4 text-lg font-semibold text-[#4F46E5]">
-              {t('onboarding.summary.dailyGoal', { calories: parsedDailyCalories || 0 })}
+              {t('onboarding.summary.dailyGoal', {
+                calories: formatKcal(parsedDailyCalories || 0),
+              })}
             </Text>
             {maintenanceCalories !== null && (
               <Text className="mb-4 text-sm text-gray-500">
-                {t('onboarding.summary.tdee', { calories: maintenanceCalories })}
+                {t('onboarding.summary.tdee', { calories: formatKcal(maintenanceCalories) })}
               </Text>
             )}
             {calorieGoalCalculation?.clampedToMinimum && !summaryManuallyEdited && (

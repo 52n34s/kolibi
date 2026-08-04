@@ -25,6 +25,7 @@ import {
   ONBOARDING_SECONDARY_SURFACE,
 } from '@/components/onboarding/onboarding-styles';
 import type { BarcodeProduct } from '@/services/barcode/OpenFoodFactsService';
+import { formatKcal } from '@/utils/format';
 
 type BarcodeQuantitySheetProps = {
   visible: boolean;
@@ -115,7 +116,7 @@ export function BarcodeQuantitySheet({
     <GlassBottomSheet visible={visible} onClose={onClose}>
       <Text style={styles.productName}>{product.productName}</Text>
 
-      <Text style={styles.totalKcal}>{totalKcal}</Text>
+      <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
       <Text style={styles.totalLabel}>{t('home.scan.confirmation.totalKcal')}</Text>
 
       <View style={styles.pillWrap}>
