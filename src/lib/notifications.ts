@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
+import { syncProfileTimezone } from '@/lib/profile-timezone';
 
 const secureStore = createChunkedSecureStoreAdapter();
 
@@ -91,6 +92,8 @@ export async function registerForPushNotifications(
       },
       { onConflict: 'expo_push_token' },
     );
+
+    await syncProfileTimezone(userId);
 
     await secureStore.setItem(PUSH_TOKEN_STORAGE_KEY, expoPushToken);
 
