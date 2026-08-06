@@ -489,7 +489,10 @@ export default function HomeScreen() {
         permissionDeniedTitle: t('home.scan.gallery.permissionTitle'),
         permissionDeniedMessage: t('home.scan.gallery.permissionBody'),
         openSettingsLabel: t('home.scan.gallery.openSettings'),
+        openSettingsFailedTitle: t('home.scan.gallery.openSettingsFailedTitle'),
+        openSettingsFailedMessage: t('home.scan.gallery.openSettingsFailedMessage'),
         cancelLabel: t('settings.common.cancel'),
+        okLabel: t('settings.common.ok'),
         onPhotosSelected: () => setIsAnalyzingMeal(true),
       });
 

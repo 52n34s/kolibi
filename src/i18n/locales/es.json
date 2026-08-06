@@ -268,7 +268,9 @@
       "gallery": {
         "permissionTitle": "Se necesita acceso a la galería",
         "permissionBody": "Permite el acceso a tu galería para importar una foto de comida.",
-        "openSettings": "Abrir Ajustes"
+        "openSettings": "Abrir Ajustes",
+        "openSettingsFailedTitle": "Abre Ajustes manualmente",
+        "openSettingsFailedMessage": "Abre Ajustes de iOS manualmente: Ajustes → Kolibi → Fotos."
       },
       "camera": {
         "progress": "Foto {{current}} de {{total}}",
@@ -276,6 +278,8 @@
         "permissionBody": "Permite el acceso a la cámara para fotografiar tu comida.",
         "permissionAction": "Permitir cámara",
         "openSettings": "Abrir Ajustes",
+        "openSettingsFailedTitle": "Abre Ajustes manualmente",
+        "openSettingsFailedMessage": "Abre Ajustes de iOS manualmente: Ajustes → Kolibi → Cámara.",
         "captureFailed": "No se pudo tomar la foto, inténtalo de nuevo"
       },
       "referenceObjectHint": "Consejo: pon un tenedor o tu mano al lado – ayuda a estimar el tamaño.",

@@ -268,7 +268,9 @@
       "gallery": {
         "permissionTitle": "Zugriff auf Fotomediathek erforderlich",
         "permissionBody": "Erlaube den Zugriff auf deine Fotomediathek, um ein Mahlzeitenfoto aus der Galerie zu importieren.",
-        "openSettings": "Einstellungen öffnen"
+        "openSettings": "Einstellungen öffnen",
+        "openSettingsFailedTitle": "Einstellungen manuell öffnen",
+        "openSettingsFailedMessage": "Bitte öffne die iOS-Einstellungen manuell: Einstellungen → Kolibi → Fotos."
       },
       "camera": {
         "progress": "Foto {{current}} von {{total}}",
@@ -276,6 +278,8 @@
         "permissionBody": "Erlaube den Kamerazugriff, um deine Mahlzeit zu fotografieren.",
         "permissionAction": "Kamera erlauben",
         "openSettings": "In Einstellungen öffnen",
+        "openSettingsFailedTitle": "Einstellungen manuell öffnen",
+        "openSettingsFailedMessage": "Bitte öffne die iOS-Einstellungen manuell: Einstellungen → Kolibi → Kamera.",
         "captureFailed": "Foto konnte nicht aufgenommen werden, nochmal versuchen"
       },
       "referenceObjectHint": "Tipp: Leg eine Gabel oder Hand daneben – das hilft bei der Größenschätzung.",

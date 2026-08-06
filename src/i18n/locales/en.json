@@ -268,7 +268,9 @@
       "gallery": {
         "permissionTitle": "Photo library access needed",
         "permissionBody": "Allow photo library access to import a meal photo from your gallery.",
-        "openSettings": "Open Settings"
+        "openSettings": "Open Settings",
+        "openSettingsFailedTitle": "Open Settings manually",
+        "openSettingsFailedMessage": "Please open iOS Settings manually: Settings → Kolibi → Photos."
       },
       "camera": {
         "progress": "Photo {{current}} of {{total}}",
@@ -276,6 +278,8 @@
         "permissionBody": "Allow camera access to photograph your meal.",
         "permissionAction": "Allow camera",
         "openSettings": "Open Settings",
+        "openSettingsFailedTitle": "Open Settings manually",
+        "openSettingsFailedMessage": "Please open iOS Settings manually: Settings → Kolibi → Camera.",
         "captureFailed": "Could not take the photo, please try again"
       },
       "referenceObjectHint": "Tip: place a fork or your hand next to the food – it helps estimate size.",

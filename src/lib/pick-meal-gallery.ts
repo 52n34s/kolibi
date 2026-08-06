@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, Linking } from 'react-native';
 
@@ -13,10 +14,33 @@ type PickMealGalleryParams = {
   permissionDeniedTitle: string;
   permissionDeniedMessage: string;
   openSettingsLabel: string;
+  openSettingsFailedTitle: string;
+  openSettingsFailedMessage: string;
   cancelLabel: string;
+  okLabel: string;
   /** Called after a non-canceled picker result, before prepareMealPhotoUri. */
   onPhotosSelected?: () => void;
 };
+
+async function openAppSettingsOrExplain(params: {
+  failedTitle: string;
+  failedMessage: string;
+  okLabel: string;
+}): Promise<void> {
+  try {
+    await Linking.openSettings();
+  } catch {
+    // Expected iOS edge case: openSettings can reject during the
+    // inactive→background transition it itself triggers (KOLIBI-8).
+    Sentry.addBreadcrumb({
+      category: 'linking',
+      message: 'Linking.openSettings failed',
+      level: 'info',
+      data: { source: 'pickMealPhotosFromGallery' },
+    });
+    Alert.alert(params.failedTitle, params.failedMessage, [{ text: params.okLabel }]);
+  }
+}
 
 export async function pickMealPhotosFromGallery(
   params: PickMealGalleryParams,
@@ -34,8 +58,12 @@ export async function pickMealPhotosFromGallery(
         {
           text: params.openSettingsLabel,
           onPress: () => {
-            void Linking.openSettings();
             resolve({ status: 'permission_denied' });
+            void openAppSettingsOrExplain({
+              failedTitle: params.openSettingsFailedTitle,
+              failedMessage: params.openSettingsFailedMessage,
+              okLabel: params.okLabel,
+            });
           },
         },
       ]);

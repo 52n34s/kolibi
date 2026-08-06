@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import type { PermissionResponse } from 'expo-camera';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Pressable,
   StyleSheet,
@@ -38,6 +41,7 @@ export function CameraPermissionGate({
   openSettingsLabel,
   closeAccessibilityLabel,
 }: CameraPermissionGateProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const hasRequestedRef = useRef(false);
   const requestPermissionRef = useRef(requestPermission);
@@ -65,6 +69,26 @@ export function CameraPermissionGate({
     void requestPermissionRef.current();
   }, [permissionStatus]);
 
+  async function handleOpenSettings() {
+    try {
+      await Linking.openSettings();
+    } catch {
+      // Expected iOS edge case: openSettings can reject during the
+      // inactive→background transition it itself triggers (KOLIBI-8).
+      Sentry.addBreadcrumb({
+        category: 'linking',
+        message: 'Linking.openSettings failed',
+        level: 'info',
+        data: { source: 'CameraPermissionGate' },
+      });
+      Alert.alert(
+        t('home.scan.camera.openSettingsFailedTitle'),
+        t('home.scan.camera.openSettingsFailedMessage'),
+        [{ text: t('settings.common.ok') }],
+      );
+    }
+  }
+
   if (isBlocked) {
     return (
       <View style={styles.root}>
@@ -86,7 +110,7 @@ export function CameraPermissionGate({
               accessibilityRole="button"
               accessibilityLabel={openSettingsLabel}
               style={styles.primaryButton}
-              onPress={() => void Linking.openSettings()}>
+              onPress={() => void handleOpenSettings()}>
               <Text style={styles.primaryButtonLabel}>{openSettingsLabel}</Text>
             </Pressable>
           </View>
