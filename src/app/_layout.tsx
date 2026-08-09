@@ -62,11 +62,13 @@ import {
   resetRevenueCatCustomerInfoStore,
 } from '@/lib/revenuecat-customer-info';
 import { useAppDayRollover } from '@/hooks/use-app-day-rollover';
+import { useTouchUserActivity } from '@/hooks/use-touch-user-activity';
 
 SplashScreen.preventAutoHideAsync();
 
 function AppLifecycle({ userId }: { userId: string | null }) {
   useAppDayRollover(userId);
+  useTouchUserActivity(userId);
   return null;
 }
 

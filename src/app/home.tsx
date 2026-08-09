@@ -73,6 +73,7 @@ import { registerForPushNotifications } from '@/lib/notifications';
 import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { MEAL_SOURCE, type MealSource } from '@/lib/meal-sources';
 import { pickMealPhotosFromGallery } from '@/lib/pick-meal-gallery';
+import { touchUserActivity } from '@/lib/user-activity';
 import {
   BarcodeLookupAbortedError,
   BarcodeNutrimentsMissingError,
@@ -605,6 +606,7 @@ export default function HomeScreen() {
         source: pendingMealSource,
         portionFactor,
       });
+      void touchUserActivity(userId);
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
@@ -732,6 +734,7 @@ export default function HomeScreen() {
         items: rowItemsToEditable(items),
         source: MEAL_SOURCE.BARCODE,
       });
+      void touchUserActivity(userId);
 
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
@@ -765,6 +768,7 @@ export default function HomeScreen() {
         items,
         source: MEAL_SOURCE.MANUAL,
       });
+      void touchUserActivity(userId);
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
@@ -812,6 +816,7 @@ export default function HomeScreen() {
         removedMealItemIds: params.removedMealItemIds,
         portionFactor: params.portionFactor,
       });
+      void touchUserActivity(userId);
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
