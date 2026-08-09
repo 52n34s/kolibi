@@ -72,6 +72,7 @@ import {
 import { registerForPushNotifications } from '@/lib/notifications';
 import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { MEAL_SOURCE, type MealSource } from '@/lib/meal-sources';
+import { deleteMealPhotoUris, prepareMealPhotoUri } from '@/lib/meal-photo';
 import { pickMealPhotosFromGallery } from '@/lib/pick-meal-gallery';
 import { touchUserActivity } from '@/lib/user-activity';
 import {
@@ -494,7 +495,11 @@ export default function HomeScreen() {
         openSettingsFailedMessage: t('home.scan.gallery.openSettingsFailedMessage'),
         cancelLabel: t('settings.common.cancel'),
         okLabel: t('settings.common.ok'),
-        onPhotosSelected: () => setIsAnalyzingMeal(true),
+        onPhotosSelected: () => {
+          // Before prepareMealPhotoUri — covers resize + analyze as one overlay.
+          setIsAnalyzingMeal(true);
+          setShowScanOptions(false);
+        },
       });
 
       if (result.status === 'canceled' || result.status === 'permission_denied') {
@@ -503,7 +508,6 @@ export default function HomeScreen() {
 
       setScanPhotoCount(photoCount);
       setPendingMealSource(MEAL_SOURCE.PHOTO_GALLERY);
-      setShowScanOptions(false);
       setPendingPhotoUris(result.uris);
       await analyzeMealPhotos(result.uris);
     } finally {
@@ -524,6 +528,7 @@ export default function HomeScreen() {
       );
       setVisionItems(enrichedItems);
       setShowMealConfirmation(true);
+      await deleteMealPhotoUris(photoUris);
       setPendingPhotoUris([]);
       setShowParseErrorSheet(false);
       setShowApiErrorSheet(false);
@@ -551,14 +556,30 @@ export default function HomeScreen() {
   }
 
   async function handleScanPhotosComplete(photoUris: string[]) {
+    // Close camera + show analyzing before prepare so resize is covered by the same overlay.
     setShowCameraFlow(false);
+    setIsAnalyzingMeal(true);
     setPendingMealSource(MEAL_SOURCE.PHOTO_CAMERA);
-    setPendingPhotoUris(photoUris);
-    await analyzeMealPhotos(photoUris);
+
+    try {
+      // Sequential prepare avoids stacking multiple full-res decode buffers (WatchdogTermination).
+      const preparedUris: string[] = [];
+      for (const rawUri of photoUris) {
+        preparedUris.push(await prepareMealPhotoUri(rawUri));
+      }
+      // Raw takePictureAsync files are no longer needed once prepared copies exist.
+      await deleteMealPhotoUris(photoUris);
+      setPendingPhotoUris(preparedUris);
+      await analyzeMealPhotos(preparedUris);
+    } catch {
+      setIsAnalyzingMeal(false);
+      setShowApiErrorSheet(true);
+    }
   }
 
-  function handleParseErrorScanAgain() {
+  async function handleParseErrorScanAgain() {
     setShowParseErrorSheet(false);
+    await deleteMealPhotoUris(pendingPhotoUris);
     setPendingPhotoUris([]);
     setPendingMealSource(MEAL_SOURCE.PHOTO_CAMERA);
     setShowCameraFlow(true);
@@ -1051,7 +1072,7 @@ export default function HomeScreen() {
       <ScanParseErrorSheet
         visible={showParseErrorSheet}
         onClose={() => setShowParseErrorSheet(false)}
-        onScanAgain={handleParseErrorScanAgain}
+        onScanAgain={() => void handleParseErrorScanAgain()}
         onManualEntry={handleParseErrorManualEntry}
       />
 

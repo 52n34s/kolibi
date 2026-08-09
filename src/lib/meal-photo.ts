@@ -1,8 +1,16 @@
+import { deleteAsync } from 'expo-file-system/legacy';
 import { Image } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 export const MEAL_PHOTO_MAX_EDGE_PX = 1568;
 export const MEAL_PHOTO_JPEG_QUALITY = 0.7;
+
+/** Best-effort cleanup of prepared meal photo temp files. */
+export async function deleteMealPhotoUris(uris: string[]): Promise<void> {
+  await Promise.all(
+    uris.map((uri) => deleteAsync(uri, { idempotent: true })),
+  );
+}
 
 function getImageDimensions(uri: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {

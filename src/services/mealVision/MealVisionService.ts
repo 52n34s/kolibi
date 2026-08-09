@@ -1,6 +1,5 @@
 import { File } from 'expo-file-system';
 
-import { prepareMealPhotoUri } from '@/lib/meal-photo';
 import { supabase } from '@/lib/supabase';
 import {
   visionResponseSchema,
@@ -12,6 +11,7 @@ export const MEAL_VISION_MODEL = 'claude-haiku-4-5';
 
 // SYSTEM_PROMPT / USER_PROMPT (inkl. estimated_grams_per_unit) liegen serverseitig in
 // supabase/functions/meal-vision-analyze/index.ts — der Client ruft nur die Edge Function auf.
+// Photo URIs are already prepared (resized/compressed) at capture/pick time.
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 
@@ -45,8 +45,7 @@ export class MealVisionRateLimitError extends Error {
 }
 
 async function photoUriToBase64(uri: string): Promise<MealVisionImagePayload> {
-  const preparedUri = await prepareMealPhotoUri(uri);
-  const file = new File(preparedUri);
+  const file = new File(uri);
   const data = await file.base64();
   return {
     data,

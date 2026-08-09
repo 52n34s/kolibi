@@ -3,14 +3,12 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { prepareMealPhotoUri } from '@/lib/meal-photo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CameraPermissionGate } from '@/components/scan/CameraPermissionGate';
@@ -76,8 +74,8 @@ export function MultiPhotoCameraFlow({
         return;
       }
 
-      const preparedUri = await prepareMealPhotoUri(photo.uri);
-      const nextUris = [...capturedUris, preparedUri];
+      // Pass raw capture URIs; parent prepares under the shared analyzing overlay.
+      const nextUris = [...capturedUris, photo.uri];
       const isLastPhoto = currentIndex >= photoCount - 1;
 
       if (isLastPhoto) {
@@ -166,11 +164,7 @@ export function MultiPhotoCameraFlow({
             disabled={!isCameraReady || isCapturing}
             style={[styles.shutterOuter, (!isCameraReady || isCapturing) && styles.shutterDisabled]}
             onPress={() => void handleCapturePress()}>
-            {isCapturing ? (
-              <ActivityIndicator color="#4F46E5" />
-            ) : (
-              <View style={styles.shutterInner} />
-            )}
+            <View style={styles.shutterInner} />
           </Pressable>
         </View>
       </View>
