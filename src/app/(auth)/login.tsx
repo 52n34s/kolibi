@@ -16,9 +16,12 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import * as AppleAuthentication from 'expo-apple-authentication';
 
 import { AppleIcon } from '@/components/apple-icon';
-import { AuthMeshLayout } from '@/components/auth/auth-mesh-layout';
 import { GoogleIcon } from '@/components/google-icon';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import {
+  GradientScreenWrapper,
+  useGradientScreenInsets,
+} from '@/components/shared/GradientScreenWrapper';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
 import {
   setDisplayNameIfEmpty,
@@ -55,6 +58,7 @@ const AUTH_INPUT_STYLE = getGlassCardStyle({
 
 export default function LoginScreen() {
   const { t } = useTranslation();
+  const { contentTopPadding } = useGradientScreenInsets({ extraTop: 12 });
   const session = useAuthStore((state) => state.session);
   const isOnboarded = useAuthStore((state) => state.isOnboarded);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -218,8 +222,8 @@ export default function LoginScreen() {
   }
 
   return (
-    <AuthMeshLayout>
-      <View className="absolute right-6 top-3 z-10">
+    <GradientScreenWrapper>
+      <View className="absolute right-6 z-10" style={{ top: contentTopPadding }}>
         <LanguageSwitcher />
       </View>
 
@@ -383,6 +387,6 @@ export default function LoginScreen() {
           </Text>
         </Pressable>
       </View>
-    </AuthMeshLayout>
+    </GradientScreenWrapper>
   );
 }
