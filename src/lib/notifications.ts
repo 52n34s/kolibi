@@ -79,6 +79,12 @@ export async function registerForPushNotifications(
     let finalStatus = currentStatus.status;
     Sentry.addBreadcrumb({
       category: 'push-debug',
+      message: 'raw permission status',
+      level: 'info',
+      data: { status: finalStatus, canAskAgain: currentStatus.canAskAgain },
+    });
+    Sentry.addBreadcrumb({
+      category: 'push-debug',
       message: 'permission status before request',
       level: 'info',
       data: {
