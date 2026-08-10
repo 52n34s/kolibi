@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import { Href, router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -180,15 +181,25 @@ export default function HomeScreen() {
     }
 
     const stored = await secureStore.getItem('push_permission_asked');
-    if (stored === 'true') {
-      return;
+    Sentry.addBreadcrumb({
+      category: 'push-debug',
+      message: 'maybeAskForPushAfterFirstMeal: push_permission_asked',
+      level: 'info',
+      data: { secureStoreFlag: stored, userId },
+    });
+
+    if (stored !== 'true') {
+      const result = await registerForPushNotifications(userId);
+
+      if (result.status === 'granted' || result.status === 'denied') {
+        await secureStore.setItem('push_permission_asked', 'true');
+      }
     }
 
-    const result = await registerForPushNotifications(userId);
-
-    if (result.status === 'granted' || result.status === 'denied') {
-      await secureStore.setItem('push_permission_asked', 'true');
-    }
+    Sentry.captureMessage('push-debug: flow completed', {
+      level: 'info',
+      tags: { flow: 'push-permission' },
+    });
   }, [secureStore, userId]);
 
   const flushPendingPaywall = useCallback(() => {

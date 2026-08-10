@@ -60,7 +60,7 @@ export default function LoginScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAppleAvailable, setIsAppleAvailable] = useState(false);
-  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [isSignUpMode, setIsSignUpMode] = useState(true);
   const passwordInputRef = useRef<TextInput>(null);
 
   const {
@@ -231,9 +231,18 @@ export default function LoginScreen() {
             resizeMode="contain"
           />
         </View>
-        <Text className="mb-8 text-center text-base text-gray-500">
+        <Text className="mb-3 text-center text-base text-gray-500">
           {t(isSignUpMode ? 'auth.subtitleSignUp' : 'auth.subtitleSignIn')}
         </Text>
+        {isSignUpMode ? (
+          <View className="mb-6 self-center rounded-full bg-[#4F46E5]/10 px-3 py-1.5">
+            <Text className="text-center text-xs font-semibold text-[#4F46E5]">
+              {t('auth.signup.freeBadge')}
+            </Text>
+          </View>
+        ) : (
+          <View className="mb-5" />
+        )}
         {Platform.OS === 'ios' && isAppleAvailable && (
           <Pressable
             className="mb-3 h-12 flex-row items-center justify-center gap-2.5 rounded-xl bg-black"
@@ -355,14 +364,8 @@ export default function LoginScreen() {
           </LinearGradient>
         </Pressable>
 
-        {isSignUpMode ? (
-          <Text className="mt-2 text-center text-[13px] text-gray-500">
-            {t('auth.signup.freeHint')}
-          </Text>
-        ) : null}
-
         <Pressable
-          className={`items-center py-2 ${isSignUpMode ? 'mt-2' : 'mt-3'}`}
+          className="mt-3 items-center py-2"
           disabled={isSubmitting}
           onPress={toggleAuthMode}>
           <Text className="text-center text-sm text-gray-500">

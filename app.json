@@ -101,7 +101,11 @@
           "project": "kolibi",
           "organization": "52n34s-group"
         }
-      ]
+      ],
+      "@sentry/react-native",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

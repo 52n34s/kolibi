@@ -12,7 +12,7 @@
     "noAccount": "¿No tienes una cuenta?",
     "haveAccount": "¿Ya tienes una cuenta?",
     "signup": {
-      "freeHint": "Empieza gratis: sin datos de pago."
+      "freeBadge": "Gratis · Sin tarjeta"
     },
     "forgotPassword": {
       "link": "¿Olvidaste tu contraseña?",
