@@ -8,7 +8,8 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/6a372771-7ca2-4394-aba0-18b08be64383"
+      "url": "https://u.expo.dev/6a372771-7ca2-4394-aba0-18b08be64383",
+      "checkAutomatically": "ON_ERROR_RECOVERY"
     },
     "icon": "./assets/images/kolibi-app-icon.png",
     "scheme": "kolibi",

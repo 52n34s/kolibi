@@ -100,14 +100,24 @@ function RootLayout() {
   useEffect(() => initialize(), [initialize]);
 
   // Cold launch only (mount once) — not on foreground. Keeps splash up during check.
+  // Only mark OTA done when we stay on this bundle. If reloadAsync runs, the
+  // promise never settles — do not setState; the process restarts on the new update.
   useEffect(() => {
     let cancelled = false;
 
-    void applyEagerOtaUpdateOnLaunch().finally(() => {
-      if (!cancelled) {
+    void applyEagerOtaUpdateOnLaunch()
+      .then((outcome) => {
+        if (cancelled || outcome !== 'continued') {
+          return;
+        }
         setOtaCheckDone(true);
-      }
-    });
+      })
+      .catch(() => {
+        // Any unexpected rejection — prefer booting the current bundle.
+        if (!cancelled) {
+          setOtaCheckDone(true);
+        }
+      });
 
     return () => {
       cancelled = true;
