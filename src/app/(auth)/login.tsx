@@ -274,7 +274,11 @@ export default function LoginScreen() {
           />
         </View>
 
-        <Text className="mb-8 text-center text-4xl font-bold leading-tight tracking-tight">
+        <Text
+          className="mb-8 text-center text-5xl font-bold leading-tight tracking-tight"
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}>
           <Text className="text-[#2C2C2A]">{t('auth.valueProp.action')}</Text>
           {'\n'}
           <Text className="text-[#4F46E5]">{t('auth.valueProp.result')}</Text>
