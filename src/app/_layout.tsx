@@ -51,7 +51,6 @@ import { PostHogProvider } from 'posthog-react-native';
 
 import { useAuthStore } from '@/stores/auth-store';
 import { posthog } from '@/lib/analytics';
-import { applyEagerOtaUpdateOnLaunch } from '@/lib/eager-ota-update';
 import { registerPremiumAccessCustomerInfoListener } from '@/lib/premium-query-sync';
 import {
   configurePurchasesOnce,
@@ -93,33 +92,15 @@ function RootLayout() {
   const initialized = useAuthStore((state) => state.initialized);
   const initialize = useAuthStore((state) => state.initialize);
   const [queryClient] = useState(() => new QueryClient());
-  const [otaCheckDone, setOtaCheckDone] = useState(false);
   const userId = session?.user?.id ?? null;
-  const appReady = initialized && otaCheckDone;
 
   useEffect(() => initialize(), [initialize]);
 
-  // Cold launch only (mount once) — not on foreground. Keeps splash up during check.
-  // Downloads updates in the background; they apply on the next cold start (no reloadAsync).
   useEffect(() => {
-    let cancelled = false;
-
-    void applyEagerOtaUpdateOnLaunch().finally(() => {
-      if (!cancelled) {
-        setOtaCheckDone(true);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (appReady) {
+    if (initialized) {
       SplashScreen.hideAsync();
     }
-  }, [appReady]);
+  }, [initialized]);
 
   // Configure once at app start (no appUserID); identity is applied via logIn below.
   useEffect(() => {
@@ -159,7 +140,7 @@ function RootLayout() {
     };
   }, [initialized, userId]);
 
-  if (!appReady) {
+  if (!initialized) {
     return null;
   }
 
