@@ -239,7 +239,7 @@
       "validationNoProducts": "Add at least one product to save.",
       "validationMissingName": "Please enter a name.",
       "validationQuantityMustBePositive": "Quantity must be greater than 0.",
-      "validationKcalMustBePositive": "Calories must be greater than 0.",
+      "validationKcalMustBePositive": "Calories cannot be negative.",
       "validationPcsUnavailable": "Pieces aren't available for this product — choose g or ml."
     },
     "foodSearch": {
@@ -318,7 +318,7 @@
         "validationMissingGrams": "Enter grams",
         "validationMissingKcal": "Enter kcal",
         "validationQuantityMustBePositive": "Quantity must be greater than 0.",
-        "validationKcalMustBePositive": "Calories must be greater than 0.",
+        "validationKcalMustBePositive": "Calories cannot be negative.",
         "validationPcsUnavailable": "Pieces aren't available for this product — choose g or ml.",
         "save": "Save meal",
         "analyzing": "Analyzing your meal...",

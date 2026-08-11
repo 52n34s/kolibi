@@ -129,7 +129,7 @@ async function lookupFoodIdBySourceRef(
 export async function resolveFoodIdForOffProduct(
   product: FoodSearchProduct,
 ): Promise<string | null> {
-  if (!(product.kcalPer100g > 0)) {
+  if (!Number.isFinite(product.kcalPer100g) || product.kcalPer100g < 0) {
     return null;
   }
 

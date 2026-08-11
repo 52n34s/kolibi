@@ -341,7 +341,7 @@ export function getRowItemValidationIssue(item: MealItemRowItem): MealRowValidat
     return 'missingName';
   }
 
-  if (!Number.isFinite(item.kcal) || item.kcal <= 0) {
+  if (!Number.isFinite(item.kcal) || item.kcal < 0) {
     return 'invalidKcal';
   }
 

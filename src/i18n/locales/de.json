@@ -239,7 +239,7 @@
       "validationNoProducts": "Füge mindestens ein Produkt hinzu, um zu speichern.",
       "validationMissingName": "Bitte einen Namen eingeben.",
       "validationQuantityMustBePositive": "Die Menge muss größer als 0 sein.",
-      "validationKcalMustBePositive": "Die Kalorien müssen größer als 0 sein.",
+      "validationKcalMustBePositive": "Die Kalorien dürfen nicht negativ sein.",
       "validationPcsUnavailable": "Stück ist für dieses Produkt nicht verfügbar — wähle g oder ml."
     },
     "foodSearch": {
@@ -318,7 +318,7 @@
         "validationMissingGrams": "Gramm eingeben",
         "validationMissingKcal": "kcal eingeben",
         "validationQuantityMustBePositive": "Die Menge muss größer als 0 sein.",
-        "validationKcalMustBePositive": "Die Kalorien müssen größer als 0 sein.",
+        "validationKcalMustBePositive": "Die Kalorien dürfen nicht negativ sein.",
         "validationPcsUnavailable": "Stück ist für dieses Produkt nicht verfügbar — wähle g oder ml.",
         "save": "Mahlzeit speichern",
         "analyzing": "Mahlzeit wird analysiert...",

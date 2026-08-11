@@ -269,7 +269,7 @@ function mapToFoodSearchProduct(product: z.infer<typeof searchProductSchema>): F
   }
 
   const kcalPer100g = resolveKcalPer100g(product.nutriments);
-  if (kcalPer100g == null || !Number.isFinite(kcalPer100g) || kcalPer100g <= 0) {
+  if (kcalPer100g == null || !Number.isFinite(kcalPer100g) || kcalPer100g < 0) {
     return null;
   }
 
@@ -418,7 +418,7 @@ function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSch
   const nutriments = product.nutriments;
   const kcalPer100g = resolveKcalPer100g(nutriments);
 
-  if (kcalPer100g == null || !Number.isFinite(kcalPer100g) || kcalPer100g <= 0) {
+  if (kcalPer100g == null || !Number.isFinite(kcalPer100g) || kcalPer100g < 0) {
     throw new BarcodeNutrimentsMissingError(barcode);
   }
 

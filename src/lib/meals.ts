@@ -593,7 +593,7 @@ export function isManualMealEntryValid(entry: ManualMealEntryInput): boolean {
     return false;
   }
 
-  if (!Number.isFinite(entry.kcal) || entry.kcal <= 0) {
+  if (!Number.isFinite(entry.kcal) || entry.kcal < 0) {
     return false;
   }
 
