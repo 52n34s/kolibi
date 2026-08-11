@@ -13,6 +13,13 @@ const secureStore = createChunkedSecureStoreAdapter();
 
 const PUSH_TOKEN_STORAGE_KEY = 'expo_push_token';
 
+/** Survives reinstall via iOS Keychain — only set after user answers the system prompt. */
+export const PUSH_PERMISSION_ASKED_KEY = 'push_permission_asked';
+
+export async function clearPushPermissionAskedFlag(): Promise<void> {
+  await secureStore.removeItem(PUSH_PERMISSION_ASKED_KEY);
+}
+
 Notifications.setNotificationHandler({
   handleNotification: (async () => ({
     shouldShowAlert: true,

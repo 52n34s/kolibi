@@ -70,7 +70,7 @@ import {
   updateMealWithItems,
   type TodayMeal,
 } from '@/lib/meals';
-import { registerForPushNotifications } from '@/lib/notifications';
+import { registerForPushNotifications, PUSH_PERMISSION_ASKED_KEY } from '@/lib/notifications';
 import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { MEAL_SOURCE, type MealSource } from '@/lib/meal-sources';
 import { deleteMealPhotoUris, prepareMealPhotoUri } from '@/lib/meal-photo';
@@ -180,7 +180,7 @@ export default function HomeScreen() {
       return;
     }
 
-    const stored = await secureStore.getItem('push_permission_asked');
+    const stored = await secureStore.getItem(PUSH_PERMISSION_ASKED_KEY);
     Sentry.addBreadcrumb({
       category: 'push-debug',
       message: 'maybeAskForPushAfterFirstMeal: push_permission_asked',
@@ -192,7 +192,7 @@ export default function HomeScreen() {
       const result = await registerForPushNotifications(userId);
 
       if (result.status === 'granted' || result.status === 'denied') {
-        await secureStore.setItem('push_permission_asked', 'true');
+        await secureStore.setItem(PUSH_PERMISSION_ASKED_KEY, 'true');
       }
     }
 
