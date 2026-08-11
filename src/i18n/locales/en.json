@@ -1,5 +1,6 @@
 {
   "auth": {
+    "valueProp": "Snap a photo. Calories done.",
     "subtitleSignIn": "Sign in to continue",
     "subtitleSignUp": "Create your account to get started",
     "apple": "Sign in with Apple",
@@ -12,7 +13,10 @@
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
     "signup": {
-      "freeBadge": "Free · No card required"
+      "freeBadge": "3 days free · no card required",
+      "withEmail": "Sign up with email",
+      "emailTitle": "Sign up with email",
+      "emailBack": "Back"
     },
     "forgotPassword": {
       "link": "Forgot password?",

@@ -16,6 +16,8 @@ type CompactSegmentToggleProps = {
   onDisabledSegmentPress?: (segmentId: string) => void;
   /** Language uses solid accent fill; unit uses bordered card segment. */
   variant?: 'language' | 'unit';
+  /** Tighter padding + muted inactive labels (active accent unchanged). */
+  compact?: boolean;
   style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
   containerStyle?: import('react-native').StyleProp<import('react-native').ViewStyle>;
 };
@@ -27,12 +29,19 @@ export function CompactSegmentToggle({
   disabledSegmentIds = [],
   onDisabledSegmentPress,
   variant = 'unit',
+  compact = false,
   style,
   containerStyle,
 }: CompactSegmentToggleProps) {
   return (
     <View style={[styles.fitWrapper, style]}>
-      <View style={[styles.container, variant === 'language' && styles.containerLanguage, containerStyle]}>
+      <View
+        style={[
+          styles.container,
+          variant === 'language' && styles.containerLanguage,
+          compact && styles.containerCompact,
+          containerStyle,
+        ]}>
         {segments.map((segment) => {
           const isActive = value === segment.id;
           const isDisabled = disabledSegmentIds.includes(segment.id);
@@ -42,6 +51,7 @@ export function CompactSegmentToggle({
               key={segment.id}
               style={[
                 styles.segment,
+                compact && styles.segmentCompact,
                 variant === 'unit' && isActive && styles.segmentActive,
                 variant === 'language' && isActive && styles.segmentActive,
                 isDisabled && styles.segmentDisabled,
@@ -57,8 +67,10 @@ export function CompactSegmentToggle({
               <Text
                 style={[
                   styles.label,
+                  compact && styles.labelCompact,
                   variant === 'unit' && isActive && styles.labelActive,
                   variant === 'language' && isActive && styles.labelActive,
+                  compact && isActive && styles.labelActiveCompact,
                   isDisabled && styles.labelDisabled,
                 ]}>
                 {segment.label}
@@ -91,6 +103,10 @@ const styles = StyleSheet.create({
   containerLanguage: {
     backgroundColor: GLASS_SURFACE.backgroundColor,
   },
+  containerCompact: {
+    marginBottom: 0,
+    padding: 3,
+  },
   segment: {
     flexGrow: 0,
     flexShrink: 0,
@@ -98,6 +114,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: 'transparent',
+  },
+  segmentCompact: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   segmentActive: {
     backgroundColor: ONBOARDING_ACCENT,
@@ -107,8 +127,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6B7280',
   },
+  labelCompact: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#9CA3AF',
+  },
   labelActive: {
     fontSize: 12,
+    color: '#FFFFFF',
+  },
+  labelActiveCompact: {
+    fontSize: 11,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
   segmentDisabled: {

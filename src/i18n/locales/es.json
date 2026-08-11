@@ -1,5 +1,6 @@
 {
   "auth": {
+    "valueProp": "Haz una foto. Calorías listas.",
     "subtitleSignIn": "Inicia sesión para continuar",
     "subtitleSignUp": "Crea tu cuenta para empezar",
     "apple": "Iniciar sesión con Apple",
@@ -12,7 +13,10 @@
     "noAccount": "¿No tienes una cuenta?",
     "haveAccount": "¿Ya tienes una cuenta?",
     "signup": {
-      "freeBadge": "Gratis · Sin tarjeta"
+      "freeBadge": "3 días gratis · sin tarjeta",
+      "withEmail": "Registrarse con correo",
+      "emailTitle": "Registrarse con correo",
+      "emailBack": "Atrás"
     },
     "forgotPassword": {
       "link": "¿Olvidaste tu contraseña?",

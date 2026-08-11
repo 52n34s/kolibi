@@ -1,5 +1,6 @@
 {
   "auth": {
+    "valueProp": "Foto machen. Kalorien fertig.",
     "subtitleSignIn": "Melde dich an, um fortzufahren",
     "subtitleSignUp": "Erstelle dein Konto, um loszulegen",
     "apple": "Mit Apple anmelden",
@@ -12,7 +13,10 @@
     "noAccount": "Noch kein Konto?",
     "haveAccount": "Schon ein Konto?",
     "signup": {
-      "freeBadge": "Kostenlos · Keine Karte nötig"
+      "freeBadge": "3 Tage kostenlos · keine Karte nötig",
+      "withEmail": "Mit E-Mail registrieren",
+      "emailTitle": "Mit E-Mail registrieren",
+      "emailBack": "Zurück"
     },
     "forgotPassword": {
       "link": "Passwort vergessen?",
