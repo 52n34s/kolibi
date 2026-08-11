@@ -51,6 +51,7 @@ import { PostHogProvider } from 'posthog-react-native';
 
 import { useAuthStore } from '@/stores/auth-store';
 import { posthog } from '@/lib/analytics';
+import { migratePushPermissionAskedFlagOnce } from '@/lib/notifications';
 import { registerPremiumAccessCustomerInfoListener } from '@/lib/premium-query-sync';
 import {
   configurePurchasesOnce,
@@ -95,6 +96,11 @@ function RootLayout() {
   const userId = session?.user?.id ?? null;
 
   useEffect(() => initialize(), [initialize]);
+
+  // Device-local SecureStore migration — never gates splash / auth.
+  useEffect(() => {
+    void migratePushPermissionAskedFlagOnce();
+  }, []);
 
   useEffect(() => {
     if (initialized) {

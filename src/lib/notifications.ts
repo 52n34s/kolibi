@@ -16,8 +16,29 @@ const PUSH_TOKEN_STORAGE_KEY = 'expo_push_token';
 /** Survives reinstall via iOS Keychain — only set after user answers the system prompt. */
 export const PUSH_PERMISSION_ASKED_KEY = 'push_permission_asked';
 
+/** One-shot migration marker: clears stale push_permission_asked for existing installs. */
+export const PUSH_FLAG_MIGRATION_KEY = 'push_flag_migrated_v1';
+
 export async function clearPushPermissionAskedFlag(): Promise<void> {
   await secureStore.removeItem(PUSH_PERMISSION_ASKED_KEY);
+}
+
+/**
+ * Clears a possibly-stale push_permission_asked flag once per install.
+ * Fire-and-forget at cold start — must never block splash or throw to callers.
+ */
+export async function migratePushPermissionAskedFlagOnce(): Promise<void> {
+  try {
+    const migrated = await secureStore.getItem(PUSH_FLAG_MIGRATION_KEY);
+    if (migrated === 'true') {
+      return;
+    }
+
+    await secureStore.removeItem(PUSH_PERMISSION_ASKED_KEY);
+    await secureStore.setItem(PUSH_FLAG_MIGRATION_KEY, 'true');
+  } catch {
+    // SecureStore / Keychain failure — skip; next launch can retry.
+  }
 }
 
 Notifications.setNotificationHandler({

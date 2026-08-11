@@ -39,7 +39,7 @@ export function SupportPanel() {
   const [category, setCategory] = useState<SupportMessageCategory>('question');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [showDebugTools, setShowDebugTools] = useState(true);
+  const [showDebugTools, setShowDebugTools] = useState(__DEV__);
   const [isResettingPushFlag, setIsResettingPushFlag] = useState(false);
   const [isLoadingPushDebug, setIsLoadingPushDebug] = useState(false);
   const [pushPermissionAskedFlag, setPushPermissionAskedFlag] = useState<string | null>(null);
