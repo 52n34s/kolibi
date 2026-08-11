@@ -266,15 +266,15 @@ export default function LoginScreen() {
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        <View className="mb-10 items-center">
+        <View className="mb-3 items-center">
           <Image
             source={require('@/assets/images/koli-happy.png')}
-            style={{ height: 144, width: 180 }}
+            style={{ height: 90, width: 112 }}
             resizeMode="contain"
           />
         </View>
 
-        <Text className="mb-2 text-center text-3xl font-bold leading-tight tracking-tight text-[#2C2C2A]">
+        <Text className="mb-2 text-center text-4xl font-bold leading-tight tracking-tight text-[#2C2C2A]">
           {t('auth.valueProp')}
         </Text>
         <Text className="mb-4 text-center text-sm text-gray-400">
