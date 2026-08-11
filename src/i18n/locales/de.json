@@ -1,6 +1,9 @@
 {
   "auth": {
-    "valueProp": "Foto machen. Kalorien fertig.",
+    "valueProp": {
+      "action": "Foto machen.",
+      "result": "Kalorien fertig."
+    },
     "subtitleSignIn": "Melde dich an, um fortzufahren",
     "subtitleSignUp": "Erstelle dein Konto, um loszulegen",
     "apple": "Mit Apple anmelden",

@@ -1,6 +1,9 @@
 {
   "auth": {
-    "valueProp": "Snap a photo. Calories done.",
+    "valueProp": {
+      "action": "Snap a photo.",
+      "result": "Calories done."
+    },
     "subtitleSignIn": "Sign in to continue",
     "subtitleSignUp": "Create your account to get started",
     "apple": "Sign in with Apple",

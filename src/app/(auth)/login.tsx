@@ -274,11 +274,10 @@ export default function LoginScreen() {
           />
         </View>
 
-        <Text className="mb-2 text-center text-4xl font-bold leading-tight tracking-tight text-[#2C2C2A]">
-          {t('auth.valueProp')}
-        </Text>
-        <Text className="mb-4 text-center text-sm text-gray-400">
-          {t(isSignUpMode ? 'auth.subtitleSignUp' : 'auth.subtitleSignIn')}
+        <Text className="mb-8 text-center text-4xl font-bold leading-tight tracking-tight">
+          <Text className="text-[#2C2C2A]">{t('auth.valueProp.action')}</Text>
+          {'\n'}
+          <Text className="text-[#4F46E5]">{t('auth.valueProp.result')}</Text>
         </Text>
         {isSignUpMode ? (
           <View className="mb-10 self-center rounded-full bg-[#7CE7C7] px-4 py-2.5">

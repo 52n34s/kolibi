@@ -1,6 +1,9 @@
 {
   "auth": {
-    "valueProp": "Haz una foto. Calorías listas.",
+    "valueProp": {
+      "action": "Haz una foto.",
+      "result": "Calorías listas."
+    },
     "subtitleSignIn": "Inicia sesión para continuar",
     "subtitleSignUp": "Crea tu cuenta para empezar",
     "apple": "Iniciar sesión con Apple",
