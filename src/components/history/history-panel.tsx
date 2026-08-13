@@ -387,19 +387,19 @@ export function HistoryPanel() {
           onAddMeal={() => void handleAddMealPress()}
         />
 
-        <Pressable
-          className="mt-6"
-          onPress={() => router.replace('/home' as Href)}
-          style={({ pressed }) => [
-            getOnboardingSecondarySurfaceStyle(),
-            pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
-          ]}>
-          <View className="flex-row items-center justify-center px-4 py-3">
-            <Text className="text-sm font-medium text-[#4F46E5]">
-              {t('history.weight.updateOnHome')}
-            </Text>
-          </View>
-        </Pressable>
+        <View className="mt-6" style={getOnboardingSecondarySurfaceStyle()}>
+          <Pressable
+            onPress={() => router.replace('/home' as Href)}
+            style={({ pressed }) => [
+              pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
+            ]}>
+            <View className="flex-row items-center justify-center px-4 py-3">
+              <Text className="text-sm font-medium text-[#4F46E5]">
+                {t('history.weight.updateOnHome')}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <MealEditSheet

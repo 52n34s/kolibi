@@ -39,6 +39,7 @@ import {
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
+import { BRAND_INDIGO } from '@/constants/brand';
 import { TodayMealsSection } from '@/components/home/TodayMealsSection';
 import { WeightMetricCard } from '@/components/home/weight-metric-card';
 import { WeightInputSheet } from '@/components/home/weight-update-sheet';
@@ -350,6 +351,27 @@ export default function HomeScreen() {
     healthConnectedPreference,
   ]);
 
+  const calorieBarWidthPercent = useMemo(() => {
+    if (calorieGoalDisplay == null) {
+      return 0;
+    }
+
+    if (calorieGoalDisplay.isOverGoal) {
+      return 100;
+    }
+
+    const goal =
+      calorieGoalDisplay.mode === 'dynamic'
+        ? calorieGoalDisplay.dailyGoal + (calorieGoalDisplay.activeEnergyBurned ?? 0)
+        : calorieGoalDisplay.dailyGoal;
+
+    if (goal <= 0) {
+      return 0;
+    }
+
+    return Math.min(100, Math.max(0, (calorieGoalDisplay.consumedToday / goal) * 100));
+  }, [calorieGoalDisplay]);
+
   const latestWeightKg = data?.latestWeight?.weight_kg ?? null;
   const targetWeightKg = data?.profile?.target_weight_kg ?? null;
   const weightUnitLabels = useMemo(
@@ -393,7 +415,7 @@ export default function HomeScreen() {
       deltaKg: targetWeightKg - latestWeightKg,
       unitSystem,
       ...weightUnitLabels,
-    });
+    })?.replace(/\s+\S+$/, '').replace(/^-/, '\u2212') ?? null;
   }, [latestWeightKg, targetWeightKg, unitSystem, weightUnitLabels]);
 
   function weightKgToDraft(weightKg: number | null): string {
@@ -956,6 +978,26 @@ export default function HomeScreen() {
                   }}>
                   {formatKcal(calorieGoalDisplay.mainValue)}
                 </Text>
+                <View
+                  style={{
+                    height: 4,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    marginTop: 14,
+                    marginBottom: 8,
+                    backgroundColor: 'rgba(79, 70, 229, 0.13)',
+                  }}>
+                  <View
+                    style={{
+                      height: '100%',
+                      width: `${calorieBarWidthPercent}%`,
+                      borderRadius: 2,
+                      backgroundColor: calorieGoalDisplay.isOverGoal
+                        ? CALORIE_OVER_GOAL_COLOR
+                        : BRAND_INDIGO,
+                    }}
+                  />
+                </View>
                 {calorieGoalDisplay.showOverLabel ? (
                   <Text className="mt-2 text-base font-medium text-amber-700">
                     {t('home.calorieGoal.overGoal')}
@@ -975,33 +1017,32 @@ export default function HomeScreen() {
               </View>
             </View>
           ) : (
-            <Pressable
-              onPress={openCalorieGoalSettings}
-              style={({ pressed }) => [
-                getOnboardingSecondarySurfaceStyle(),
-                pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
-              ]}>
-              <View className="flex-row items-center px-4 py-3">
-                <Text className="flex-1 text-sm text-gray-500">
-                  {t('home.calorieGoal.emptyPrefix')}
-                  <Text className="font-medium text-[#4F46E5]">
-                    {t('home.calorieGoal.emptyAction')}
+            <View style={getOnboardingSecondarySurfaceStyle()}>
+              <Pressable
+                onPress={openCalorieGoalSettings}
+                style={({ pressed }) => [
+                  pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
+                ]}>
+                <View className="flex-row items-center px-4 py-3">
+                  <Text className="flex-1 text-sm text-gray-500">
+                    {t('home.calorieGoal.emptyPrefix')}
+                    <Text className="font-medium text-[#4F46E5]">
+                      {t('home.calorieGoal.emptyAction')}
+                    </Text>
                   </Text>
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-              </View>
-            </Pressable>
+                  <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                </View>
+              </Pressable>
+            </View>
           )}
 
-          <View className="mt-4 flex-row gap-3">
+          <View className="mt-4 flex-row items-stretch gap-3">
             <WeightMetricCard
-              icon="scale-outline"
               label={t('home.weight.label')}
               value={weightLabel}
               onPress={openCurrentWeightSheet}
             />
             <WeightMetricCard
-              icon="flag-outline"
               hint={targetWeightDeltaHint}
               label={t('home.weight.targetTitle')}
               value={targetWeightLabel}

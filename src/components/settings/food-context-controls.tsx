@@ -1,10 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import {
-  ONBOARDING_ACCENT,
-  ONBOARDING_CARD_COLORS,
-  ONBOARDING_SECONDARY_SURFACE,
-} from '@/components/onboarding/onboarding-styles';
+import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
+import { GLASS_SURFACE } from '@/components/ui/glass-styles';
 
 export const DIET_PREFERENCE_OPTIONS = [
   { id: 'none', value: null },
@@ -75,26 +72,32 @@ const styles = StyleSheet.create({
   pillWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 4,
+    padding: 4,
+    backgroundColor: GLASS_SURFACE.backgroundColor,
+    borderColor: GLASS_SURFACE.borderColor,
+    borderWidth: GLASS_SURFACE.borderWidth,
+    borderRadius: 12,
+    alignSelf: 'stretch',
   },
   pill: {
-    borderRadius: ONBOARDING_SECONDARY_SURFACE.borderRadius - 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.45)',
-    borderWidth: 1,
-    borderColor: ONBOARDING_CARD_COLORS.border,
+    paddingVertical: 6,
+    backgroundColor: 'transparent',
   },
   pillActive: {
     backgroundColor: ONBOARDING_ACCENT,
-    borderColor: ONBOARDING_ACCENT,
   },
   pillLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
   },
   pillLabelActive: {
+    fontSize: 12,
     color: '#FFFFFF',
   },
 });

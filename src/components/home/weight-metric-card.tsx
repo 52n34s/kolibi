@@ -1,15 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import {
-  ONBOARDING_ACCENT,
-  ONBOARDING_CARD_RADIUS,
-  getOnboardingSecondarySurfaceStyle,
-} from '@/components/onboarding/onboarding-styles';
-import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
+import { getOnboardingSecondarySurfaceStyle } from '@/components/onboarding/onboarding-styles';
 
 type WeightMetricCardProps = {
-  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
   hint?: string | null;
@@ -17,30 +10,27 @@ type WeightMetricCardProps = {
 };
 
 export function WeightMetricCard({
-  icon,
   label,
   value,
   hint,
   onPress,
 }: WeightMetricCardProps) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      style={({ pressed }) => [
-        getOnboardingSecondarySurfaceStyle(),
-        styles.card,
-        pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
-        { borderRadius: ONBOARDING_CARD_RADIUS },
-      ]}
-      onPress={onPress}>
-      <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={20} color={ONBOARDING_ACCENT} />
-      </View>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-      <Ionicons name="create-outline" size={16} color="#9CA3AF" style={styles.editIcon} />
-    </Pressable>
+    <View style={[getOnboardingSecondarySurfaceStyle(), styles.card]}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.pressArea,
+          pressed && { backgroundColor: 'rgba(79, 70, 229, 0.07)' },
+        ]}>
+        <Text style={styles.label}>{label}</Text>
+        <View style={styles.valueRow}>
+          <Text style={styles.value}>{value}</Text>
+          {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+        </View>
+      </Pressable>
+    </View>
   );
 }
 
@@ -48,40 +38,31 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    position: 'relative',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
-    marginBottom: 10,
+  pressArea: {
+    flex: 1,
+    borderRadius: 14,
   },
   label: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#6B7280',
-    marginBottom: 4,
+    color: '#6F6C89',
+  },
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    marginTop: 4,
   },
   value: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#111827',
-    paddingRight: 20,
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#26234A',
   },
   hint: {
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  editIcon: {
-    position: 'absolute',
-    top: 14,
-    right: 10,
+    fontSize: 11,
+    color: '#86839B',
   },
 });

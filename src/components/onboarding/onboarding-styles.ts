@@ -1,10 +1,11 @@
 import type { ViewStyle } from 'react-native';
 
-import { getGlassCardStyle, GLASS_CARD_RADIUS } from '@/components/ui/glass-styles';
+import { BRAND_INDIGO, BRAND_MINT, GLASS_BORDER, GLASS_BORDER_TOP, SURFACE_BASE } from '@/constants/brand';
+import { getGlassCardStyle, GLASS_CARD_RADIUS, GLASS_SURFACE } from '@/components/ui/glass-styles';
 
-export const ONBOARDING_ACCENT = '#4F46E5';
-export const ONBOARDING_MINT = '#7CE7C7';
-export const ONBOARDING_BACKGROUND = '#FAFAFA';
+export const ONBOARDING_ACCENT = BRAND_INDIGO;
+export const ONBOARDING_MINT = BRAND_MINT;
+export const ONBOARDING_BACKGROUND = SURFACE_BASE;
 
 export const ONBOARDING_CARD_COLORS = {
   idle: 'rgba(255, 255, 255, 0.52)',
@@ -28,14 +29,23 @@ export const ONBOARDING_SELECTED_GRADIENT = {
 
 export function getOnboardingSecondarySurfaceStyle(): ViewStyle {
   return getGlassCardStyle({
+    ...GLASS_SURFACE,
+    borderColor: GLASS_BORDER,
+    borderTopColor: GLASS_BORDER_TOP,
+    borderWidth: 1,
     borderRadius: ONBOARDING_SECONDARY_SURFACE.borderRadius,
+    overflow: 'visible',
   });
 }
 
 export function getOnboardingIdleCardStyle(): ViewStyle {
   return getGlassCardStyle({
-    borderRadius: ONBOARDING_CARD_RADIUS,
+    ...GLASS_SURFACE,
+    borderColor: GLASS_BORDER,
+    borderTopColor: GLASS_BORDER_TOP,
     borderWidth: 1,
+    borderRadius: ONBOARDING_CARD_RADIUS,
+    overflow: 'visible',
   });
 }
 
