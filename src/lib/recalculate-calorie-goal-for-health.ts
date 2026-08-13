@@ -49,6 +49,7 @@ export async function recalculateCalorieGoalForHealthKitChange(
   await upsertDailyCalorieGoal({
     userId,
     dailyCalorieGoal,
+    source: 'calculated',
     effectiveFrom: localDateKey(),
   });
 }

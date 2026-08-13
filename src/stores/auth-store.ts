@@ -7,13 +7,15 @@ import { unregisterPushToken } from '@/lib/notifications';
 type AuthState = {
   session: Session | null;
   initialized: boolean;
+  /** true = onboarded, false = not onboarded, null = unknown / still loading */
   isOnboarded: boolean | null;
   initialize: () => () => void;
-  refreshOnboardingStatus: () => Promise<boolean>;
+  refreshOnboardingStatus: () => Promise<boolean | null>;
   signOut: () => Promise<void>;
 };
 
-async function fetchOnboardingStatus(userId: string): Promise<boolean> {
+/** Successful fetch only. Errors return null (unknown) — never "not onboarded". */
+async function fetchOnboardingStatus(userId: string): Promise<boolean | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select('onboarded_at')
@@ -22,10 +24,16 @@ async function fetchOnboardingStatus(userId: string): Promise<boolean> {
 
   if (error) {
     console.warn('Failed to fetch onboarding status:', error.message);
-    return false;
+    return null;
   }
 
   return !!data?.onboarded_at;
+}
+
+const ONBOARDING_STATUS_MAX_ATTEMPTS = 3;
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -38,12 +46,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     if (!userId) {
       set({ isOnboarded: null });
-      return false;
+      return null;
     }
 
-    const isOnboarded = await fetchOnboardingStatus(userId);
-    set({ isOnboarded });
-    return isOnboarded;
+    for (let attempt = 0; attempt < ONBOARDING_STATUS_MAX_ATTEMPTS; attempt++) {
+      const isOnboarded = await fetchOnboardingStatus(userId);
+
+      if (isOnboarded !== null) {
+        set({ isOnboarded });
+        return isOnboarded;
+      }
+
+      if (attempt < ONBOARDING_STATUS_MAX_ATTEMPTS - 1) {
+        await delay(400 * (attempt + 1));
+      }
+    }
+
+    // Still unknown after retries — keep loading; do not treat as not onboarded.
+    set({ isOnboarded: null });
+    return null;
   },
 
   initialize: () => {

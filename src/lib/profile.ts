@@ -315,6 +315,7 @@ export async function updateDailyCalorieGoal(params: {
   await upsertDailyCalorieGoal({
     userId: params.userId,
     dailyCalorieGoal: params.dailyCalorieGoal,
+    source: 'custom',
   });
 }
 
@@ -346,5 +347,6 @@ export async function updateCalorieGoal(params: {
   await upsertDailyCalorieGoal({
     userId: params.userId,
     dailyCalorieGoal: params.dailyCalorieGoal,
+    source: params.calorieGoalSource,
   });
 }

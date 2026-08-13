@@ -10,6 +10,13 @@ const ONBOARDING_ROUTE = { pathname: '/onboarding', params: {} } as Href;
 
 export async function navigateAfterLogin() {
   const isOnboarded = await useAuthStore.getState().refreshOnboardingStatus();
+
+  // null = unknown (fetch failed). Stay put — index/login keep loading / retry.
+  // Only a successful false may send the user to onboarding.
+  if (isOnboarded === null) {
+    return;
+  }
+
   router.replace(isOnboarded ? HOME_ROUTE : ONBOARDING_ROUTE);
 }
 

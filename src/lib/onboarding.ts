@@ -323,19 +323,61 @@ export function calculateDailyCalorieGoalDetails(params: {
 }
 
 export async function skipOnboarding(userId: string) {
-  const payload = { onboarded_at: new Date().toISOString() };
-  console.log('[onboarding] skipOnboarding before update', { userId, payload });
+  const now = new Date().toISOString();
+  console.log('[onboarding] skipOnboarding before update', { userId, now });
+
+  const { data: existing, error: readError } = await supabase
+    .from('profiles')
+    .select('onboarded_at')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (readError) {
+    throw readError;
+  }
+
+  if (!existing) {
+    throw new Error('Profile not found while skipping onboarding.');
+  }
+
+  // Already set — leave untouched (fine).
+  if (existing.onboarded_at) {
+    console.log('[onboarding] skipOnboarding noop: onboarded_at already set');
+    return;
+  }
 
   const { data, error } = await supabase
     .from('profiles')
-    .update(payload)
+    .update({ onboarded_at: now })
     .eq('id', userId)
-    .select('id, onboarded_at');
+    .is('onboarded_at', null)
+    .select('id, onboarded_at')
+    .maybeSingle();
 
   console.log('[onboarding] skipOnboarding after update', { data, error });
 
   if (error) {
     throw error;
+  }
+
+  // Expected a write. Empty result with no error usually means RLS or a race.
+  if (!data?.onboarded_at) {
+    const { data: again, error: againError } = await supabase
+      .from('profiles')
+      .select('onboarded_at')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (againError) {
+      throw againError;
+    }
+
+    // Concurrent writer set it — fine.
+    if (again?.onboarded_at) {
+      return;
+    }
+
+    throw new Error('Failed to set onboarded_at (no row updated).');
   }
 }
 
@@ -353,15 +395,38 @@ export async function completeOnboarding(
   },
 ) {
   const now = new Date().toISOString();
-  const profilePayload = {
+
+  const { data: existingProfile, error: existingError } = await supabase
+    .from('profiles')
+    .select('onboarded_at')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw existingError;
+  }
+
+  const profilePayload: {
+    birth_date: string;
+    biological_sex: BiologicalSex;
+    height_cm: number;
+    activity_level: ActivityLevel;
+    goal_type: GoalType;
+    calorie_goal_source: CalorieGoalSource;
+    onboarded_at?: string;
+  } = {
     birth_date: localDateKey(data.birthDate),
     biological_sex: data.biologicalSex,
     height_cm: data.heightCm,
     activity_level: data.activityLevel,
     goal_type: data.goalType,
     calorie_goal_source: data.calorieGoalSource,
-    onboarded_at: now,
   };
+
+  // Only set onboarded_at when currently null — leave an existing value untouched.
+  if (!existingProfile?.onboarded_at) {
+    profilePayload.onboarded_at = now;
+  }
 
   console.log('[onboarding] completeOnboarding before profile update', {
     userId,
@@ -372,7 +437,8 @@ export async function completeOnboarding(
     .from('profiles')
     .update(profilePayload)
     .eq('id', userId)
-    .select('id, onboarded_at, biological_sex');
+    .select('id, onboarded_at, biological_sex')
+    .maybeSingle();
 
   console.log('[onboarding] completeOnboarding after profile update', {
     data: profileData,
@@ -381,6 +447,11 @@ export async function completeOnboarding(
 
   if (profileError) {
     throw profileError;
+  }
+
+  // Update with no error but no row usually means RLS / missing profile.
+  if (!profileData) {
+    throw new Error('Failed to update profile (no row returned).');
   }
 
   try {
@@ -403,10 +474,12 @@ export async function completeOnboarding(
     console.log('[onboarding] completeOnboarding before calorie goal upsert', {
       userId,
       dailyCalorieGoal: data.dailyCalorieGoal,
+      calorieGoalSource: data.calorieGoalSource,
     });
     await upsertDailyCalorieGoal({
       userId,
       dailyCalorieGoal: data.dailyCalorieGoal,
+      source: data.calorieGoalSource,
     });
     console.log('[onboarding] completeOnboarding calorie goal upsert ok');
   } catch (calorieError) {

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 export async function upsertDailyCalorieGoal(params: {
   userId: string;
   dailyCalorieGoal: number;
+  source: 'custom' | 'calculated';
   effectiveFrom?: string;
 }) {
   const effectiveFromDate = params.effectiveFrom ?? localDateKey();
@@ -13,6 +14,7 @@ export async function upsertDailyCalorieGoal(params: {
     {
       user_id: params.userId,
       daily_calorie_goal: params.dailyCalorieGoal,
+      source: params.source,
       effective_from: effectiveFromDate,
     },
     { onConflict: 'user_id,effective_from' },

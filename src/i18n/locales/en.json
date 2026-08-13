@@ -48,6 +48,10 @@
         "updateFailed": "Could not update your password. Please try again."
       }
     },
+    "onboardingStatus": {
+      "loadFailed": "Could not verify your account status. Check your connection and try again.",
+      "retry": "Try again"
+    },
     "errors": {
       "invalidCredentials": "Email or password is incorrect.",
       "emailAlreadyRegistered": "This email is already registered. Please sign in.",

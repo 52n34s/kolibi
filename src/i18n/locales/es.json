@@ -62,6 +62,10 @@
       "emailInvalid": "Dirección de correo electrónico no válida",
       "passwordRequired": "La contraseña es obligatoria",
       "passwordMinLength": "Al menos 6 caracteres"
+    },
+    "onboardingStatus": {
+      "loadFailed": "No se pudo verificar el estado de tu cuenta. Comprueba la conexión e inténtalo de nuevo.",
+      "retry": "Intentar de nuevo"
     }
   },
   "onboarding": {

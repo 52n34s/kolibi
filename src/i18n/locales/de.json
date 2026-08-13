@@ -62,6 +62,10 @@
       "emailInvalid": "Ungültige E-Mail-Adresse",
       "passwordRequired": "Passwort ist erforderlich",
       "passwordMinLength": "Mindestens 6 Zeichen"
+    },
+    "onboardingStatus": {
+      "loadFailed": "Dein Kontostatus konnte nicht geprüft werden. Prüfe deine Verbindung und versuche es erneut.",
+      "retry": "Erneut versuchen"
     }
   },
   "onboarding": {

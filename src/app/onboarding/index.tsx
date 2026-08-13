@@ -177,6 +177,10 @@ export default function OnboardingScreen() {
           setGoalType(profile.goal_type);
         }
 
+        if (profile.calorie_goal_source === 'custom') {
+          setSummaryManuallyEdited(true);
+        }
+
         if (profile.daily_calorie_goal != null) {
           const calories = String(profile.daily_calorie_goal);
           setDailyCalorieGoal(calories);
