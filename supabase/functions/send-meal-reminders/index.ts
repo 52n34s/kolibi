@@ -294,14 +294,20 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const cronSecret = Deno.env.get('CRON_SECRET');
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Supabase environment is not configured.');
     return jsonResponse({ error: 'SERVER_MISCONFIGURED' }, 500);
   }
 
+  if (!cronSecret) {
+    console.error('CRON_SECRET is not configured.');
+    return jsonResponse({ error: 'MISCONFIGURED' }, 500);
+  }
+
   const authHeader = req.headers.get('Authorization');
-  if (authHeader !== `Bearer ${supabaseServiceKey}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return jsonResponse({ error: 'UNAUTHORIZED' }, 401);
   }
 
