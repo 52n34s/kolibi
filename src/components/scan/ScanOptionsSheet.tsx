@@ -38,9 +38,10 @@ export function ScanOptionsSheet({
       <Text style={styles.title}>{t('home.scan.options.title')}</Text>
 
       <View style={styles.pillRow}>
-        <CompactSegmentToggle
+          <CompactSegmentToggle
           variant="language"
           value={photoCount}
+          inactiveLabelColor="#5F5C74"
           onChange={(value) => setPhotoCount(value as PhotoCountOption)}
           segments={[
             { id: '1', label: t('home.scan.options.onePhoto') },
@@ -96,14 +97,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontSize: 13,
     lineHeight: 18,
-    color: '#6B7280',
+    color: '#5B5870',
     textAlign: 'center',
   },
   referenceHintSecondary: {
     marginBottom: 14,
     fontSize: 13,
     lineHeight: 18,
-    color: '#6B7280',
+    color: '#5B5870',
     textAlign: 'center',
   },
   ctaShell: {

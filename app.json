@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kolibi",
     "slug": "kolibi",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "runtimeVersion": {
       "policy": "appVersion"

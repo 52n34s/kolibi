@@ -20,6 +20,8 @@ type CompactSegmentToggleProps = {
   compact?: boolean;
   style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
   containerStyle?: import('react-native').StyleProp<import('react-native').ViewStyle>;
+  /** Overrides inactive label color. Active labels stay white. */
+  inactiveLabelColor?: string;
 };
 
 export function CompactSegmentToggle({
@@ -32,6 +34,7 @@ export function CompactSegmentToggle({
   compact = false,
   style,
   containerStyle,
+  inactiveLabelColor,
 }: CompactSegmentToggleProps) {
   return (
     <View style={[styles.fitWrapper, style]}>
@@ -71,6 +74,7 @@ export function CompactSegmentToggle({
                   variant === 'unit' && isActive && styles.labelActive,
                   variant === 'language' && isActive && styles.labelActive,
                   compact && isActive && styles.labelActiveCompact,
+                  !isActive && inactiveLabelColor ? { color: inactiveLabelColor } : null,
                   isDisabled && styles.labelDisabled,
                 ]}>
                 {segment.label}
