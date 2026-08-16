@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, Keyboard, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NameFieldAnchor } from '@/components/scan/FoodNameAutocompleteDropdown';
 import { CompactSegmentToggle } from '@/components/settings/compact-segment-toggle';
+import { BRAND_INDIGO } from '@/constants/brand';
 import {
   type MealStepperField,
   useMealInputBarActions,
@@ -345,6 +346,8 @@ export function MealItemRow({
             accessibilityLabel={t('home.manualEntry.namePlaceholder')}
             placeholder={t('home.manualEntry.namePlaceholder')}
             placeholderTextColor="#9CA3AF"
+            cursorColor={BRAND_INDIGO}
+            selectionColor={BRAND_INDIGO}
             returnKeyType="done"
             blurOnSubmit
             onSubmitEditing={() => Keyboard.dismiss()}

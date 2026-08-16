@@ -40,6 +40,9 @@ yarn-error.*
 
 example
 
+# Local USDA / foods import working files (do not commit)
+/data/
+
 # generated native folders
 /ios
 /android
