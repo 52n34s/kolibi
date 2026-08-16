@@ -1,13 +1,46 @@
 import { BlurView } from 'expo-blur';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { useMealInputBarValues } from '@/components/scan/meal-input-bar-context';
+import { BRAND_INDIGO } from '@/constants/brand';
 
 export const MEAL_INPUT_BAR_HEIGHT = 64;
 export const MEAL_INPUT_KEYBOARD_GAP = 8;
 
 const BAR_HEIGHT = MEAL_INPUT_BAR_HEIGHT;
 const KEYBOARD_GAP = MEAL_INPUT_KEYBOARD_GAP;
+const CARET_BLINK_MS = 530;
+
+function BlinkingCaret() {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const blink = Animated.loop(
+      Animated.sequence([
+        Animated.delay(CARET_BLINK_MS),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+        Animated.delay(CARET_BLINK_MS),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    blink.start();
+    return () => {
+      blink.stop();
+      opacity.setValue(1);
+    };
+  }, [opacity]);
+
+  return <Animated.View style={[styles.caret, { opacity }]} />;
+}
 
 function BarContent({
   productName,
@@ -23,9 +56,12 @@ function BarContent({
       <Text ellipsizeMode="tail" numberOfLines={1} style={styles.meta}>
         {productName} · {fieldLabel}
       </Text>
-      <Text numberOfLines={1} style={styles.value}>
-        {displayValue}
-      </Text>
+      <View style={styles.valueCluster}>
+        <Text numberOfLines={1} style={styles.value}>
+          {displayValue}
+        </Text>
+        <BlinkingCaret />
+      </View>
     </>
   );
 }
@@ -109,10 +145,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#6B7280',
   },
-  value: {
+  valueCluster: {
     flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  value: {
     fontSize: 28,
     fontWeight: '600',
     color: '#4F46E5',
+  },
+  caret: {
+    width: 2,
+    height: 28,
+    marginLeft: 2,
+    backgroundColor: BRAND_INDIGO,
   },
 });

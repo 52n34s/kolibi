@@ -39,6 +39,10 @@ export function useMealInputKeyboardHeight() {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, (event) => {
+      console.log(
+        '[meal-input-bar] keyboardWillShow height',
+        event.endCoordinates.height,
+      );
       setKeyboardHeightRef.current?.(event.endCoordinates.height);
     });
 
