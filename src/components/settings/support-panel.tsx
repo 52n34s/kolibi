@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
+import * as Updates from 'expo-updates';
+
 import { ExternalLink } from '@/components/external-link';
 import { SettingsSection } from '@/components/settings/settings-section';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
@@ -227,6 +229,12 @@ export function SupportPanel() {
         </ExternalLink>
       </SettingsSection>
 
+      <Text selectable style={styles.updateDebug}>
+        OTA {Updates.isEmbeddedLaunch || !Updates.updateId ? 'embedded' : Updates.updateId}
+        {' · '}
+        {Updates.channel || '—'}
+      </Text>
+
       {showDebugTools ? (
         <SettingsSection title="Debug">
           <View className="px-4 py-4">
@@ -289,5 +297,12 @@ const styles = StyleSheet.create({
   categoryChipActive: {
     backgroundColor: ONBOARDING_ACCENT,
     borderColor: ONBOARDING_ACCENT,
+  },
+  updateDebug: {
+    marginTop: 8,
+    paddingHorizontal: 4,
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#9CA3AF',
   },
 });
