@@ -256,7 +256,7 @@ function ManualMealEntrySheetContent({
 
     // Name TextInput is controlled by item.name, but the floating bar keeps its own
     // displayValue from typing — sync it to the chosen product name.
-    mealInputBarActions?.updateDisplayValue(product.name);
+    mealInputBarActions?.updateDisplayValue(product.name, product.name.length);
 
     if (knownFoodId) {
       return;

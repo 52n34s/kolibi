@@ -1,7 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, Keyboard, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type NativeSyntheticEvent,
+  type TextInputSelectionChangeEventData,
+} from 'react-native';
 import type { NameFieldAnchor } from '@/components/scan/FoodNameAutocompleteDropdown';
 import { CompactSegmentToggle } from '@/components/settings/compact-segment-toggle';
 import { BRAND_INDIGO } from '@/constants/brand';
@@ -256,11 +266,22 @@ export function MealItemRow({
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [nameFocused, setNameFocused] = useState(false);
+  const [nameDraft, setNameDraft] = useState(item.name);
+  const lastSentNameRef = useRef(item.name);
   const nameInputWrapRef = useRef<View>(null);
 
   useEffect(() => {
     initializeUnitSystem();
   }, [initializeUnitSystem]);
+
+  useEffect(() => {
+    if (item.name === lastSentNameRef.current) {
+      return;
+    }
+
+    lastSentNameRef.current = item.name;
+    setNameDraft(item.name);
+  }, [item.name]);
 
   function reportNameAnchor() {
     nameInputWrapRef.current?.measureInWindow((x, y, width, height) => {
@@ -316,6 +337,7 @@ export function MealItemRow({
             ? t('home.mealItemRow.kcalLabel')
             : t('home.manualEntry.nameLabel'),
       displayValue,
+      caretIndex: displayValue.length,
     });
   }
 
@@ -334,8 +356,17 @@ export function MealItemRow({
   }
 
   function handleNameDraftChange(name: string) {
+    lastSentNameRef.current = name;
+    setNameDraft(name);
     onChangeName(item.id, name);
     mealInputBarActions?.updateDisplayValue(name);
+  }
+
+  function handleNameSelectionChange(
+    event: NativeSyntheticEvent<TextInputSelectionChangeEventData>,
+  ) {
+    const { start, end } = event.nativeEvent.selection;
+    mealInputBarActions?.updateCaretIndex(start === end ? start : end);
   }
 
   return (
@@ -352,15 +383,16 @@ export function MealItemRow({
             blurOnSubmit
             onSubmitEditing={() => Keyboard.dismiss()}
             style={[styles.nameInput, nameFocused && styles.nameInputFocused]}
-            value={item.name}
+            value={nameDraft}
             onBlur={() => {
               setNameFocused(false);
               clearField('name');
             }}
             onChangeText={handleNameDraftChange}
+            onSelectionChange={handleNameSelectionChange}
             onFocus={() => {
               setNameFocused(true);
-              activateField('name', item.name);
+              activateField('name', nameDraft);
               reportNameAnchor();
             }}
           />

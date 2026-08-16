@@ -46,21 +46,37 @@ function BarContent({
   productName,
   fieldLabel,
   displayValue,
+  caretIndex,
 }: {
   productName: string;
   fieldLabel: string;
   displayValue: string;
+  caretIndex?: number;
 }) {
+  const clampedCaret = Math.max(
+    0,
+    Math.min(caretIndex ?? displayValue.length, displayValue.length),
+  );
+  const beforeCaret = displayValue.slice(0, clampedCaret);
+  const afterCaret = displayValue.slice(clampedCaret);
+
   return (
     <>
       <Text ellipsizeMode="tail" numberOfLines={1} style={styles.meta}>
         {productName} · {fieldLabel}
       </Text>
       <View style={styles.valueCluster}>
-        <Text numberOfLines={1} style={styles.value}>
-          {displayValue}
-        </Text>
+        {beforeCaret.length > 0 ? (
+          <Text numberOfLines={1} style={styles.value}>
+            {beforeCaret}
+          </Text>
+        ) : null}
         <BlinkingCaret />
+        {afterCaret.length > 0 ? (
+          <Text numberOfLines={1} style={styles.value}>
+            {afterCaret}
+          </Text>
+        ) : null}
       </View>
     </>
   );
@@ -83,6 +99,7 @@ export function MealInputFloatingBar() {
         <BlurView intensity={80} tint="light" style={styles.bar}>
           <View style={styles.barSurface}>
             <BarContent
+              caretIndex={activeField.caretIndex}
               displayValue={activeField.displayValue}
               fieldLabel={activeField.fieldLabel}
               productName={activeField.productName}
@@ -93,6 +110,7 @@ export function MealInputFloatingBar() {
         <View style={styles.bar}>
           <View style={styles.barSurface}>
             <BarContent
+              caretIndex={activeField.caretIndex}
               displayValue={activeField.displayValue}
               fieldLabel={activeField.fieldLabel}
               productName={activeField.productName}

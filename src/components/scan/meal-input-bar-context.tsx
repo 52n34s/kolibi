@@ -15,6 +15,8 @@ export type ActiveMealField = {
   productName: string;
   fieldLabel: string;
   displayValue: string;
+  /** Native caret index into `displayValue`. Defaults to the end when omitted. */
+  caretIndex?: number;
 };
 
 type MealInputBarValues = {
@@ -24,7 +26,8 @@ type MealInputBarValues = {
 
 type MealInputBarActions = {
   setActiveField: (field: ActiveMealField) => void;
-  updateDisplayValue: (displayValue: string) => void;
+  updateDisplayValue: (displayValue: string, caretIndex?: number) => void;
+  updateCaretIndex: (caretIndex: number) => void;
   clearActiveField: (itemId: string, field: MealStepperField) => void;
   setKeyboardHeight: (height: number) => void;
 };
@@ -40,9 +43,21 @@ export function MealInputBarProvider({ children }: { children: ReactNode }) {
     setActiveFieldState(field);
   }, []);
 
-  const updateDisplayValue = useCallback((displayValue: string) => {
+  const updateDisplayValue = useCallback((displayValue: string, caretIndex?: number) => {
     setActiveFieldState((current) =>
-      current ? { ...current, displayValue } : current,
+      current
+        ? {
+            ...current,
+            displayValue,
+            caretIndex: caretIndex ?? current.caretIndex,
+          }
+        : current,
+    );
+  }, []);
+
+  const updateCaretIndex = useCallback((caretIndex: number) => {
+    setActiveFieldState((current) =>
+      current ? { ...current, caretIndex } : current,
     );
   }, []);
 
@@ -65,10 +80,17 @@ export function MealInputBarProvider({ children }: { children: ReactNode }) {
     () => ({
       setActiveField,
       updateDisplayValue,
+      updateCaretIndex,
       clearActiveField,
       setKeyboardHeight,
     }),
-    [clearActiveField, setActiveField, setKeyboardHeight, updateDisplayValue],
+    [
+      clearActiveField,
+      setActiveField,
+      setKeyboardHeight,
+      updateCaretIndex,
+      updateDisplayValue,
+    ],
   );
 
   return (
