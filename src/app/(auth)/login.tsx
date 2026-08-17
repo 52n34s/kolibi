@@ -25,7 +25,7 @@ import {
   useGradientScreenInsets,
 } from '@/components/shared/GradientScreenWrapper';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
-import { posthog } from '@/lib/analytics';
+import { trackSignupProviderSelected } from '@/lib/analytics';
 import {
   setDisplayNameIfEmpty,
   signInWithAppleIdentityToken,
@@ -46,8 +46,6 @@ type EmailFormValues = {
   password: string;
 };
 
-type SignupProvider = 'apple' | 'google' | 'email';
-
 const AUTH_PROVIDER_BUTTON_TEXT_STYLE = {
   fontSize: 16,
   fontWeight: '600' as const,
@@ -59,14 +57,6 @@ const AUTH_INPUT_STYLE = getGlassCardStyle({
   paddingHorizontal: 16,
   justifyContent: 'center',
 });
-
-function trackSignupProviderSelected(provider: SignupProvider) {
-  posthog?.capture('signup_provider_selected', { provider });
-}
-
-function trackSignupCompleted(provider: SignupProvider) {
-  posthog?.capture('signup_completed', { provider });
-}
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -173,10 +163,6 @@ export default function LoginScreen() {
       if (givenName) {
         await setDisplayNameIfEmpty(givenName);
       }
-
-      if (isSignUpMode) {
-        trackSignupCompleted('apple');
-      }
     } catch (error) {
       if (
         error instanceof Error &&
@@ -219,10 +205,6 @@ export default function LoginScreen() {
       }
 
       await signInWithGoogleIdToken(idToken);
-
-      if (isSignUpMode) {
-        trackSignupCompleted('google');
-      }
     } catch (error) {
       if (
         error instanceof Error &&

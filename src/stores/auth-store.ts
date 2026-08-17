@@ -1,6 +1,7 @@
 import { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
+import { identifyAnalyticsUser, resetAnalyticsUser } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { unregisterPushToken } from '@/lib/notifications';
 
@@ -79,6 +80,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) {
+        identifyAnalyticsUser(session.user.id);
+      } else {
+        resetAnalyticsUser();
+      }
+
       set({
         session,
         isOnboarded: session ? get().isOnboarded : null,
@@ -100,6 +107,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await unregisterPushToken(userId);
     }
     await supabase.auth.signOut();
+    resetAnalyticsUser();
     set({ session: null, isOnboarded: null });
   },
 }));

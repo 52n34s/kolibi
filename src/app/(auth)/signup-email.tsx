@@ -21,7 +21,6 @@ import {
   useGradientScreenInsets,
 } from '@/components/shared/GradientScreenWrapper';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
-import { posthog } from '@/lib/analytics';
 import { signUpWithEmail } from '@/lib/auth';
 import {
   EmailAuthError,
@@ -79,7 +78,6 @@ export default function SignupEmailScreen() {
 
     try {
       await signUpWithEmail(email.trim(), password);
-      posthog?.capture('signup_completed', { provider: 'email' });
     } catch (error) {
       logAuthError('EmailSignUp', error);
 

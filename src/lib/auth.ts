@@ -1,5 +1,6 @@
 import { Href, router } from 'expo-router';
 
+import { identifyAnalyticsUser, identifyAndTrackSignupIfNew } from '@/lib/analytics';
 import { PASSWORD_RESET_REDIRECT_URL } from '@/lib/auth-redirect';
 import { mapSignInAuthError, mapSignUpAuthError } from '@/lib/auth-errors';
 import { supabase } from '@/lib/supabase';
@@ -21,18 +22,22 @@ export async function navigateAfterLogin() {
 }
 
 export async function signInWithEmail(email: string, password: string) {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     throw mapSignInAuthError(error);
+  }
+  if (data.user?.id) {
+    identifyAnalyticsUser(data.user.id);
   }
   await navigateAfterLogin();
 }
 
 export async function signUpWithEmail(email: string, password: string) {
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) {
     throw mapSignUpAuthError(error);
   }
+  identifyAndTrackSignupIfNew(data.user, 'email');
   await navigateAfterLogin();
 }
 
@@ -71,16 +76,17 @@ export async function setDisplayNameIfEmpty(displayName: string): Promise<void> 
 }
 
 export async function signInWithAppleIdentityToken(identityToken: string) {
-  const { error } = await supabase.auth.signInWithIdToken({
+  const { data, error } = await supabase.auth.signInWithIdToken({
     provider: 'apple',
     token: identityToken,
   });
   if (error) throw error;
+  identifyAndTrackSignupIfNew(data.user, 'apple');
   await navigateAfterLogin();
 }
 
 export async function signInWithGoogleIdToken(idToken: string) {
-  const { error } = await supabase.auth.signInWithIdToken({
+  const { data, error } = await supabase.auth.signInWithIdToken({
     provider: 'google',
     token: idToken,
   });
@@ -93,6 +99,7 @@ export async function signInWithGoogleIdToken(idToken: string) {
     });
     throw error;
   }
+  identifyAndTrackSignupIfNew(data.user, 'google');
   await navigateAfterLogin();
 }
 
