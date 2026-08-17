@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { upsertTodayWeightLog } from '@/lib/weight-logs';
 import { localDateKey } from '@/lib/day-window';
 import { upsertDailyCalorieGoal } from '@/lib/calorie-goals';
+import { useAuthStore } from '@/stores/auth-store';
 
 export type BiologicalSex = 'male' | 'female' | 'prefer_not_to_say';
 export type ActivityLevel = 'mostly_sitting' | 'lightly_active' | 'active' | 'very_active';
@@ -322,23 +323,74 @@ export function calculateDailyCalorieGoalDetails(params: {
   };
 }
 
+const PROFILE_RACE_RETRY_MS = 400;
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function loadOnboardingProfile(userId: string) {
+  return supabase.from('profiles').select('onboarded_at').eq('id', userId).maybeSingle();
+}
+
+/**
+ * Missing profile row: confirm via getUser(). Deleted auth user → new anonymous session.
+ * Existing user (handle_new_user race) → wait once and retry. Network → do not recover.
+ */
+async function resolveOnboardingProfile(userId: string): Promise<{
+  userId: string;
+  onboardedAt: string | null;
+}> {
+  const first = await loadOnboardingProfile(userId);
+  if (first.error) {
+    throw first.error;
+  }
+
+  if (first.data) {
+    return { userId, onboardedAt: first.data.onboarded_at };
+  }
+
+  const outcome = await useAuthStore.getState().recoverSessionIfUserMissing();
+
+  if (outcome === 'recovered') {
+    const nextId = useAuthStore.getState().session?.user?.id;
+    if (!nextId) {
+      throw new Error('Profile not found while skipping onboarding.');
+    }
+
+    await delay(PROFILE_RACE_RETRY_MS);
+    const second = await loadOnboardingProfile(nextId);
+    if (second.error) {
+      throw second.error;
+    }
+
+    if (second.data) {
+      return { userId: nextId, onboardedAt: second.data.onboarded_at };
+    }
+  }
+
+  if (outcome === 'user_exists') {
+    await delay(PROFILE_RACE_RETRY_MS);
+    const second = await loadOnboardingProfile(userId);
+    if (second.error) {
+      throw second.error;
+    }
+
+    if (second.data) {
+      return { userId, onboardedAt: second.data.onboarded_at };
+    }
+  }
+
+  throw new Error('Profile not found while skipping onboarding.');
+}
+
 export async function skipOnboarding(userId: string) {
   const now = new Date().toISOString();
+  const resolved = await resolveOnboardingProfile(userId);
+  userId = resolved.userId;
   console.log('[onboarding] skipOnboarding before update', { userId, now });
 
-  const { data: existing, error: readError } = await supabase
-    .from('profiles')
-    .select('onboarded_at')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (readError) {
-    throw readError;
-  }
-
-  if (!existing) {
-    throw new Error('Profile not found while skipping onboarding.');
-  }
+  const existing = { onboarded_at: resolved.onboardedAt };
 
   // Already set — leave untouched (fine).
   if (existing.onboarded_at) {
@@ -377,6 +429,11 @@ export async function skipOnboarding(userId: string) {
       return;
     }
 
+    const retried = await resolveOnboardingProfile(userId);
+    if (retried.onboardedAt) {
+      return;
+    }
+
     throw new Error('Failed to set onboarded_at (no row updated).');
   }
 }
@@ -395,16 +452,9 @@ export async function completeOnboarding(
   },
 ) {
   const now = new Date().toISOString();
-
-  const { data: existingProfile, error: existingError } = await supabase
-    .from('profiles')
-    .select('onboarded_at')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (existingError) {
-    throw existingError;
-  }
+  const resolved = await resolveOnboardingProfile(userId);
+  userId = resolved.userId;
+  const existingProfile = { onboarded_at: resolved.onboardedAt };
 
   const profilePayload: {
     birth_date: string;
@@ -451,7 +501,25 @@ export async function completeOnboarding(
 
   // Update with no error but no row usually means RLS / missing profile.
   if (!profileData) {
-    throw new Error('Failed to update profile (no row returned).');
+    const retried = await resolveOnboardingProfile(userId);
+    if (retried.userId !== userId) {
+      userId = retried.userId;
+    }
+
+    const { data: retryData, error: retryError } = await supabase
+      .from('profiles')
+      .update(profilePayload)
+      .eq('id', userId)
+      .select('id, onboarded_at, biological_sex')
+      .maybeSingle();
+
+    if (retryError) {
+      throw retryError;
+    }
+
+    if (!retryData) {
+      throw new Error('Failed to update profile (no row returned).');
+    }
   }
 
   try {

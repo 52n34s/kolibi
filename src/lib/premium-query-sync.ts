@@ -97,7 +97,13 @@ export async function pollForPremiumAccessConfirmation(
       return 'aborted';
     }
 
-    const hasAccess = await fetchHasPremiumAccess(userId);
+    let hasAccess = false;
+    try {
+      hasAccess = await fetchHasPremiumAccess(userId);
+    } catch (error) {
+      console.error('[premium-query-sync] has_premium_access poll failed:', error);
+    }
+
     if (signal?.aborted) {
       return 'aborted';
     }

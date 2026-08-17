@@ -5,7 +5,9 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Switch,
@@ -595,37 +597,45 @@ export function ProfilePanel() {
       </ScrollView>
 
       <Modal transparent visible={showNameModal} animationType="fade" onRequestClose={() => setShowNameModal(false)}>
-        <Pressable className="flex-1 justify-center bg-black/40 px-6" onPress={() => setShowNameModal(false)}>
-          <Pressable className="w-full self-stretch" onPress={(event) => event.stopPropagation()}>
-            <GlassCard className="p-5">
-            <Text className="mb-3 text-lg font-semibold text-gray-900">
-              {t('settings.profile.editNameTitle')}
-            </Text>
-            <TextInput
-              autoFocus
-              value={nameDraft}
-              onChangeText={setNameDraft}
-              placeholder={t('settings.profile.editNamePlaceholder')}
-              className="mb-4 h-11 w-full self-stretch rounded-xl border border-gray-200 px-3 text-base text-gray-900"
-            />
-            <View className="flex-row justify-end gap-3">
-              <Pressable className="px-3 py-2" onPress={() => setShowNameModal(false)}>
-                <Text className="text-base text-gray-500">{t('settings.common.cancel')}</Text>
-              </Pressable>
-              <Pressable
-                className="rounded-lg bg-[#4F46E5] px-4 py-2"
-                disabled={isSavingName}
-                onPress={() => void saveName()}>
-                {isSavingName ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="text-base font-semibold text-white">{t('settings.common.save')}</Text>
-                )}
-              </Pressable>
-            </View>
-            </GlassCard>
+        <KeyboardAvoidingView
+          className="flex-1"
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Pressable className="flex-1 justify-center bg-black/40 px-6" onPress={() => setShowNameModal(false)}>
+            <Pressable className="w-full self-stretch" onPress={(event) => event.stopPropagation()}>
+              <GlassCard>
+                <View className="px-6 py-5">
+                  <Text className="mb-4 text-lg font-semibold text-gray-900">
+                    {t('settings.profile.editNameTitle')}
+                  </Text>
+                  <View className="mb-4">
+                    <TextInput
+                      autoFocus
+                      value={nameDraft}
+                      onChangeText={setNameDraft}
+                      placeholder={t('settings.profile.editNamePlaceholder')}
+                      className="h-11 w-full self-stretch rounded-xl border border-gray-200 px-3 text-base text-gray-900"
+                    />
+                  </View>
+                  <View className="flex-row items-center justify-end">
+                    <Pressable className="px-3 py-2.5" onPress={() => setShowNameModal(false)}>
+                      <Text className="text-base text-gray-500">{t('settings.common.cancel')}</Text>
+                    </Pressable>
+                    <Pressable
+                      className="ml-3 h-11 items-center justify-center rounded-lg bg-[#4F46E5] px-4"
+                      disabled={isSavingName}
+                      onPress={() => void saveName()}>
+                      {isSavingName ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text className="text-base font-semibold text-white">{t('settings.common.save')}</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+              </GlassCard>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );

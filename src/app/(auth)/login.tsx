@@ -16,8 +16,10 @@ import {
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 
 import { AppleIcon } from '@/components/apple-icon';
+import { ExistingIdentitySheet } from '@/components/auth/existing-identity-sheet';
 import { GoogleIcon } from '@/components/google-icon';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import {
@@ -27,6 +29,7 @@ import {
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
 import { trackSignupProviderSelected } from '@/lib/analytics';
 import {
+  completeExistingIdentitySignIn,
   setDisplayNameIfEmpty,
   signInWithAppleIdentityToken,
   signInWithEmail,
@@ -34,11 +37,13 @@ import {
 } from '@/lib/auth';
 import {
   EmailAuthError,
+  IdentityAlreadyLinkedError,
   getEmailAuthErrorKey,
   logAuthError,
 } from '@/lib/auth-errors';
 import { isPasswordRecoveryFlowActive } from '@/lib/auth-redirect';
 import { configureGoogleSignIn } from '@/lib/google-signin';
+import { checkScanAllowance, scanAllowanceQueryKey } from '@/lib/scanGate';
 import { useAuthStore } from '@/stores/auth-store';
 
 type EmailFormValues = {
@@ -64,8 +69,28 @@ export default function LoginScreen() {
   const params = useLocalSearchParams<{ mode?: string; reason?: string }>();
   const session = useAuthStore((state) => state.session);
   const isOnboarded = useAuthStore((state) => state.isOnboarded);
+  const isAnonymousUser = session?.user.is_anonymous === true;
+  const userId = session?.user?.id;
+  const { data: scanAllowance } = useQuery({
+    queryKey: userId ? scanAllowanceQueryKey(userId) : ['scan-allowance'],
+    enabled: Boolean(userId) && isAnonymousUser,
+    staleTime: 15 * 1000,
+    queryFn: () => {
+      if (!userId) {
+        throw new Error('Missing user id');
+      }
+
+      return checkScanAllowance(userId);
+    },
+  });
+  const unsavedMealCount = scanAllowance?.scanCount ?? 0;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSwitchingIdentity, setIsSwitchingIdentity] = useState(false);
+  const [pendingLinkedIdentity, setPendingLinkedIdentity] = useState<{
+    provider: 'apple' | 'google';
+    identityToken: string;
+  } | null>(null);
   const [isAppleAvailable, setIsAppleAvailable] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(true);
   const passwordInputRef = useRef<TextInput>(null);
@@ -105,6 +130,9 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (!session) return;
+
+    // Anonymous sessions still need the signup screen (scan-limit conversion).
+    if (session.user.is_anonymous) return;
 
     if (isPasswordRecoveryFlowActive()) return;
 
@@ -159,6 +187,8 @@ export default function LoginScreen() {
 
       await signInWithAppleIdentityToken(credential.identityToken);
 
+      // Only reached if auth above did not throw. Still writes to whoever
+      // supabase.auth.getUser() returns — including a still-anonymous session.
       const givenName = credential.fullName?.givenName?.trim();
       if (givenName) {
         await setDisplayNameIfEmpty(givenName);
@@ -169,6 +199,14 @@ export default function LoginScreen() {
         'code' in error &&
         error.code === 'ERR_REQUEST_CANCELED'
       ) {
+        return;
+      }
+
+      if (error instanceof IdentityAlreadyLinkedError) {
+        setPendingLinkedIdentity({
+          provider: error.provider,
+          identityToken: error.identityToken,
+        });
         return;
       }
 
@@ -214,6 +252,14 @@ export default function LoginScreen() {
         return;
       }
 
+      if (error instanceof IdentityAlreadyLinkedError) {
+        setPendingLinkedIdentity({
+          provider: error.provider,
+          identityToken: error.identityToken,
+        });
+        return;
+      }
+
       logAuthError('GoogleSignIn', error);
       setErrorMessage(t('auth.errors.googleSignInFailed'));
     } finally {
@@ -233,6 +279,46 @@ export default function LoginScreen() {
   function toggleAuthMode() {
     setIsSignUpMode((prev) => !prev);
     setErrorMessage(null);
+  }
+
+  function cancelExistingIdentitySignIn() {
+    if (isSwitchingIdentity) {
+      return;
+    }
+
+    setPendingLinkedIdentity(null);
+  }
+
+  async function confirmExistingIdentitySignIn() {
+    if (!pendingLinkedIdentity || isSwitchingIdentity) {
+      return;
+    }
+
+    setIsSwitchingIdentity(true);
+    setErrorMessage(null);
+
+    try {
+      await completeExistingIdentitySignIn(
+        pendingLinkedIdentity.provider,
+        pendingLinkedIdentity.identityToken,
+      );
+      setPendingLinkedIdentity(null);
+    } catch (signInError) {
+      logAuthError(
+        pendingLinkedIdentity.provider === 'apple' ? 'AppleSignIn' : 'GoogleSignIn',
+        signInError,
+      );
+      setErrorMessage(
+        t(
+          pendingLinkedIdentity.provider === 'apple'
+            ? 'auth.errors.appleSignInFailed'
+            : 'auth.errors.googleSignInFailed',
+        ),
+      );
+      setPendingLinkedIdentity(null);
+    } finally {
+      setIsSwitchingIdentity(false);
+    }
   }
 
   return (
@@ -256,19 +342,31 @@ export default function LoginScreen() {
           />
         </View>
 
-        <Text
-          className="mb-8 text-center text-5xl font-bold leading-tight tracking-tight"
-          numberOfLines={2}
-          adjustsFontSizeToFit
-          minimumFontScale={0.85}>
-          <Text className="text-[#2C2C2A]">{t('auth.valueProp.action')}</Text>
-          {'\n'}
-          <Text className="text-[#4F46E5]">{t('auth.valueProp.result')}</Text>
-        </Text>
+        {isAnonymousUser ? (
+          <Text
+            className="mb-8 text-center text-5xl font-bold leading-tight tracking-tight text-[#2C2C2A]"
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}>
+            {t('auth.convertHeadline')}
+          </Text>
+        ) : (
+          <Text
+            className="mb-8 text-center text-5xl font-bold leading-tight tracking-tight"
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}>
+            <Text className="text-[#2C2C2A]">{t('auth.valueProp.action')}</Text>
+            {'\n'}
+            <Text className="text-[#4F46E5]">{t('auth.valueProp.result')}</Text>
+          </Text>
+        )}
         {isSignUpMode ? (
           <View className="mb-10 self-center rounded-full bg-[#7CE7C7] px-4 py-2.5">
             <Text className="text-center text-sm font-semibold text-[#2C2C2A]">
-              {t('auth.signup.freeBadge')}
+              {isAnonymousUser
+                ? t('auth.signup.convertBadge')
+                : t('auth.signup.freeBadge')}
             </Text>
           </View>
         ) : (
@@ -434,6 +532,15 @@ export default function LoginScreen() {
           <LanguageSwitcher compact />
         </View>
       </ScrollView>
+
+      <ExistingIdentitySheet
+        visible={pendingLinkedIdentity !== null}
+        provider={pendingLinkedIdentity?.provider ?? 'apple'}
+        mealCount={unsavedMealCount}
+        isSubmitting={isSwitchingIdentity}
+        onCancel={cancelExistingIdentitySignIn}
+        onConfirm={() => void confirmExistingIdentitySignIn()}
+      />
     </GradientScreenWrapper>
   );
 }

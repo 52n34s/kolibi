@@ -6,6 +6,7 @@ import type {
 } from '@/lib/onboarding';
 import { upsertDailyCalorieGoal } from '@/lib/calorie-goals';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/auth-store';
 
 export type ProfileSettingsData = {
   id: string;
@@ -48,7 +49,10 @@ export type PremiumAccessResult = {
 
 const AVATAR_BUCKET = 'avatars';
 
-export async function fetchProfileSettings(userId: string): Promise<ProfileSettingsData> {
+export async function fetchProfileSettings(
+  userId: string,
+  alreadyRecovered = false,
+): Promise<ProfileSettingsData> {
   const [profileResult, weightResult, calorieGoalResult] = await Promise.all([
     supabase
       .from('profiles')
@@ -85,15 +89,45 @@ export async function fetchProfileSettings(userId: string): Promise<ProfileSetti
     throw calorieGoalResult.error;
   }
 
-  if (!profileResult.data) {
+  let profile = profileResult.data;
+
+  if (!profile && !alreadyRecovered) {
+    const outcome = await useAuthStore.getState().recoverSessionIfUserMissing();
+
+    if (outcome === 'recovered') {
+      const nextId = useAuthStore.getState().session?.user?.id;
+      if (nextId && nextId !== userId) {
+        return fetchProfileSettings(nextId, true);
+      }
+    }
+
+    if (outcome === 'user_exists') {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      const retry = await supabase
+        .from('profiles')
+        .select(
+          'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context',
+        )
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (retry.error) {
+        throw retry.error;
+      }
+
+      profile = retry.data;
+    }
+  }
+
+  if (!profile) {
     throw new Error('Profile not found');
   }
 
   return {
-    ...profileResult.data,
-    diet_preference: profileResult.data.diet_preference ?? null,
-    cuisine_context: Array.isArray(profileResult.data.cuisine_context)
-      ? profileResult.data.cuisine_context
+    ...profile,
+    diet_preference: profile.diet_preference ?? null,
+    cuisine_context: Array.isArray(profile.cuisine_context)
+      ? profile.cuisine_context
       : null,
     latest_weight_kg: weightResult.data?.weight_kg ?? null,
     daily_calorie_goal: calorieGoalResult.data?.daily_calorie_goal ?? null,

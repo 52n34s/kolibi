@@ -4,6 +4,7 @@
       "action": "Foto machen.",
       "result": "Kalorien fertig."
     },
+    "convertHeadline": "Dein Tracking startet jetzt richtig",
     "subtitleSignIn": "Melde dich an, um fortzufahren",
     "subtitleSignUp": "Erstelle dein Konto, um loszulegen",
     "apple": "Mit Apple anmelden",
@@ -17,9 +18,11 @@
     "haveAccount": "Schon ein Konto?",
     "signup": {
       "freeBadge": "3 Tage kostenlos · keine Karte nötig",
+      "convertBadge": "Jetzt Verlauf und Ziele freischalten",
       "withEmail": "Mit E-Mail registrieren",
       "emailTitle": "Mit E-Mail registrieren",
-      "emailBack": "Zurück"
+      "emailBack": "Zurück",
+      "setPasswordRetry": "Passwort speichern"
     },
     "forgotPassword": {
       "link": "Passwort vergessen?",
@@ -53,6 +56,9 @@
       "emailAlreadyRegistered": "Diese E-Mail ist bereits registriert. Melde dich an.",
       "weakPassword": "Bitte wähle ein stärkeres Passwort.",
       "signUpFailed": "Konto konnte nicht erstellt werden. Bitte versuche es erneut.",
+      "passwordSetupFailed": "E-Mail ist gesetzt, aber das Passwort konnte nicht gespeichert werden. Bitte setze das Passwort erneut.",
+      "otpInvalid": "Dieser Code ist falsch. Bitte versuche es erneut.",
+      "otpExpired": "Dieser Code ist abgelaufen. Fordere einen neuen an.",
       "signInFailed": "Anmeldung fehlgeschlagen.",
       "appleSignInFailed": "Apple-Anmeldung fehlgeschlagen.",
       "googleSignInFailed": "Google-Anmeldung fehlgeschlagen.",
@@ -62,6 +68,15 @@
       "emailInvalid": "Ungültige E-Mail-Adresse",
       "passwordRequired": "Passwort ist erforderlich",
       "passwordMinLength": "Mindestens 6 Zeichen"
+    },
+    "existingIdentity": {
+      "title": "Konto bereits vorhanden",
+      "messageApple_one": "Du hast bereits ein Kolibi-Konto mit dieser Apple-ID. Wenn du dich anmeldest, geht deine {{count}} Mahlzeit aus dieser Sitzung verloren.",
+      "messageApple_other": "Du hast bereits ein Kolibi-Konto mit dieser Apple-ID. Wenn du dich anmeldest, gehen deine {{count}} Mahlzeiten aus dieser Sitzung verloren.",
+      "messageGoogle_one": "Du hast bereits ein Kolibi-Konto mit diesem Google-Konto. Wenn du dich anmeldest, geht deine {{count}} Mahlzeit aus dieser Sitzung verloren.",
+      "messageGoogle_other": "Du hast bereits ein Kolibi-Konto mit diesem Google-Konto. Wenn du dich anmeldest, gehen deine {{count}} Mahlzeiten aus dieser Sitzung verloren.",
+      "confirm": "Trotzdem anmelden",
+      "cancel": "Abbrechen"
     },
     "onboardingStatus": {
       "loadFailed": "Dein Kontostatus konnte nicht geprüft werden. Prüfe deine Verbindung und versuche es erneut.",
@@ -268,6 +283,7 @@
     "scan": {
       "buttonLabel": "Mahlzeit scannen",
       "barcodeLabel": "Barcode",
+      "oneFreeScanLeft": "Noch 1 kostenloser Scan",
       "options": {
         "title": "Wie viele Fotos?",
         "onePhoto": "1 Foto",

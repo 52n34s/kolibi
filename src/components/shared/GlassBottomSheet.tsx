@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { MealInputFloatingBar } from '@/components/scan/MealInputAccessoryBar';
 import { FoodAutocompleteOverlayProvider } from '@/components/scan/meal-food-autocomplete-overlay';
@@ -49,21 +49,25 @@ export function GlassBottomSheet({
         <MealInputBarProvider>
           <FoodAutocompleteOverlayProvider>
             <View style={styles.modalRoot}>
-              <Pressable
-                style={[styles.overlay, isCentered && styles.overlayCenter]}
-                onPress={onClose}>
+              <KeyboardAvoidingView
+                style={styles.modalRoot}
+                behavior={isCentered && Platform.OS === 'ios' ? 'padding' : undefined}>
                 <Pressable
-                  style={[
-                    styles.sheetShell,
-                    isCentered && styles.sheetShellCenter,
-                    maxSheetHeight ? { maxHeight: maxSheetHeight } : undefined,
-                  ]}
-                  onPress={(event) => event.stopPropagation()}>
-                  <GlassSheetSurface maxHeight={maxSheetHeight} variant={isCentered ? 'card' : 'sheet'}>
-                    {children}
-                  </GlassSheetSurface>
+                  style={[styles.overlay, isCentered && styles.overlayCenter]}
+                  onPress={onClose}>
+                  <Pressable
+                    style={[
+                      styles.sheetShell,
+                      isCentered && styles.sheetShellCenter,
+                      maxSheetHeight ? { maxHeight: maxSheetHeight } : undefined,
+                    ]}
+                    onPress={(event) => event.stopPropagation()}>
+                    <GlassSheetSurface maxHeight={maxSheetHeight} variant={isCentered ? 'card' : 'sheet'}>
+                      {children}
+                    </GlassSheetSurface>
+                  </Pressable>
                 </Pressable>
-              </Pressable>
+              </KeyboardAvoidingView>
               {numberInputAccessory ? <NumberInputAccessory /> : null}
               <MealInputFloatingBar />
               <MealFoodAutocompleteHost />

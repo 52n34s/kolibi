@@ -4,6 +4,7 @@
       "action": "Snap a photo.",
       "result": "Calories done."
     },
+    "convertHeadline": "Your tracking starts for real now",
     "subtitleSignIn": "Sign in to continue",
     "subtitleSignUp": "Create your account to get started",
     "apple": "Sign in with Apple",
@@ -17,9 +18,11 @@
     "haveAccount": "Already have an account?",
     "signup": {
       "freeBadge": "3 days free · no card required",
+      "convertBadge": "Unlock history and goals now",
       "withEmail": "Sign up with email",
       "emailTitle": "Sign up with email",
-      "emailBack": "Back"
+      "emailBack": "Back",
+      "setPasswordRetry": "Save password"
     },
     "forgotPassword": {
       "link": "Forgot password?",
@@ -57,6 +60,9 @@
       "emailAlreadyRegistered": "This email is already registered. Please sign in.",
       "weakPassword": "Please choose a stronger password.",
       "signUpFailed": "Could not create your account. Please try again.",
+      "passwordSetupFailed": "Your email is saved, but the password could not be set. Please set the password again.",
+      "otpInvalid": "That code is incorrect. Please try again.",
+      "otpExpired": "That code has expired. Request a new one.",
       "signInFailed": "Sign in failed.",
       "appleSignInFailed": "Apple sign in failed.",
       "googleSignInFailed": "Google sign in failed.",
@@ -66,6 +72,15 @@
       "emailInvalid": "Invalid email address",
       "passwordRequired": "Password is required",
       "passwordMinLength": "At least 6 characters"
+    },
+    "existingIdentity": {
+      "title": "Account already exists",
+      "messageApple_one": "You already have a Kolibi account with this Apple ID. If you sign in, your {{count}} meal from this session will be lost.",
+      "messageApple_other": "You already have a Kolibi account with this Apple ID. If you sign in, your {{count}} meals from this session will be lost.",
+      "messageGoogle_one": "You already have a Kolibi account with this Google account. If you sign in, your {{count}} meal from this session will be lost.",
+      "messageGoogle_other": "You already have a Kolibi account with this Google account. If you sign in, your {{count}} meals from this session will be lost.",
+      "confirm": "Sign in anyway",
+      "cancel": "Cancel"
     }
   },
   "onboarding": {
@@ -268,6 +283,7 @@
     "scan": {
       "buttonLabel": "Scan meal",
       "barcodeLabel": "Barcode",
+      "oneFreeScanLeft": "1 free scan left",
       "options": {
         "title": "How many photos?",
         "onePhoto": "1 photo",

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/auth-store';
 
 export type TrialStatus = {
   isInTrial: boolean;
@@ -33,8 +34,9 @@ function computeTrialStatus(trialEndsAt: string | null): TrialStatus {
 }
 
 export function useHasPremiumAccess(userId: string | undefined) {
+  const isAnonymous = useAuthStore((state) => state.session?.user?.is_anonymous === true);
   const query = useQuery({
-    queryKey: ['has-premium-access', userId],
+    queryKey: ['has-premium-access', userId, isAnonymous],
     enabled: !!userId,
     staleTime: 60 * 1000,
     queryFn: async () => {
@@ -53,8 +55,9 @@ export function useHasPremiumAccess(userId: string | undefined) {
 }
 
 export function useTrialStatus(userId: string | undefined) {
+  const isAnonymous = useAuthStore((state) => state.session?.user?.is_anonymous === true);
   const query = useQuery({
-    queryKey: ['trial-status', userId],
+    queryKey: ['trial-status', userId, isAnonymous],
     enabled: !!userId,
     staleTime: 60 * 1000,
     queryFn: async () => {

@@ -4,6 +4,7 @@
       "action": "Haz una foto.",
       "result": "Calorías listas."
     },
+    "convertHeadline": "Tu seguimiento empieza de verdad",
     "subtitleSignIn": "Inicia sesión para continuar",
     "subtitleSignUp": "Crea tu cuenta para empezar",
     "apple": "Iniciar sesión con Apple",
@@ -17,9 +18,11 @@
     "haveAccount": "¿Ya tienes una cuenta?",
     "signup": {
       "freeBadge": "3 días gratis · sin tarjeta",
+      "convertBadge": "Desbloquea historial y objetivos",
       "withEmail": "Registrarse con correo",
       "emailTitle": "Registrarse con correo",
-      "emailBack": "Atrás"
+      "emailBack": "Atrás",
+      "setPasswordRetry": "Guardar contraseña"
     },
     "forgotPassword": {
       "link": "¿Olvidaste tu contraseña?",
@@ -53,6 +56,9 @@
       "emailAlreadyRegistered": "Este correo ya está registrado. Inicia sesión.",
       "weakPassword": "Elige una contraseña más segura.",
       "signUpFailed": "No se pudo crear tu cuenta. Inténtalo de nuevo.",
+      "passwordSetupFailed": "El correo está guardado, pero no se pudo establecer la contraseña. Inténtalo de nuevo.",
+      "otpInvalid": "Ese código es incorrecto. Inténtalo de nuevo.",
+      "otpExpired": "Ese código ha caducado. Solicita uno nuevo.",
       "signInFailed": "Error al iniciar sesión.",
       "appleSignInFailed": "Error al iniciar sesión con Apple.",
       "googleSignInFailed": "Error al iniciar sesión con Google.",
@@ -62,6 +68,15 @@
       "emailInvalid": "Dirección de correo electrónico no válida",
       "passwordRequired": "La contraseña es obligatoria",
       "passwordMinLength": "Al menos 6 caracteres"
+    },
+    "existingIdentity": {
+      "title": "Ya tienes una cuenta",
+      "messageApple_one": "Ya tienes una cuenta de Kolibi con este Apple ID. Si inicias sesión, se perderá tu {{count}} comida de esta sesión.",
+      "messageApple_other": "Ya tienes una cuenta de Kolibi con este Apple ID. Si inicias sesión, se perderán tus {{count}} comidas de esta sesión.",
+      "messageGoogle_one": "Ya tienes una cuenta de Kolibi con esta cuenta de Google. Si inicias sesión, se perderá tu {{count}} comida de esta sesión.",
+      "messageGoogle_other": "Ya tienes una cuenta de Kolibi con esta cuenta de Google. Si inicias sesión, se perderán tus {{count}} comidas de esta sesión.",
+      "confirm": "Iniciar sesión de todos modos",
+      "cancel": "Cancelar"
     },
     "onboardingStatus": {
       "loadFailed": "No se pudo verificar el estado de tu cuenta. Comprueba la conexión e inténtalo de nuevo.",
@@ -268,6 +283,7 @@
     "scan": {
       "buttonLabel": "Escanear comida",
       "barcodeLabel": "Código de barras",
+      "oneFreeScanLeft": "Queda 1 escaneo gratis",
       "options": {
         "title": "¿Cuántas fotos?",
         "onePhoto": "1 foto",

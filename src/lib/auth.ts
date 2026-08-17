@@ -1,8 +1,22 @@
+import * as Sentry from '@sentry/react-native';
 import { Href, router } from 'expo-router';
+import type { User } from '@supabase/supabase-js';
 
-import { identifyAnalyticsUser, identifyAndTrackSignupIfNew } from '@/lib/analytics';
+import {
+  identifyAnalyticsUser,
+  identifyAndTrackSignupIfNew,
+  trackAnonymousConvertedToAccount,
+  trackSignupCompleted,
+  type SignupProvider,
+} from '@/lib/analytics';
 import { PASSWORD_RESET_REDIRECT_URL } from '@/lib/auth-redirect';
-import { mapSignInAuthError, mapSignUpAuthError } from '@/lib/auth-errors';
+import {
+  EmailAuthError,
+  IdentityAlreadyLinkedError,
+  mapSignInAuthError,
+  mapSignUpAuthError,
+  type LinkedOAuthProvider,
+} from '@/lib/auth-errors';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -19,6 +33,130 @@ export async function navigateAfterLogin() {
   }
 
   router.replace(isOnboarded ? HOME_ROUTE : ONBOARDING_ROUTE);
+}
+
+async function getAuthUser(): Promise<User | null> {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) {
+    const mapped = mapSignUpAuthError(error);
+    if (mapped.kind === 'sessionMissing') {
+      return null;
+    }
+    throw error;
+  }
+
+  return user ?? null;
+}
+
+function readErrorString(error: unknown, key: string): string {
+  if (!error || typeof error !== 'object') {
+    return '';
+  }
+
+  const value = (error as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function isIdentityAlreadyExistsError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const nested =
+    'error' in error && typeof (error as { error: unknown }).error === 'object'
+      ? (error as { error: unknown }).error
+      : null;
+
+  const code = (
+    readErrorString(error, 'code') ||
+    readErrorString(error, 'error_code') ||
+    readErrorString(nested, 'code') ||
+    readErrorString(nested, 'error_code')
+  ).toLowerCase();
+
+  const message = (
+    readErrorString(error, 'message') ||
+    readErrorString(error, 'msg') ||
+    readErrorString(nested, 'message') ||
+    readErrorString(nested, 'msg')
+  ).toLowerCase();
+
+  return (
+    code === 'identity_already_exists' ||
+    message.includes('already been registered') ||
+    message.includes('already linked') ||
+    message.includes('identity already exists')
+  );
+}
+
+function throwIfIdentityAlreadyLinked(
+  error: unknown,
+  provider: LinkedOAuthProvider,
+  identityToken: string,
+): void {
+  if (!isIdentityAlreadyExistsError(error)) {
+    return;
+  }
+
+  throw new IdentityAlreadyLinkedError(provider, identityToken);
+}
+
+/**
+ * Signs into the existing Apple/Google account after the user confirms data loss.
+ * Uses local signOut only — do not delete the anonymous user here. If sign-in
+ * failed after a server-side delete, the user would have no session. Orphans
+ * can be removed later by an inactive-anonymous cleanup job.
+ */
+export async function completeExistingIdentitySignIn(
+  provider: LinkedOAuthProvider,
+  identityToken: string,
+): Promise<void> {
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (signOutError) {
+    console.warn('[auth] local signOut after anonymous switch failed', signOutError);
+  }
+
+  const { data, error } = await supabase.auth.signInWithIdToken({
+    provider,
+    token: identityToken,
+  });
+  if (error) {
+    throw error;
+  }
+
+  identifyAndTrackSignupIfNew(data.user, provider);
+  await navigateAfterLogin();
+}
+
+async function startTrialAfterAccountConversion(): Promise<void> {
+  const { error } = await supabase.rpc('start_trial_after_account_conversion');
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function finalizeConvertedSignup(userId: string, provider: SignupProvider) {
+  identifyAnalyticsUser(userId);
+  trackAnonymousConvertedToAccount(provider);
+  trackSignupCompleted(provider);
+
+  try {
+    await startTrialAfterAccountConversion();
+  } catch (trialError) {
+    Sentry.captureException(trialError);
+  }
+
+  await navigateAfterLogin();
+}
+
+async function discardAnonymousSession() {
+  await useAuthStore.getState().signOut();
 }
 
 export async function signInWithEmail(email: string, password: string) {
@@ -39,6 +177,62 @@ export async function signUpWithEmail(email: string, password: string) {
   }
   identifyAndTrackSignupIfNew(data.user, 'email');
   await navigateAfterLogin();
+}
+
+/**
+ * Converts the current anonymous session with email + password.
+ *
+ * Confirm email is off, so updateUser({ email }) applies the address immediately
+ * and flips is_anonymous to false. Password MUST be set after that, or the user
+ * has an email and cannot sign in later. Retry callers skip the email step when
+ * the address is already on this account.
+ */
+export async function convertAnonymousWithEmailPassword(
+  email: string,
+  password: string,
+): Promise<void> {
+  const trimmedEmail = email.trim();
+  const user = await getAuthUser();
+  if (!user) {
+    throw new EmailAuthError('sessionMissing');
+  }
+
+  const currentEmail = user.email?.trim().toLowerCase() ?? '';
+  const emailAlreadyOurs = currentEmail === trimmedEmail.toLowerCase();
+
+  if (!emailAlreadyOurs) {
+    if (!user.is_anonymous) {
+      throw new EmailAuthError('sessionMissing');
+    }
+
+    const { data, error } = await supabase.auth.updateUser({ email: trimmedEmail });
+    console.warn('[auth] updateUser({ email }) response', { data, error });
+
+    if (error) {
+      const mapped = mapSignUpAuthError(error);
+      if (mapped.kind === 'emailAlreadyRegistered') {
+        await discardAnonymousSession();
+      }
+      throw mapped;
+    }
+  }
+
+  const { data: passwordData, error: passwordError } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (passwordError) {
+    const mapped = mapSignUpAuthError(passwordError);
+    if (mapped.kind === 'weakPassword') {
+      throw mapped;
+    }
+    Sentry.captureException(passwordError, {
+      extra: { stage: 'convertAnonymousWithEmailPassword.password' },
+    });
+    throw new EmailAuthError('passwordSetupFailed', passwordError.message);
+  }
+
+  await finalizeConvertedSignup(passwordData.user?.id ?? user.id, 'email');
 }
 
 /**
@@ -76,6 +270,37 @@ export async function setDisplayNameIfEmpty(displayName: string): Promise<void> 
 }
 
 export async function signInWithAppleIdentityToken(identityToken: string) {
+  const user = await getAuthUser();
+
+  if (user?.is_anonymous) {
+    const anonymousUserId = user.id;
+    const { data, error } = await supabase.auth.linkIdentity({
+      provider: 'apple',
+      token: identityToken,
+    });
+
+    if (error) {
+      throwIfIdentityAlreadyLinked(error, 'apple', identityToken);
+      throw error;
+    }
+
+    if (!data?.user) {
+      throw new Error(
+        typeof data === 'object' && data && 'url' in data && data.url
+          ? 'Apple identity link returned an OAuth URL instead of a user'
+          : 'Apple identity link did not return a user',
+      );
+    }
+
+    const convertedUserId = data.user.id;
+    if (convertedUserId !== anonymousUserId) {
+      Sentry.captureException(new Error('Anonymous Apple conversion changed user id'));
+    }
+
+    await finalizeConvertedSignup(convertedUserId, 'apple');
+    return;
+  }
+
   const { data, error } = await supabase.auth.signInWithIdToken({
     provider: 'apple',
     token: identityToken,
@@ -86,6 +311,36 @@ export async function signInWithAppleIdentityToken(identityToken: string) {
 }
 
 export async function signInWithGoogleIdToken(idToken: string) {
+  const user = await getAuthUser();
+
+  if (user?.is_anonymous) {
+    const anonymousUserId = user.id;
+    const { data, error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      token: idToken,
+    });
+
+    if (error) {
+      throwIfIdentityAlreadyLinked(error, 'google', idToken);
+
+      console.error('[signInWithGoogleIdToken] Supabase rejected Google identity link:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        name: error.name,
+      });
+      throw error;
+    }
+
+    const convertedUserId = data.user?.id ?? anonymousUserId;
+    if (data.user?.id && data.user.id !== anonymousUserId) {
+      Sentry.captureException(new Error('Anonymous Google conversion changed user id'));
+    }
+
+    await finalizeConvertedSignup(convertedUserId, 'google');
+    return;
+  }
+
   const { data, error } = await supabase.auth.signInWithIdToken({
     provider: 'google',
     token: idToken,

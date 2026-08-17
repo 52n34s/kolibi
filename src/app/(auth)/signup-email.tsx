@@ -21,7 +21,7 @@ import {
   useGradientScreenInsets,
 } from '@/components/shared/GradientScreenWrapper';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
-import { signUpWithEmail } from '@/lib/auth';
+import { convertAnonymousWithEmailPassword, signUpWithEmail } from '@/lib/auth';
 import {
   EmailAuthError,
   getEmailAuthErrorKey,
@@ -44,13 +44,25 @@ const AUTH_INPUT_STYLE = getGlassCardStyle({
   justifyContent: 'center',
 });
 
+function leaveSignupAfterFatalError(reason?: 'emailAlreadyRegistered') {
+  router.replace({
+    pathname: '/(auth)/login',
+    params: reason
+      ? { mode: 'signin', reason }
+      : { mode: 'signin' },
+  });
+}
+
 export default function SignupEmailScreen() {
   const { t } = useTranslation();
   const { contentTopPadding } = useGradientScreenInsets({ extraTop: 12 });
   const session = useAuthStore((state) => state.session);
   const isOnboarded = useAuthStore((state) => state.isOnboarded);
+  const isAnonymousUser = session?.user.is_anonymous === true;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailAttached, setEmailAttached] = useState(false);
+  const [blockAuthRedirect, setBlockAuthRedirect] = useState(false);
 
   const {
     control,
@@ -60,8 +72,13 @@ export default function SignupEmailScreen() {
     defaultValues: { email: '', password: '' },
   });
 
+  // Skip while anonymous. Also skip while converting: updateUser({ email })
+  // flips is_anonymous to false before the password is set. Without this lock
+  // the user would be sent home with an email and no password.
   useEffect(() => {
     if (!session) return;
+    if (blockAuthRedirect) return;
+    if (session.user.is_anonymous) return;
     if (isPasswordRecoveryFlowActive()) return;
     if (isOnboarded === null) return;
 
@@ -70,22 +87,43 @@ export default function SignupEmailScreen() {
         ? '/home'
         : ({ pathname: '/onboarding', params: {} } as Href)) as Href,
     );
-  }, [session, isOnboarded]);
+  }, [session, isOnboarded, blockAuthRedirect]);
 
-  async function onSignUp({ email, password }: EmailFormValues) {
+  async function onSubmit({ email, password }: EmailFormValues) {
+    const trimmedEmail = email.trim();
     setErrorMessage(null);
     setIsSubmitting(true);
 
+    const useAnonymousConvert = isAnonymousUser || emailAttached;
+
     try {
-      await signUpWithEmail(email.trim(), password);
+      if (useAnonymousConvert) {
+        setBlockAuthRedirect(true);
+        await convertAnonymousWithEmailPassword(trimmedEmail, password);
+        return;
+      }
+
+      await signUpWithEmail(trimmedEmail, password);
     } catch (error) {
       logAuthError('EmailSignUp', error);
 
       if (error instanceof EmailAuthError && error.kind === 'emailAlreadyRegistered') {
-        router.replace({
-          pathname: '/(auth)/login',
-          params: { mode: 'signin', reason: 'emailAlreadyRegistered' },
-        });
+        leaveSignupAfterFatalError('emailAlreadyRegistered');
+        return;
+      }
+
+      if (error instanceof EmailAuthError && error.kind === 'sessionMissing') {
+        leaveSignupAfterFatalError();
+        return;
+      }
+
+      if (
+        useAnonymousConvert &&
+        error instanceof EmailAuthError &&
+        (error.kind === 'passwordSetupFailed' || error.kind === 'weakPassword')
+      ) {
+        setEmailAttached(true);
+        setErrorMessage(t(getEmailAuthErrorKey(error.kind, 'signUp')));
         return;
       }
 
@@ -116,7 +154,7 @@ export default function SignupEmailScreen() {
           accessibilityLabel={t('auth.signup.emailBack')}
           className="flex-row items-center py-1 pr-2"
           hitSlop={8}
-          disabled={isSubmitting}
+          disabled={isSubmitting || emailAttached}
           onPress={handleBack}>
           <Ionicons name="chevron-back" size={22} color="#4F46E5" />
         </Pressable>
@@ -167,6 +205,7 @@ export default function SignupEmailScreen() {
                 keyboardType="email-address"
                 placeholder={t('auth.email')}
                 placeholderTextColor="#9CA3AF"
+                editable={!emailAttached}
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
@@ -212,7 +251,7 @@ export default function SignupEmailScreen() {
           <Pressable
             className="overflow-hidden rounded-xl"
             disabled={isSubmitting}
-            onPress={handleSubmit(onSignUp)}>
+            onPress={handleSubmit(onSubmit)}>
             <LinearGradient
               colors={['#4F46E5', '#7CE7C7']}
               start={{ x: 0, y: 0 }}
@@ -221,7 +260,9 @@ export default function SignupEmailScreen() {
               {isSubmitting ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text className="text-base font-semibold text-white">{t('auth.signUp')}</Text>
+                <Text className="text-base font-semibold text-white">
+                  {emailAttached ? t('auth.signup.setPasswordRetry') : t('auth.signUp')}
+                </Text>
               )}
             </LinearGradient>
           </Pressable>

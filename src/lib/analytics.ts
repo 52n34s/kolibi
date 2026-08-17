@@ -49,6 +49,22 @@ export function trackSignupCompleted(provider: SignupProvider) {
   posthog?.capture('signup_completed', { provider });
 }
 
+export function trackAnonymousSessionStarted() {
+  posthog?.capture('anonymous_session_started');
+}
+
+export function trackAnonymousScanCompleted(scanNumber: number) {
+  posthog?.capture('anonymous_scan_completed', { scan_number: scanNumber });
+}
+
+export function trackAnonymousLimitReached() {
+  posthog?.capture('anonymous_limit_reached');
+}
+
+export function trackAnonymousConvertedToAccount(provider: SignupProvider) {
+  posthog?.capture('anonymous_converted_to_account', { provider });
+}
+
 export function identifyAndTrackSignupIfNew(
   user: { id: string; created_at?: string } | null | undefined,
   provider: SignupProvider,

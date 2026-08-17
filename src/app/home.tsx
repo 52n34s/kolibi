@@ -12,7 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import { BarcodeScanButton } from '@/components/home/BarcodeScanButton';
@@ -72,6 +72,12 @@ import {
   type TodayMeal,
 } from '@/lib/meals';
 import { registerForPushNotifications, PUSH_PERMISSION_ASKED_KEY } from '@/lib/notifications';
+import {
+  checkScanAllowance,
+  incrementScanCount,
+  scanAllowanceQueryKey,
+} from '@/lib/scanGate';
+import { trackAnonymousLimitReached, trackAnonymousScanCompleted } from '@/lib/analytics';
 import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { MEAL_SOURCE, type MealSource } from '@/lib/meal-sources';
 import { deleteMealPhotoUris, prepareMealPhotoUri } from '@/lib/meal-photo';
@@ -103,8 +109,18 @@ const DEV_PREVIEW_CONSUMED_CALORIES = 0;
 const CALORIE_GOAL_ACCENT = '#4F46E5';
 const CALORIE_OVER_GOAL_COLOR = '#D97706';
 const MAX_WEIGHT_KG = 699.9;
+const SIGNUP_ROUTE = '/(auth)/login' as Href;
 
 type WeightSheetKind = 'current' | 'target' | null;
+
+function navigateToSignup() {
+  router.push(SIGNUP_ROUTE);
+}
+
+function navigateToSignupBecauseScanLimit() {
+  trackAnonymousLimitReached();
+  navigateToSignup();
+}
 
 function HomeLoadingState() {
   return (
@@ -141,6 +157,19 @@ export default function HomeScreen() {
   useHasPremiumAccess(userId);
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
+  const { data: scanAllowance } = useQuery({
+    queryKey: userId ? scanAllowanceQueryKey(userId) : ['scan-allowance'],
+    enabled: !!userId,
+    staleTime: 15 * 1000,
+    queryFn: () => {
+      if (!userId) {
+        throw new Error('Missing user id');
+      }
+
+      return checkScanAllowance(userId);
+    },
+  });
+  const isAnonymousUser = session?.user?.is_anonymous === true;
 
   const [showPaywall, setShowPaywall] = useState(false);
   const [weightSheet, setWeightSheet] = useState<WeightSheetKind>(null);
@@ -244,7 +273,7 @@ export default function HomeScreen() {
 
     try {
       const hasAccess = await queryClient.ensureQueryData({
-        queryKey: ['has-premium-access', userId],
+        queryKey: ['has-premium-access', userId, isAnonymousUser],
         queryFn: () => fetchHasPremiumAccess(userId),
         staleTime: 60 * 1000,
       });
@@ -256,8 +285,14 @@ export default function HomeScreen() {
     }
   }, [isPremiumEntitlementActive, queryClient, userId]);
 
-  /** Front gate: block capture UI and show paywall immediately. */
+  /** Front gate for signed-in users: block capture UI and show paywall immediately.
+   *  Anonymous users are an account problem, not a billing problem — send them to signup. */
   const requirePremiumAccessToCapture = useCallback(async (): Promise<boolean> => {
+    if (isAnonymousUser) {
+      navigateToSignup();
+      return false;
+    }
+
     const hasAccess = await gatePremiumAccess();
     if (hasAccess) {
       return true;
@@ -265,7 +300,7 @@ export default function HomeScreen() {
 
     setShowPaywall(true);
     return false;
-  }, [gatePremiumAccess]);
+  }, [gatePremiumAccess, isAnonymousUser]);
 
   useEffect(() => {
     return () => {
@@ -498,6 +533,21 @@ export default function HomeScreen() {
   }
 
   async function handleScanPress() {
+    if (!userId) {
+      return;
+    }
+
+    const allowance = await checkScanAllowance(userId);
+    if (allowance.isAnonymous) {
+      if (!allowance.allowed) {
+        navigateToSignupBecauseScanLimit();
+        return;
+      }
+
+      setShowScanOptions(true);
+      return;
+    }
+
     if (!(await requirePremiumAccessToCapture())) {
       return;
     }
@@ -554,6 +604,18 @@ export default function HomeScreen() {
     setIsAnalyzingMeal(true);
 
     try {
+      let shouldIncrementAnonymousScan = false;
+
+      if (userId) {
+        const allowance = await checkScanAllowance(userId);
+        if (allowance.isAnonymous && !allowance.allowed) {
+          navigateToSignupBecauseScanLimit();
+          return;
+        }
+
+        shouldIncrementAnonymousScan = allowance.isAnonymous;
+      }
+
       const result = await MealVisionService.analyze(photoUris);
       const enrichedItems = await enrichVisionItemsWithResolvedFoods(
         result.items,
@@ -565,6 +627,17 @@ export default function HomeScreen() {
       setPendingPhotoUris([]);
       setShowParseErrorSheet(false);
       setShowApiErrorSheet(false);
+
+      if (userId && shouldIncrementAnonymousScan) {
+        void incrementScanCount(userId)
+          .then((scanNumber) => {
+            trackAnonymousScanCompleted(scanNumber);
+            return queryClient.invalidateQueries({ queryKey: scanAllowanceQueryKey(userId) });
+          })
+          .catch((incrementError) => {
+            console.error('[Home] increment scan count failed:', incrementError);
+          });
+      }
     } catch (analysisError) {
       if (analysisError instanceof MealVisionRateLimitError) {
         setRateLimitResetAt(analysisError.resetAt);
@@ -648,7 +721,7 @@ export default function HomeScreen() {
     setIsSavingMeal(true);
 
     try {
-      if (!(await gatePremiumAccess())) {
+      if (!isAnonymousUser && !(await gatePremiumAccess())) {
         beginPaywallAfterSheetDismiss();
         handleMealConfirmationClose();
         return;
@@ -857,7 +930,7 @@ export default function HomeScreen() {
     setIsSavingMealEdit(true);
 
     try {
-      if (!(await gatePremiumAccess())) {
+      if (!isAnonymousUser && !(await gatePremiumAccess())) {
         beginPaywallAfterSheetDismiss();
         handleMealEditClose();
         return;
@@ -1089,6 +1162,11 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
+          {scanAllowance?.isAnonymous && scanAllowance.remaining === 1 ? (
+            <Text className="mt-3 text-center text-gray-500" style={{ fontSize: 11 }}>
+              {t('home.scan.oneFreeScanLeft')}
+            </Text>
+          ) : null}
         </View>
       </View>
 
