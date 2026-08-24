@@ -17,6 +17,7 @@ export type ResolvedFoodRow = {
   protein_per_100g: number;
   carbs_per_100g: number;
   fat_per_100g: number;
+  fiber_per_100g: number | null;
 };
 
 function resolveLanguageCode(language: string): string {
@@ -123,19 +124,26 @@ export async function enrichVisionItemsWithResolvedFoods(
     const match = lookupResolution(resolutions, item.canonical_name);
 
     if (match) {
+      const dbFiberPer100g =
+        match.fiber_per_100g == null ? null : Number(match.fiber_per_100g);
       const macrosPer100g: MacrosPer100g = {
         protein: Number.isFinite(match.protein_per_100g) ? match.protein_per_100g : null,
         carbs: Number.isFinite(match.carbs_per_100g) ? match.carbs_per_100g : null,
         fat: Number.isFinite(match.fat_per_100g) ? match.fat_per_100g : null,
-        fiber: null,
+        // DB fiber wins when present; otherwise keep vision-derived density.
+        fiber: dbFiberPer100g ?? editable.macrosPer100g?.fiber ?? null,
       };
       const grams = getItemTotalGrams(editable);
-      const absoluteMacros = absoluteMacrosFromPer100g(macrosPer100g, grams, {
+      const absoluteFromDensity = absoluteMacrosFromPer100g(macrosPer100g, grams, {
         proteinG: editable.proteinG,
         carbsG: editable.carbsG,
         fatG: editable.fatG,
         fiberG: editable.fiberG,
       });
+      const absoluteMacros =
+        dbFiberPer100g == null
+          ? { ...absoluteFromDensity, fiberG: editable.fiberG }
+          : absoluteFromDensity;
 
       const kcalPer100g = Number(match.kcal_per_100g);
       if (!Number.isFinite(kcalPer100g) || kcalPer100g <= 0) {

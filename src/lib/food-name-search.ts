@@ -13,6 +13,7 @@ type FoodSearchRow = {
   protein_per_100g: number;
   fat_per_100g: number;
   carbs_per_100g: number;
+  fiber_per_100g: number | null;
   category: string | null;
 };
 
@@ -48,7 +49,7 @@ function mapFoodRowToSearchProduct(
     proteinPer100g: Number(row.protein_per_100g),
     fatPer100g: Number(row.fat_per_100g),
     carbsPer100g: Number(row.carbs_per_100g),
-    fiberPer100g: null,
+    fiberPer100g: row.fiber_per_100g == null ? null : Number(row.fiber_per_100g),
     sugarPer100g: null,
     sodiumPer100g: null,
     servingSizeGrams: null,
