@@ -42,6 +42,10 @@ Return a JSON object with this shape:
       "estimated_count": null,
       "estimated_grams_per_unit": null,
       "estimated_kcal": 0,
+      "protein_g": null,
+      "carbs_g": null,
+      "fat_g": null,
+      "fiber_g": null,
       "confidence": "low"
     }
   ]
@@ -53,6 +57,7 @@ Rules:
 - For countable foods, ALWAYS provide both estimated_count AND estimated_grams_per_unit (approximate weight of a single unit in grams). Set estimated_grams to null.
 - Never set both estimated_grams and estimated_count on the same item.
 - Quantity in grams must always be derivable, even for countable items (estimated_count × estimated_grams_per_unit).
+- protein_g, carbs_g, fat_g, and fiber_g are grams for the estimated portion of THIS item (matching estimated_grams or estimated_count × estimated_grams_per_unit), not per 100 g. Use null when you cannot estimate a value — never 0 as a placeholder. 0 means the food genuinely contains none of that macro.
 - Use visible reference objects (fork, phone, card) to improve portion estimates when present.
 
 Example:
@@ -65,6 +70,10 @@ Example:
       "estimated_count": 1,
       "estimated_grams_per_unit": 120,
       "estimated_kcal": 105,
+      "protein_g": 1.3,
+      "carbs_g": 27,
+      "fat_g": 0.3,
+      "fiber_g": 3.1,
       "confidence": "medium"
     },
     {
@@ -74,10 +83,16 @@ Example:
       "estimated_count": null,
       "estimated_grams_per_unit": null,
       "estimated_kcal": 234,
+      "protein_g": 4.3,
+      "carbs_g": 51,
+      "fat_g": 0.4,
+      "fiber_g": 0.6,
       "confidence": "medium"
     }
   ]
 }`;
+
+const PROMPT_VERSION = 'v2-macros';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -99,6 +114,7 @@ const visionFoodItemSchema = z
     protein_g: boundedMacroSchema,
     carbs_g: boundedMacroSchema,
     fat_g: boundedMacroSchema,
+    fiber_g: boundedMacroSchema,
     confidence: visionConfidenceSchema,
   })
   .superRefine((item, ctx) => {
@@ -304,6 +320,7 @@ const SCAN_LOG_ITEM_FIELDS = [
   'protein_g',
   'carbs_g',
   'fat_g',
+  'fiber_g',
   'confidence',
 ] as const;
 
@@ -385,6 +402,7 @@ async function writeScanLog(
     meal_id: null,
     provider: 'anthropic',
     model_version: MEAL_VISION_MODEL,
+    prompt_version: PROMPT_VERSION,
     num_images: params.numImages,
     latency_ms: params.latencyMs,
     input_tokens: params.inputTokens,
