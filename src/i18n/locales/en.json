@@ -197,6 +197,13 @@
       "emptyPrefix": "No calorie goal set · ",
       "emptyAction": "Set now"
     },
+    "nutrients": {
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "fiber": "Fiber",
+      "unitGrams": "g"
+    },
     "trial": {
       "daysLeft_one": "Trial: {{count}} day left",
       "daysLeft_other": "Trial: {{count}} days left",

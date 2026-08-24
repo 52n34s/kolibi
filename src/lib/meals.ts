@@ -320,12 +320,23 @@ export async function saveScannedMeal(params: {
   };
 }
 
-export async function fetchTodayConsumedCalories(userId: string): Promise<number> {
+export type TodayConsumedMacros = {
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+};
+
+export type TodayConsumption = TodayConsumedMacros & {
+  kcal: number;
+};
+
+export async function fetchTodayConsumedCalories(userId: string): Promise<TodayConsumption> {
   const { startISO, endISO } = localDayWindow();
 
   const { data, error } = await supabase
     .from('meals')
-    .select('total_kcal')
+    .select('total_kcal, total_protein_g, total_carbs_g, total_fat_g, total_fiber_g')
     .eq('user_id', userId)
     .gte('eaten_at', startISO)
     .lt('eaten_at', endISO);
@@ -334,7 +345,47 @@ export async function fetchTodayConsumedCalories(userId: string): Promise<number
     throw error;
   }
 
-  return (data ?? []).reduce((sum, meal) => sum + Number(meal.total_kcal ?? 0), 0);
+  const meals = data ?? [];
+  if (meals.length === 0) {
+    return {
+      kcal: 0,
+      proteinG: null,
+      carbsG: null,
+      fatG: null,
+      fiberG: null,
+    };
+  }
+
+  let kcal = 0;
+  let proteinG = 0;
+  let carbsG = 0;
+  let fatG = 0;
+  let fiberG = 0;
+
+  for (const meal of meals) {
+    kcal += Number(meal.total_kcal ?? 0);
+    proteinG += Number(meal.total_protein_g ?? 0);
+    carbsG += Number(meal.total_carbs_g ?? 0);
+    fatG += Number(meal.total_fat_g ?? 0);
+    fiberG += Number(meal.total_fiber_g ?? 0);
+  }
+
+  // recompute_meal_totals coalesces missing item macros to 0 on the meal row.
+  // A zero macro total alongside positive kcal is a data gap, not "contains none".
+  const macroOrEmpty = (value: number): number | null => {
+    if (kcal > 0 && value === 0) {
+      return null;
+    }
+    return value;
+  };
+
+  return {
+    kcal,
+    proteinG: macroOrEmpty(proteinG),
+    carbsG: macroOrEmpty(carbsG),
+    fatG: macroOrEmpty(fatG),
+    fiberG: macroOrEmpty(fiberG),
+  };
 }
 
 export type TodayMealItem = {

@@ -197,6 +197,13 @@
       "emptyPrefix": "Kein Kalorienziel gesetzt · ",
       "emptyAction": "Jetzt festlegen"
     },
+    "nutrients": {
+      "protein": "Protein",
+      "carbs": "Kohlenhydrate",
+      "fat": "Fett",
+      "fiber": "Ballaststoffe",
+      "unitGrams": "g"
+    },
     "trial": {
       "daysLeft_one": "Testzeitraum: noch {{count}} Tag",
       "daysLeft_other": "Testzeitraum: noch {{count}} Tage",

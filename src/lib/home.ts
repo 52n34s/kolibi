@@ -1,9 +1,10 @@
-import { fetchTodayConsumedCalories } from '@/lib/meals';
+import { fetchTodayConsumedCalories, type TodayConsumedMacros } from '@/lib/meals';
 import { supabase } from '@/lib/supabase';
 
 export type HomeProfile = {
   calorie_goal_source: 'calculated' | 'custom' | null;
   target_weight_kg: number | null;
+  diet_preference: string | null;
 };
 
 export type HomeCalorieGoal = {
@@ -21,13 +22,21 @@ export type HomeDashboardData = {
   latestCalorieGoal: HomeCalorieGoal | null;
   latestWeight: HomeLatestWeight | null;
   consumedCaloriesToday: number;
+  consumedMacrosToday: TodayConsumedMacros;
+};
+
+const EMPTY_MACROS: TodayConsumedMacros = {
+  proteinG: null,
+  carbsG: null,
+  fatG: null,
+  fiberG: null,
 };
 
 export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardData> {
-  const [profileResult, calorieGoalResult, weightResult, consumedCaloriesToday] = await Promise.all([
+  const [profileResult, calorieGoalResult, weightResult, consumptionResult] = await Promise.all([
     supabase
       .from('profiles')
-      .select('calorie_goal_source, target_weight_kg')
+      .select('calorie_goal_source, target_weight_kg, diet_preference')
       .eq('id', userId)
       .maybeSingle(),
     supabase
@@ -44,7 +53,10 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
       .order('logged_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    fetchTodayConsumedCalories(userId).catch(() => 0),
+    fetchTodayConsumedCalories(userId).catch(() => ({
+      kcal: 0,
+      ...EMPTY_MACROS,
+    })),
   ]);
 
   if (profileResult.error) {
@@ -60,10 +72,22 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
   }
 
   return {
-    profile: profileResult.data,
+    profile: profileResult.data
+      ? {
+          calorie_goal_source: profileResult.data.calorie_goal_source,
+          target_weight_kg: profileResult.data.target_weight_kg,
+          diet_preference: profileResult.data.diet_preference ?? null,
+        }
+      : null,
     latestCalorieGoal: calorieGoalResult.data,
     latestWeight: weightResult.data,
-    consumedCaloriesToday,
+    consumedCaloriesToday: consumptionResult.kcal,
+    consumedMacrosToday: {
+      proteinG: consumptionResult.proteinG,
+      carbsG: consumptionResult.carbsG,
+      fatG: consumptionResult.fatG,
+      fiberG: consumptionResult.fiberG,
+    },
   };
 }
 

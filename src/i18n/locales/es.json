@@ -197,6 +197,13 @@
       "emptyPrefix": "Sin objetivo calórico · ",
       "emptyAction": "Establecer ahora"
     },
+    "nutrients": {
+      "protein": "Proteína",
+      "carbs": "Carbohidratos",
+      "fat": "Grasa",
+      "fiber": "Fibra",
+      "unitGrams": "g"
+    },
     "trial": {
       "daysLeft_one": "Prueba: queda {{count}} día",
       "daysLeft_other": "Prueba: quedan {{count}} días",

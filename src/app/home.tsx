@@ -40,6 +40,7 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { BRAND_INDIGO } from '@/constants/brand';
+import { NutrientTileGrid } from '@/components/home/nutrient-tile-grid';
 import { TodayMealsSection } from '@/components/home/TodayMealsSection';
 import { WeightMetricCard } from '@/components/home/weight-metric-card';
 import { WeightInputSheet } from '@/components/home/weight-update-sheet';
@@ -57,6 +58,7 @@ import {
   getDynamicCalorieGoalDisplay,
   resolveDisplayName,
 } from '@/lib/home';
+import { buildHomeNutrientTileEntries } from '@/lib/home-nutrients';
 import { kgToLbs } from '@/lib/units';
 import {
   formatWeightForDisplay,
@@ -406,6 +408,26 @@ export default function HomeScreen() {
 
     return Math.min(100, Math.max(0, (calorieGoalDisplay.consumedToday / goal) * 100));
   }, [calorieGoalDisplay]);
+
+  const nutrientTiles = useMemo(() => {
+    const macros = data?.consumedMacrosToday;
+    return buildHomeNutrientTileEntries({
+      dietPreference: data?.profile?.diet_preference,
+      labels: {
+        protein: t('home.nutrients.protein'),
+        carbs: t('home.nutrients.carbs'),
+        fat: t('home.nutrients.fat'),
+        fiber: t('home.nutrients.fiber'),
+      },
+      totals: {
+        protein: macros?.proteinG ?? null,
+        carbs: macros?.carbsG ?? null,
+        fat: macros?.fatG ?? null,
+        fiber: macros?.fiberG ?? null,
+      },
+      unit: t('home.nutrients.unitGrams'),
+    });
+  }, [data?.consumedMacrosToday, data?.profile?.diet_preference, t]);
 
   const latestWeightKg = data?.latestWeight?.weight_kg ?? null;
   const targetWeightKg = data?.profile?.target_weight_kg ?? null;
@@ -1042,15 +1064,20 @@ export default function HomeScreen() {
                       : 'home.calorieGoal.label',
                   )}
                 </Text>
-                <Text
-                  className="text-5xl font-bold"
-                  style={{
-                    color: calorieGoalDisplay.isOverGoal
-                      ? CALORIE_OVER_GOAL_COLOR
-                      : CALORIE_GOAL_ACCENT,
-                  }}>
-                  {formatKcal(calorieGoalDisplay.mainValue)}
-                </Text>
+                <View style={styles.calorieHeroRow}>
+                  <Text
+                    style={[
+                      styles.calorieHeroValue,
+                      {
+                        color: calorieGoalDisplay.isOverGoal
+                          ? CALORIE_OVER_GOAL_COLOR
+                          : CALORIE_GOAL_ACCENT,
+                      },
+                    ]}>
+                    {formatKcal(calorieGoalDisplay.mainValue)}
+                  </Text>
+                  <NutrientTileGrid items={nutrientTiles} />
+                </View>
                 <View
                   style={{
                     height: 4,
@@ -1273,3 +1300,18 @@ export default function HomeScreen() {
     </HomeLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  calorieHeroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  calorieHeroValue: {
+    flexShrink: 0,
+    fontSize: 48,
+    fontWeight: '700',
+    lineHeight: 52,
+    minWidth: 96,
+  },
+});
