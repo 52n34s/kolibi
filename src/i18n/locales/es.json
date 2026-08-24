@@ -96,6 +96,10 @@
       "privacy": "Política de privacidad",
       "after": "."
     },
+    "diet": {
+      "title": "¿Cómo te alimentas?",
+      "subtitle": "Kolibi reconoce tus comidas con más precisión — tofu en vez de feta, bebida de avena en vez de leche."
+    },
     "errors": {
       "saveFailed": "No se pudo guardar tu perfil. Inténtalo de nuevo.",
       "sessionNotReady": "Tu sesión aún se está cargando. Espera un momento e inténtalo de nuevo.",

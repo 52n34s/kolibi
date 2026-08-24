@@ -3,6 +3,7 @@ import type { ImageSource } from 'expo-image';
 import { View } from 'react-native';
 
 const KOLI_BY_STEP: ImageSource[] = [
+  require('@/assets/images/koli-curious.png'),
   require('@/assets/images/koli-confident.png'),
   require('@/assets/images/koli-thinking.png'),
   require('@/assets/images/koli-curious.png'),

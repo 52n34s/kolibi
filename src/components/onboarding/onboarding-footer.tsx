@@ -108,7 +108,7 @@ export function OnboardingFooter({
         </Pressable>
       </View>
 
-      {/* IMPORTANT: Skip button must always remain visible in non-review onboarding mode (steps 1–6). Do not remove during redesigns. */}
+      {/* IMPORTANT: Skip button must always remain visible in non-review onboarding mode (steps before the last). Do not remove during redesigns. */}
       {showSkip ? (
         <OnboardingSkipLink
           label={skipLabel}

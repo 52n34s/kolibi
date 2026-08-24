@@ -96,6 +96,10 @@
       "privacy": "Datenschutzerklärung",
       "after": " gelesen hast."
     },
+    "diet": {
+      "title": "Wie ernährst du dich?",
+      "subtitle": "Kolibi erkennt deine Mahlzeiten dann genauer — zum Beispiel Tofu statt Feta oder Hafermilch statt Kuhmilch."
+    },
     "errors": {
       "saveFailed": "Profil konnte nicht gespeichert werden. Bitte versuche es erneut.",
       "sessionNotReady": "Deine Sitzung wird noch geladen. Bitte warte einen Moment und versuche es erneut.",

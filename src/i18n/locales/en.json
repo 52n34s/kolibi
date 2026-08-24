@@ -96,6 +96,10 @@
       "privacy": "Privacy Policy",
       "after": "."
     },
+    "diet": {
+      "title": "How do you eat?",
+      "subtitle": "Kolibi recognises your meals more accurately — tofu instead of feta, oat milk instead of dairy."
+    },
     "errors": {
       "saveFailed": "Could not save your profile. Please try again.",
       "sessionNotReady": "Your session is still loading. Please wait a moment and try again.",

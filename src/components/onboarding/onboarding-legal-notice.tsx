@@ -41,7 +41,7 @@ async function openLegalUrl(url: string) {
 }
 
 /**
- * Standalone legal notice for onboarding step 1.
+ * Standalone legal notice for the first onboarding step (step index 0).
  * Intentionally self-contained so footer/card/glass redesigns do not touch it.
  */
 export function OnboardingLegalNotice() {

@@ -34,6 +34,23 @@ export function SexOptionIcon({
   return <OptionIcon name={icons[option]} size={ICON_SIZE_ROW} />;
 }
 
+export function DietOptionIcon({
+  option,
+  selected: _selected,
+}: {
+  option: 'omnivore' | 'pescatarian' | 'vegetarian' | 'vegan';
+  selected: boolean;
+}) {
+  const icons: Record<'omnivore' | 'pescatarian' | 'vegetarian' | 'vegan', IoniconName> = {
+    omnivore: 'restaurant-outline',
+    pescatarian: 'fish-outline',
+    vegetarian: 'leaf-outline',
+    vegan: 'nutrition-outline',
+  };
+
+  return <OptionIcon name={icons[option]} size={ICON_SIZE_ROW} />;
+}
+
 export function ActivityOptionIcon({
   level,
   selected: _selected,

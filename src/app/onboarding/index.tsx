@@ -29,6 +29,7 @@ import { getGlassCardStyle } from '@/components/ui/glass-styles';
 import { parseDateOnly } from '@/lib/day-window';
 import {
   ActivityOptionIcon,
+  DietOptionIcon,
   GoalOptionIcon,
   SexOptionIcon,
 } from '@/components/onboarding/step-icons';
@@ -50,12 +51,18 @@ import {
   skipOnboarding,
 } from '@/lib/onboarding';
 import { fetchProfileSettings } from '@/lib/profile';
+import {
+  DIET_PREFERENCE_OPTIONS,
+  type DietPreferenceValue,
+} from '@/components/settings/food-context-controls';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
+
+const DIET_OPTIONS = DIET_PREFERENCE_OPTIONS.filter((option) => option.id !== 'none');
 
 const ACTIVITY_LEVELS: ActivityLevel[] = [
   'mostly_sitting',
@@ -107,6 +114,7 @@ export default function OnboardingScreen() {
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [step, setStep] = useState(0);
+  const [dietPreference, setDietPreference] = useState<DietPreferenceValue>(null);
   const [biologicalSex, setBiologicalSex] = useState<BiologicalSex | null>(null);
   const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [heightCm, setHeightCm] = useState('');
@@ -160,6 +168,11 @@ export default function OnboardingScreen() {
         if (profile.biological_sex) {
           setBiologicalSex(profile.biological_sex);
         }
+
+        setDietPreference(
+          DIET_PREFERENCE_OPTIONS.find((option) => option.value === profile.diet_preference)
+            ?.value ?? null,
+        );
 
         if (profile.birth_date) {
           setBirthDate(parseDateOnly(profile.birth_date));
@@ -313,13 +326,13 @@ export default function OnboardingScreen() {
   }, [showDatePicker]);
 
   useEffect(() => {
-    if (step !== 1) {
+    if (step !== 2) {
       setShowDatePicker(false);
     }
   }, [step]);
 
   useEffect(() => {
-    if (step !== 6 || summaryManuallyEdited || !birthDate || !activityLevel || !goalType) {
+    if (step !== 7 || summaryManuallyEdited || !birthDate || !activityLevel || !goalType) {
       return;
     }
 
@@ -353,6 +366,8 @@ export default function OnboardingScreen() {
       case 0:
         return null;
       case 1:
+        return null;
+      case 2:
         if (!birthDate) {
           return t('onboarding.errors.birthDateRequired');
         }
@@ -363,7 +378,7 @@ export default function OnboardingScreen() {
           }
         }
         return null;
-      case 2:
+      case 3:
         if (!heightCm.trim()) {
           return t('onboarding.errors.heightRequired');
         }
@@ -371,7 +386,7 @@ export default function OnboardingScreen() {
           return t('onboarding.errors.heightInvalid');
         }
         return null;
-      case 3:
+      case 4:
         if (!weightKg.trim()) {
           return t('onboarding.errors.weightRequired');
         }
@@ -379,12 +394,12 @@ export default function OnboardingScreen() {
           return t('onboarding.errors.weightInvalid');
         }
         return null;
-      case 4:
+      case 5:
         if (!activityLevel) {
           return t('onboarding.errors.activityRequired');
         }
         return null;
-      case 5:
+      case 6:
         if (!goalType) {
           return t('onboarding.errors.goalRequired');
         }
@@ -400,7 +415,7 @@ export default function OnboardingScreen() {
           }
         }
         return null;
-      case 6:
+      case 7:
         if (!isValidDailyCalorieGoalInput(parsedDailyCalories)) {
           return t('onboarding.errors.summaryCaloriesInvalid', {
             min: HARD_MINIMUM_DAILY_CALORIES,
@@ -498,7 +513,7 @@ export default function OnboardingScreen() {
         console.log('[onboarding] finishOnboarding calling skipOnboarding', {
           currentUserId,
         });
-        await skipOnboarding(currentUserId);
+        await skipOnboarding(currentUserId, dietPreference);
       } else {
         if (!birthDate || !activityLevel || !goalType) {
           console.log('[onboarding] finishOnboarding missing required fields', {
@@ -514,6 +529,7 @@ export default function OnboardingScreen() {
 
         console.log('[onboarding] finishOnboarding calling completeOnboarding', {
           currentUserId,
+          dietPreference,
           biologicalSex: effectiveSex,
           birthDate,
           heightCm: parsedHeight,
@@ -525,6 +541,7 @@ export default function OnboardingScreen() {
         });
 
         await completeOnboarding(currentUserId, {
+          dietPreference,
           biologicalSex: effectiveSex,
           birthDate,
           heightCm: parsedHeight,
@@ -625,6 +642,34 @@ export default function OnboardingScreen() {
           <View>
             <StepHeader
               step={0}
+              title={t('onboarding.diet.title')}
+              subtitle={t('onboarding.diet.subtitle')}
+            />
+            <View className="gap-3">
+              {DIET_OPTIONS.map((option) => {
+                const value = option.value as Exclude<DietPreferenceValue, null>;
+
+                return (
+                  <OptionCard
+                    key={option.id}
+                    icon={
+                      <DietOptionIcon option={value} selected={dietPreference === value} />
+                    }
+                    label={t(`settings.profile.foodContext.diet.${option.id}`)}
+                    layout="row"
+                    selected={dietPreference === value}
+                    onPress={() => setDietPreference(value)}
+                  />
+                );
+              })}
+            </View>
+          </View>
+        );
+      case 1:
+        return (
+          <View>
+            <StepHeader
+              step={1}
               title={t('onboarding.sex.title')}
               subtitle={t('onboarding.sex.subtitle')}
             />
@@ -644,11 +689,11 @@ export default function OnboardingScreen() {
             </View>
           </View>
         );
-      case 1:
+      case 2:
         return (
           <View>
             <StepHeader
-              step={1}
+              step={2}
               title={t('onboarding.birthDate.title')}
               subtitle={t('onboarding.birthDate.subtitle')}
             />
@@ -661,22 +706,22 @@ export default function OnboardingScreen() {
             </OnboardingFieldPressable>
           </View>
         );
-      case 2:
+      case 3:
         return (
           <View>
             <StepHeader
-              step={2}
+              step={3}
               title={t('onboarding.height.title')}
               subtitle={t('onboarding.height.subtitle')}
             />
             <HeightInput heightCm={heightCm} onChangeHeightCm={setHeightCm} />
           </View>
         );
-      case 3:
+      case 4:
         return (
           <View>
             <StepHeader
-              step={3}
+              step={4}
               title={t('onboarding.weight.title')}
               subtitle={t('onboarding.weight.subtitle')}
             />
@@ -688,11 +733,11 @@ export default function OnboardingScreen() {
             />
           </View>
         );
-      case 4:
+      case 5:
         return (
           <View>
             <StepHeader
-              step={4}
+              step={5}
               title={t('onboarding.activity.title')}
               subtitle={t('onboarding.activity.subtitle')}
             />
@@ -713,11 +758,11 @@ export default function OnboardingScreen() {
             </View>
           </View>
         );
-      case 5:
+      case 6:
         return (
           <View>
             <StepHeader
-              step={5}
+              step={6}
               title={t('onboarding.goal.title')}
               subtitle={t('onboarding.goal.subtitle')}
             />
@@ -757,11 +802,11 @@ export default function OnboardingScreen() {
             )}
           </View>
         );
-      case 6:
+      case 7:
         return (
           <View>
             <StepHeader
-              step={6}
+              step={7}
               title={t('onboarding.summary.title')}
               subtitle={t('onboarding.summary.subtitle')}
             />
@@ -873,7 +918,7 @@ export default function OnboardingScreen() {
             bottom: 0,
             backgroundColor: 'transparent',
           }}>
-          {/* IMPORTANT: Legal notice must remain on step 1 only (non-review onboarding). Do not remove during redesigns. Do not show on steps 2–7 or in review mode. */}
+          {/* IMPORTANT: Legal notice must remain on step 0 only (first onboarding step, non-review). Do not remove during redesigns. Do not show on steps 1–7 or in review mode. */}
           {step === 0 && !isReviewMode ? <OnboardingLegalNotice /> : null}
           <OnboardingFooter
             step={step}

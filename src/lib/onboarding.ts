@@ -384,11 +384,11 @@ async function resolveOnboardingProfile(userId: string): Promise<{
   throw new Error('Profile not found while skipping onboarding.');
 }
 
-export async function skipOnboarding(userId: string) {
+export async function skipOnboarding(userId: string, dietPreference: string | null = null) {
   const now = new Date().toISOString();
   const resolved = await resolveOnboardingProfile(userId);
   userId = resolved.userId;
-  console.log('[onboarding] skipOnboarding before update', { userId, now });
+  console.log('[onboarding] skipOnboarding before update', { userId, now, dietPreference });
 
   const existing = { onboarded_at: resolved.onboardedAt };
 
@@ -400,10 +400,10 @@ export async function skipOnboarding(userId: string) {
 
   const { data, error } = await supabase
     .from('profiles')
-    .update({ onboarded_at: now })
+    .update({ onboarded_at: now, diet_preference: dietPreference })
     .eq('id', userId)
     .is('onboarded_at', null)
-    .select('id, onboarded_at')
+    .select('id, onboarded_at, diet_preference')
     .maybeSingle();
 
   console.log('[onboarding] skipOnboarding after update', { data, error });
@@ -441,6 +441,7 @@ export async function skipOnboarding(userId: string) {
 export async function completeOnboarding(
   userId: string,
   data: {
+    dietPreference: string | null;
     biologicalSex: BiologicalSex;
     birthDate: Date;
     heightCm: number;
@@ -457,6 +458,7 @@ export async function completeOnboarding(
   const existingProfile = { onboarded_at: resolved.onboardedAt };
 
   const profilePayload: {
+    diet_preference: string | null;
     birth_date: string;
     biological_sex: BiologicalSex;
     height_cm: number;
@@ -465,6 +467,7 @@ export async function completeOnboarding(
     calorie_goal_source: CalorieGoalSource;
     onboarded_at?: string;
   } = {
+    diet_preference: data.dietPreference,
     birth_date: localDateKey(data.birthDate),
     biological_sex: data.biologicalSex,
     height_cm: data.heightCm,
