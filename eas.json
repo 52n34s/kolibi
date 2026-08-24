@@ -19,6 +19,12 @@
       "environment": "production"
     }
   },
+  "update": {
+    "production": {
+      "channel": "production",
+      "environment": "production"
+    }
+  },
   "submit": {
     "production": {}
   }
