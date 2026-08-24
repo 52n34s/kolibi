@@ -234,6 +234,20 @@ export async function updateFoodContext(params: {
   }
 }
 
+export async function fetchDietPreference(userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('diet_preference')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.diet_preference ?? null;
+}
+
 function getAvatarExtension(mimeType: string | null | undefined): string {
   switch (mimeType) {
     case 'image/png':

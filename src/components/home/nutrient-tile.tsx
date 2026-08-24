@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-export type NutrientTileState = 'empty' | 'value';
+export type NutrientTileState = 'empty' | 'value' | 'partial';
 
 type NutrientTileProps = {
   label: string;
@@ -19,6 +19,7 @@ function formatNutrientValue(value: number): string {
 
 export function NutrientTile({ label, value, unit, state }: NutrientTileProps) {
   const isEmpty = state === 'empty' || value == null;
+  const isPartial = state === 'partial';
 
   return (
     <View style={styles.tile}>
@@ -32,13 +33,13 @@ export function NutrientTile({ label, value, unit, state }: NutrientTileProps) {
       ) : (
         <View style={styles.valueRow}>
           <Text
-            style={styles.value}
+            style={[styles.value, isPartial && styles.valuePartial]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.75}>
-            {formatNutrientValue(value)}
+            {isPartial ? `~ ${formatNutrientValue(value)}` : formatNutrientValue(value)}
           </Text>
-          <Text style={styles.unit}>{unit}</Text>
+          <Text style={[styles.unit, isPartial && styles.unitPartial]}>{unit}</Text>
         </View>
       )}
     </View>
@@ -76,6 +77,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#26234A',
   },
+  valuePartial: {
+    color: '#6B6885',
+    fontWeight: '500',
+  },
   valueEmpty: {
     marginTop: 2,
     color: '#B0ADC2',
@@ -85,5 +90,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     color: '#86839B',
+  },
+  unitPartial: {
+    color: '#9B98AD',
   },
 });

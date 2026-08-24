@@ -8,6 +8,8 @@ import {
   View,
 } from 'react-native';
 
+import { NutrientTileGrid } from '@/components/home/nutrient-tile-grid';
+import type { NutrientTileState } from '@/components/home/nutrient-tile';
 import {
   getOnboardingIdleCardStyle,
   ONBOARDING_ACCENT,
@@ -15,17 +17,57 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE, GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { useDayCalorieGoal, useDayMeals } from '@/hooks/use-day-meals';
+import { useDietPreference } from '@/hooks/use-diet-preference';
 import {
   isDayEditable,
   listRecentLocalDateKeys,
   localDateKey,
   parseDateOnly,
 } from '@/lib/day-window';
-import { formatTodayMealQuantityLabel, type TodayMeal } from '@/lib/meals';
+import {
+  buildHomeNutrientTileEntries,
+  type NutrientKey,
+} from '@/lib/home-nutrients';
+import { formatTodayMealQuantityLabel, type TodayMeal, type TodayMealItem } from '@/lib/meals';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
 
 const HISTORY_DAY_COUNT = 7;
+
+const ITEM_MACRO_FIELD: Record<NutrientKey, keyof TodayMealItem> = {
+  protein: 'protein_g',
+  carbs: 'carbs_g',
+  fat: 'fat_g',
+  fiber: 'fiber_g',
+};
+
+function resolveDayNutrientCoverage(
+  items: TodayMealItem[],
+  key: NutrientKey,
+): NutrientTileState {
+  if (items.length === 0) {
+    return 'empty';
+  }
+
+  const field = ITEM_MACRO_FIELD[key];
+  let present = 0;
+
+  for (const item of items) {
+    if (item[field] != null) {
+      present += 1;
+    }
+  }
+
+  if (present === 0) {
+    return 'empty';
+  }
+
+  if (present === items.length) {
+    return 'value';
+  }
+
+  return 'partial';
+}
 
 type HistoryDayDetailProps = {
   userId: string | undefined;
@@ -90,11 +132,58 @@ export function HistoryDayDetail({
 
   const { data: meals, isLoading: mealsLoading } = useDayMeals(userId, selectedDateKey);
   const { data: dayGoal, isLoading: goalLoading } = useDayCalorieGoal(userId, selectedDateKey);
+  const { data: dietPreference } = useDietPreference(userId);
 
   const dayTotalKcal = useMemo(
     () => (meals ?? []).reduce((sum, meal) => sum + meal.total_kcal, 0),
     [meals],
   );
+
+  const nutrientTiles = useMemo(() => {
+    const dayMeals = meals ?? [];
+    const dayItems = dayMeals.flatMap((meal) => meal.items);
+
+    const totals = {
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      fiber: 0,
+    } satisfies Record<NutrientKey, number>;
+
+    for (const meal of dayMeals) {
+      totals.protein += meal.total_protein_g;
+      totals.carbs += meal.total_carbs_g;
+      totals.fat += meal.total_fat_g;
+      totals.fiber += meal.total_fiber_g;
+    }
+
+    const coverage: Record<NutrientKey, NutrientTileState> = {
+      protein: resolveDayNutrientCoverage(dayItems, 'protein'),
+      carbs: resolveDayNutrientCoverage(dayItems, 'carbs'),
+      fat: resolveDayNutrientCoverage(dayItems, 'fat'),
+      fiber: resolveDayNutrientCoverage(dayItems, 'fiber'),
+    };
+
+    return buildHomeNutrientTileEntries({
+      dietPreference,
+      labels: {
+        protein: t('home.nutrients.protein'),
+        carbs: t('home.nutrients.carbs'),
+        fat: t('home.nutrients.fat'),
+        fiber: t('home.nutrients.fiber'),
+      },
+      totals: {
+        protein: coverage.protein === 'empty' ? null : totals.protein,
+        carbs: coverage.carbs === 'empty' ? null : totals.carbs,
+        fat: coverage.fat === 'empty' ? null : totals.fat,
+        fiber: coverage.fiber === 'empty' ? null : totals.fiber,
+      },
+      unit: t('home.nutrients.unitGrams'),
+    }).map((entry) => ({
+      ...entry,
+      state: coverage[entry.key],
+    }));
+  }, [dietPreference, meals, t]);
 
   const goalSummary = useMemo(() => {
     if (goalLoading) {
@@ -161,6 +250,10 @@ export function HistoryDayDetail({
               <ActivityIndicator size="small" color={ONBOARDING_ACCENT} />
             </View>
           )}
+
+          <View style={{ marginBottom: 12 }}>
+            <NutrientTileGrid items={nutrientTiles} layout="row" />
+          </View>
 
           {!editable ? (
             <Text className="mb-3 text-sm text-gray-500">

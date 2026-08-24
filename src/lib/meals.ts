@@ -398,6 +398,10 @@ export type TodayMealItem = {
   grams_per_unit: number | null;
   display_unit: 'g' | 'ml';
   kcal_per_100g: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  fiber_g: number | null;
   sort_order: number;
 };
 
@@ -405,6 +409,10 @@ export type TodayMeal = {
   id: string;
   eaten_at: string;
   total_kcal: number;
+  total_protein_g: number;
+  total_carbs_g: number;
+  total_fat_g: number;
+  total_fiber_g: number;
   total_quantity_grams: number;
   items: TodayMealItem[];
 };
@@ -417,7 +425,7 @@ export async function fetchMealsForLocalDate(
 
   const { data: meals, error: mealsError } = await supabase
     .from('meals')
-    .select('id, eaten_at, total_kcal')
+    .select('id, eaten_at, total_kcal, total_protein_g, total_carbs_g, total_fat_g, total_fiber_g')
     .eq('user_id', userId)
     .gte('eaten_at', startISO)
     .lt('eaten_at', endISO)
@@ -436,7 +444,7 @@ export async function fetchMealsForLocalDate(
   const { data: items, error: itemsError } = await supabase
     .from('meal_items')
     .select(
-      'id, meal_id, name, kcal, quantity_grams, quantity_type, count, grams_per_unit, display_unit, kcal_per_100g, sort_order',
+      'id, meal_id, name, kcal, quantity_grams, quantity_type, count, grams_per_unit, display_unit, kcal_per_100g, protein_g, carbs_g, fat_g, fiber_g, sort_order',
     )
     .in('meal_id', mealIds)
     .order('sort_order', { ascending: true });
@@ -460,6 +468,10 @@ export async function fetchMealsForLocalDate(
       display_unit: item.display_unit === 'ml' ? 'ml' : 'g',
       kcal_per_100g:
         item.kcal_per_100g == null ? null : Number(item.kcal_per_100g),
+      protein_g: item.protein_g == null ? null : Number(item.protein_g),
+      carbs_g: item.carbs_g == null ? null : Number(item.carbs_g),
+      fat_g: item.fat_g == null ? null : Number(item.fat_g),
+      fiber_g: item.fiber_g == null ? null : Number(item.fiber_g),
       sort_order: item.sort_order ?? 0,
     });
     itemsByMealId.set(item.meal_id, mealItems);
@@ -476,6 +488,10 @@ export async function fetchMealsForLocalDate(
       id: meal.id,
       eaten_at: meal.eaten_at,
       total_kcal: Number(meal.total_kcal ?? 0),
+      total_protein_g: Number(meal.total_protein_g ?? 0),
+      total_carbs_g: Number(meal.total_carbs_g ?? 0),
+      total_fat_g: Number(meal.total_fat_g ?? 0),
+      total_fiber_g: Number(meal.total_fiber_g ?? 0),
       total_quantity_grams,
       items: mealItems,
     };
