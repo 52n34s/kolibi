@@ -1,9 +1,13 @@
 import type { BarcodeProduct, FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
 import {
-  getItemTotalGrams,
+  absoluteMacrosFromPer100g,
+  EMPTY_ABSOLUTE_MACROS,
+  macrosPer100gFromAbsolutes,
+  type AbsoluteMacros,
   type DisplayUnit,
   type EditableMealItem,
   type KcalPer100gSource,
+  type MacrosPer100g,
   type QuantitySource,
 } from '@/services/mealVision/types';
 
@@ -25,6 +29,11 @@ export type MealItemRowItem = {
   foodId?: string | null;
   mealItemId?: string | null;
   wasAiGenerated?: boolean;
+  macrosPer100g: MacrosPer100g | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
 };
 
 export const QUANTITY_STEP_G = 10;
@@ -88,6 +97,48 @@ export function getLinkedMenge(item: MealItemRowItem): number {
   return item.quantity;
 }
 
+function rowAbsoluteMacros(item: MealItemRowItem): AbsoluteMacros {
+  return {
+    proteinG: item.proteinG,
+    carbsG: item.carbsG,
+    fatG: item.fatG,
+    fiberG: item.fiberG,
+  };
+}
+
+function withRecalculatedMacros(item: MealItemRowItem): MealItemRowItem {
+  const next = absoluteMacrosFromPer100g(
+    item.macrosPer100g,
+    getRowItemTotalGrams(item),
+    rowAbsoluteMacros(item),
+  );
+
+  return {
+    ...item,
+    proteinG: next.proteinG,
+    carbsG: next.carbsG,
+    fatG: next.fatG,
+    fiberG: next.fiberG,
+  };
+}
+
+function macrosFromPer100gFields(params: {
+  proteinPer100g: number | null | undefined;
+  carbsPer100g: number | null | undefined;
+  fatPer100g: number | null | undefined;
+  fiberPer100g?: number | null | undefined;
+}): MacrosPer100g {
+  const toField = (value: number | null | undefined): number | null =>
+    value == null || !Number.isFinite(value) ? null : value;
+
+  return {
+    protein: toField(params.proteinPer100g),
+    carbs: toField(params.carbsPer100g),
+    fat: toField(params.fatPer100g),
+    fiber: toField(params.fiberPer100g),
+  };
+}
+
 function applyLinkedMenge(item: MealItemRowItem, menge: number): number {
   const roundedMenge = Math.max(0, Math.round(menge));
 
@@ -145,6 +196,8 @@ export function createEmptyRowItem(): MealItemRowItem {
     quantitySource: 'user',
     gramsPerUnit: null,
     foodId: null,
+    macrosPer100g: null,
+    ...EMPTY_ABSOLUTE_MACROS,
   };
 }
 
@@ -156,6 +209,17 @@ export function createRowItemFromBarcode(
   const kcal = Math.max(
     0,
     Math.round((product.kcalPer100g / 100) * quantityGrams),
+  );
+  const macrosPer100g = macrosFromPer100gFields({
+    proteinPer100g: product.proteinPer100g,
+    carbsPer100g: product.carbsPer100g,
+    fatPer100g: product.fatPer100g,
+    fiberPer100g: product.fiberPer100g,
+  });
+  const absoluteMacros = absoluteMacrosFromPer100g(
+    macrosPer100g,
+    quantityGrams,
+    EMPTY_ABSOLUTE_MACROS,
   );
 
   return {
@@ -170,6 +234,8 @@ export function createRowItemFromBarcode(
     quantitySource: 'user',
     gramsPerUnit: product.servingSizeGrams,
     foodId,
+    macrosPer100g,
+    ...absoluteMacros,
   };
 }
 
@@ -182,6 +248,17 @@ export function createRowItemFromFoodSearch(params: {
   const kcal = Math.max(
     0,
     Math.round((params.product.kcalPer100g / 100) * quantityGrams),
+  );
+  const macrosPer100g = macrosFromPer100gFields({
+    proteinPer100g: params.product.proteinPer100g,
+    carbsPer100g: params.product.carbsPer100g,
+    fatPer100g: params.product.fatPer100g,
+    fiberPer100g: params.product.fiberPer100g,
+  });
+  const absoluteMacros = absoluteMacrosFromPer100g(
+    macrosPer100g,
+    quantityGrams,
+    EMPTY_ABSOLUTE_MACROS,
   );
 
   return {
@@ -196,6 +273,8 @@ export function createRowItemFromFoodSearch(params: {
     quantitySource: 'user',
     gramsPerUnit: params.product.servingSizeGrams,
     foodId: params.foodId,
+    macrosPer100g,
+    ...absoluteMacros,
   };
 }
 
@@ -237,14 +316,14 @@ export function changeRowItemQuantity(
   const nextItem = { ...item, quantity: nextQuantity, quantitySource: 'user' as const };
 
   if (!isLinkedItem(item)) {
-    return nextItem;
+    return withRecalculatedMacros(nextItem);
   }
 
-  return {
+  return withRecalculatedMacros({
     ...nextItem,
     kcal: computeKcalFromQuantity(nextItem),
     kcalPer100g: item.kcalPer100g,
-  };
+  });
 }
 
 export function changeRowItemKcal(item: MealItemRowItem, kcal: number): MealItemRowItem {
@@ -300,14 +379,14 @@ export function changeRowItemUnit(item: MealItemRowItem, unit: MealItemUnit): Me
     };
 
     if (!isLinkedItem(item)) {
-      return nextItem;
+      return withRecalculatedMacros(nextItem);
     }
 
-    return {
+    return withRecalculatedMacros({
       ...nextItem,
       kcal: computeKcalFromQuantity(nextItem),
       kcalPer100g: item.kcalPer100g,
-    };
+    });
   }
 
   const nextQuantity =
@@ -322,14 +401,14 @@ export function changeRowItemUnit(item: MealItemRowItem, unit: MealItemUnit): Me
   };
 
   if (!isLinkedItem(item)) {
-    return nextItem;
+    return withRecalculatedMacros(nextItem);
   }
 
-  return {
+  return withRecalculatedMacros({
     ...nextItem,
     kcal: computeKcalFromQuantity(nextItem),
     kcalPer100g: item.kcalPer100g,
-  };
+  });
 }
 
 export function changeRowItemName(item: MealItemRowItem, name: string): MealItemRowItem {
@@ -429,6 +508,13 @@ export function editableToRowItem(item: EditableMealItem): MealItemRowItem {
   const quantitySource = item.quantitySource;
   const kcalPer100g = item.kcalPer100g;
   const kcalPer100gSource = item.kcalPer100gSource;
+  const macroFields = {
+    macrosPer100g: item.macrosPer100g,
+    proteinG: item.proteinG,
+    carbsG: item.carbsG,
+    fatG: item.fatG,
+    fiberG: item.fiberG,
+  };
 
   if (item.quantityCount != null) {
     const linked =
@@ -449,6 +535,7 @@ export function editableToRowItem(item: EditableMealItem): MealItemRowItem {
         quantitySource,
         gramsPerUnit: linked ? item.gramsPerUnit : null,
         foodId: item.foodId,
+        ...macroFields,
       };
     }
   }
@@ -465,6 +552,7 @@ export function editableToRowItem(item: EditableMealItem): MealItemRowItem {
     quantitySource,
     gramsPerUnit: item.gramsPerUnit,
     foodId: item.foodId,
+    ...macroFields,
   };
 }
 
@@ -475,6 +563,13 @@ export function rowItemToEditable(
   const name = item.name.trim();
   const totalGrams = getRowItemTotalGrams(item);
   const displayUnit = rowItemDisplayUnit(item);
+  const macroFields = {
+    macrosPer100g: item.macrosPer100g,
+    proteinG: item.proteinG,
+    carbsG: item.carbsG,
+    fatG: item.fatG,
+    fiberG: item.fiberG,
+  };
 
   if (item.unit === 'pcs') {
     if (isFreeCountRowItem(item)) {
@@ -498,6 +593,7 @@ export function rowItemToEditable(
         kcalPer100gSource: item.kcalPer100gSource ?? null,
         quantitySource: item.quantitySource,
         displayUnit: 'g',
+        ...macroFields,
       };
     }
 
@@ -522,6 +618,7 @@ export function rowItemToEditable(
         kcalPer100gSource: item.kcalPer100gSource ?? null,
         quantitySource: item.quantitySource,
         displayUnit: 'g',
+        ...macroFields,
       };
     }
   }
@@ -545,6 +642,7 @@ export function rowItemToEditable(
     kcalPer100gSource: item.kcalPer100gSource ?? null,
     quantitySource: item.quantitySource,
     displayUnit,
+    ...macroFields,
   };
 }
 
@@ -565,6 +663,13 @@ export function mergeRowIntoEditable(
   const base = existing ?? rowItemToEditable(row, origin);
   const totalGrams = getRowItemTotalGrams(row);
   const displayUnit = rowItemDisplayUnit(row);
+  const macroFields = {
+    macrosPer100g: row.macrosPer100g,
+    proteinG: row.proteinG,
+    carbsG: row.carbsG,
+    fatG: row.fatG,
+    fiberG: row.fiberG,
+  };
 
   if (row.unit === 'pcs') {
     if (isFreeCountRowItem(row)) {
@@ -580,6 +685,7 @@ export function mergeRowIntoEditable(
         kcalPer100gSource: row.kcalPer100gSource ?? base.kcalPer100gSource ?? null,
         quantitySource: row.quantitySource,
         displayUnit: 'g',
+        ...macroFields,
       };
     }
 
@@ -596,6 +702,7 @@ export function mergeRowIntoEditable(
         kcalPer100gSource: row.kcalPer100gSource ?? base.kcalPer100gSource ?? null,
         quantitySource: row.quantitySource,
         displayUnit: 'g',
+        ...macroFields,
       };
     }
 
@@ -612,6 +719,7 @@ export function mergeRowIntoEditable(
         kcalPer100gSource: row.kcalPer100gSource ?? base.kcalPer100gSource ?? null,
         quantitySource: row.quantitySource,
         displayUnit,
+        ...macroFields,
       };
     }
   }
@@ -628,6 +736,7 @@ export function mergeRowIntoEditable(
     kcalPer100gSource: row.kcalPer100gSource ?? base.kcalPer100gSource ?? null,
     quantitySource: row.quantitySource,
     displayUnit,
+    ...macroFields,
   };
 }
 
@@ -644,6 +753,11 @@ export function rowItemToManualInput(
     kcal: item.kcal,
     kcalPer100g: item.kcalPer100g,
     foodId: item.foodId ?? null,
+    macrosPer100g: item.macrosPer100g,
+    proteinG: item.proteinG,
+    carbsG: item.carbsG,
+    fatG: item.fatG,
+    fiberG: item.fiberG,
   };
 }
 
@@ -652,11 +766,22 @@ export function mealItemForEditToRow(item: import('@/lib/meals').MealItemForEdit
     item.kcal_per_100g != null && item.kcal_per_100g > 0 ? item.kcal_per_100g : null;
   // Persisted meal_items density is treated as database until we store source explicitly.
   const kcalPer100gSource = kcalPer100g != null ? ('database' as const) : null;
+  const proteinG = item.protein_g;
+  const carbsG = item.carbs_g;
+  const fatG = item.fat_g;
+  const fiberG = item.fiber_g;
 
   if (item.quantity_type === 'count' && item.count != null) {
     const hasPieceWeight =
       item.grams_per_unit != null && item.grams_per_unit > 0;
     const isFreeManualCount = !item.was_ai_generated && !hasPieceWeight;
+    const totalGrams = hasPieceWeight
+      ? item.count * (item.grams_per_unit ?? 0)
+      : item.quantity_grams;
+    const macrosPer100g = macrosPer100gFromAbsolutes(
+      { protein: proteinG, carbs: carbsG, fat: fatG, fiber: fiberG },
+      totalGrams,
+    );
 
     if (hasPieceWeight || isFreeManualCount) {
       return {
@@ -673,9 +798,19 @@ export function mealItemForEditToRow(item: import('@/lib/meals').MealItemForEdit
         quantitySource: 'user',
         gramsPerUnit: hasPieceWeight ? item.grams_per_unit : null,
         foodId: null,
+        macrosPer100g,
+        proteinG,
+        carbsG,
+        fatG,
+        fiberG,
       };
     }
   }
+
+  const macrosPer100g = macrosPer100gFromAbsolutes(
+    { protein: proteinG, carbs: carbsG, fat: fatG, fiber: fiberG },
+    item.quantity_grams,
+  );
 
   return {
     id: createRowItemId(),
@@ -691,5 +826,10 @@ export function mealItemForEditToRow(item: import('@/lib/meals').MealItemForEdit
     quantitySource: 'user',
     gramsPerUnit: null,
     foodId: null,
+    macrosPer100g,
+    proteinG,
+    carbsG,
+    fatG,
+    fiberG,
   };
 }

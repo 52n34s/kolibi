@@ -13,9 +13,8 @@ import {
   wasMealItemEdited,
   wasQuantityUserCorrected,
   type EditableMealItem,
+  type MacrosPer100g,
 } from '@/services/mealVision/types';
-
-// TODO: protein_g / carbs_g / fat_g durch Makro-Schätzung oder DB-Lookup ersetzen.
 
 type SavedMealRow = {
   id: string;
@@ -192,9 +191,10 @@ function buildMealItemPayload(
     grams_per_unit: gramsPerUnit,
     display_unit: displayUnit,
     kcal: item.kcal,
-    protein_g: 0,
-    carbs_g: 0,
-    fat_g: 0,
+    protein_g: item.proteinG,
+    carbs_g: item.carbsG,
+    fat_g: item.fatG,
+    fiber_g: item.fiberG,
     ai_estimated_grams: getBaselineTotalGrams(item),
     portion_factor: params.portionFactor,
     was_ai_generated: item.origin === 'ai',
@@ -514,6 +514,11 @@ export type ManualMealEntryInput = {
   kcal: number;
   kcalPer100g?: number | null;
   foodId?: string | null;
+  macrosPer100g?: MacrosPer100g | null;
+  proteinG?: number | null;
+  carbsG?: number | null;
+  fatG?: number | null;
+  fiberG?: number | null;
 };
 
 /**
@@ -526,6 +531,13 @@ export function mapManualMealEntriesToEditableItems(
 ): EditableMealItem[] {
   return entries.map((entry) => {
     const name = entry.name.trim();
+    const macroFields = {
+      macrosPer100g: entry.macrosPer100g ?? null,
+      proteinG: entry.proteinG ?? null,
+      carbsG: entry.carbsG ?? null,
+      fatG: entry.fatG ?? null,
+      fiberG: entry.fiberG ?? null,
+    };
 
     if (entry.unit === 'count') {
       const count = entry.amount;
@@ -558,6 +570,7 @@ export function mapManualMealEntriesToEditableItems(
           normalizeKcalPer100g(entry.kcalPer100g) != null ? 'database' : null,
         quantitySource: 'user',
         displayUnit: 'g',
+        ...macroFields,
       };
     }
 
@@ -584,6 +597,7 @@ export function mapManualMealEntriesToEditableItems(
         normalizeKcalPer100g(entry.kcalPer100g) != null ? 'database' : null,
       quantitySource: 'user',
       displayUnit,
+      ...macroFields,
     };
   });
 }
@@ -670,6 +684,10 @@ export type MealItemForEdit = {
   display_unit: 'g' | 'ml';
   kcal: number;
   kcal_per_100g: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  fiber_g: number | null;
   portion_factor: number;
   sort_order: number;
   was_ai_generated: boolean;
@@ -719,9 +737,10 @@ function buildMealItemRowFromManualEntry(
     grams_per_unit: gramsPerUnit,
     display_unit: displayUnit,
     kcal: entry.kcal,
-    protein_g: 0,
-    carbs_g: 0,
-    fat_g: 0,
+    protein_g: entry.proteinG ?? null,
+    carbs_g: entry.carbsG ?? null,
+    fat_g: entry.fatG ?? null,
+    fiber_g: entry.fiberG ?? null,
     ai_estimated_grams: editable.baselineGrams ?? quantityGrams,
     portion_factor: params.portionFactor,
     was_ai_generated: params.wasAiGenerated,
@@ -738,7 +757,7 @@ export async function fetchMealItemsForEdit(
   const { data, error } = await supabase
     .from('meal_items')
     .select(
-      'id, name, quantity_type, quantity_grams, count, grams_per_unit, display_unit, kcal, kcal_per_100g, portion_factor, sort_order, was_ai_generated',
+      'id, name, quantity_type, quantity_grams, count, grams_per_unit, display_unit, kcal, kcal_per_100g, protein_g, carbs_g, fat_g, fiber_g, portion_factor, sort_order, was_ai_generated',
     )
     .eq('meal_id', mealId)
     .eq('user_id', userId)
@@ -747,6 +766,14 @@ export async function fetchMealItemsForEdit(
   if (error) {
     throw error;
   }
+
+  const toNullableNumber = (value: unknown): number | null => {
+    if (value == null) {
+      return null;
+    }
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
 
   return (data ?? []).map((item) => ({
     id: item.id,
@@ -759,6 +786,10 @@ export async function fetchMealItemsForEdit(
     kcal: Number(item.kcal ?? 0),
     kcal_per_100g:
       item.kcal_per_100g == null ? null : Number(item.kcal_per_100g),
+    protein_g: toNullableNumber(item.protein_g),
+    carbs_g: toNullableNumber(item.carbs_g),
+    fat_g: toNullableNumber(item.fat_g),
+    fiber_g: toNullableNumber(item.fiber_g),
     portion_factor: Number(item.portion_factor ?? 1),
     sort_order: item.sort_order ?? 0,
     was_ai_generated: Boolean(item.was_ai_generated),

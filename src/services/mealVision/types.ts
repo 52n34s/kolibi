@@ -15,6 +15,7 @@ export const visionFoodItemSchema = z
     protein_g: boundedMacroSchema,
     carbs_g: boundedMacroSchema,
     fat_g: boundedMacroSchema,
+    fiber_g: boundedMacroSchema,
     confidence: visionConfidenceSchema,
   })
   .superRefine((item, ctx) => {
@@ -75,6 +76,105 @@ export type DisplayUnit = 'g' | 'ml';
 /** Origin of kcalPer100g: verified foods row vs derived from model kcal/grams. */
 export type KcalPer100gSource = 'database' | 'derived';
 
+/** Macro density per 100 g. null on a field = unknown (never coerced to 0). */
+export type MacrosPer100g = {
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  fiber: number | null;
+};
+
+export type AbsoluteMacros = {
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+};
+
+export function effectiveGramsFromVisionItem(item: {
+  estimated_grams: number | null;
+  estimated_count: number | null;
+  estimated_grams_per_unit: number | null;
+}): number | null {
+  if (item.estimated_grams != null && item.estimated_grams > 0) {
+    return item.estimated_grams;
+  }
+
+  if (
+    item.estimated_count != null &&
+    item.estimated_grams_per_unit != null &&
+    item.estimated_grams_per_unit > 0
+  ) {
+    const total = item.estimated_count * item.estimated_grams_per_unit;
+    return total > 0 ? total : null;
+  }
+
+  return null;
+}
+
+function optionalMacro(value: number | null | undefined): number | null {
+  return value == null || !Number.isFinite(value) ? null : value;
+}
+
+/** Normalize portion absolute → per 100 g. null in stays null; requires grams > 0. */
+export function macrosPer100gFromAbsolutes(
+  absolutes: {
+    protein?: number | null;
+    carbs?: number | null;
+    fat?: number | null;
+    fiber?: number | null;
+  },
+  grams: number,
+): MacrosPer100g | null {
+  if (!(grams > 0)) {
+    return null;
+  }
+
+  const scale = (value: number | null | undefined): number | null => {
+    const normalized = optionalMacro(value);
+    return normalized == null ? null : (normalized / grams) * 100;
+  };
+
+  return {
+    protein: scale(absolutes.protein),
+    carbs: scale(absolutes.carbs),
+    fat: scale(absolutes.fat),
+    fiber: scale(absolutes.fiber),
+  };
+}
+
+/**
+ * Portion absolutes from density × grams / 100.
+ * When macrosPer100g is null, previous absolutes are left unchanged.
+ * A null density field yields a null absolute (never 0).
+ */
+export function absoluteMacrosFromPer100g(
+  macrosPer100g: MacrosPer100g | null,
+  grams: number,
+  previous: AbsoluteMacros,
+): AbsoluteMacros {
+  if (macrosPer100g == null || !(grams > 0)) {
+    return previous;
+  }
+
+  const scale = (value: number | null): number | null =>
+    value == null ? null : (value / 100) * grams;
+
+  return {
+    proteinG: scale(macrosPer100g.protein),
+    carbsG: scale(macrosPer100g.carbs),
+    fatG: scale(macrosPer100g.fat),
+    fiberG: scale(macrosPer100g.fiber),
+  };
+}
+
+export const EMPTY_ABSOLUTE_MACROS: AbsoluteMacros = {
+  proteinG: null,
+  carbsG: null,
+  fatG: null,
+  fiberG: null,
+};
+
 export type EditableMealItem = {
   id: string;
   name: string;
@@ -100,6 +200,13 @@ export type EditableMealItem = {
   quantitySource: QuantitySource;
   /** Label only — ml is stored as quantity_type grams with 1:1 density. */
   displayUnit: DisplayUnit;
+  /** Density for coupling quantity ↔ macros. null = macros stay as-is on quantity edits. */
+  macrosPer100g: MacrosPer100g | null;
+  /** Absolute grams for the current portion (not per 100 g). null = unknown. */
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
 };
 
 export function getItemTotalGrams(item: EditableMealItem): number {
@@ -138,6 +245,19 @@ export function visionItemToEditable(item: VisionFoodItem, id: string): Editable
   const baselineGramsPerUnit = hasCountPieceWeight ? gramsPerUnit : null;
   const baselineGrams = isCountItem ? quantityCount * gramsPerUnit : item.estimated_grams;
 
+  const proteinG = optionalMacro(item.protein_g);
+  const carbsG = optionalMacro(item.carbs_g);
+  const fatG = optionalMacro(item.fat_g);
+  const fiberG = optionalMacro(item.fiber_g);
+  const effectiveGrams = effectiveGramsFromVisionItem(item);
+  const macrosPer100g =
+    effectiveGrams != null
+      ? macrosPer100gFromAbsolutes(
+          { protein: proteinG, carbs: carbsG, fat: fatG, fiber: fiberG },
+          effectiveGrams,
+        )
+      : null;
+
   return {
     id,
     name: item.name,
@@ -157,6 +277,11 @@ export function visionItemToEditable(item: VisionFoodItem, id: string): Editable
     kcalPer100gSource: null,
     quantitySource: 'ai',
     displayUnit: 'g',
+    macrosPer100g,
+    proteinG,
+    carbsG,
+    fatG,
+    fiberG,
   };
 }
 
@@ -189,6 +314,8 @@ export function createManualEditableItem(params: {
     kcalPer100gSource: null,
     quantitySource: 'user',
     displayUnit: 'g',
+    macrosPer100g: null,
+    ...EMPTY_ABSOLUTE_MACROS,
   };
 }
 

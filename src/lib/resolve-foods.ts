@@ -1,9 +1,11 @@
 import { createRowItemId } from '@/components/scan/meal-item-row-model';
 import { supabase } from '@/lib/supabase';
 import {
+  absoluteMacrosFromPer100g,
   getItemTotalGrams,
   visionItemToEditable,
   type EditableMealItem,
+  type MacrosPer100g,
   type VisionFoodItem,
 } from '@/services/mealVision/types';
 
@@ -121,16 +123,31 @@ export async function enrichVisionItemsWithResolvedFoods(
     const match = lookupResolution(resolutions, item.canonical_name);
 
     if (match) {
+      const macrosPer100g: MacrosPer100g = {
+        protein: Number.isFinite(match.protein_per_100g) ? match.protein_per_100g : null,
+        carbs: Number.isFinite(match.carbs_per_100g) ? match.carbs_per_100g : null,
+        fat: Number.isFinite(match.fat_per_100g) ? match.fat_per_100g : null,
+        fiber: null,
+      };
+      const grams = getItemTotalGrams(editable);
+      const absoluteMacros = absoluteMacrosFromPer100g(macrosPer100g, grams, {
+        proteinG: editable.proteinG,
+        carbsG: editable.carbsG,
+        fatG: editable.fatG,
+        fiberG: editable.fiberG,
+      });
+
       const kcalPer100g = Number(match.kcal_per_100g);
       if (!Number.isFinite(kcalPer100g) || kcalPer100g <= 0) {
         return {
           ...editable,
           foodId: match.food_id,
           name: resolveLocalizedName(match.names, languageCode, item.name),
+          macrosPer100g,
+          ...absoluteMacros,
         };
       }
 
-      const grams = getItemTotalGrams(editable);
       const kcal =
         grams > 0 ? Math.max(0, Math.round((kcalPer100g / 100) * grams)) : editable.kcal;
 
@@ -142,6 +159,8 @@ export async function enrichVisionItemsWithResolvedFoods(
         name: resolveLocalizedName(match.names, languageCode, item.name),
         kcal,
         baselineKcal: kcal,
+        macrosPer100g,
+        ...absoluteMacros,
       };
     }
 

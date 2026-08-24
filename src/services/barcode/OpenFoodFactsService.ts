@@ -63,9 +63,10 @@ export type BarcodeProduct = {
   quantityGrams: number | null;
   servingSizeGrams: number | null;
   kcalPer100g: number;
-  proteinPer100g: number;
-  carbsPer100g: number;
-  fatPer100g: number;
+  proteinPer100g: number | null;
+  carbsPer100g: number | null;
+  fatPer100g: number | null;
+  fiberPer100g: number | null;
   hasIncompleteMacros: boolean;
 };
 
@@ -134,10 +135,11 @@ export function barcodeProductToFoodSearchProduct(product: BarcodeProduct): Food
     name: product.productName,
     brand: product.brand,
     kcalPer100g: product.kcalPer100g,
-    proteinPer100g: product.proteinPer100g,
-    carbsPer100g: product.carbsPer100g,
-    fatPer100g: product.fatPer100g,
-    fiberPer100g: null,
+    // FoodSearchProduct / foods-cache still require numbers; meal_items use BarcodeProduct directly.
+    proteinPer100g: product.proteinPer100g ?? 0,
+    carbsPer100g: product.carbsPer100g ?? 0,
+    fatPer100g: product.fatPer100g ?? 0,
+    fiberPer100g: product.fiberPer100g,
     sugarPer100g: null,
     sodiumPer100g: null,
     servingSizeGrams: product.servingSizeGrams,
@@ -440,9 +442,10 @@ function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSch
     quantityGrams,
     servingSizeGrams,
     kcalPer100g,
-    proteinPer100g: nutriments?.proteins_100g ?? 0,
-    carbsPer100g: nutriments?.carbohydrates_100g ?? 0,
-    fatPer100g: nutriments?.fat_100g ?? 0,
+    proteinPer100g: optionalMacro(nutriments?.proteins_100g),
+    carbsPer100g: optionalMacro(nutriments?.carbohydrates_100g),
+    fatPer100g: optionalMacro(nutriments?.fat_100g),
+    fiberPer100g: optionalMacro(nutriments?.fiber_100g),
     hasIncompleteMacros: proteinMissing || carbsMissing || fatMissing,
   };
 }
