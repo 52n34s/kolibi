@@ -89,6 +89,13 @@
     "next": "Continue",
     "finish": "Get started",
     "stepOf": "Step {{current}} of {{total}}",
+    "legalNotice": {
+      "before": "By using Kolibi you agree to the ",
+      "terms": "Terms of Service",
+      "middle": " and confirm that you are at least 18 years old and have read the ",
+      "privacy": "Privacy Policy",
+      "after": "."
+    },
     "errors": {
       "saveFailed": "Could not save your profile. Please try again.",
       "sessionNotReady": "Your session is still loading. Please wait a moment and try again.",

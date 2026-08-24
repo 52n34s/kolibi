@@ -15,6 +15,10 @@ import {
 } from '@/components/onboarding/birth-date-picker';
 import { OnboardingField, OnboardingFieldPressable } from '@/components/onboarding/onboarding-field';
 import { OnboardingFooter, ONBOARDING_FOOTER_ESTIMATED_HEIGHT } from '@/components/onboarding/onboarding-footer';
+import {
+  OnboardingLegalNotice,
+  ONBOARDING_LEGAL_NOTICE_HEIGHT,
+} from '@/components/onboarding/onboarding-legal-notice';
 import { OnboardingReviewCancelButton } from '@/components/onboarding/onboarding-review-cancel-button';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { OnboardingKoliCompanion } from '@/components/onboarding/onboarding-koli-companion';
@@ -848,7 +852,10 @@ export default function OnboardingScreen() {
             contentContainerStyle={{
               flexGrow: 1,
               paddingTop: 12,
-              paddingBottom: ONBOARDING_FOOTER_ESTIMATED_HEIGHT + 16,
+              paddingBottom:
+                ONBOARDING_FOOTER_ESTIMATED_HEIGHT +
+                (step === 0 && !isReviewMode ? ONBOARDING_LEGAL_NOTICE_HEIGHT : 0) +
+                16,
             }}
             keyboardShouldPersistTaps="always">
             <View className="justify-center py-4" style={{ minHeight: 320 }}>
@@ -866,6 +873,8 @@ export default function OnboardingScreen() {
             bottom: 0,
             backgroundColor: 'transparent',
           }}>
+          {/* IMPORTANT: Legal notice must remain on step 1 only (non-review onboarding). Do not remove during redesigns. Do not show on steps 2–7 or in review mode. */}
+          {step === 0 && !isReviewMode ? <OnboardingLegalNotice /> : null}
           <OnboardingFooter
             step={step}
             totalSteps={TOTAL_STEPS}

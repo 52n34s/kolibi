@@ -89,6 +89,13 @@
     "next": "Weiter",
     "finish": "Loslegen",
     "stepOf": "Schritt {{current}} von {{total}}",
+    "legalNotice": {
+      "before": "Mit der Nutzung von Kolibi stimmst du den ",
+      "terms": "Nutzungsbedingungen",
+      "middle": " zu und bestätigst, dass du mindestens 18 Jahre alt bist und die ",
+      "privacy": "Datenschutzerklärung",
+      "after": " gelesen hast."
+    },
     "errors": {
       "saveFailed": "Profil konnte nicht gespeichert werden. Bitte versuche es erneut.",
       "sessionNotReady": "Deine Sitzung wird noch geladen. Bitte warte einen Moment und versuche es erneut.",
