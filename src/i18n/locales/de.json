@@ -200,9 +200,9 @@
     "nutrients": {
       "eaten": "Gegessen",
       "protein": "Protein",
-      "carbs": "Kohlenhydrate",
+      "carbs": "Kohlenh.",
       "fat": "Fett",
-      "fiber": "Ballaststoffe",
+      "fiber": "Ballastst.",
       "unitGrams": "g"
     },
     "trial": {
