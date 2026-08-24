@@ -198,6 +198,7 @@
       "emptyAction": "Jetzt festlegen"
     },
     "nutrients": {
+      "eaten": "Gegessen",
       "protein": "Protein",
       "carbs": "Kohlenhydrate",
       "fat": "Fett",

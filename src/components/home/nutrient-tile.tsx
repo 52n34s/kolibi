@@ -14,8 +14,7 @@ function formatNutrientValue(value: number): string {
     return '–';
   }
 
-  const rounded = Math.round(value * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return String(Math.round(value));
 }
 
 export function NutrientTile({ label, value, unit, state }: NutrientTileProps) {
@@ -23,24 +22,24 @@ export function NutrientTile({ label, value, unit, state }: NutrientTileProps) {
 
   return (
     <View style={styles.tile}>
-      <Text
-        style={styles.label}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.75}>
-        {label}
-      </Text>
+      <View style={styles.labelSlot}>
+        <Text style={styles.label} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
       {isEmpty ? (
         <Text style={[styles.value, styles.valueEmpty]}>–</Text>
       ) : (
-        <Text
-          style={styles.value}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.75}>
-          {formatNutrientValue(value)}
-          <Text style={styles.unit}> {unit}</Text>
-        </Text>
+        <View style={styles.valueRow}>
+          <Text
+            style={styles.value}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}>
+            {formatNutrientValue(value)}
+          </Text>
+          <Text style={styles.unit}>{unit}</Text>
+        </View>
       )}
     </View>
   );
@@ -51,19 +50,34 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     justifyContent: 'center',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(111, 108, 137, 0.08)',
+  },
+  labelSlot: {
+    height: 14,
+    justifyContent: 'flex-start',
   },
   label: {
-    fontSize: 11,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '500',
     color: '#86839B',
   },
-  value: {
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 1,
     marginTop: 2,
+  },
+  value: {
     fontSize: 15,
     fontWeight: '600',
     color: '#26234A',
   },
   valueEmpty: {
+    marginTop: 2,
     color: '#B0ADC2',
     fontWeight: '500',
   },

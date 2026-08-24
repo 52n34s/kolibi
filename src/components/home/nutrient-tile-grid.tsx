@@ -61,11 +61,11 @@ const styles = StyleSheet.create({
   grid: {
     flex: 1,
     minWidth: 0,
-    gap: 10,
-    justifyContent: 'center',
+    gap: 6,
+    justifyContent: 'flex-start',
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 6,
   },
 });

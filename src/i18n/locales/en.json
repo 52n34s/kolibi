@@ -198,6 +198,7 @@
       "emptyAction": "Set now"
     },
     "nutrients": {
+      "eaten": "Eaten",
       "protein": "Protein",
       "carbs": "Carbs",
       "fat": "Fat",

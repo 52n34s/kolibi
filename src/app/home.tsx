@@ -1057,33 +1057,38 @@ export default function HomeScreen() {
           {calorieGoalDisplay ? (
             <View style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
               <View className="px-5 py-6">
-                <Text className="mb-2 text-sm font-medium text-gray-500">
-                  {t(
-                    calorieGoalDisplay.mode === 'dynamic'
-                      ? 'home.calorieGoal.dynamicLabel'
-                      : 'home.calorieGoal.label',
-                  )}
-                </Text>
                 <View style={styles.calorieHeroRow}>
-                  <Text
-                    style={[
-                      styles.calorieHeroValue,
-                      {
-                        color: calorieGoalDisplay.isOverGoal
-                          ? CALORIE_OVER_GOAL_COLOR
-                          : CALORIE_GOAL_ACCENT,
-                      },
-                    ]}>
-                    {formatKcal(calorieGoalDisplay.mainValue)}
-                  </Text>
-                  <NutrientTileGrid items={nutrientTiles} />
+                  <View style={styles.calorieHeroLeft}>
+                    <Text style={styles.calorieHeroLabel}>
+                      {t(
+                        calorieGoalDisplay.mode === 'dynamic'
+                          ? 'home.calorieGoal.dynamicLabel'
+                          : 'home.calorieGoal.label',
+                      )}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.calorieHeroValue,
+                        {
+                          color: calorieGoalDisplay.isOverGoal
+                            ? CALORIE_OVER_GOAL_COLOR
+                            : CALORIE_GOAL_ACCENT,
+                        },
+                      ]}>
+                      {formatKcal(calorieGoalDisplay.mainValue)}
+                    </Text>
+                  </View>
+                  <View style={styles.calorieHeroGrid}>
+                    <Text style={styles.calorieHeroLabel}>{t('home.nutrients.eaten')}</Text>
+                    <NutrientTileGrid items={nutrientTiles} />
+                  </View>
                 </View>
                 <View
                   style={{
                     height: 4,
                     borderRadius: 2,
                     overflow: 'hidden',
-                    marginTop: 14,
+                    marginTop: 16,
                     marginBottom: 8,
                     backgroundColor: 'rgba(79, 70, 229, 0.13)',
                   }}>
@@ -1304,14 +1309,28 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   calorieHeroRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 16,
   },
+  calorieHeroLeft: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'flex-start',
+  },
+  calorieHeroLabel: {
+    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
   calorieHeroValue: {
-    flexShrink: 0,
     fontSize: 48,
     fontWeight: '700',
     lineHeight: 52,
-    minWidth: 96,
+  },
+  calorieHeroGrid: {
+    width: '52%',
+    flexGrow: 0,
+    flexShrink: 0,
   },
 });
