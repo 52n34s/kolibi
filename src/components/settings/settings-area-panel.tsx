@@ -3,18 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
+import { PlanPanel } from '@/components/settings/plan-panel';
 import { ProfilePanel } from '@/components/settings/profile-panel';
 import { SecurityPanel } from '@/components/settings/security-panel';
 import { SupportPanel } from '@/components/settings/support-panel';
 
-export type SettingsSubSegment = 'profile' | 'security' | 'support';
+export type SettingsSubSegment = 'profile' | 'plan' | 'security' | 'support';
 
 type SettingsAreaPanelProps = {
   initialSubSegment?: SettingsSubSegment;
 };
 
 function resolveSubSegment(value: string | undefined): SettingsSubSegment {
-  if (value === 'security' || value === 'support') {
+  if (value === 'plan' || value === 'security' || value === 'support') {
     return value;
   }
 
@@ -41,6 +42,7 @@ export function SettingsAreaPanel({ initialSubSegment }: SettingsAreaPanelProps)
           onChange={setActiveSubSegment}
           segments={[
             { id: 'profile', label: t('settings.subSegments.profile') },
+            { id: 'plan', label: t('settings.subSegments.plan') },
             { id: 'security', label: t('settings.subSegments.security') },
             { id: 'support', label: t('settings.subSegments.support') },
           ]}
@@ -50,6 +52,8 @@ export function SettingsAreaPanel({ initialSubSegment }: SettingsAreaPanelProps)
       <View className="flex-1">
         {activeSubSegment === 'profile' ? (
           <ProfilePanel />
+        ) : activeSubSegment === 'plan' ? (
+          <PlanPanel />
         ) : activeSubSegment === 'security' ? (
           <SecurityPanel onOpenProfile={() => setActiveSubSegment('profile')} />
         ) : (

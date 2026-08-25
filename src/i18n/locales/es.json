@@ -453,6 +453,7 @@
     "backToHome": "Volver al inicio",
     "subSegments": {
       "profile": "Perfil",
+      "plan": "Plan",
       "security": "Seguridad",
       "support": "Soporte"
     },

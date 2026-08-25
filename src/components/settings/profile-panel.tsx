@@ -26,7 +26,6 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { ProfileHeader } from '@/components/settings/profile-header';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsSection } from '@/components/settings/settings-section';
-import { SubscriptionSection } from '@/components/settings/subscription-section';
 import { SETTINGS_GLASS_DIVIDER_CLASS } from '@/components/ui/glass-styles';
 import { UnitSystemToggle } from '@/components/onboarding/unit-system-toggle';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
@@ -522,12 +521,6 @@ export function ProfilePanel() {
             }
           />
         </SettingsSection>
-
-        <SubscriptionSection
-          userId={userId}
-          trialEndsAt={data?.profile.trial_ends_at ?? null}
-          subscription={data?.subscription ?? null}
-        />
 
         {showPasswordSection ? (
           <SettingsSection title={t('settings.password.sectionTitle')}>

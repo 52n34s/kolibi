@@ -10,7 +10,10 @@ import {
   KoliSegmentSwitcher,
   type KoliSegment,
 } from '@/components/koli/koli-segment-switcher';
-import { SettingsAreaPanel } from '@/components/settings/settings-area-panel';
+import {
+  SettingsAreaPanel,
+  type SettingsSubSegment,
+} from '@/components/settings/settings-area-panel';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
 
 function resolveInitialSegment(segment: string | string[] | undefined): KoliSegment {
@@ -20,9 +23,9 @@ function resolveInitialSegment(segment: string | string[] | undefined): KoliSegm
 
 function resolveSettingsSubSegment(
   settingsSubSegment: string | string[] | undefined,
-): 'profile' | 'security' | 'support' | undefined {
+): SettingsSubSegment | undefined {
   const value = Array.isArray(settingsSubSegment) ? settingsSubSegment[0] : settingsSubSegment;
-  if (value === 'security' || value === 'support' || value === 'profile') {
+  if (value === 'plan' || value === 'security' || value === 'support' || value === 'profile') {
     return value;
   }
 
