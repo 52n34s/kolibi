@@ -18,6 +18,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from '@/components/external-link';
 import { OnboardingMeshBackground } from '@/components/onboarding/onboarding-background';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
+import { PurchaseSuccessPitch } from '@/components/paywall/PurchaseSuccessPitch';
+import { TrialValuePitch } from '@/components/paywall/TrialValuePitch';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
 import { LEGAL_LINKS } from '@/lib/legal-links';
 import {
@@ -43,20 +45,11 @@ type PaywallCompletion =
 type PaywallSheetProps = {
   visible: boolean;
   userId: string | undefined;
+  /** When true, show TrialValuePitch before plan cards. Defaults to false. */
+  withValuePitch?: boolean;
   onClose: () => void;
   onDismissed?: () => void;
 };
-
-function formatProductCurrency(amount: number, currencyCode: string): string {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount);
-  } catch {
-    return amount.toFixed(2);
-  }
-}
 
 function savingsPercentAgainstMonthly(
   planPrice: number,
@@ -102,7 +95,13 @@ function defaultSelectedPlanId(plans: DefaultOfferingPlan[]): string | null {
   return chosen?.pkg.identifier ?? null;
 }
 
-export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallSheetProps) {
+export function PaywallSheet({
+  visible,
+  userId,
+  withValuePitch = false,
+  onClose,
+  onDismissed,
+}: PaywallSheetProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -113,10 +112,13 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
   const [purchaseFlowPhase, setPurchaseFlowPhase] = useState<PurchaseFlowPhase>('idle');
   const [isRestoring, setIsRestoring] = useState(false);
   const [completion, setCompletion] = useState<PaywallCompletion | null>(null);
+  const [continuedFromValuePitch, setContinuedFromValuePitch] = useState(false);
 
   const isPurchasing = purchaseFlowPhase === 'purchasing';
   const isPurchaseFlowBusy = purchaseFlowPhase !== 'idle';
   const showCompletion = completion != null;
+  const showValuePitch = withValuePitch && !continuedFromValuePitch;
+  const isPurchaseSuccess = completion?.kind === 'purchase-success';
   const selectedPlan = plans.find((plan) => plan.pkg.identifier === selectedPackageId) ?? null;
   const selectedPackage = selectedPlan?.pkg ?? null;
   const monthlyPlan = plans.find((plan) => plan.monthsCount === 1) ?? null;
@@ -142,6 +144,11 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
     setCompletion(null);
     setPlans([]);
     setSelectedPackageId(null);
+    setContinuedFromValuePitch(false);
+  }
+
+  function handleValuePitchContinue() {
+    setContinuedFromValuePitch(true);
   }
 
   useEffect(() => {
@@ -309,16 +316,7 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
 
     switch (completion.kind) {
       case 'purchase-success':
-        return (
-          <>
-            <Text className="text-center text-2xl font-bold text-gray-900">
-              {t('paywall.purchaseSuccessTitle')}
-            </Text>
-            <Text className="mt-3 text-center text-base leading-6 text-gray-600">
-              {t('paywall.purchaseSuccessMessage')}
-            </Text>
-          </>
-        );
+        return null;
       case 'purchase-pending':
         return (
           <>
@@ -363,206 +361,242 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
       onDismiss={onDismissed}>
       <View className="flex-1">
         <OnboardingMeshBackground />
-        <View className="flex-1" style={{ paddingTop: insets.top }}>
-          <ScrollView
+        {isPurchaseSuccess ? (
+          <View
             className="flex-1 px-6"
-            contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 40), paddingTop: 16 }}
-            showsVerticalScrollIndicator={false}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('paywall.dismiss')}
-              className="mb-4 min-h-11 min-w-11 items-center justify-center self-end"
-              disabled={isPurchaseFlowBusy}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              onPress={onClose}>
-              <Text className="text-base text-gray-500">{t('paywall.dismiss')}</Text>
-            </Pressable>
-
+            style={{
+              paddingTop: insets.top,
+              paddingBottom: Math.max(insets.bottom, 40),
+              justifyContent: 'center',
+            }}>
             <View className="items-center">
               <Image
-                source={require('@/assets/images/koli-confident.png')}
-                style={{ width: 160, height: 160 }}
+                source={require('@/assets/images/koli-happy.png')}
+                style={{ width: 120, height: 120 }}
                 contentFit="contain"
               />
             </View>
-
             <View className="mt-4" style={getGlassCardStyle({ padding: 24 })}>
-              {showCompletion ? (
-                <>
-                  {renderCompletionContent()}
-                  <Pressable
-                    accessibilityRole="button"
-                    className="mt-8 overflow-hidden rounded-xl"
-                    onPress={onClose}>
-                    <LinearGradient
-                      colors={['#4F46E5', '#7CE7C7']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={{ height: 48, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text className="text-base font-semibold text-white">
-                        {t('paywall.close')}
-                      </Text>
-                    </LinearGradient>
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  <Text className="text-center text-2xl font-bold text-gray-900">
-                    {t('paywall.title')}
-                  </Text>
-                  <Text className="mt-3 text-center text-base leading-6 text-gray-600">
-                    {t('paywall.description')}
-                  </Text>
-
-                  <View className="mt-6 flex-row items-end justify-center gap-2">
-                    {isLoadingOffering ? (
-                      <>
-                        <View style={[styles.planSkeleton, styles.planSkeletonFlank]} />
-                        <View style={[styles.planSkeleton, styles.planSkeletonFeatured]} />
-                        <View style={[styles.planSkeleton, styles.planSkeletonFlank]} />
-                      </>
-                    ) : plans.length === 0 ? (
-                      <View style={styles.priceSkeleton} />
-                    ) : (
-                      plans.map((plan) => {
-                        const isSelected = selectedPackageId === plan.pkg.identifier;
-                        const isFeatured = plan.monthsCount === 12;
-                        const perMonthLabel = formatProductCurrency(
-                          plan.pkg.product.price / plan.monthsCount,
-                          plan.pkg.product.currencyCode,
-                        );
-                        const savePercent =
-                          monthlyPrice == null
-                            ? null
-                            : savingsPercentAgainstMonthly(
-                                plan.pkg.product.price,
-                                plan.monthsCount,
-                                monthlyPrice,
-                              );
-
-                        return (
-                          <Pressable
-                            key={plan.pkg.identifier}
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: isSelected }}
-                            accessibilityLabel={t(planLabelKey(plan))}
-                            className="min-w-0"
-                            style={[
-                              getGlassCardStyle({
-                                flex: isFeatured ? 1.22 : 1,
-                                paddingHorizontal: 8,
-                                paddingTop: isFeatured ? 16 : 12,
-                                paddingBottom: isFeatured ? 16 : 12,
-                                borderRadius: 14,
-                                borderWidth: isFeatured || isSelected ? 2 : 1,
-                                borderColor: isFeatured
-                                  ? '#4F46E5'
-                                  : isSelected
-                                    ? 'rgba(79, 70, 229, 0.45)'
-                                    : undefined,
-                                backgroundColor: isSelected
-                                  ? 'rgba(79, 70, 229, 0.12)'
-                                  : undefined,
-                              }),
-                            ]}
-                            disabled={isPurchasing || isRestoring || !canSelectPlan}
-                            onPress={() => setSelectedPackageId(plan.pkg.identifier)}>
-                            {isFeatured ? (
-                              <Text className="mb-1 text-center text-[10px] font-bold uppercase tracking-wide text-[#4F46E5]">
-                                {t('paywall.bestValue')}
-                              </Text>
-                            ) : (
-                              <View style={styles.bestValueSpacer} />
-                            )}
-                            {savePercent != null ? (
-                              <View
-                                style={
-                                  isFeatured ? styles.saveBadgeFeatured : styles.saveBadgeQuiet
-                                }>
-                                <Text
-                                  className={`font-semibold ${
-                                    isFeatured
-                                      ? 'text-xs text-[#2C2C2A]'
-                                      : 'text-[10px] text-gray-600'
-                                  }`}>
-                                  {t('paywall.savePercent', { percent: savePercent })}
-                                </Text>
-                              </View>
-                            ) : (
-                              <View style={styles.saveBadgeSpacer} />
-                            )}
-                            <Text
-                              className={`text-center font-semibold text-gray-700 ${
-                                isFeatured ? 'text-sm' : 'text-xs'
-                              }`}
-                              numberOfLines={1}>
-                              {t(planLabelKey(plan))}
-                            </Text>
-                            <Text
-                              className={`mt-1 text-center font-bold text-gray-900 ${
-                                isFeatured ? 'text-xl' : 'text-base'
-                              }`}
-                              numberOfLines={1}
-                              adjustsFontSizeToFit
-                              minimumFontScale={0.7}>
-                              {plan.pkg.product.priceString}
-                            </Text>
-                            <Text
-                              className="mt-1 text-center text-[11px] text-gray-500"
-                              numberOfLines={1}>
-                              {t('paywall.perMonth', { price: perMonthLabel })}
-                            </Text>
-                          </Pressable>
-                        );
-                      })
-                    )}
-                  </View>
-
-                  <Text className="mt-4 text-center text-xs leading-5 text-gray-500">
-                    {selectedPlan ? t(autoRenewKey(selectedPlan)) : t('paywall.autoRenew')}
-                  </Text>
-
-                  <Pressable
-                    className="mt-6 h-12 items-center justify-center rounded-xl bg-[#4F46E5]"
-                    disabled={
-                      isPurchasing || isRestoring || isLoadingOffering || !selectedPackage
-                    }
-                    onPress={() => void handlePurchase()}>
-                    {isPurchasing ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <Text className="text-base font-semibold text-white">
-                        {t('paywall.subscribe')}
-                      </Text>
-                    )}
-                  </Pressable>
-
-                  <Pressable
-                    className="mt-4 items-center py-2"
-                    disabled={isPurchasing || isRestoring}
-                    onPress={() => void handleRestore()}>
-                    {isRestoring ? (
-                      <ActivityIndicator color={ONBOARDING_ACCENT} />
-                    ) : (
-                      <Text className="text-base font-medium text-[#4F46E5]">
-                        {t('paywall.restore')}
-                      </Text>
-                    )}
-                  </Pressable>
-
-                  <View className="mt-6 flex-row flex-wrap items-center justify-center gap-x-4 gap-y-2">
-                    <ExternalLink href={LEGAL_LINKS.privacyPolicy}>
-                      <Text className="text-sm text-[#4F46E5]">{t('paywall.privacy')}</Text>
-                    </ExternalLink>
-                    <ExternalLink href={LEGAL_LINKS.termsOfService}>
-                      <Text className="text-sm text-[#4F46E5]">{t('paywall.terms')}</Text>
-                    </ExternalLink>
-                  </View>
-                </>
-              )}
+              <PurchaseSuccessPitch onContinue={onClose} />
             </View>
-          </ScrollView>
-        </View>
+          </View>
+        ) : (
+          <View className="flex-1" style={{ paddingTop: insets.top }}>
+            <ScrollView
+              className="flex-1 px-6"
+              contentContainerStyle={{
+                paddingBottom: Math.max(insets.bottom, 40),
+                paddingTop: 16,
+              }}
+              showsVerticalScrollIndicator={false}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('paywall.dismiss')}
+                className="mb-4 min-h-11 min-w-11 items-center justify-center self-end"
+                disabled={isPurchaseFlowBusy}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                onPress={onClose}>
+                <Text className="text-base text-gray-500">{t('paywall.dismiss')}</Text>
+              </Pressable>
+
+              <View className="items-center">
+                <Image
+                  source={
+                    showValuePitch
+                      ? require('@/assets/images/koli-happy.png')
+                      : require('@/assets/images/koli-confident.png')
+                  }
+                  style={
+                    showValuePitch
+                      ? { width: 120, height: 120 }
+                      : { width: 160, height: 160 }
+                  }
+                  contentFit="contain"
+                />
+              </View>
+
+              <View className="mt-4" style={getGlassCardStyle({ padding: 24 })}>
+                {showValuePitch ? (
+                  <TrialValuePitch onContinue={handleValuePitchContinue} />
+                ) : showCompletion ? (
+                  <>
+                    {renderCompletionContent()}
+                    <Pressable
+                      accessibilityRole="button"
+                      className="mt-8 overflow-hidden rounded-xl"
+                      onPress={onClose}>
+                      <LinearGradient
+                        colors={['#4F46E5', '#7CE7C7']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={{ height: 48, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text className="text-base font-semibold text-white">
+                          {t('paywall.close')}
+                        </Text>
+                      </LinearGradient>
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <Text className="text-center text-2xl font-bold text-gray-900">
+                      {t('paywall.title')}
+                    </Text>
+                    <Text className="mt-3 text-center text-base leading-6 text-gray-600">
+                      {t('paywall.description')}
+                    </Text>
+
+                    <View className="mt-6 flex-row items-end justify-center gap-2">
+                      {isLoadingOffering ? (
+                        <>
+                          <View style={[styles.planSkeleton, styles.planSkeletonFlank]} />
+                          <View style={[styles.planSkeleton, styles.planSkeletonFeatured]} />
+                          <View style={[styles.planSkeleton, styles.planSkeletonFlank]} />
+                        </>
+                      ) : plans.length === 0 ? (
+                        <View style={styles.priceSkeleton} />
+                      ) : (
+                        plans.map((plan) => {
+                          const isSelected = selectedPackageId === plan.pkg.identifier;
+                          const isFeatured = plan.monthsCount === 12;
+                          // StoreKit monthly string — same locale/format as priceString.
+                          const perMonthLabel =
+                            plan.pkg.product.pricePerMonthString ??
+                            plan.pkg.product.priceString;
+                          const savePercent =
+                            monthlyPrice == null
+                              ? null
+                              : savingsPercentAgainstMonthly(
+                                  plan.pkg.product.price,
+                                  plan.monthsCount,
+                                  monthlyPrice,
+                                );
+
+                          return (
+                            <Pressable
+                              key={plan.pkg.identifier}
+                              accessibilityRole="button"
+                              accessibilityState={{ selected: isSelected }}
+                              accessibilityLabel={t(planLabelKey(plan))}
+                              className="min-w-0"
+                              style={[
+                                getGlassCardStyle({
+                                  flex: isFeatured ? 1.22 : 1,
+                                  paddingHorizontal: 8,
+                                  paddingTop: isFeatured ? 16 : 12,
+                                  paddingBottom: isFeatured ? 16 : 12,
+                                  borderRadius: 14,
+                                  borderWidth: isFeatured || isSelected ? 2 : 1,
+                                  borderColor: isFeatured
+                                    ? '#4F46E5'
+                                    : isSelected
+                                      ? 'rgba(79, 70, 229, 0.45)'
+                                      : undefined,
+                                  backgroundColor: isSelected
+                                    ? 'rgba(79, 70, 229, 0.12)'
+                                    : undefined,
+                                }),
+                              ]}
+                              disabled={isPurchasing || isRestoring || !canSelectPlan}
+                              onPress={() => setSelectedPackageId(plan.pkg.identifier)}>
+                              {isFeatured ? (
+                                <Text className="mb-1 text-center text-[10px] font-bold uppercase tracking-wide text-[#4F46E5]">
+                                  {t('paywall.bestValue')}
+                                </Text>
+                              ) : (
+                                <View style={styles.bestValueSpacer} />
+                              )}
+                              {savePercent != null ? (
+                                <View
+                                  style={
+                                    isFeatured
+                                      ? styles.saveBadgeFeatured
+                                      : styles.saveBadgeQuiet
+                                  }>
+                                  <Text
+                                    className={`font-semibold ${
+                                      isFeatured
+                                        ? 'text-xs text-[#2C2C2A]'
+                                        : 'text-[10px] text-gray-600'
+                                    }`}>
+                                    {t('paywall.savePercent', { percent: savePercent })}
+                                  </Text>
+                                </View>
+                              ) : (
+                                <View style={styles.saveBadgeSpacer} />
+                              )}
+                              <Text
+                                className={`text-center font-semibold text-gray-700 ${
+                                  isFeatured ? 'text-sm' : 'text-xs'
+                                }`}
+                                numberOfLines={1}>
+                                {t(planLabelKey(plan))}
+                              </Text>
+                              <Text
+                                className={`mt-1 text-center font-bold text-gray-900 ${
+                                  isFeatured ? 'text-xl' : 'text-base'
+                                }`}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.7}>
+                                {plan.pkg.product.priceString}
+                              </Text>
+                              <Text
+                                className="mt-1 text-center text-[11px] text-gray-500"
+                                numberOfLines={1}>
+                                {t('paywall.perMonth', { price: perMonthLabel })}
+                              </Text>
+                            </Pressable>
+                          );
+                        })
+                      )}
+                    </View>
+
+                    <Text className="mt-4 text-center text-xs leading-5 text-gray-500">
+                      {selectedPlan ? t(autoRenewKey(selectedPlan)) : t('paywall.autoRenew')}
+                    </Text>
+
+                    <Pressable
+                      className="mt-6 h-12 items-center justify-center rounded-xl bg-[#4F46E5]"
+                      disabled={
+                        isPurchasing || isRestoring || isLoadingOffering || !selectedPackage
+                      }
+                      onPress={() => void handlePurchase()}>
+                      {isPurchasing ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text className="text-base font-semibold text-white">
+                          {t('paywall.subscribe')}
+                        </Text>
+                      )}
+                    </Pressable>
+
+                    <Pressable
+                      className="mt-4 items-center py-2"
+                      disabled={isPurchasing || isRestoring}
+                      onPress={() => void handleRestore()}>
+                      {isRestoring ? (
+                        <ActivityIndicator color={ONBOARDING_ACCENT} />
+                      ) : (
+                        <Text className="text-base font-medium text-[#4F46E5]">
+                          {t('paywall.restore')}
+                        </Text>
+                      )}
+                    </Pressable>
+
+                    <View className="mt-6 flex-row flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                      <ExternalLink href={LEGAL_LINKS.privacyPolicy}>
+                        <Text className="text-sm text-[#4F46E5]">{t('paywall.privacy')}</Text>
+                      </ExternalLink>
+                      <ExternalLink href={LEGAL_LINKS.termsOfService}>
+                        <Text className="text-sm text-[#4F46E5]">{t('paywall.terms')}</Text>
+                      </ExternalLink>
+                    </View>
+                  </>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        )}
       </View>
     </Modal>
   );

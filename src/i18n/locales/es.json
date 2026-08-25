@@ -695,6 +695,18 @@
     "restoreSuccessTitle": "Compras restauradas",
     "restoreSuccessMessage": "Tu acceso premium está activo.",
     "restoreEmpty": "No se encontró una suscripción activa para esta cuenta.",
-    "restoreError": "No se pudieron restaurar las compras. Inténtalo de nuevo."
+    "restoreError": "No se pudieron restaurar las compras. Inténtalo de nuevo.",
+    "purchaseSuccessNote": "Si te falta algo, escríbeme sin más.",
+    "purchaseSuccessContinue": "Vamos",
+    "valuePitch": {
+      "headline": "Ahora sabes de dónde vienen tus calorías",
+      "photo": "Haz una foto y listo — registro en segundos",
+      "ingredients": "Por fin ves dónde están realmente las calorías",
+      "health": "Se sincroniza con Apple Health",
+      "privacy": "Tus datos se quedan en Europa — RGPD",
+      "names": "Steffen",
+      "note": "Yo mismo quería adelgazar y no encontré ninguna app en la que registrar comidas fuera rápido. Así que desarrollé Kolibi.",
+      "continue": "Continuar"
+    }
   }
 }

@@ -695,6 +695,18 @@
     "restoreSuccessTitle": "Purchases restored",
     "restoreSuccessMessage": "Your premium access is active.",
     "restoreEmpty": "No active subscription found for this account.",
-    "restoreError": "Could not restore purchases. Please try again."
+    "restoreError": "Could not restore purchases. Please try again.",
+    "purchaseSuccessNote": "If something's missing, just write me.",
+    "purchaseSuccessContinue": "Let's go",
+    "valuePitch": {
+      "headline": "Now you know where your calories come from",
+      "photo": "Snap a photo, done — tracking in seconds",
+      "ingredients": "Finally see where the calories actually are",
+      "health": "Syncs with Apple Health",
+      "privacy": "Your data stays yours — no ads, no tracking",
+      "names": "Steffen",
+      "note": "I wanted to lose weight myself and couldn't find an app where tracking was actually fast. So I built Kolibi.",
+      "continue": "Continue"
+    }
   }
 }

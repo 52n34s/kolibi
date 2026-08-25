@@ -695,6 +695,18 @@
     "restoreSuccessTitle": "Käufe wiederhergestellt",
     "restoreSuccessMessage": "Dein Premium-Zugang ist aktiv.",
     "restoreEmpty": "Kein aktives Abo für dieses Konto gefunden.",
-    "restoreError": "Käufe konnten nicht wiederhergestellt werden. Bitte erneut versuchen."
+    "restoreError": "Käufe konnten nicht wiederhergestellt werden. Bitte erneut versuchen.",
+    "purchaseSuccessNote": "Wenn dir etwas fehlt, schreib mir einfach.",
+    "purchaseSuccessContinue": "Los geht's",
+    "valuePitch": {
+      "headline": "Du weißt jetzt, wo deine Kalorien herkommen",
+      "photo": "Foto machen, fertig — tracken in Sekunden",
+      "ingredients": "Endlich sehen, wo die Kalorien wirklich sitzen",
+      "health": "Synchronisiert sich mit Apple Health",
+      "privacy": "Deine Daten bleiben in Deutschland — DSGVO-konform",
+      "names": "Steffen",
+      "note": "Ich wollte selbst abnehmen und habe keine App gefunden, bei der Tracken schnell geht. Also hab ich Kolibi entwickelt.",
+      "continue": "Weiter"
+    }
   }
 }

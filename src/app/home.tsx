@@ -174,6 +174,7 @@ export default function HomeScreen() {
   const isAnonymousUser = session?.user?.is_anonymous === true;
 
   const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallWithValuePitch, setPaywallWithValuePitch] = useState(false);
   const [weightSheet, setWeightSheet] = useState<WeightSheetKind>(null);
   const [weightDraft, setWeightDraft] = useState('');
   const [isSavingWeight, setIsSavingWeight] = useState(false);
@@ -234,14 +235,24 @@ export default function HomeScreen() {
     });
   }, [secureStore, userId]);
 
+  const openPaywall = useCallback((options?: { withValuePitch?: boolean }) => {
+    setPaywallWithValuePitch(options?.withValuePitch === true);
+    setShowPaywall(true);
+  }, []);
+
+  const closePaywall = useCallback(() => {
+    setShowPaywall(false);
+    setPaywallWithValuePitch(false);
+  }, []);
+
   const flushPendingPaywall = useCallback(() => {
     if (!pendingPaywallRef.current) {
       return;
     }
 
     pendingPaywallRef.current = false;
-    setShowPaywall(true);
-  }, []);
+    openPaywall({ withValuePitch: true });
+  }, [openPaywall]);
 
   const beginPaywallAfterSheetDismiss = useCallback(() => {
     pendingPaywallRef.current = true;
@@ -300,9 +311,9 @@ export default function HomeScreen() {
       return true;
     }
 
-    setShowPaywall(true);
+    openPaywall({ withValuePitch: true });
     return false;
-  }, [gatePremiumAccess, isAnonymousUser]);
+  }, [gatePremiumAccess, isAnonymousUser, openPaywall]);
 
   useEffect(() => {
     return () => {
@@ -1042,7 +1053,7 @@ export default function HomeScreen() {
 
           {isInTrial ? (
             trialDaysLeft === 0 ? (
-              <Pressable className="mb-2" onPress={() => setShowPaywall(true)}>
+              <Pressable className="mb-2" onPress={() => openPaywall({ withValuePitch: false })}>
                 <Text className="text-gray-500" style={{ fontSize: 11 }}>
                   {t('home.trial.endsToday')}
                 </Text>
@@ -1300,7 +1311,8 @@ export default function HomeScreen() {
       <PaywallSheet
         visible={showPaywall}
         userId={userId}
-        onClose={() => setShowPaywall(false)}
+        withValuePitch={paywallWithValuePitch}
+        onClose={closePaywall}
       />
     </HomeLayout>
   );
