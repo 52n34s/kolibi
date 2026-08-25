@@ -1,4 +1,8 @@
-import Purchases, { LOG_LEVEL, type PurchasesPackage } from 'react-native-purchases';
+import Purchases, {
+  LOG_LEVEL,
+  PACKAGE_TYPE,
+  type PurchasesPackage,
+} from 'react-native-purchases';
 
 let configurePromise: Promise<void> | null = null;
 let identifiedUserId: string | null = null;
@@ -127,19 +131,59 @@ export async function logOutPurchases() {
   }
 }
 
-export async function getDefaultMonthlyPackage(): Promise<PurchasesPackage | null> {
+export type DefaultOfferingPlanPackageType =
+  | PACKAGE_TYPE.MONTHLY
+  | PACKAGE_TYPE.THREE_MONTH
+  | PACKAGE_TYPE.ANNUAL;
+
+export type DefaultOfferingPlan = {
+  packageType: DefaultOfferingPlanPackageType;
+  monthsCount: 1 | 3 | 12;
+  pkg: PurchasesPackage;
+};
+
+const DEFAULT_OFFERING_PLAN_ORDER: ReadonlyArray<{
+  packageType: DefaultOfferingPlanPackageType;
+  monthsCount: 1 | 3 | 12;
+}> = [
+  { packageType: PACKAGE_TYPE.MONTHLY, monthsCount: 1 },
+  { packageType: PACKAGE_TYPE.THREE_MONTH, monthsCount: 3 },
+  { packageType: PACKAGE_TYPE.ANNUAL, monthsCount: 12 },
+];
+
+/** Load default offering plans from availablePackages (monthly → 3-month → annual). */
+export async function getDefaultOfferingPlans(): Promise<DefaultOfferingPlan[]> {
   try {
     const offerings = await Purchases.getOfferings();
     const offering = offerings.all.default ?? offerings.current;
 
     if (!offering) {
-      return null;
+      return [];
     }
 
-    return offering.monthly ?? offering.availablePackages[0] ?? null;
+    const byType = new Map<PACKAGE_TYPE, PurchasesPackage>();
+    for (const pkg of offering.availablePackages) {
+      byType.set(pkg.packageType, pkg);
+    }
+
+    const plans: DefaultOfferingPlan[] = [];
+    for (const spec of DEFAULT_OFFERING_PLAN_ORDER) {
+      const pkg = byType.get(spec.packageType);
+      if (!pkg) {
+        continue;
+      }
+
+      plans.push({
+        packageType: spec.packageType,
+        monthsCount: spec.monthsCount,
+        pkg,
+      });
+    }
+
+    return plans;
   } catch (error) {
     console.warn('[RevenueCat] getOfferings unavailable:', error);
-    return null;
+    return [];
   }
 }
 

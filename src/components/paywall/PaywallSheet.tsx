@@ -12,7 +12,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import type { PurchasesPackage } from 'react-native-purchases';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -26,9 +25,10 @@ import {
 } from '@/lib/premium-query-sync';
 import {
   ensurePurchasesIdentified,
-  getDefaultMonthlyPackage,
+  getDefaultOfferingPlans,
   purchasePremiumPackage,
   restorePremiumPurchases,
+  type DefaultOfferingPlan,
 } from '@/lib/purchases';
 import { refreshRevenueCatCustomerInfo } from '@/lib/revenuecat-customer-info';
 
@@ -47,12 +47,68 @@ type PaywallSheetProps = {
   onDismissed?: () => void;
 };
 
+function formatProductCurrency(amount: number, currencyCode: string): string {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount);
+  } catch {
+    return amount.toFixed(2);
+  }
+}
+
+function savingsPercentAgainstMonthly(
+  planPrice: number,
+  monthsCount: number,
+  monthlyPrice: number,
+): number | null {
+  if (monthsCount <= 1 || monthlyPrice <= 0 || planPrice <= 0) {
+    return null;
+  }
+
+  const fullPrice = monthlyPrice * monthsCount;
+  const percent = Math.round((1 - planPrice / fullPrice) * 100);
+  return percent > 0 ? percent : null;
+}
+
+function planLabelKey(plan: DefaultOfferingPlan): string {
+  if (plan.monthsCount === 3) {
+    return 'paywall.planQuarterly';
+  }
+
+  if (plan.monthsCount === 12) {
+    return 'paywall.planAnnual';
+  }
+
+  return 'paywall.planMonthly';
+}
+
+function autoRenewKey(plan: DefaultOfferingPlan): string {
+  if (plan.monthsCount === 3) {
+    return 'paywall.autoRenewQuarterly';
+  }
+
+  if (plan.monthsCount === 12) {
+    return 'paywall.autoRenewAnnual';
+  }
+
+  return 'paywall.autoRenewMonthly';
+}
+
+function defaultSelectedPlanId(plans: DefaultOfferingPlan[]): string | null {
+  const annual = plans.find((plan) => plan.monthsCount === 12);
+  const chosen = annual ?? plans[0];
+  return chosen?.pkg.identifier ?? null;
+}
+
 export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallSheetProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const purchaseAbortRef = useRef<AbortController | null>(null);
-  const [monthlyPackage, setMonthlyPackage] = useState<PurchasesPackage | null>(null);
+  const [plans, setPlans] = useState<DefaultOfferingPlan[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [isLoadingOffering, setIsLoadingOffering] = useState(false);
   const [purchaseFlowPhase, setPurchaseFlowPhase] = useState<PurchaseFlowPhase>('idle');
   const [isRestoring, setIsRestoring] = useState(false);
@@ -61,6 +117,11 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
   const isPurchasing = purchaseFlowPhase === 'purchasing';
   const isPurchaseFlowBusy = purchaseFlowPhase !== 'idle';
   const showCompletion = completion != null;
+  const selectedPlan = plans.find((plan) => plan.pkg.identifier === selectedPackageId) ?? null;
+  const selectedPackage = selectedPlan?.pkg ?? null;
+  const monthlyPlan = plans.find((plan) => plan.monthsCount === 1) ?? null;
+  const monthlyPrice = monthlyPlan?.pkg.product.price ?? null;
+  const canSelectPlan = plans.length > 1;
 
   function beginPurchaseFlowSignal(): AbortSignal {
     purchaseAbortRef.current?.abort();
@@ -79,6 +140,8 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
     setPurchaseFlowPhase('idle');
     setIsRestoring(false);
     setCompletion(null);
+    setPlans([]);
+    setSelectedPackageId(null);
   }
 
   useEffect(() => {
@@ -101,14 +164,16 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
           return;
         }
 
-        const pkg = await getDefaultMonthlyPackage();
+        const nextPlans = await getDefaultOfferingPlans();
         if (!cancelled) {
-          setMonthlyPackage(pkg);
+          setPlans(nextPlans);
+          setSelectedPackageId(defaultSelectedPlanId(nextPlans));
         }
       } catch (error) {
         console.error('[Paywall] identify/offerings failed:', error);
         if (!cancelled) {
-          setMonthlyPackage(null);
+          setPlans([]);
+          setSelectedPackageId(null);
         }
       } finally {
         if (!cancelled) {
@@ -143,7 +208,7 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
   }
 
   async function handlePurchase() {
-    if (!monthlyPackage) {
+    if (!selectedPackage) {
       Alert.alert(t('settings.errors.title'), t('paywall.priceUnavailable'));
       return;
     }
@@ -162,7 +227,7 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
         return;
       }
 
-      await purchasePremiumPackage(monthlyPackage);
+      await purchasePremiumPackage(selectedPackage);
 
       if (signal.aborted) {
         return;
@@ -290,9 +355,6 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
     }
   }
 
-  const priceString = monthlyPackage?.product.priceString;
-  const showPriceSkeleton = isLoadingOffering || !priceString;
-
   return (
     <Modal
       visible={visible}
@@ -352,22 +414,118 @@ export function PaywallSheet({ visible, userId, onClose, onDismissed }: PaywallS
                     {t('paywall.description')}
                   </Text>
 
-                  <View className="mt-6 items-center">
-                    {showPriceSkeleton ? (
+                  <View className="mt-6 flex-row items-end justify-center gap-2">
+                    {isLoadingOffering ? (
+                      <>
+                        <View style={[styles.planSkeleton, styles.planSkeletonFlank]} />
+                        <View style={[styles.planSkeleton, styles.planSkeletonFeatured]} />
+                        <View style={[styles.planSkeleton, styles.planSkeletonFlank]} />
+                      </>
+                    ) : plans.length === 0 ? (
                       <View style={styles.priceSkeleton} />
                     ) : (
-                      <Text className="text-3xl font-bold text-[#4F46E5]">{priceString}</Text>
+                      plans.map((plan) => {
+                        const isSelected = selectedPackageId === plan.pkg.identifier;
+                        const isFeatured = plan.monthsCount === 12;
+                        const perMonthLabel = formatProductCurrency(
+                          plan.pkg.product.price / plan.monthsCount,
+                          plan.pkg.product.currencyCode,
+                        );
+                        const savePercent =
+                          monthlyPrice == null
+                            ? null
+                            : savingsPercentAgainstMonthly(
+                                plan.pkg.product.price,
+                                plan.monthsCount,
+                                monthlyPrice,
+                              );
+
+                        return (
+                          <Pressable
+                            key={plan.pkg.identifier}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: isSelected }}
+                            accessibilityLabel={t(planLabelKey(plan))}
+                            className="min-w-0"
+                            style={[
+                              getGlassCardStyle({
+                                flex: isFeatured ? 1.22 : 1,
+                                paddingHorizontal: 8,
+                                paddingTop: isFeatured ? 16 : 12,
+                                paddingBottom: isFeatured ? 16 : 12,
+                                borderRadius: 14,
+                                borderWidth: isFeatured || isSelected ? 2 : 1,
+                                borderColor: isFeatured
+                                  ? '#4F46E5'
+                                  : isSelected
+                                    ? 'rgba(79, 70, 229, 0.45)'
+                                    : undefined,
+                                backgroundColor: isSelected
+                                  ? 'rgba(79, 70, 229, 0.12)'
+                                  : undefined,
+                              }),
+                            ]}
+                            disabled={isPurchasing || isRestoring || !canSelectPlan}
+                            onPress={() => setSelectedPackageId(plan.pkg.identifier)}>
+                            {isFeatured ? (
+                              <Text className="mb-1 text-center text-[10px] font-bold uppercase tracking-wide text-[#4F46E5]">
+                                {t('paywall.bestValue')}
+                              </Text>
+                            ) : (
+                              <View style={styles.bestValueSpacer} />
+                            )}
+                            {savePercent != null ? (
+                              <View
+                                style={
+                                  isFeatured ? styles.saveBadgeFeatured : styles.saveBadgeQuiet
+                                }>
+                                <Text
+                                  className={`font-semibold ${
+                                    isFeatured
+                                      ? 'text-xs text-[#2C2C2A]'
+                                      : 'text-[10px] text-gray-600'
+                                  }`}>
+                                  {t('paywall.savePercent', { percent: savePercent })}
+                                </Text>
+                              </View>
+                            ) : (
+                              <View style={styles.saveBadgeSpacer} />
+                            )}
+                            <Text
+                              className={`text-center font-semibold text-gray-700 ${
+                                isFeatured ? 'text-sm' : 'text-xs'
+                              }`}
+                              numberOfLines={1}>
+                              {t(planLabelKey(plan))}
+                            </Text>
+                            <Text
+                              className={`mt-1 text-center font-bold text-gray-900 ${
+                                isFeatured ? 'text-xl' : 'text-base'
+                              }`}
+                              numberOfLines={1}
+                              adjustsFontSizeToFit
+                              minimumFontScale={0.7}>
+                              {plan.pkg.product.priceString}
+                            </Text>
+                            <Text
+                              className="mt-1 text-center text-[11px] text-gray-500"
+                              numberOfLines={1}>
+                              {t('paywall.perMonth', { price: perMonthLabel })}
+                            </Text>
+                          </Pressable>
+                        );
+                      })
                     )}
                   </View>
 
                   <Text className="mt-4 text-center text-xs leading-5 text-gray-500">
-                    {t('paywall.autoRenew')}
+                    {selectedPlan ? t(autoRenewKey(selectedPlan)) : t('paywall.autoRenew')}
                   </Text>
 
                   <Pressable
                     className="mt-6 h-12 items-center justify-center rounded-xl bg-[#4F46E5]"
                     disabled={
-                      isPurchasing || isRestoring || isLoadingOffering || !monthlyPackage
+                      isPurchasing || isRestoring || isLoadingOffering || !selectedPackage
                     }
                     onPress={() => void handlePurchase()}>
                     {isPurchasing ? (
@@ -416,5 +574,41 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 8,
     backgroundColor: 'rgba(156, 163, 175, 0.35)',
+  },
+  planSkeleton: {
+    flex: 1,
+    borderRadius: 14,
+    backgroundColor: 'rgba(156, 163, 175, 0.35)',
+  },
+  planSkeletonFlank: {
+    height: 112,
+  },
+  planSkeletonFeatured: {
+    flex: 1.22,
+    height: 156,
+  },
+  bestValueSpacer: {
+    height: 16,
+    marginBottom: 4,
+  },
+  saveBadgeQuiet: {
+    alignSelf: 'center',
+    marginBottom: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(124, 231, 199, 0.45)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  saveBadgeFeatured: {
+    alignSelf: 'center',
+    marginBottom: 8,
+    borderRadius: 999,
+    backgroundColor: '#7CE7C7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  saveBadgeSpacer: {
+    height: 22,
+    marginBottom: 6,
   },
 });

@@ -4,6 +4,30 @@ import { z } from 'https://esm.sh/zod@3.24.2';
 
 /** Placeholder model for meal-vision benchmark — swap here when benchmarking alternatives. */
 const MEAL_VISION_MODEL = 'claude-haiku-4-5';
+
+/**
+ * USD per million tokens, keyed by scan_logs.model_version.
+ * Last checked: 2026-08-25 against https://platform.claude.com/docs/en/about-claude/pricing
+ * (Haiku 4.5: $1 / MTok input, $5 / MTok output). Re-check when swapping models or quarterly.
+ */
+const MODEL_USD_PER_MTOK: Record<string, { input: number; output: number }> = {
+  'claude-haiku-4-5': { input: 1.0, output: 5.0 },
+  'claude-haiku-4-5-20251001': { input: 1.0, output: 5.0 },
+};
+
+function estimateCostUsd(
+  modelVersion: string,
+  inputTokens: number | null,
+  outputTokens: number | null,
+): number | null {
+  if (inputTokens == null && outputTokens == null) return null;
+  const rates = MODEL_USD_PER_MTOK[modelVersion];
+  if (!rates) return null;
+  const cost =
+    ((inputTokens ?? 0) * rates.input + (outputTokens ?? 0) * rates.output) / 1_000_000;
+  return Math.round(cost * 1_000_000) / 1_000_000;
+}
+
 const ANTHROPIC_TIMEOUT_MS = 60_000;
 const MAX_REQUESTS_PER_DAY = 20;
 const RATE_LIMIT_WINDOW = '1 day';
@@ -407,6 +431,11 @@ async function writeScanLog(
     latency_ms: params.latencyMs,
     input_tokens: params.inputTokens,
     output_tokens: params.outputTokens,
+    estimated_cost_usd: estimateCostUsd(
+      MEAL_VISION_MODEL,
+      params.inputTokens,
+      params.outputTokens,
+    ),
     status: params.status,
     error_message: truncateScanLogMessage(params.errorMessage),
     raw_response: params.rawResponse,
