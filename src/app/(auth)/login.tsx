@@ -40,11 +40,16 @@ import {
   IdentityAlreadyLinkedError,
   getEmailAuthErrorKey,
   logAuthError,
+  type LinkedOAuthProvider,
 } from '@/lib/auth-errors';
 import { isPasswordRecoveryFlowActive } from '@/lib/auth-redirect';
 import { configureGoogleSignIn } from '@/lib/google-signin';
 import { checkScanAllowance, scanAllowanceQueryKey } from '@/lib/scanGate';
 import { useAuthStore } from '@/stores/auth-store';
+
+type PendingExistingAccount =
+  | { provider: LinkedOAuthProvider; identityToken: string }
+  | { provider: 'email'; email: string; password: string };
 
 type EmailFormValues = {
   email: string;
@@ -87,10 +92,9 @@ export default function LoginScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSwitchingIdentity, setIsSwitchingIdentity] = useState(false);
-  const [pendingLinkedIdentity, setPendingLinkedIdentity] = useState<{
-    provider: 'apple' | 'google';
-    identityToken: string;
-  } | null>(null);
+  const [pendingExistingAccount, setPendingExistingAccount] =
+    useState<PendingExistingAccount | null>(null);
+  const [warningMealCount, setWarningMealCount] = useState(0);
   const [isAppleAvailable, setIsAppleAvailable] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(true);
   const passwordInputRef = useRef<TextInput>(null);
@@ -125,6 +129,9 @@ export default function LoginScreen() {
       requestAnimationFrame(() => {
         passwordInputRef.current?.focus();
       });
+    }
+    if (params.reason === 'accountRequired') {
+      setErrorMessage(t('auth.accountRequired'));
     }
   }, [params.mode, params.reason, setValue, t]);
 
@@ -203,10 +210,7 @@ export default function LoginScreen() {
       }
 
       if (error instanceof IdentityAlreadyLinkedError) {
-        setPendingLinkedIdentity({
-          provider: error.provider,
-          identityToken: error.identityToken,
-        });
+        await promptOrSwitchExistingOAuth(error);
         return;
       }
 
@@ -253,10 +257,7 @@ export default function LoginScreen() {
       }
 
       if (error instanceof IdentityAlreadyLinkedError) {
-        setPendingLinkedIdentity({
-          provider: error.provider,
-          identityToken: error.identityToken,
-        });
+        await promptOrSwitchExistingOAuth(error);
         return;
       }
 
@@ -267,8 +268,46 @@ export default function LoginScreen() {
     }
   }
 
-  function onSignIn({ email, password }: EmailFormValues) {
-    return runSignInAction(() => signInWithEmail(email.trim(), password));
+  async function anonymousMealCount(): Promise<number> {
+    if (!isAnonymousUser || !userId) {
+      return 0;
+    }
+
+    if (scanAllowance) {
+      return scanAllowance.scanCount;
+    }
+
+    return (await checkScanAllowance(userId)).scanCount;
+  }
+
+  async function promptOrSwitchExistingOAuth(error: IdentityAlreadyLinkedError) {
+    const mealCount = await anonymousMealCount();
+    if (mealCount > 0) {
+      setWarningMealCount(mealCount);
+      setPendingExistingAccount({
+        provider: error.provider,
+        identityToken: error.identityToken,
+      });
+      return;
+    }
+
+    await completeExistingIdentitySignIn(error.provider, error.identityToken);
+  }
+
+  async function onSignIn({ email, password }: EmailFormValues) {
+    const trimmedEmail = email.trim();
+    const mealCount = await anonymousMealCount();
+    if (mealCount > 0) {
+      setWarningMealCount(mealCount);
+      setPendingExistingAccount({
+        provider: 'email',
+        email: trimmedEmail,
+        password,
+      });
+      return;
+    }
+
+    return runSignInAction(() => signInWithEmail(trimmedEmail, password));
   }
 
   function openEmailSignUp() {
@@ -286,11 +325,11 @@ export default function LoginScreen() {
       return;
     }
 
-    setPendingLinkedIdentity(null);
+    setPendingExistingAccount(null);
   }
 
   async function confirmExistingIdentitySignIn() {
-    if (!pendingLinkedIdentity || isSwitchingIdentity) {
+    if (!pendingExistingAccount || isSwitchingIdentity) {
       return;
     }
 
@@ -298,24 +337,39 @@ export default function LoginScreen() {
     setErrorMessage(null);
 
     try {
-      await completeExistingIdentitySignIn(
-        pendingLinkedIdentity.provider,
-        pendingLinkedIdentity.identityToken,
-      );
-      setPendingLinkedIdentity(null);
+      if (pendingExistingAccount.provider === 'email') {
+        await signInWithEmail(pendingExistingAccount.email, pendingExistingAccount.password);
+      } else {
+        await completeExistingIdentitySignIn(
+          pendingExistingAccount.provider,
+          pendingExistingAccount.identityToken,
+        );
+      }
+      setPendingExistingAccount(null);
     } catch (signInError) {
+      if (pendingExistingAccount.provider === 'email') {
+        logAuthError('EmailSignIn', signInError);
+        if (signInError instanceof EmailAuthError) {
+          setErrorMessage(t(getEmailAuthErrorKey(signInError.kind, 'signIn')));
+        } else {
+          setErrorMessage(t('auth.errors.signInFailed'));
+        }
+        setPendingExistingAccount(null);
+        return;
+      }
+
       logAuthError(
-        pendingLinkedIdentity.provider === 'apple' ? 'AppleSignIn' : 'GoogleSignIn',
+        pendingExistingAccount.provider === 'apple' ? 'AppleSignIn' : 'GoogleSignIn',
         signInError,
       );
       setErrorMessage(
         t(
-          pendingLinkedIdentity.provider === 'apple'
+          pendingExistingAccount.provider === 'apple'
             ? 'auth.errors.appleSignInFailed'
             : 'auth.errors.googleSignInFailed',
         ),
       );
-      setPendingLinkedIdentity(null);
+      setPendingExistingAccount(null);
     } finally {
       setIsSwitchingIdentity(false);
     }
@@ -534,9 +588,9 @@ export default function LoginScreen() {
       </ScrollView>
 
       <ExistingIdentitySheet
-        visible={pendingLinkedIdentity !== null}
-        provider={pendingLinkedIdentity?.provider ?? 'apple'}
-        mealCount={unsavedMealCount}
+        visible={pendingExistingAccount !== null}
+        provider={pendingExistingAccount?.provider ?? 'apple'}
+        mealCount={warningMealCount > 0 ? warningMealCount : unsavedMealCount}
         isSubmitting={isSwitchingIdentity}
         onCancel={cancelExistingIdentitySignIn}
         onConfirm={() => void confirmExistingIdentitySignIn()}

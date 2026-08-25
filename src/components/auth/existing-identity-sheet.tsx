@@ -3,16 +3,28 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
-import type { LinkedOAuthProvider } from '@/lib/auth-errors';
+import type { ExistingAccountProvider } from '@/lib/auth-errors';
 
 type ExistingIdentitySheetProps = {
   visible: boolean;
-  provider: LinkedOAuthProvider;
+  provider: ExistingAccountProvider;
   mealCount: number;
   isSubmitting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 };
+
+function existingIdentityMessageKey(provider: ExistingAccountProvider): string {
+  if (provider === 'apple') {
+    return 'auth.existingIdentity.messageApple';
+  }
+
+  if (provider === 'google') {
+    return 'auth.existingIdentity.messageGoogle';
+  }
+
+  return 'auth.existingIdentity.messageEmail';
+}
 
 export function ExistingIdentitySheet({
   visible,
@@ -23,8 +35,7 @@ export function ExistingIdentitySheet({
   onConfirm,
 }: ExistingIdentitySheetProps) {
   const { t } = useTranslation();
-  const messageKey =
-    provider === 'apple' ? 'auth.existingIdentity.messageApple' : 'auth.existingIdentity.messageGoogle';
+  const messageKey = existingIdentityMessageKey(provider);
 
   return (
     <GlassBottomSheet

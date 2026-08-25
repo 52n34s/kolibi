@@ -21,6 +21,7 @@ export class EmailAuthError extends Error {
 }
 
 export type LinkedOAuthProvider = 'apple' | 'google';
+export type ExistingAccountProvider = LinkedOAuthProvider | 'email';
 
 /** Apple/Google identity is already attached to a different (non-anonymous) user. */
 export class IdentityAlreadyLinkedError extends Error {

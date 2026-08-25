@@ -80,6 +80,7 @@ import {
   scanAllowanceQueryKey,
 } from '@/lib/scanGate';
 import { trackAnonymousLimitReached, trackAnonymousScanCompleted } from '@/lib/analytics';
+import { consumePaywallAfterSignup } from '@/lib/pending-paywall';
 import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { MEAL_SOURCE, type MealSource } from '@/lib/meal-sources';
 import { deleteMealPhotoUris, prepareMealPhotoUri } from '@/lib/meal-photo';
@@ -314,6 +315,16 @@ export default function HomeScreen() {
     openPaywall({ withValuePitch: true });
     return false;
   }, [gatePremiumAccess, isAnonymousUser, openPaywall]);
+
+  useEffect(() => {
+    if (isAnonymousUser || !session) {
+      return;
+    }
+
+    if (consumePaywallAfterSignup()) {
+      openPaywall({ withValuePitch: true });
+    }
+  }, [session, isAnonymousUser, openPaywall]);
 
   useEffect(() => {
     return () => {

@@ -18,6 +18,7 @@ import {
   type LinkedOAuthProvider,
 } from '@/lib/auth-errors';
 import { supabase } from '@/lib/supabase';
+import { requestPaywallAfterSignup } from '@/lib/pending-paywall';
 import { useAuthStore } from '@/stores/auth-store';
 
 const HOME_ROUTE = '/home' as Href;
@@ -33,6 +34,17 @@ export async function navigateAfterLogin() {
   }
 
   router.replace(isOnboarded ? HOME_ROUTE : ONBOARDING_ROUTE);
+}
+
+export function navigateToSignIn(reason?: 'emailAlreadyRegistered' | 'accountRequired') {
+  router.push({
+    pathname: '/(auth)/login',
+    params: reason ? { mode: 'signin', reason } : { mode: 'signin' },
+  } as Href);
+}
+
+export function navigateToSignup() {
+  router.push('/(auth)/login' as Href);
 }
 
 async function getAuthUser(): Promise<User | null> {
@@ -134,10 +146,15 @@ export async function completeExistingIdentitySignIn(
 }
 
 async function startTrialAfterAccountConversion(): Promise<void> {
-  const { error } = await supabase.rpc('start_trial_after_account_conversion');
+  const { data, error } = await supabase.rpc('start_trial_after_account_conversion');
 
   if (error) {
     throw error;
+  }
+
+  // StoreKit trial: RPC is a no-op and may return null. Do not require a timestamp.
+  if (data == null) {
+    return;
   }
 }
 
@@ -152,11 +169,8 @@ async function finalizeConvertedSignup(userId: string, provider: SignupProvider)
     Sentry.captureException(trialError);
   }
 
+  requestPaywallAfterSignup();
   await navigateAfterLogin();
-}
-
-async function discardAnonymousSession() {
-  await useAuthStore.getState().signOut();
 }
 
 export async function signInWithEmail(email: string, password: string) {
@@ -176,6 +190,7 @@ export async function signUpWithEmail(email: string, password: string) {
     throw mapSignUpAuthError(error);
   }
   identifyAndTrackSignupIfNew(data.user, 'email');
+  requestPaywallAfterSignup();
   await navigateAfterLogin();
 }
 
@@ -209,11 +224,7 @@ export async function convertAnonymousWithEmailPassword(
     console.warn('[auth] updateUser({ email }) response', { data, error });
 
     if (error) {
-      const mapped = mapSignUpAuthError(error);
-      if (mapped.kind === 'emailAlreadyRegistered') {
-        await discardAnonymousSession();
-      }
-      throw mapped;
+      throw mapSignUpAuthError(error);
     }
   }
 
@@ -369,39 +380,9 @@ export async function requestPasswordReset(email: string) {
 }
 
 export async function updatePassword(password: string) {
-  const {
-    data: sessionData,
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  console.log('[reset] updatePassword getSession before updateUser', {
-    sessionError,
-    hasSession: Boolean(sessionData.session),
-    userId: sessionData.session?.user?.id ?? null,
-    expiresAt: sessionData.session?.expires_at ?? null,
-    accessTokenMasked: sessionData.session?.access_token
-      ? `${sessionData.session.access_token.slice(0, 4)}…${sessionData.session.access_token.slice(-4)} (len=${sessionData.session.access_token.length})`
-      : null,
-  });
-
-  const { data, error } = await supabase.auth.updateUser({ password });
-
-  console.log('[reset] updatePassword updateUser result', {
-    data: {
-      userId: data.user?.id ?? null,
-      email: data.user?.email ?? null,
-    },
-    error,
-  });
+  const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    console.log('[reset] updatePassword updateUser error details', {
-      message: error.message,
-      status: error.status,
-      code: error.code,
-      name: error.name,
-      stringified: JSON.stringify(error),
-    });
     throw error;
   }
 }

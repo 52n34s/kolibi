@@ -51,38 +51,22 @@ export default function ResetPasswordScreen() {
   const hasRecoverySession = session != null;
 
   useEffect(() => {
-    console.log('[reset] ResetPasswordScreen mount/state', {
-      linkError: linkError ?? null,
-      hasExpiredLink,
-      hasRecoverySession,
-      storeUserId: session?.user?.id ?? null,
-    });
-  }, [linkError, hasExpiredLink, hasRecoverySession, session?.user?.id]);
-
-  useEffect(() => {
     if (hasExpiredLink || hasRecoverySession) {
       return;
     }
 
-    console.log('[reset] ResetPasswordScreen sessionMissing UI');
     setErrorMessage(t('auth.resetPassword.errors.sessionMissing'));
   }, [hasExpiredLink, hasRecoverySession, t]);
 
   async function onSubmit({ password }: ResetPasswordFormValues) {
     setErrorMessage(null);
     setIsSubmitting(true);
-    console.log('[reset] ResetPasswordScreen onSubmit', {
-      passwordLength: password.length,
-      storeHasSession: session != null,
-      storeUserId: session?.user?.id ?? null,
-    });
 
     try {
       await updatePassword(password);
       markPasswordRecoveryFlow(false);
       await navigateAfterLogin();
     } catch (error) {
-      console.log('[reset] ResetPasswordScreen onSubmit catch', error);
       logAuthError('PasswordResetUpdate', error);
       if (error && typeof error === 'object' && 'message' in error) {
         console.error('[PasswordResetUpdate] Supabase updateUser failed:', {

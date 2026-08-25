@@ -79,9 +79,12 @@
       "messageApple_other": "You already have a Kolibi account with this Apple ID. If you sign in, your {{count}} meals from this session will be lost.",
       "messageGoogle_one": "You already have a Kolibi account with this Google account. If you sign in, your {{count}} meal from this session will be lost.",
       "messageGoogle_other": "You already have a Kolibi account with this Google account. If you sign in, your {{count}} meals from this session will be lost.",
+      "messageEmail_one": "You already have a Kolibi account with this email address. If you sign in, your {{count}} meal from this session will be lost.",
+      "messageEmail_other": "You already have a Kolibi account with this email address. If you sign in, your {{count}} meals from this session will be lost.",
       "confirm": "Sign in anyway",
       "cancel": "Cancel"
-    }
+    },
+    "accountRequired": "Sign in with your account first to restore your purchases."
   },
   "onboarding": {
     "skip": "Skip for now",

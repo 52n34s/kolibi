@@ -75,9 +75,12 @@
       "messageApple_other": "Ya tienes una cuenta de Kolibi con este Apple ID. Si inicias sesión, se perderán tus {{count}} comidas de esta sesión.",
       "messageGoogle_one": "Ya tienes una cuenta de Kolibi con esta cuenta de Google. Si inicias sesión, se perderá tu {{count}} comida de esta sesión.",
       "messageGoogle_other": "Ya tienes una cuenta de Kolibi con esta cuenta de Google. Si inicias sesión, se perderán tus {{count}} comidas de esta sesión.",
+      "messageEmail_one": "Ya tienes una cuenta de Kolibi con esta dirección de correo. Si inicias sesión, se perderá tu {{count}} comida de esta sesión.",
+      "messageEmail_other": "Ya tienes una cuenta de Kolibi con esta dirección de correo. Si inicias sesión, se perderán tus {{count}} comidas de esta sesión.",
       "confirm": "Iniciar sesión de todos modos",
       "cancel": "Cancelar"
     },
+    "accountRequired": "Inicia sesión primero con tu cuenta para restaurar tus compras.",
     "onboardingStatus": {
       "loadFailed": "No se pudo verificar el estado de tu cuenta. Comprueba la conexión e inténtalo de nuevo.",
       "retry": "Intentar de nuevo"

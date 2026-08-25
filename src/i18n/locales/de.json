@@ -75,9 +75,12 @@
       "messageApple_other": "Du hast bereits ein Kolibi-Konto mit dieser Apple-ID. Wenn du dich anmeldest, gehen deine {{count}} Mahlzeiten aus dieser Sitzung verloren.",
       "messageGoogle_one": "Du hast bereits ein Kolibi-Konto mit diesem Google-Konto. Wenn du dich anmeldest, geht deine {{count}} Mahlzeit aus dieser Sitzung verloren.",
       "messageGoogle_other": "Du hast bereits ein Kolibi-Konto mit diesem Google-Konto. Wenn du dich anmeldest, gehen deine {{count}} Mahlzeiten aus dieser Sitzung verloren.",
+      "messageEmail_one": "Du hast bereits ein Kolibi-Konto mit dieser E-Mail-Adresse. Wenn du dich anmeldest, geht deine {{count}} Mahlzeit aus dieser Sitzung verloren.",
+      "messageEmail_other": "Du hast bereits ein Kolibi-Konto mit dieser E-Mail-Adresse. Wenn du dich anmeldest, gehen deine {{count}} Mahlzeiten aus dieser Sitzung verloren.",
       "confirm": "Trotzdem anmelden",
       "cancel": "Abbrechen"
     },
+    "accountRequired": "Melde dich zuerst mit deinem Konto an, um deine Käufe wiederherzustellen.",
     "onboardingStatus": {
       "loadFailed": "Dein Kontostatus konnte nicht geprüft werden. Prüfe deine Verbindung und versuche es erneut.",
       "retry": "Erneut versuchen"
