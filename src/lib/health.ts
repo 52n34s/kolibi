@@ -5,6 +5,7 @@ import {
   queryStatisticsForQuantity,
   requestAuthorization,
 } from '@kingstinct/react-native-healthkit';
+import * as Sentry from '@sentry/react-native';
 import { Platform } from 'react-native';
 
 import { localDayWindow } from '@/lib/day-window';
@@ -106,7 +107,23 @@ export async function getActiveEnergyBurnedToday(): Promise<number | null> {
     return Math.round(result.sumQuantity?.quantity ?? 0);
   } catch (error) {
     if (isHealthAuthorizationNotDetermined(error)) {
-      // Expected before Health permission — avoid LogBox noise in dev.
+      // Callers only read when health_connected is true (Home query) or right
+      // after setting it (Settings connect). Still notDetermined → silent Home hide.
+      console.warn(
+        '[Health] active energy read: authorization notDetermined while health_connected expected true',
+        error,
+      );
+      Sentry.captureMessage(
+        'HealthKit active energy: authorization notDetermined while health_connected',
+        {
+          level: 'warning',
+          tags: { area: 'healthkit', auth: 'notDetermined' },
+          extra: {
+            health_connected: true,
+            quantityType: ACTIVE_ENERGY_TYPE,
+          },
+        },
+      );
       return null;
     }
 
