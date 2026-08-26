@@ -1,5 +1,5 @@
 import { createClient, type SupportedStorage } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -113,3 +113,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+
+// Register once: refresh only while the app is foregrounded (RN docs pattern).
+if (isNativeClient) {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') {
+      void supabase.auth.startAutoRefresh();
+    } else {
+      void supabase.auth.stopAutoRefresh();
+    }
+  });
+}
