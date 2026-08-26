@@ -104,7 +104,9 @@ export async function getActiveEnergyBurnedToday(): Promise<number | null> {
       },
     );
 
-    return Math.round(result.sumQuantity?.quantity ?? 0);
+    return result.sumQuantity?.quantity != null
+      ? Math.round(result.sumQuantity.quantity)
+      : null;
   } catch (error) {
     if (isHealthAuthorizationNotDetermined(error)) {
       // Callers only read when health_connected is true (Home query) or right
@@ -128,6 +130,6 @@ export async function getActiveEnergyBurnedToday(): Promise<number | null> {
     }
 
     console.warn('[Health] read active energy failed:', error);
-    return null;
+    throw error;
   }
 }
