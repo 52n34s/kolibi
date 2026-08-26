@@ -217,6 +217,9 @@
       "daysLeft_other": "Prueba: quedan {{count}} días",
       "endsToday": "La prueba termina hoy"
     },
+    "returningUser": {
+      "prompt": "¿Ya tienes una cuenta? Iniciar sesión"
+    },
     "weight": {
       "label": "Peso actual",
       "targetTitle": "Peso objetivo",
@@ -649,6 +652,9 @@
       "errorMessage": "No se pudo enviar tu revocación. Inténtalo de nuevo.",
       "retry": "Reintentar",
       "alreadySubmitted": "Revocación declarada el {{date}}"
+    },
+    "signIn": {
+      "action": "Iniciar sesión"
     },
     "signOut": {
       "action": "Cerrar sesión",

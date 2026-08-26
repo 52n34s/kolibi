@@ -217,6 +217,9 @@
       "daysLeft_other": "Trial: {{count}} days left",
       "endsToday": "Trial ends today"
     },
+    "returningUser": {
+      "prompt": "Already have an account? Sign in"
+    },
     "weight": {
       "label": "Current weight",
       "targetTitle": "Target weight",
@@ -649,6 +652,9 @@
       "errorMessage": "Your withdrawal could not be submitted. Please try again.",
       "retry": "Try again",
       "alreadySubmitted": "Withdrawal declared on {{date}}"
+    },
+    "signIn": {
+      "action": "Sign in"
     },
     "signOut": {
       "action": "Sign out",

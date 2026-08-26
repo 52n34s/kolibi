@@ -217,6 +217,9 @@
       "daysLeft_other": "Testzeitraum: noch {{count}} Tage",
       "endsToday": "Testzeitraum endet heute"
     },
+    "returningUser": {
+      "prompt": "Schon ein Konto? Anmelden"
+    },
     "weight": {
       "label": "Aktuelles Gewicht",
       "targetTitle": "Zielgewicht",
@@ -649,6 +652,9 @@
       "errorMessage": "Dein Widerruf konnte nicht übermittelt werden. Bitte versuche es erneut.",
       "retry": "Erneut versuchen",
       "alreadySubmitted": "Widerruf erklärt am {{date}}"
+    },
+    "signIn": {
+      "action": "Anmelden"
     },
     "signOut": {
       "action": "Abmelden",

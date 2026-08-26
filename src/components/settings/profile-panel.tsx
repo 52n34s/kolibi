@@ -39,6 +39,7 @@ import {
 } from '@/lib/user-preferences';
 import { SUPPORTED_LANGUAGES, setAppLanguage, type SupportedLanguage } from '@/i18n';
 import { isEmailPasswordUser } from '@/lib/auth-provider';
+import { navigateToSignIn } from '@/lib/auth';
 import { resolveDisplayName } from '@/lib/home';
 import { useAccountDeletion } from '@/hooks/use-account-deletion';
 import {
@@ -57,6 +58,7 @@ export function ProfilePanel() {
   const session = useAuthStore((state) => state.session);
   const signOut = useAuthStore((state) => state.signOut);
   const userId = session?.user?.id;
+  const isAnonymousUser = session?.user?.is_anonymous === true;
 
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
@@ -577,7 +579,12 @@ export function ProfilePanel() {
         ) : null}
 
         <SettingsSection>
-          <SettingsRow label={t('settings.signOut.action')} onPress={confirmSignOut} />
+          <SettingsRow
+            label={
+              isAnonymousUser ? t('settings.signIn.action') : t('settings.signOut.action')
+            }
+            onPress={isAnonymousUser ? () => navigateToSignIn() : confirmSignOut}
+          />
           <SettingsRow
             label={t('settings.deleteAccount.action')}
             destructive

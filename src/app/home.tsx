@@ -80,6 +80,7 @@ import {
   scanAllowanceQueryKey,
 } from '@/lib/scanGate';
 import { trackAnonymousLimitReached, trackAnonymousScanCompleted } from '@/lib/analytics';
+import { navigateToSignIn } from '@/lib/auth';
 import { consumePaywallAfterSignup } from '@/lib/pending-paywall';
 import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { MEAL_SOURCE, type MealSource } from '@/lib/meal-sources';
@@ -1061,6 +1062,14 @@ export default function HomeScreen() {
           contentContainerStyle={{ paddingTop: contentTopPadding, paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}>
           <Text className="mb-6 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
+
+          {isAnonymousUser ? (
+            <Pressable className="mt-1 mb-2" onPress={() => navigateToSignIn()}>
+              <Text className="text-gray-500" style={{ fontSize: 11 }}>
+                {t('home.returningUser.prompt')}
+              </Text>
+            </Pressable>
+          ) : null}
 
           {isInTrial ? (
             trialDaysLeft === 0 ? (
