@@ -180,13 +180,18 @@ export function ProfilePanel() {
 
       // Read access is not reported as granted/denied on iOS. If nothing is
       // readable, show a non-blocking hint pointing to the Health app.
-      const burned = await getActiveEnergyBurnedToday();
-      if (burned == null) {
-        Alert.alert(
-          t('settings.health.sharingHintTitle'),
-          t('settings.health.sharingHintMessage'),
-          [{ text: t('settings.common.ok') }],
-        );
+      // Transient HealthKit errors must not fail the connect (pref already saved).
+      try {
+        const burned = await getActiveEnergyBurnedToday();
+        if (burned == null) {
+          Alert.alert(
+            t('settings.health.sharingHintTitle'),
+            t('settings.health.sharingHintMessage'),
+            [{ text: t('settings.common.ok') }],
+          );
+        }
+      } catch (readError) {
+        console.warn('[ProfilePanel] health connect post-read failed:', readError);
       }
     } catch (saveError) {
       console.error('[ProfilePanel] health connect failed:', saveError);
