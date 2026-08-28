@@ -21,9 +21,14 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 env_file="$repo_root/.env.local"
 
+if [[ -z "${ERDI_TOKEN_METRICS:-}" && -f "$env_file" ]]; then
+  ERDI_TOKEN_METRICS="$(read_dotenv "$env_file" ERDI_TOKEN_METRICS || true)"
+fi
 if [[ -z "${ERDI_TOKEN:-}" && -f "$env_file" ]]; then
   ERDI_TOKEN="$(read_dotenv "$env_file" ERDI_TOKEN || true)"
 fi
+ERDI_TOKEN="${ERDI_TOKEN_METRICS:-${ERDI_TOKEN:-}}"
+
 if [[ -z "${ERDI_TZ:-}" && -f "$env_file" ]]; then
   ERDI_TZ="$(read_dotenv "$env_file" ERDI_TZ || true)"
 fi
@@ -32,7 +37,7 @@ if [[ -z "${SUPABASE_DB_URL:-}" && -f "$env_file" ]]; then
 fi
 
 if [[ -z "${ERDI_TOKEN:-}" ]]; then
-  echo 'No ERDI_TOKEN found — checked the environment and ./.env.local' >&2
+  echo 'No ERDI_TOKEN_METRICS or ERDI_TOKEN found — checked the environment and ./.env.local' >&2
   exit 1
 fi
 if [[ -z "${SUPABASE_DB_URL:-}" ]]; then
@@ -338,7 +343,7 @@ defs = (
     ("scans", "Meal scans", "count", "up_good", "Engagement", "", 5, first_scan, False),
     ("scans_success", "Successful meal scans", "count", "up_good", "Engagement", "", 6, first_scan, False),
     ("weight_logs", "Weight logs", "count", "up_good", "Engagement", "", 8, first_weight, False),
-    ("ai_cost", "AI cost (meal scans)", "currency", "down_good", "Cost", "spend", 9, first_ai_cost, True),
+    ("ai_cost", "AI cost (meal scans)", "currency", "down_good", "Cost", "cost", 9, first_ai_cost, True),
     ("ai_calls", "AI model calls (meal scans)", "count", "down_good", "Cost", "", 10, first_ai_call, False),
 )
 

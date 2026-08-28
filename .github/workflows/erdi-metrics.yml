@@ -1,0 +1,25 @@
+name: Erdi metrics
+on:
+  schedule:
+    - cron: '0 0,8,16 * * *'
+  workflow_dispatch:
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install psycopg2-binary
+      - name: Post metrics
+        env:
+          ERDI_TOKEN_METRICS: ${{ secrets.ERDI_TOKEN_METRICS }}
+          ERDI_TZ: Europe/Berlin
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          FROM="$(TZ="$ERDI_TZ" date -d '3 days ago' +%Y-%m-%d)"
+          TO="$(TZ="$ERDI_TZ" date +%Y-%m-%d)"
+          chmod +x scripts/erdi-metrics.sh
+          ./scripts/erdi-metrics.sh --from "$FROM" --to "$TO"
