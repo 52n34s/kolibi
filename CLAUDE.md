@@ -18,6 +18,6 @@ Do not post for:
 - Build or CI fixes
 - Work that is not deployed yet
 
-Set `ERDI_TOKEN` in `.env.local` (Settings → API). The script checks the environment and `./.env.local` (next to the repo root, resolved from the script path). Default API host: https://erdiknows.com. Optional: `ERDI_URL` to override.
+Set `ERDI_TOKEN_EVENTS` in `.env.local` (Settings → API). The script also accepts `ERDI_TOKEN`. It checks the environment and `./.env.local` (next to the repo root, resolved from the script path). Default API host: https://erdiknows.com. Optional: `ERDI_URL` to override.
 
 `scripts/erdi-event.sh` is a copy. The current version lives in the ErdiKnows repo — run the setup block again (Settings → API) to replace an older copy.

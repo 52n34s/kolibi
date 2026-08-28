@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-read_erdi_token() {
-  local file="$1"
-  local line value
-  line="$(grep -E '^ERDI_TOKEN=' "$file" | tail -n 1 || true)"
+read_dotenv() {
+  local file="$1" key="$2" line value
+  line="$(grep -E "^${key}=" "$file" | tail -n 1 || true)"
   [[ -n "$line" ]] || return 1
-  value="${line#ERDI_TOKEN=}"
+  value="${line#${key}=}"
   value="${value%$'\r'}"
   case "$value" in
     \"*\") value="${value#\"}"; value="${value%\"}" ;;
@@ -19,12 +18,16 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 env_file="$repo_root/.env.local"
 
-if [[ -z "${ERDI_TOKEN:-}" && -f "$env_file" ]]; then
-  ERDI_TOKEN="$(read_erdi_token "$env_file" || true)"
+if [[ -z "${ERDI_TOKEN_EVENTS:-}" && -f "$env_file" ]]; then
+  ERDI_TOKEN_EVENTS="$(read_dotenv "$env_file" ERDI_TOKEN_EVENTS || true)"
 fi
+if [[ -z "${ERDI_TOKEN:-}" && -f "$env_file" ]]; then
+  ERDI_TOKEN="$(read_dotenv "$env_file" ERDI_TOKEN || true)"
+fi
+ERDI_TOKEN="${ERDI_TOKEN_EVENTS:-${ERDI_TOKEN:-}}"
 
 if [[ -z "${ERDI_TOKEN:-}" ]]; then
-  echo 'No ERDI_TOKEN found — checked the environment and ./.env.local' >&2
+  echo 'No ERDI_TOKEN_EVENTS or ERDI_TOKEN found — checked the environment and ./.env.local' >&2
   exit 1
 fi
 
