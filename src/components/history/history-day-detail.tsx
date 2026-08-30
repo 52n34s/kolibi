@@ -16,7 +16,7 @@ import {
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE, GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
-import { useDayCalorieGoal, useDayMeals } from '@/hooks/use-day-meals';
+import { useDayCalorieGoal, useDayHealthStats, useDayMeals } from '@/hooks/use-day-meals';
 import { useDietPreference } from '@/hooks/use-diet-preference';
 import {
   isDayEditable,
@@ -132,6 +132,7 @@ export function HistoryDayDetail({
 
   const { data: meals, isLoading: mealsLoading } = useDayMeals(userId, selectedDateKey);
   const { data: dayGoal, isLoading: goalLoading } = useDayCalorieGoal(userId, selectedDateKey);
+  const { data: dayHealthStats } = useDayHealthStats(userId, selectedDateKey);
   const { data: dietPreference } = useDietPreference(userId);
 
   const dayTotalKcal = useMemo(
@@ -194,11 +195,20 @@ export function HistoryDayDetail({
       return t('history.day.goalNotSet');
     }
 
+    const burned = dayHealthStats?.active_energy_kcal;
+    if (burned != null) {
+      return t('history.day.goalProgressWithBurned', {
+        consumed: formatKcal(dayTotalKcal),
+        goal: formatKcal(dayGoal),
+        burned: formatKcal(burned),
+      });
+    }
+
     return t('history.day.goalProgress', {
       consumed: formatKcal(dayTotalKcal),
       goal: formatKcal(dayGoal),
     });
-  }, [dayGoal, dayTotalKcal, goalLoading, t]);
+  }, [dayGoal, dayHealthStats?.active_energy_kcal, dayTotalKcal, goalLoading, t]);
 
   return (
     <View className="mt-8">

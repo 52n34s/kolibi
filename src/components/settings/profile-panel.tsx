@@ -30,7 +30,7 @@ import { SETTINGS_GLASS_DIVIDER_CLASS } from '@/components/ui/glass-styles';
 import { UnitSystemToggle } from '@/components/onboarding/unit-system-toggle';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
-import { requestHealthPermissions, getActiveEnergyBurnedToday } from '@/lib/health';
+import { requestHealthPermissions, getActiveEnergyBurned } from '@/lib/health';
 import { recalculateCalorieGoalForHealthKitChange } from '@/lib/recalculate-calorie-goal-for-health';
 import {
   getUserPreference,
@@ -182,7 +182,7 @@ export function ProfilePanel() {
       // readable, show a non-blocking hint pointing to the Health app.
       // Transient HealthKit errors must not fail the connect (pref already saved).
       try {
-        const burned = await getActiveEnergyBurnedToday();
+        const burned = await getActiveEnergyBurned();
         if (burned == null) {
           Alert.alert(
             t('settings.health.sharingHintTitle'),

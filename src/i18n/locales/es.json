@@ -451,7 +451,8 @@
       "emptyMeals": "No hay comidas este día.",
       "readOnlyHint": "Las entradas se pueden editar hasta el día anterior.",
       "goalNotSet": "Objetivo diario: No establecido",
-      "goalProgress": "{{consumed}} / {{goal}} kcal"
+      "goalProgress": "{{consumed}} / {{goal}} kcal",
+      "goalProgressWithBurned": "{{consumed}} / {{goal}} kcal · +{{burned}} quemadas"
     }
   },
   "settings": {

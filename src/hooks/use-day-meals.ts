@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { fetchCalorieGoalForDate } from '@/lib/calorie-goals';
+import { fetchDailyHealthStatsForDate } from '@/lib/daily-health-stats';
 import { fetchMealsForLocalDate } from '@/lib/meals';
 
 export function useDayMeals(userId: string | undefined, dateKey: string) {
@@ -27,6 +28,20 @@ export function useDayCalorieGoal(userId: string | undefined, dateKey: string) {
       }
 
       return fetchCalorieGoalForDate(userId, dateKey);
+    },
+  });
+}
+
+export function useDayHealthStats(userId: string | undefined, dateKey: string) {
+  return useQuery({
+    queryKey: ['daily-health-stats', userId, dateKey],
+    enabled: Boolean(userId && dateKey),
+    queryFn: async () => {
+      if (!userId) {
+        throw new Error('Missing user id');
+      }
+
+      return fetchDailyHealthStatsForDate(userId, dateKey);
     },
   });
 }

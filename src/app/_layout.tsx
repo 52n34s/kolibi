@@ -52,6 +52,7 @@ import { PostHogProvider } from 'posthog-react-native';
 import { useAuthStore } from '@/stores/auth-store';
 import { posthog } from '@/lib/analytics';
 import { applyEagerOtaUpdateOnLaunch } from '@/lib/eager-ota-update';
+import { syncHealthStatsForRecentDays } from '@/lib/health';
 import { ensurePushRegistration } from '@/lib/notifications';
 import { registerPremiumAccessCustomerInfoListener } from '@/lib/premium-query-sync';
 import {
@@ -129,6 +130,15 @@ function RootLayout() {
     }
 
     void ensurePushRegistration(userId, { askIfUndetermined: false });
+  }, [initialized, userId]);
+
+  // HealthKit → daily_health_stats for history; no-op when health_connected is false.
+  useEffect(() => {
+    if (!initialized || !userId) {
+      return;
+    }
+
+    void syncHealthStatsForRecentDays(userId);
   }, [initialized, userId]);
 
   // Configure once at app start (no appUserID); identity is applied via logIn below.
