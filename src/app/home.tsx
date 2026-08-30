@@ -73,7 +73,7 @@ import {
   updateMealWithItems,
   type TodayMeal,
 } from '@/lib/meals';
-import { registerForPushNotifications, PUSH_PERMISSION_ASKED_KEY } from '@/lib/notifications';
+import { ensurePushRegistration, PUSH_PERMISSION_ASKED_KEY } from '@/lib/notifications';
 import {
   checkScanAllowance,
   incrementScanCount,
@@ -210,31 +210,27 @@ export default function HomeScreen() {
 
   const secureStore = useMemo(() => createChunkedSecureStoreAdapter(), []);
 
-  const maybeAskForPushAfterFirstMeal = useCallback(async () => {
+  const ensurePushOnMealSave = useCallback(async () => {
     if (!userId) {
       return;
     }
 
-    const stored = await secureStore.getItem(PUSH_PERMISSION_ASKED_KEY);
+    const result = await ensurePushRegistration(userId, { askIfUndetermined: true });
+
     Sentry.addBreadcrumb({
       category: 'push-debug',
-      message: 'maybeAskForPushAfterFirstMeal: push_permission_asked',
+      message: 'ensurePushOnMealSave result',
       level: 'info',
-      data: { secureStoreFlag: stored, userId },
+      data: { status: result.status, prompted: result.prompted, userId },
     });
 
-    if (stored !== 'true') {
-      const result = await registerForPushNotifications(userId);
-
-      if (result.status === 'granted' || result.status === 'denied') {
-        await secureStore.setItem(PUSH_PERMISSION_ASKED_KEY, 'true');
-      }
+    // Nag date only after the user answered (or OS already denied). Never on token_failed / unavailable.
+    if (
+      result.status === 'denied' ||
+      (result.status === 'granted' && result.prompted)
+    ) {
+      await secureStore.setItem(PUSH_PERMISSION_ASKED_KEY, new Date().toISOString());
     }
-
-    Sentry.captureMessage('push-debug: flow completed', {
-      level: 'info',
-      tags: { flow: 'push-permission' },
-    });
   }, [secureStore, userId]);
 
   const openPaywall = useCallback((options?: { withValuePitch?: boolean }) => {
@@ -783,7 +779,7 @@ export default function HomeScreen() {
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       handleMealConfirmationClose();
-      await maybeAskForPushAfterFirstMeal();
+      await ensurePushOnMealSave();
     } catch (saveError) {
       console.error('[Home] meal save failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('home.scan.confirmation.saveError'));
@@ -912,7 +908,7 @@ export default function HomeScreen() {
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       closeBarcodeFlow();
-      await maybeAskForPushAfterFirstMeal();
+      await ensurePushOnMealSave();
     } catch (saveError) {
       console.error('[Home] barcode meal save failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('home.scan.barcode.saveError'));
@@ -945,7 +941,7 @@ export default function HomeScreen() {
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       setShowManualEntrySheet(false);
-      await maybeAskForPushAfterFirstMeal();
+      await ensurePushOnMealSave();
     } catch (saveError) {
       console.error('[Home] manual meal save failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('home.manualEntry.saveError'));

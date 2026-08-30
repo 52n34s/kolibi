@@ -52,7 +52,7 @@ import { PostHogProvider } from 'posthog-react-native';
 import { useAuthStore } from '@/stores/auth-store';
 import { posthog } from '@/lib/analytics';
 import { applyEagerOtaUpdateOnLaunch } from '@/lib/eager-ota-update';
-import { migratePushPermissionAskedFlagOnce } from '@/lib/notifications';
+import { ensurePushRegistration } from '@/lib/notifications';
 import { registerPremiumAccessCustomerInfoListener } from '@/lib/premium-query-sync';
 import {
   configurePurchasesOnce,
@@ -116,16 +116,20 @@ function RootLayout() {
     };
   }, []);
 
-  // Device-local SecureStore migration — never gates splash / auth.
-  useEffect(() => {
-    void migratePushPermissionAskedFlagOnce();
-  }, []);
-
   useEffect(() => {
     if (appReady) {
       SplashScreen.hideAsync();
     }
   }, [appReady]);
+
+  // Catch-up token upsert when OS already granted — never prompts (askIfUndetermined: false).
+  useEffect(() => {
+    if (!initialized || !userId) {
+      return;
+    }
+
+    void ensurePushRegistration(userId, { askIfUndetermined: false });
+  }, [initialized, userId]);
 
   // Configure once at app start (no appUserID); identity is applied via logIn below.
   useEffect(() => {

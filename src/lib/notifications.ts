@@ -13,32 +13,13 @@ const secureStore = createChunkedSecureStoreAdapter();
 
 const PUSH_TOKEN_STORAGE_KEY = 'expo_push_token';
 
-/** Survives reinstall via iOS Keychain — only set after user answers the system prompt. */
+/** Survives reinstall via iOS Keychain — ISO date; nag guard for undetermined only. */
 export const PUSH_PERMISSION_ASKED_KEY = 'push_permission_asked';
 
-/** One-shot migration marker: clears stale push_permission_asked for existing installs. */
-export const PUSH_FLAG_MIGRATION_KEY = 'push_flag_migrated_v1';
+const PUSH_NAG_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function clearPushPermissionAskedFlag(): Promise<void> {
   await secureStore.removeItem(PUSH_PERMISSION_ASKED_KEY);
-}
-
-/**
- * Clears a possibly-stale push_permission_asked flag once per install.
- * Fire-and-forget at cold start — must never block splash or throw to callers.
- */
-export async function migratePushPermissionAskedFlagOnce(): Promise<void> {
-  try {
-    const migrated = await secureStore.getItem(PUSH_FLAG_MIGRATION_KEY);
-    if (migrated === 'true') {
-      return;
-    }
-
-    await secureStore.removeItem(PUSH_PERMISSION_ASKED_KEY);
-    await secureStore.setItem(PUSH_FLAG_MIGRATION_KEY, 'true');
-  } catch {
-    // SecureStore / Keychain failure — skip; next launch can retry.
-  }
 }
 
 Notifications.setNotificationHandler({
@@ -73,104 +54,28 @@ async function getDeviceId(): Promise<string | null> {
   }
 }
 
+/** Legacy `'true'` and other non-ISO values → treat as never asked. */
+function wasAskedWithinNagWindow(stored: string | null): boolean {
+  if (!stored) {
+    return false;
+  }
+
+  const parsed = Date.parse(stored);
+  if (Number.isNaN(parsed)) {
+    return false;
+  }
+
+  return Date.now() - parsed < PUSH_NAG_INTERVAL_MS;
+}
+
 export type PushRegistrationResult = {
-  status: 'granted' | 'denied' | 'error';
-  token: string | null;
+  status: 'granted' | 'denied' | 'undetermined' | 'token_failed' | 'unavailable';
+  /** True when requestPermissionsAsync ran (caller uses this for nag-date writes). */
+  prompted: boolean;
 };
 
-export async function registerForPushNotifications(
-  userId: string,
-): Promise<PushRegistrationResult> {
+async function registerPushToken(userId: string): Promise<'granted' | 'token_failed'> {
   try {
-    Sentry.addBreadcrumb({
-      category: 'push-debug',
-      message: 'registerForPushNotifications start',
-      level: 'info',
-      data: {
-        userId,
-        platform: Platform.OS,
-        isDevice: Device.isDevice,
-      },
-    });
-
-    if (!Device.isDevice) {
-      Sentry.addBreadcrumb({
-        category: 'push-debug',
-        message: 'early exit: !Device.isDevice',
-        level: 'warning',
-        data: { isDevice: Device.isDevice },
-      });
-      return { status: 'error', token: null };
-    }
-
-    const currentStatus = await Notifications.getPermissionsAsync();
-    let finalStatus = currentStatus.status;
-    Sentry.addBreadcrumb({
-      category: 'push-debug',
-      message: 'raw permission status',
-      level: 'info',
-      data: { status: finalStatus, canAskAgain: currentStatus.canAskAgain },
-    });
-    Sentry.addBreadcrumb({
-      category: 'push-debug',
-      message: 'permission status before request',
-      level: 'info',
-      data: {
-        permissionStatus: currentStatus.status,
-        granted: currentStatus.granted,
-        canAskAgain: currentStatus.canAskAgain,
-        iosStatus: currentStatus.ios?.status ?? null,
-      },
-    });
-
-    if (finalStatus !== 'granted') {
-      Sentry.addBreadcrumb({
-        category: 'push-debug',
-        message: 'calling requestPermissionsAsync',
-        level: 'info',
-      });
-      const requested = await Notifications.requestPermissionsAsync();
-      finalStatus = requested.status;
-      Sentry.addBreadcrumb({
-        category: 'push-debug',
-        message: 'permission status after request',
-        level: 'info',
-        data: {
-          permissionStatus: requested.status,
-          granted: requested.granted,
-          canAskAgain: requested.canAskAgain,
-          iosStatus: requested.ios?.status ?? null,
-        },
-      });
-    } else {
-      Sentry.addBreadcrumb({
-        category: 'push-debug',
-        message: 'skip requestPermissionsAsync (already granted)',
-        level: 'info',
-        data: { permissionStatus: finalStatus },
-      });
-    }
-
-    if (finalStatus === 'denied') {
-      Sentry.addBreadcrumb({
-        category: 'push-debug',
-        message: 'early exit: permission denied',
-        level: 'warning',
-        data: { permissionStatus: finalStatus },
-      });
-      return { status: 'denied', token: null };
-    }
-
-    if (finalStatus !== 'granted') {
-      Sentry.addBreadcrumb({
-        category: 'push-debug',
-        message: 'early exit: permission not granted',
-        level: 'warning',
-        data: { permissionStatus: finalStatus },
-      });
-      return { status: 'error', token: null };
-    }
-
     const projectId = getExpoProjectId();
     Sentry.addBreadcrumb({
       category: 'push-debug',
@@ -178,14 +83,15 @@ export async function registerForPushNotifications(
       level: 'info',
       data: { projectId },
     });
+
     const token = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined,
     );
 
     const deviceId = await getDeviceId();
     const platform = 'ios';
-
     const expoPushToken = token.data;
+
     Sentry.addBreadcrumb({
       category: 'push-debug',
       message: 'Expo push token fetched',
@@ -196,6 +102,15 @@ export async function registerForPushNotifications(
       },
     });
 
+    if (deviceId) {
+      await supabase
+        .from('push_tokens')
+        .delete()
+        .eq('user_id', userId)
+        .eq('device_id', deviceId)
+        .neq('expo_push_token', expoPushToken);
+    }
+
     await supabase.from('push_tokens').upsert(
       {
         expo_push_token: expoPushToken,
@@ -205,6 +120,7 @@ export async function registerForPushNotifications(
       },
       { onConflict: 'expo_push_token' },
     );
+
     Sentry.addBreadcrumb({
       category: 'push-debug',
       message: 'push_tokens upsert done',
@@ -212,27 +128,110 @@ export async function registerForPushNotifications(
     });
 
     await syncProfileTimezone(userId);
-
     await secureStore.setItem(PUSH_TOKEN_STORAGE_KEY, expoPushToken);
 
+    return 'granted';
+  } catch (error) {
+    Sentry.captureException(error, { tags: { flow: 'push-registration' } });
+    console.error('[Notifications] token registration failed:', error);
+    return 'token_failed';
+  }
+}
+
+/**
+ * Syncs OS permission + Expo push token with push_tokens.
+ * iOS permission status is the source of truth.
+ *
+ * @param askIfUndetermined — false at cold start (no system dialog); true after first meal.
+ */
+export async function ensurePushRegistration(
+  userId: string,
+  options: { askIfUndetermined: boolean },
+): Promise<PushRegistrationResult> {
+  Sentry.addBreadcrumb({
+    category: 'push-debug',
+    message: 'ensurePushRegistration start',
+    level: 'info',
+    data: {
+      userId,
+      askIfUndetermined: options.askIfUndetermined,
+      platform: Platform.OS,
+      isDevice: Device.isDevice,
+    },
+  });
+
+  if (!Device.isDevice) {
+    return { status: 'unavailable', prompted: false };
+  }
+
+  const current = await Notifications.getPermissionsAsync();
+  Sentry.addBreadcrumb({
+    category: 'push-debug',
+    message: 'permission status',
+    level: 'info',
+    data: {
+      permissionStatus: current.status,
+      granted: current.granted,
+      canAskAgain: current.canAskAgain,
+      iosStatus: current.ios?.status ?? null,
+    },
+  });
+
+  let permissionStatus = current.status;
+  let prompted = false;
+
+  if (permissionStatus === 'denied') {
+    return { status: 'denied', prompted: false };
+  }
+
+  if (permissionStatus === 'undetermined') {
+    if (!options.askIfUndetermined) {
+      return { status: 'undetermined', prompted: false };
+    }
+
+    const stored = await secureStore.getItem(PUSH_PERMISSION_ASKED_KEY);
+    if (wasAskedWithinNagWindow(stored)) {
+      Sentry.addBreadcrumb({
+        category: 'push-debug',
+        message: 'skip ask: within 7-day nag window',
+        level: 'info',
+        data: { stored },
+      });
+      return { status: 'undetermined', prompted: false };
+    }
+
     Sentry.addBreadcrumb({
       category: 'push-debug',
-      message: 'register success: granted',
+      message: 'calling requestPermissionsAsync',
       level: 'info',
     });
-    return { status: 'granted', token: expoPushToken };
-  } catch (error) {
+    const requested = await Notifications.requestPermissionsAsync();
+    prompted = true;
+    permissionStatus = requested.status;
+
     Sentry.addBreadcrumb({
       category: 'push-debug',
-      message: 'register failed (catch)',
-      level: 'error',
+      message: 'permission status after request',
+      level: 'info',
       data: {
-        errorMessage: error instanceof Error ? error.message : String(error),
+        permissionStatus: requested.status,
+        granted: requested.granted,
+        canAskAgain: requested.canAskAgain,
+        iosStatus: requested.ios?.status ?? null,
       },
     });
-    console.error('[Notifications] register failed:', error);
-    return { status: 'error', token: null };
+
+    if (permissionStatus !== 'granted') {
+      return { status: 'denied', prompted };
+    }
   }
+
+  if (permissionStatus !== 'granted') {
+    return { status: 'denied', prompted };
+  }
+
+  const tokenStatus = await registerPushToken(userId);
+  return { status: tokenStatus, prompted };
 }
 
 export async function unregisterPushToken(userId: string) {
