@@ -463,6 +463,8 @@ export default function HomeScreen() {
     }
 
     const unit = t('home.nutrients.unitGrams');
+    const goalFormatted = formatKcal(calorieGoalDisplay.dailyGoalContextValue);
+    const burnedFormatted = formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0);
     const snapshot = buildWidgetSnapshot({
       dateKey: localDateKey(),
       remainingValue: formatKcal(calorieGoalDisplay.mainValue),
@@ -475,12 +477,16 @@ export default function HomeScreen() {
       labelFooter:
         calorieGoalDisplay.mode === 'dynamic'
           ? t('home.calorieGoal.dynamicDailyGoalReference', {
-              goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
-              burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
+              goal: goalFormatted,
+              burned: burnedFormatted,
             })
           : t('home.calorieGoal.dailyGoalReference', {
-              goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
+              goal: goalFormatted,
             }),
+      labelFooterCompact:
+        calorieGoalDisplay.mode === 'dynamic'
+          ? `${goalFormatted} · +${burnedFormatted}`
+          : goalFormatted,
       macros: nutrientTiles.map((tile) => ({
         label: tile.label,
         value:

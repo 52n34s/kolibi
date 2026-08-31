@@ -7,6 +7,13 @@ export type WidgetMacroSnapshot = {
   value: string;
 };
 
+export type WidgetKoliVariant =
+  | 'neutral'
+  | 'energetic'
+  | 'confident'
+  | 'focused'
+  | 'happy';
+
 export type WidgetCalorieSnapshot = {
   schemaVersion: number;
   dateKey: string;
@@ -14,15 +21,17 @@ export type WidgetCalorieSnapshot = {
   isOverGoal: boolean;
   labelRemaining: string;
   labelFooter: string;
+  labelFooterCompact: string;
   macros: WidgetMacroSnapshot[];
   premium: boolean;
   progress: number;
+  koliVariant: WidgetKoliVariant;
   updatedAt: string;
 };
 
 export const WIDGET_APP_GROUP = 'group.com.steffen.kolibi';
 export const WIDGET_CALORIE_SNAPSHOT_KEY = 'calorieSnapshot';
-export const WIDGET_CALORIE_SNAPSHOT_SCHEMA_VERSION = 1;
+export const WIDGET_CALORIE_SNAPSHOT_SCHEMA_VERSION = 3;
 
 export type BuildWidgetSnapshotInput = {
   dateKey: string;
@@ -30,6 +39,7 @@ export type BuildWidgetSnapshotInput = {
   isOverGoal: boolean;
   labelRemaining: string;
   labelFooter: string;
+  labelFooterCompact: string;
   macros: WidgetMacroSnapshot[];
   premium: boolean;
   progress: number;
@@ -44,6 +54,35 @@ function clampProgress(progress: number): number {
   return Math.min(1, Math.max(0, progress));
 }
 
+/**
+ * Maps calorie progress / over-goal state to a Koli illustration key.
+ * Deliberately non-judgmental: over-goal uses neutral, not a sad face.
+ */
+export function resolveKoliVariant(params: {
+  isOverGoal: boolean;
+  progress: number;
+}): WidgetKoliVariant {
+  if (params.isOverGoal) {
+    return 'neutral';
+  }
+
+  const progress = clampProgress(params.progress);
+
+  if (progress < 0.35) {
+    return 'energetic';
+  }
+
+  if (progress < 0.75) {
+    return 'confident';
+  }
+
+  if (progress < 0.95) {
+    return 'focused';
+  }
+
+  return 'happy';
+}
+
 /** Comparable payload for write-deduping (excludes updatedAt). */
 export function widgetSnapshotComparableJson(snapshot: WidgetCalorieSnapshot): string {
   return JSON.stringify({
@@ -53,13 +92,17 @@ export function widgetSnapshotComparableJson(snapshot: WidgetCalorieSnapshot): s
     isOverGoal: snapshot.isOverGoal,
     labelRemaining: snapshot.labelRemaining,
     labelFooter: snapshot.labelFooter,
+    labelFooterCompact: snapshot.labelFooterCompact,
     macros: snapshot.macros,
     premium: snapshot.premium,
     progress: snapshot.progress,
+    koliVariant: snapshot.koliVariant,
   });
 }
 
 export function buildWidgetSnapshot(input: BuildWidgetSnapshotInput): WidgetCalorieSnapshot {
+  const progress = clampProgress(input.progress);
+
   return {
     schemaVersion: WIDGET_CALORIE_SNAPSHOT_SCHEMA_VERSION,
     dateKey: input.dateKey,
@@ -67,9 +110,14 @@ export function buildWidgetSnapshot(input: BuildWidgetSnapshotInput): WidgetCalo
     isOverGoal: input.isOverGoal,
     labelRemaining: input.labelRemaining,
     labelFooter: input.labelFooter,
+    labelFooterCompact: input.labelFooterCompact,
     macros: input.macros,
     premium: input.premium,
-    progress: clampProgress(input.progress),
+    progress,
+    koliVariant: resolveKoliVariant({
+      isOverGoal: input.isOverGoal,
+      progress,
+    }),
     updatedAt: input.updatedAt ?? new Date().toISOString(),
   };
 }

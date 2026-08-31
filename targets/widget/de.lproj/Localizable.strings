@@ -1,0 +1,13 @@
+/* Widget picker + placeholder metadata (German) */
+"widget.displayName" = "Kolibi";
+"widget.description" = "Verbleibende Kalorien heute";
+"widget.unavailable.label" = "Kolibi öffnen";
+"widget.unavailable.value" = "—";
+"widget.unavailable.footer" = "Hier erscheinen deine verbleibenden Kalorien";
+"widget.gallery.label" = "Verbleibend heute";
+"widget.gallery.value" = "1240";
+"widget.gallery.footer" = "Tagesziel: 2000 kcal";
+"widget.gallery.protein" = "Protein";
+"widget.gallery.carbs" = "Kohlenh.";
+"widget.gallery.fat" = "Fett";
+"widget.gallery.fiber" = "Ballastst.";

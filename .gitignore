@@ -48,3 +48,4 @@ example
 /android
 
 .env.local
+targets/*/Assets.xcassets/
