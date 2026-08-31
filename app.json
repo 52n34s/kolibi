@@ -23,7 +23,8 @@
       "entitlements": {
         "aps-environment": "production",
         "com.apple.developer.healthkit": true,
-        "com.apple.developer.healthkit.access": []
+        "com.apple.developer.healthkit.access": [],
+        "com.apple.security.application-groups": ["group.com.steffen.kolibi"]
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -93,6 +94,7 @@
         }
       ],
       "./plugins/with-ios-modular-headers.js",
+      "@bacons/apple-targets",
       "expo-asset",
       "expo-secure-store",
       [
