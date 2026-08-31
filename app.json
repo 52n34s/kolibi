@@ -16,6 +16,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.steffen.kolibi",
+      "appleTeamId": "PGR9TXQQM4",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false

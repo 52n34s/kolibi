@@ -52,6 +52,7 @@ import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useActiveEnergyBurnedToday } from '@/hooks/use-active-energy-burned';
 import { formatKcal } from '@/utils/format';
+import { localDateKey } from '@/lib/day-window';
 import {
   getTimeOfDay,
   getCalorieGoalDisplay,
@@ -59,6 +60,11 @@ import {
   resolveDisplayName,
 } from '@/lib/home';
 import { buildHomeNutrientTileEntries } from '@/lib/home-nutrients';
+import {
+  buildWidgetSnapshot,
+  widgetSnapshotComparableJson,
+  writeWidgetSnapshot,
+} from '@/lib/widget-snapshot';
 import { kgToLbs } from '@/lib/units';
 import {
   formatWeightForDisplay,
@@ -158,9 +164,10 @@ export default function HomeScreen() {
   const { data: activeEnergyBurnedToday } = useActiveEnergyBurnedToday(
     healthConnectedPreference === true,
   );
-  useHasPremiumAccess(userId);
+  const { hasAccess: hasPremiumAccessDb } = useHasPremiumAccess(userId);
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
+  const lastWidgetSnapshotJsonRef = useRef<string | null>(null);
   const { data: scanAllowance } = useQuery({
     queryKey: userId ? scanAllowanceQueryKey(userId) : ['scan-allowance'],
     enabled: !!userId,
@@ -447,6 +454,56 @@ export default function HomeScreen() {
       unit: t('home.nutrients.unitGrams'),
     });
   }, [data?.consumedMacrosToday, data?.profile?.diet_preference, t]);
+
+  const isPremiumForWidget = isPremiumEntitlementActive || hasPremiumAccessDb;
+
+  useEffect(() => {
+    if (calorieGoalDisplay == null) {
+      return;
+    }
+
+    const unit = t('home.nutrients.unitGrams');
+    const snapshot = buildWidgetSnapshot({
+      dateKey: localDateKey(),
+      remainingValue: formatKcal(calorieGoalDisplay.mainValue),
+      isOverGoal: calorieGoalDisplay.isOverGoal,
+      labelRemaining: t(
+        calorieGoalDisplay.mode === 'dynamic'
+          ? 'home.calorieGoal.dynamicLabel'
+          : 'home.calorieGoal.label',
+      ),
+      labelFooter:
+        calorieGoalDisplay.mode === 'dynamic'
+          ? t('home.calorieGoal.dynamicDailyGoalReference', {
+              goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
+              burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
+            })
+          : t('home.calorieGoal.dailyGoalReference', {
+              goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
+            }),
+      macros: nutrientTiles.map((tile) => ({
+        label: tile.label,
+        value:
+          tile.value == null ? '–' : `${Math.round(tile.value)}${unit}`,
+      })),
+      premium: isPremiumForWidget,
+      progress: calorieBarWidthPercent / 100,
+    });
+
+    const comparable = widgetSnapshotComparableJson(snapshot);
+    if (comparable === lastWidgetSnapshotJsonRef.current) {
+      return;
+    }
+
+    lastWidgetSnapshotJsonRef.current = comparable;
+    writeWidgetSnapshot(snapshot);
+  }, [
+    calorieBarWidthPercent,
+    calorieGoalDisplay,
+    isPremiumForWidget,
+    nutrientTiles,
+    t,
+  ]);
 
   const latestWeightKg = data?.latestWeight?.weight_kg ?? null;
   const targetWeightKg = data?.profile?.target_weight_kg ?? null;
