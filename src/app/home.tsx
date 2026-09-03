@@ -127,11 +127,6 @@ function navigateToSignup() {
   router.push(SIGNUP_ROUTE);
 }
 
-function navigateToSignupBecauseScanLimit() {
-  trackAnonymousLimitReached();
-  navigateToSignup();
-}
-
 function HomeLoadingState() {
   return (
     <View className="flex-1 items-center justify-center px-6">
@@ -319,6 +314,11 @@ export default function HomeScreen() {
     openPaywall({ withValuePitch: true });
     return false;
   }, [gatePremiumAccess, isAnonymousUser, openPaywall]);
+
+  const openPaywallBecauseScanLimit = useCallback(() => {
+    trackAnonymousLimitReached();
+    openPaywall({ withValuePitch: true });
+  }, [openPaywall]);
 
   useEffect(() => {
     if (isAnonymousUser || !session) {
@@ -644,7 +644,7 @@ export default function HomeScreen() {
     const allowance = await checkScanAllowance(userId);
     if (allowance.isAnonymous) {
       if (!allowance.allowed) {
-        navigateToSignupBecauseScanLimit();
+        openPaywallBecauseScanLimit();
         return;
       }
 
@@ -713,7 +713,7 @@ export default function HomeScreen() {
       if (userId) {
         const allowance = await checkScanAllowance(userId);
         if (allowance.isAnonymous && !allowance.allowed) {
-          navigateToSignupBecauseScanLimit();
+          openPaywallBecauseScanLimit();
           return;
         }
 
