@@ -79,19 +79,9 @@ GRANT EXECUTE ON FUNCTION public.is_admin() TO service_role;
 -- -----------------------------------------------------------------------------
 -- 3) SECURITY DEFINER helpers — harden search_path (search-path hijack defense)
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-BEGIN
-  INSERT INTO public.profiles (id)
-  VALUES (NEW.id)
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$;
+-- handle_new_user: nicht hier ersetzen. Quelle der Wahrheit:
+-- supabase/migrations/20260903000000_fix_handle_new_user_trial_regression.sql
+-- (früherer Stub hier hat trial_ends_at / subscriptions entfernt.)
 
 CREATE OR REPLACE FUNCTION public.delete_own_account()
 RETURNS void
