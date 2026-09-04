@@ -189,11 +189,6 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
               thumbColor="#FFFFFF"
             />
           </View>
-          <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
-            <Text className="text-sm text-gray-500">
-              {t('settings.notifications.grantedHint')}
-            </Text>
-          </View>
         </>
       ) : null}
     </SettingsSection>

@@ -607,7 +607,6 @@
       "openIosSettings": "Abrir ajustes",
       "undeterminedHint": "Kolibi puede recordarte las comidas si permites las notificaciones.",
       "deniedHint": "Actívalo en los ajustes de iOS",
-      "grantedHint": "Si está desactivado, Kolibi no enviará recordatorios. El permiso de iOS sigue activo.",
       "saveFailed": "No se pudo guardar la configuración. Inténtalo de nuevo."
     },
     "calorieGoal": {

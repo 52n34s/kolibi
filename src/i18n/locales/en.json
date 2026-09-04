@@ -607,7 +607,6 @@
       "openIosSettings": "Open Settings",
       "undeterminedHint": "Kolibi can remind you about meals if you allow notifications.",
       "deniedHint": "Enable in iOS Settings",
-      "grantedHint": "When off, Kolibi will not send reminders. The iOS permission stays granted.",
       "saveFailed": "Could not update notification settings. Please try again."
     },
     "calorieGoal": {
