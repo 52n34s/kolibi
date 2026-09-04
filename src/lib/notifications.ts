@@ -209,6 +209,14 @@ export async function ensurePushRegistration(
     prompted = true;
     permissionStatus = requested.status;
 
+    Sentry.captureMessage('push: requestPermissionsAsync result', {
+      level: 'info',
+      tags: {
+        push_flow: 'request_result',
+        permission_status: requested.status,
+      },
+    });
+
     Sentry.addBreadcrumb({
       category: 'push-debug',
       message: 'permission status after request',

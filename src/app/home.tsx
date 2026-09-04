@@ -217,21 +217,28 @@ export default function HomeScreen() {
       return;
     }
 
-    const result = await ensurePushRegistration(userId, { askIfUndetermined: true });
+    try {
+      const result = await ensurePushRegistration(userId, { askIfUndetermined: true });
 
-    Sentry.addBreadcrumb({
-      category: 'push-debug',
-      message: 'ensurePushOnMealSave result',
-      level: 'info',
-      data: { status: result.status, prompted: result.prompted, userId },
-    });
+      Sentry.addBreadcrumb({
+        category: 'push-debug',
+        message: 'ensurePushOnMealSave result',
+        level: 'info',
+        data: { status: result.status, prompted: result.prompted, userId },
+      });
 
-    // Nag date only after the user answered (or OS already denied). Never on token_failed / unavailable.
-    if (
-      result.status === 'denied' ||
-      (result.status === 'granted' && result.prompted)
-    ) {
-      await secureStore.setItem(PUSH_PERMISSION_ASKED_KEY, new Date().toISOString());
+      // Nag date only after the user answered (or OS already denied). Never on token_failed / unavailable.
+      if (
+        result.status === 'denied' ||
+        (result.status === 'granted' && result.prompted)
+      ) {
+        await secureStore.setItem(PUSH_PERMISSION_ASKED_KEY, new Date().toISOString());
+      }
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { push_flow: 'ask_on_meal_save' },
+        extra: { userId },
+      });
     }
   }, [secureStore, userId]);
 
@@ -842,6 +849,10 @@ export default function HomeScreen() {
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       handleMealConfirmationClose();
+      Sentry.captureMessage('push: ensurePushOnMealSave reached', {
+        level: 'info',
+        tags: { push_flow: 'reached' },
+      });
       await ensurePushOnMealSave();
     } catch (saveError) {
       console.error('[Home] meal save failed:', saveError);
@@ -971,6 +982,10 @@ export default function HomeScreen() {
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       closeBarcodeFlow();
+      Sentry.captureMessage('push: ensurePushOnMealSave reached', {
+        level: 'info',
+        tags: { push_flow: 'reached' },
+      });
       await ensurePushOnMealSave();
     } catch (saveError) {
       console.error('[Home] barcode meal save failed:', saveError);
@@ -1004,6 +1019,10 @@ export default function HomeScreen() {
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       setShowManualEntrySheet(false);
+      Sentry.captureMessage('push: ensurePushOnMealSave reached', {
+        level: 'info',
+        tags: { push_flow: 'reached' },
+      });
       await ensurePushOnMealSave();
     } catch (saveError) {
       console.error('[Home] manual meal save failed:', saveError);
