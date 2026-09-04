@@ -600,6 +600,16 @@
       "disconnectConfirmAction": "Trennen",
       "saveFailed": "Health-Verbindung konnte nicht aktualisiert werden. Bitte erneut versuchen."
     },
+    "notifications": {
+      "sectionTitle": "Mitteilungen",
+      "toggleLabel": "Erinnerungen erhalten",
+      "activate": "Aktivieren",
+      "openIosSettings": "Einstellungen öffnen",
+      "undeterminedHint": "Kolibi kann dich an Mahlzeiten erinnern, wenn du Mitteilungen erlaubst.",
+      "deniedHint": "In den iOS-Einstellungen aktivieren",
+      "grantedHint": "Wenn aus, sendet Kolibi keine Erinnerungen mehr. Die iOS-Berechtigung bleibt bestehen.",
+      "saveFailed": "Mitteilungs-Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
     "calorieGoal": {
       "sectionTitle": "Kalorienziel",
       "screenTitle": "Kalorienziel bearbeiten",

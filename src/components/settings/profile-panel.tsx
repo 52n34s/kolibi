@@ -22,6 +22,7 @@ import {
   CuisineMultiSelectChips,
   DIET_PREFERENCE_OPTIONS,
 } from '@/components/settings/food-context-controls';
+import { NotificationsSettingsSection } from '@/components/settings/notifications-settings-section';
 import { GlassCard } from '@/components/ui/glass-card';
 import { ProfileHeader } from '@/components/settings/profile-header';
 import { SettingsRow } from '@/components/settings/settings-row';
@@ -511,6 +512,8 @@ export function ProfilePanel() {
             ) : null}
           </View>
         </SettingsSection>
+
+        <NotificationsSettingsSection userId={userId} />
 
         <SettingsSection title={t('settings.calorieGoal.sectionTitle')}>
           <SettingsRow

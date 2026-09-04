@@ -600,6 +600,16 @@
       "disconnectConfirmAction": "Desconectar",
       "saveFailed": "No se pudo actualizar la conexión con Salud. Inténtalo de nuevo."
     },
+    "notifications": {
+      "sectionTitle": "Notificaciones",
+      "toggleLabel": "Recibir recordatorios",
+      "activate": "Activar",
+      "openIosSettings": "Abrir ajustes",
+      "undeterminedHint": "Kolibi puede recordarte las comidas si permites las notificaciones.",
+      "deniedHint": "Actívalo en los ajustes de iOS",
+      "grantedHint": "Si está desactivado, Kolibi no enviará recordatorios. El permiso de iOS sigue activo.",
+      "saveFailed": "No se pudo guardar la configuración. Inténtalo de nuevo."
+    },
     "calorieGoal": {
       "sectionTitle": "Objetivo calórico",
       "screenTitle": "Editar objetivo calórico",
