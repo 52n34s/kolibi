@@ -15,7 +15,7 @@ export type MovementGoalType = 'steps' | 'running_km' | 'distance_km';
 export type MovementGoalPeriod = 'day' | 'week';
 
 const PROFILE_SETTINGS_SELECT =
-  'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context, movement_goal_type, movement_goal_value, movement_goal_period';
+  'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context, movement_goal_type, movement_goal_value, movement_goal_period, target_weight_kg';
 
 export type ProfileSettingsData = {
   id: string;
@@ -33,6 +33,7 @@ export type ProfileSettingsData = {
   movement_goal_type: MovementGoalType | null;
   movement_goal_value: number | null;
   movement_goal_period: MovementGoalPeriod | null;
+  target_weight_kg: number | null;
   latest_weight_kg: number | null;
   daily_calorie_goal: number | null;
 };
@@ -146,6 +147,13 @@ export async function fetchProfileSettings(
     movement_goal_value:
       rawMovementValue != null && Number.isFinite(rawMovementValue) ? rawMovementValue : null,
     movement_goal_period: movementGoalPeriod,
+    target_weight_kg: (() => {
+      if (profile.target_weight_kg == null) {
+        return null;
+      }
+      const parsed = Number(profile.target_weight_kg);
+      return Number.isFinite(parsed) ? parsed : null;
+    })(),
     latest_weight_kg: weightResult.data?.weight_kg ?? null,
     daily_calorie_goal: calorieGoalResult.data?.daily_calorie_goal ?? null,
   };

@@ -1,24 +1,19 @@
 import { Href, router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 
-import {
-  MacroGoalEditorModal,
-  type MacroGoalEditorFlowState,
-} from '@/components/home/macro-goal-editor-modal';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
-import { MovementGoalEditorModal } from '@/components/settings/movement-goal-editor-modal';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsSection } from '@/components/settings/settings-section';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { fetchMacroGoalEditorState } from '@/lib/calorie-goals';
 import type { MovementGoalType } from '@/lib/profile';
+import { formatWeightForDisplay } from '@/lib/weight-logs';
 import { useAuthStore } from '@/stores/auth-store';
+import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
-
-type GoalSheet = 'closed' | 'macro' | 'movement';
 
 function movementTypeI18nKey(
   type: MovementGoalType,
@@ -43,8 +38,8 @@ export function GoalsPanel() {
   const { t } = useTranslation();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
+  const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const { data, isLoading, isError } = useProfileSettings(userId);
-  const [goalSheet, setGoalSheet] = useState<GoalSheet>('closed');
 
   const { data: macroState } = useQuery({
     queryKey: ['macro-goal-editor', userId],
@@ -77,8 +72,19 @@ export function GoalsPanel() {
         })
       : t('settings.movementGoal.type.none');
 
-  const macroModalState: MacroGoalEditorFlowState =
-    goalSheet === 'macro' ? { kind: 'editor' } : { kind: 'closed' };
+  const targetWeightKg = data?.profile.target_weight_kg ?? null;
+  const targetWeightLabel = useMemo(() => {
+    if (targetWeightKg == null || !Number.isFinite(targetWeightKg)) {
+      return t('settings.targetWeight.notSet');
+    }
+
+    return formatWeightForDisplay({
+      weightKg: targetWeightKg,
+      unitSystem,
+      kgLabel: t('onboarding.units.kg'),
+      lbsLabel: t('onboarding.units.lbs'),
+    });
+  }, [t, targetWeightKg, unitSystem]);
 
   if (isLoading) {
     return (
@@ -99,51 +105,45 @@ export function GoalsPanel() {
   }
 
   return (
-    <>
-      <ScrollView
-        className="flex-1 px-6"
-        contentContainerStyle={{ paddingBottom: 40 }}
-        keyboardShouldPersistTaps="handled">
-        <Text className="mb-3 text-lg font-semibold text-gray-900">
-          {t('koli.segments.goals')}
-        </Text>
+    <ScrollView
+      className="flex-1 px-6"
+      contentContainerStyle={{ paddingBottom: 40 }}
+      keyboardShouldPersistTaps="handled">
+      <Text className="mb-3 text-lg font-semibold text-gray-900">
+        {t('koli.segments.goals')}
+      </Text>
 
-        <SettingsSection title={t('settings.calorieGoal.sectionTitle')}>
-          <SettingsRow
-            label={t('settings.calorieGoal.current')}
-            value={calorieGoalLabel}
-            onPress={() => router.push('/koli/calorie-goal' as Href)}
-          />
-        </SettingsSection>
+      <SettingsSection title={t('settings.calorieGoal.sectionTitle')}>
+        <SettingsRow
+          label={t('settings.calorieGoal.current')}
+          value={calorieGoalLabel}
+          onPress={() => router.push('/koli/calorie-goal' as Href)}
+        />
+      </SettingsSection>
 
-        <SettingsSection>
-          <SettingsRow
-            label={t('settings.macroGoal.sectionTitle')}
-            value={proteinGoalLabel}
-            onPress={() => setGoalSheet('macro')}
-          />
-        </SettingsSection>
+      <SettingsSection>
+        <SettingsRow
+          label={t('settings.macroGoal.sectionTitle')}
+          value={proteinGoalLabel}
+          onPress={() => router.push('/koli/protein-goal' as Href)}
+        />
+      </SettingsSection>
 
-        <SettingsSection>
-          <SettingsRow
-            label={t('settings.movementGoal.sectionTitle')}
-            value={movementGoalLabel}
-            onPress={() => setGoalSheet('movement')}
-          />
-        </SettingsSection>
-      </ScrollView>
+      <SettingsSection>
+        <SettingsRow
+          label={t('settings.movementGoal.sectionTitle')}
+          value={movementGoalLabel}
+          onPress={() => router.push('/koli/movement-goal' as Href)}
+        />
+      </SettingsSection>
 
-      <MacroGoalEditorModal
-        state={macroModalState}
-        userId={userId}
-        onClose={() => setGoalSheet('closed')}
-      />
-
-      <MovementGoalEditorModal
-        state={goalSheet === 'movement' ? { kind: 'editor' } : { kind: 'closed' }}
-        userId={userId}
-        onClose={() => setGoalSheet('closed')}
-      />
-    </>
+      <SettingsSection>
+        <SettingsRow
+          label={t('settings.targetWeight.sectionTitle')}
+          value={targetWeightLabel}
+          onPress={() => router.push('/koli/target-weight' as Href)}
+        />
+      </SettingsSection>
+    </ScrollView>
   );
 }

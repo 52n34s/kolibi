@@ -12,6 +12,9 @@ export type HomeProgressRowItem = {
   onPress?: () => void;
   /** Draw a thin rule above this row (e.g. movement after macros). */
   dividerAbove?: boolean;
+  /** Optional gray hint under the row (e.g. HealthKit required). */
+  footerHint?: string;
+  onFooterPress?: () => void;
 };
 
 type HomeProgressRowsProps = {
@@ -38,7 +41,7 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
 
   let valueText: string;
   if (hasGoal) {
-    const left = actual == null ? '–' : formatAmount(actual, decimals);
+    const left = formatAmount(actual ?? 0, decimals);
     valueText = `${left}/${formatAmount(item.goal!, decimals)}`;
   } else if (actual == null) {
     valueText = '–';
@@ -81,6 +84,20 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
       ) : (
         row
       )}
+      {item.footerHint ? (
+        item.onFooterPress ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={item.onFooterPress}
+            style={({ pressed }) => [styles.footerHintWrap, pressed && styles.rowPressed]}>
+            <Text style={styles.footerHint}>{item.footerHint}</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.footerHintWrap}>
+            <Text style={styles.footerHint}>{item.footerHint}</Text>
+          </View>
+        )
+      ) : null}
     </View>
   );
 }
@@ -150,5 +167,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#26234A',
     fontVariant: ['tabular-nums'],
+  },
+  footerHintWrap: {
+    marginTop: 6,
+  },
+  footerHint: {
+    fontSize: 12,
+    color: TEXT_SECONDARY,
   },
 });

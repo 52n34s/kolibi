@@ -217,7 +217,8 @@
       "labelRunningKm": "Running",
       "labelDistanceKm": "Everyday movement",
       "unitSteps": "",
-      "unitKm": "km"
+      "unitKm": "km",
+      "healthRequired": "Apple Health must be connected."
     },
     "trial": {
       "daysLeft_one": "Trial: {{count}} day left",
@@ -229,6 +230,7 @@
     },
     "weight": {
       "label": "Current weight",
+      "startTitle": "Starting weight",
       "targetTitle": "Target weight",
       "targetNotSet": "Not set",
       "notLogged": "Not logged yet",
@@ -634,6 +636,8 @@
     },
     "macroGoal": {
       "sectionTitle": "Protein goal",
+      "screenTitle": "Edit protein goal",
+      "directEditSubtitle": "Enter your daily protein goal in grams.",
       "value": "{{grams}} g",
       "notSet": "Not set",
       "recommended": "Recommended: {{value}} g",
@@ -646,6 +650,8 @@
     },
     "movementGoal": {
       "sectionTitle": "Movement goal",
+      "screenTitle": "Edit movement goal",
+      "directEditSubtitle": "Choose the type, value, and period for your movement goal.",
       "summary": "{{value}} {{type}} {{period}}",
       "type": {
         "none": "No goal",
@@ -662,6 +668,14 @@
       "runningHint": "Only recorded runs count — without a running app, you won't have workouts.",
       "blockedNonPositive": "Enter a target greater than 0.",
       "saveFailed": "Could not save your movement goal. Please try again."
+    },
+    "targetWeight": {
+      "sectionTitle": "Target weight",
+      "screenTitle": "Edit target weight",
+      "directEditSubtitle": "Your goal weight for tracking progress.",
+      "notSet": "Not set",
+      "invalid": "Please enter a valid weight.",
+      "saveFailed": "Could not save your target weight. Please try again."
     },
     "onboardingReview": {
       "sectionTitle": "Profile data",

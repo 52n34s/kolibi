@@ -4,65 +4,71 @@ import { getOnboardingSecondarySurfaceStyle } from '@/components/onboarding/onbo
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 
 type WeightProgressCardProps = {
-  currentLabel: string;
   currentValue: string;
+  startLabel: string;
+  startValue: string;
   targetLabel: string;
   targetValue: string;
-  /** 0–100 when the bar should show; null hides the bar. */
+  /** 0–100 when the bar should show; null hides bar and edge labels. */
   progressPercent: number | null;
-  onPressCurrent: () => void;
-  onPressTarget: () => void;
+  onPress: () => void;
+  accessibilityLabel: string;
 };
 
-/** Single glass card: current | target, optional progress from start → target. */
+/**
+ * Glass card: start | target as small edge labels, bar between, current weight
+ * centered below. Whole card opens today's weight sheet.
+ */
 export function WeightProgressCard({
-  currentLabel,
   currentValue,
+  startLabel,
+  startValue,
   targetLabel,
   targetValue,
   progressPercent,
-  onPressCurrent,
-  onPressTarget,
+  onPress,
+  accessibilityLabel,
 }: WeightProgressCardProps) {
-  const showBar = progressPercent != null;
+  const showRange = progressPercent != null;
 
   return (
-    <View style={[getOnboardingSecondarySurfaceStyle(), styles.card]}>
-      <View style={styles.valuesRow}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={currentLabel}
-          onPress={onPressCurrent}
-          style={({ pressed }) => [styles.valuePress, pressed && styles.valuePressed]}>
-          <Text style={styles.label}>{currentLabel}</Text>
-          <Text style={styles.value}>{currentValue}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={targetLabel}
-          onPress={onPressTarget}
-          style={({ pressed }) => [
-            styles.valuePress,
-            styles.valuePressRight,
-            pressed && styles.valuePressed,
-          ]}>
-          <Text style={styles.label}>{targetLabel}</Text>
-          <Text style={styles.value}>{targetValue}</Text>
-        </Pressable>
-      </View>
-      {showBar ? (
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${progressPercent}%` }]} />
-        </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      style={({ pressed }) => [
+        getOnboardingSecondarySurfaceStyle(),
+        styles.card,
+        pressed && styles.cardPressed,
+      ]}>
+      {showRange ? (
+        <>
+          <View style={styles.edgeRow}>
+            <View style={styles.edgeLeft}>
+              <Text style={styles.edgeLabel}>{startLabel}</Text>
+              <Text style={styles.edgeValue}>{startValue}</Text>
+            </View>
+            <View style={styles.edgeRight}>
+              <Text style={styles.edgeLabel}>{targetLabel}</Text>
+              <Text style={styles.edgeValue}>{targetValue}</Text>
+            </View>
+          </View>
+          <View style={styles.track}>
+            <View style={[styles.fill, { width: `${progressPercent}%` }]} />
+          </View>
+        </>
       ) : null}
-    </View>
+      <Text style={[styles.currentValue, showRange && styles.currentValueBelowBar]}>
+        {currentValue}
+      </Text>
+    </Pressable>
   );
 }
 
 /**
  * Progress along start → target using current weight.
  * (start − current) / (start − target), clamped to 0–100.
- * Null when start/target missing or start === target.
+ * Null when start/target/current missing or start === target.
  */
 export function weightGoalProgressPercent(params: {
   startKg: number | null;
@@ -95,34 +101,36 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 14,
   },
-  valuesRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  valuePress: {
-    flex: 1,
-    minWidth: 0,
-    borderRadius: 10,
-  },
-  valuePressRight: {
-    alignItems: 'flex-end',
-  },
-  valuePressed: {
+  cardPressed: {
     backgroundColor: 'rgba(79, 70, 229, 0.07)',
   },
-  label: {
+  edgeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  edgeLeft: {
+    flex: 1,
+    minWidth: 0,
+  },
+  edgeRight: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'flex-end',
+  },
+  edgeLabel: {
     fontSize: 12,
     color: TEXT_SECONDARY,
   },
-  value: {
-    marginTop: 4,
-    fontSize: 20,
+  edgeValue: {
+    marginTop: 2,
+    fontSize: 13,
     fontWeight: '500',
     color: '#26234A',
   },
   track: {
-    marginTop: 12,
+    marginTop: 10,
     height: 3,
     borderRadius: 1.5,
     overflow: 'hidden',
@@ -132,5 +140,14 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 1.5,
     backgroundColor: BRAND_INDIGO,
+  },
+  currentValue: {
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#26234A',
+    textAlign: 'center',
+  },
+  currentValueBelowBar: {
+    marginTop: 10,
   },
 });

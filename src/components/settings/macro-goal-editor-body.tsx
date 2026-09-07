@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -25,10 +25,22 @@ import {
 
 export { validateCustomProteinGoal } from '@/lib/calorie-goals';
 
+export type MacroGoalEditorActions = {
+  canSave: boolean;
+  isSaving: boolean;
+  isResetting: boolean;
+  showReset: boolean;
+  save: () => void;
+  reset: () => void;
+};
+
 type MacroGoalEditorBodyProps = {
   userId: string;
-  /** Called after a successful save (not reset). Used by Home sheet to dismiss. */
+  /** Called after a successful save (not reset). */
   onSaved?: () => void;
+  /** When true, omit bottom save/reset (screen footer owns them). */
+  hideActions?: boolean;
+  onActionsChange?: (actions: MacroGoalEditorActions) => void;
 };
 
 function parseProteinInput(value: string): number | null {
@@ -45,7 +57,12 @@ function parseProteinInput(value: string): number | null {
   return parsed;
 }
 
-export function MacroGoalEditorBody({ userId, onSaved }: MacroGoalEditorBodyProps) {
+export function MacroGoalEditorBody({
+  userId,
+  onSaved,
+  hideActions = false,
+  onActionsChange,
+}: MacroGoalEditorBodyProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [proteinDraft, setProteinDraft] = useState('');
@@ -150,9 +167,35 @@ export function MacroGoalEditorBody({ userId, onSaved }: MacroGoalEditorBodyProp
     }
   }
 
+  const showReset = data?.macroGoalSource === 'custom';
+
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
+  const resetRef = useRef(handleReset);
+  resetRef.current = handleReset;
+
+  useEffect(() => {
+    if (!onActionsChange) {
+      return;
+    }
+
+    onActionsChange({
+      canSave,
+      isSaving,
+      isResetting,
+      showReset,
+      save: () => {
+        void saveRef.current();
+      },
+      reset: () => {
+        void resetRef.current();
+      },
+    });
+  }, [canSave, isSaving, isResetting, showReset, onActionsChange]);
+
   if (isLoading) {
     return (
-      <View className="items-center justify-center px-4 py-6">
+      <View className="items-center justify-center py-6">
         <ActivityIndicator color="#4F46E5" />
       </View>
     );
@@ -160,7 +203,7 @@ export function MacroGoalEditorBody({ userId, onSaved }: MacroGoalEditorBodyProp
 
   if (isError) {
     return (
-      <View className="px-4 py-4">
+      <View className="py-4">
         <Text className="text-sm text-gray-500">{t('settings.errors.loadFailed')}</Text>
       </View>
     );
@@ -168,7 +211,7 @@ export function MacroGoalEditorBody({ userId, onSaved }: MacroGoalEditorBodyProp
 
   if (data == null) {
     return (
-      <View className="px-4 py-4">
+      <View className="py-4">
         <Text className="text-sm text-gray-500">{t('settings.macroGoal.needsCalorieGoal')}</Text>
       </View>
     );
@@ -180,8 +223,8 @@ export function MacroGoalEditorBody({ userId, onSaved }: MacroGoalEditorBodyProp
       : null;
 
   return (
-    <View className="px-4 py-4">
-      <Text className="mb-2 text-sm font-medium" style={{ color: TEXT_SECONDARY }}>
+    <View className={hideActions ? undefined : 'px-4 py-4'}>
+      <Text className="mb-2 text-sm font-medium text-gray-700">
         {t('home.nutrients.protein')} ({t('home.nutrients.unitGrams')})
       </Text>
       <TextInput
@@ -221,34 +264,38 @@ export function MacroGoalEditorBody({ userId, onSaved }: MacroGoalEditorBodyProp
         <Text className="mt-2 text-sm text-red-600">{inlineError}</Text>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        disabled={!canSave}
-        onPress={() => void handleSave()}
-        className={`mt-4 h-11 items-center justify-center rounded-xl ${
-          canSave ? 'bg-[#4F46E5]' : 'bg-indigo-300'
-        }`}>
-        {isSaving ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text className="text-base font-semibold text-white">{t('settings.common.save')}</Text>
-        )}
-      </Pressable>
+      {!hideActions ? (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            disabled={!canSave}
+            onPress={() => void handleSave()}
+            className={`mt-4 h-11 items-center justify-center rounded-xl ${
+              canSave ? 'bg-[#4F46E5]' : 'bg-indigo-300'
+            }`}>
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text className="text-base font-semibold text-white">{t('settings.common.save')}</Text>
+            )}
+          </Pressable>
 
-      {data.macroGoalSource === 'custom' ? (
-        <Pressable
-          accessibilityRole="button"
-          disabled={isSaving || isResetting}
-          onPress={() => void handleReset()}
-          className="mt-3 items-center py-2">
-          {isResetting ? (
-            <ActivityIndicator color="#4F46E5" />
-          ) : (
-            <Text className="text-sm font-medium text-indigo-600">
-              {t('settings.macroGoal.resetToRecommended')}
-            </Text>
-          )}
-        </Pressable>
+          {showReset ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSaving || isResetting}
+              onPress={() => void handleReset()}
+              className="mt-3 items-center py-2">
+              {isResetting ? (
+                <ActivityIndicator color="#4F46E5" />
+              ) : (
+                <Text className="text-sm font-medium text-indigo-600">
+                  {t('settings.macroGoal.resetToRecommended')}
+                </Text>
+              )}
+            </Pressable>
+          ) : null}
+        </>
       ) : null}
     </View>
   );

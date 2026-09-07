@@ -39,10 +39,6 @@ import {
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
-import {
-  MacroGoalEditorModal,
-  type MacroGoalEditorFlowState,
-} from '@/components/home/macro-goal-editor-modal';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import { TodayMealsSection } from '@/components/home/TodayMealsSection';
 import {
@@ -76,7 +72,6 @@ import { kgToLbs } from '@/lib/units';
 import {
   formatWeightForDisplay,
   parseWeightInputToKg,
-  updateTargetWeightKg,
   upsertTodayWeightLog,
 } from '@/lib/weight-logs';
 import {
@@ -128,7 +123,7 @@ const CALORIE_OVER_GOAL_COLOR = '#D97706';
 const MAX_WEIGHT_KG = 699.9;
 const SIGNUP_ROUTE = '/(auth)/login' as Href;
 
-type WeightSheetKind = 'current' | 'target' | null;
+type WeightSheetKind = 'current' | null;
 
 function navigateToSignup() {
   router.push(SIGNUP_ROUTE);
@@ -217,9 +212,6 @@ export default function HomeScreen() {
   const [pendingMealSource, setPendingMealSource] = useState<MealSource>(MEAL_SOURCE.PHOTO_CAMERA);
   const [isPickingGalleryPhotos, setIsPickingGalleryPhotos] = useState(false);
   const [barcodeFlow, setBarcodeFlow] = useState<BarcodeFlowState>({ kind: 'closed' });
-  const [macroGoalEditor, setMacroGoalEditor] = useState<MacroGoalEditorFlowState>({
-    kind: 'closed',
-  });
   const [pendingBarcode, setPendingBarcode] = useState<string | null>(null);
   const pendingBarcodeRef = useRef<string | null>(null);
   const pendingPaywallRef = useRef(false);
@@ -471,12 +463,8 @@ export default function HomeScreen() {
       return;
     }
 
-    setMacroGoalEditor({ kind: 'editor' });
+    router.push('/koli/protein-goal' as Href);
   }, [data?.latestWeight?.weight_kg]);
-
-  const closeMacroGoalEditor = useCallback(() => {
-    setMacroGoalEditor({ kind: 'closed' });
-  }, []);
 
   const nutrientTiles = useMemo(() => {
     const macros = data?.consumedMacrosToday;
@@ -528,13 +516,8 @@ export default function HomeScreen() {
       onPress: tile.onPress,
     }));
 
-    if (
-      healthConnectedPreference === true &&
-      hasMovementGoal &&
-      movementActual != null &&
-      movementGoalType != null &&
-      movementGoalValue != null
-    ) {
+    if (hasMovementGoal && movementGoalType != null && movementGoalValue != null) {
+      const healthConnected = healthConnectedPreference === true;
       rows.push({
         key: 'movement',
         label:
@@ -543,10 +526,19 @@ export default function HomeScreen() {
             : movementGoalType === 'running_km'
               ? t('home.movementGoal.labelRunningKm')
               : t('home.movementGoal.labelDistanceKm'),
-        actual: movementActual,
+        actual: movementActual ?? 0,
         goal: movementGoalValue,
         decimals: movementGoalType === 'steps' ? 0 : 1,
         dividerAbove: true,
+        footerHint: healthConnected ? undefined : t('home.movementGoal.healthRequired'),
+        onFooterPress: healthConnected
+          ? undefined
+          : () => {
+              router.push({
+                pathname: '/koli',
+                params: { segment: 'settings', settingsSubSegment: 'profile' },
+              } as Href);
+            },
       });
     }
 
@@ -642,18 +634,6 @@ export default function HomeScreen() {
     });
   }, [latestWeightKg, t, unitSystem, weightUnitLabels]);
 
-  const targetWeightLabel = useMemo(() => {
-    if (targetWeightKg == null) {
-      return t('home.weight.targetNotSet');
-    }
-
-    return formatWeightForDisplay({
-      weightKg: targetWeightKg,
-      unitSystem,
-      ...weightUnitLabels,
-    });
-  }, [targetWeightKg, t, unitSystem, weightUnitLabels]);
-
   const weightProgressPercent = useMemo(
     () =>
       weightGoalProgressPercent({
@@ -663,6 +643,30 @@ export default function HomeScreen() {
       }),
     [latestWeightKg, startWeightKg, targetWeightKg],
   );
+
+  const startWeightLabel = useMemo(() => {
+    if (startWeightKg == null) {
+      return '';
+    }
+
+    return formatWeightForDisplay({
+      weightKg: startWeightKg,
+      unitSystem,
+      ...weightUnitLabels,
+    });
+  }, [startWeightKg, unitSystem, weightUnitLabels]);
+
+  const targetWeightLabel = useMemo(() => {
+    if (targetWeightKg == null) {
+      return '';
+    }
+
+    return formatWeightForDisplay({
+      weightKg: targetWeightKg,
+      unitSystem,
+      ...weightUnitLabels,
+    });
+  }, [targetWeightKg, unitSystem, weightUnitLabels]);
 
   function weightKgToDraft(weightKg: number | null): string {
     if (weightKg == null) {
@@ -675,11 +679,6 @@ export default function HomeScreen() {
   function openCurrentWeightSheet() {
     setWeightDraft(weightKgToDraft(latestWeightKg));
     setWeightSheet('current');
-  }
-
-  function openTargetWeightSheet() {
-    setWeightDraft(weightKgToDraft(targetWeightKg));
-    setWeightSheet('target');
   }
 
   function closeWeightSheet() {
@@ -708,33 +707,6 @@ export default function HomeScreen() {
       closeWeightSheet();
     } catch (saveError) {
       console.error('[Home] weight save failed:', saveError);
-      Alert.alert(t('settings.errors.title'), t('home.weight.saveFailed'));
-    } finally {
-      setIsSavingWeight(false);
-    }
-  }
-
-  async function saveTargetWeight() {
-    if (!userId) {
-      return;
-    }
-
-    const weightKg = parseWeightInputToKg({ value: weightDraft, unitSystem });
-    if (weightKg == null || weightKg >= MAX_WEIGHT_KG) {
-      Alert.alert(t('settings.errors.title'), t('home.weight.invalid'));
-      return;
-    }
-
-    setIsSavingWeight(true);
-
-    try {
-      await updateTargetWeightKg({ userId, targetWeightKg: weightKg });
-      await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
-      await queryClient.invalidateQueries({ queryKey: ['macro-goal-editor', userId] });
-      await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
-      closeWeightSheet();
-    } catch (saveError) {
-      console.error('[Home] target weight save failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('home.weight.saveFailed'));
     } finally {
       setIsSavingWeight(false);
@@ -1329,13 +1301,14 @@ export default function HomeScreen() {
 
           <View className="mt-4">
             <WeightProgressCard
-              currentLabel={t('home.weight.label')}
               currentValue={weightLabel}
+              startLabel={t('home.weight.startTitle')}
+              startValue={startWeightLabel}
               targetLabel={t('home.weight.targetTitle')}
               targetValue={targetWeightLabel}
               progressPercent={weightProgressPercent}
-              onPressCurrent={openCurrentWeightSheet}
-              onPressTarget={openTargetWeightSheet}
+              accessibilityLabel={t('home.weight.label')}
+              onPress={openCurrentWeightSheet}
             />
           </View>
 
@@ -1440,12 +1413,6 @@ export default function HomeScreen() {
         onTakePhotoInstead={handleBarcodeTakePhotoInstead}
       />
 
-      <MacroGoalEditorModal
-        state={macroGoalEditor}
-        userId={userId}
-        onClose={closeMacroGoalEditor}
-      />
-
       <ManualMealEntrySheet
         visible={showManualEntrySheet}
         isSaving={isSavingManualMeal}
@@ -1469,22 +1436,14 @@ export default function HomeScreen() {
 
       <WeightInputSheet
         visible={weightSheet != null}
-        title={
-          weightSheet === 'target'
-            ? t('home.weight.updateTargetTitle')
-            : t('home.weight.modalTitle')
-        }
-        subtitle={
-          weightSheet === 'target'
-            ? t('home.weight.updateTargetDescription')
-            : t('home.weight.modalSubtitle')
-        }
+        title={t('home.weight.modalTitle')}
+        subtitle={t('home.weight.modalSubtitle')}
         unitSystem={unitSystem}
         value={weightDraft}
         isSaving={isSavingWeight}
         onChange={setWeightDraft}
         onClose={closeWeightSheet}
-        onSave={() => void (weightSheet === 'target' ? saveTargetWeight() : saveCurrentWeight())}
+        onSave={() => void saveCurrentWeight()}
       />
 
       <PaywallSheet

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -71,11 +71,25 @@ function formatStoredValue(value: number | null, type: MovementGoalType | null):
 
 type MovementGoalEditorBodyProps = {
   userId: string;
-  /** Called after a successful save. Used by the sheet to dismiss. */
+  /** Called after a successful save. */
   onSaved?: () => void;
+  /** When true, omit bottom save (screen footer owns it). */
+  hideActions?: boolean;
+  onActionsChange?: (actions: MovementGoalEditorActions) => void;
 };
 
-export function MovementGoalEditorBody({ userId, onSaved }: MovementGoalEditorBodyProps) {
+export type MovementGoalEditorActions = {
+  canSave: boolean;
+  isSaving: boolean;
+  save: () => void;
+};
+
+export function MovementGoalEditorBody({
+  userId,
+  onSaved,
+  hideActions = false,
+  onActionsChange,
+}: MovementGoalEditorBodyProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data, isLoading, isError, refetch } = useProfileSettings(userId);
@@ -183,6 +197,8 @@ export function MovementGoalEditorBody({ userId, onSaved }: MovementGoalEditorBo
       });
 
       await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['movement-goal-actual'] });
       if (onSaved) {
         onSaved();
       } else {
@@ -195,9 +211,26 @@ export function MovementGoalEditorBody({ userId, onSaved }: MovementGoalEditorBo
     }
   }
 
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
+
+  useEffect(() => {
+    if (!onActionsChange) {
+      return;
+    }
+
+    onActionsChange({
+      canSave,
+      isSaving,
+      save: () => {
+        void saveRef.current();
+      },
+    });
+  }, [canSave, isSaving, onActionsChange]);
+
   if (isLoading) {
     return (
-      <View className="items-center justify-center px-4 py-6">
+      <View className="items-center justify-center py-6">
         <ActivityIndicator color="#4F46E5" />
       </View>
     );
@@ -205,7 +238,7 @@ export function MovementGoalEditorBody({ userId, onSaved }: MovementGoalEditorBo
 
   if (isError || data == null) {
     return (
-      <View className="px-4 py-4">
+      <View className="py-4">
         <Text className="text-sm" style={{ color: TEXT_SECONDARY }}>
           {t('settings.errors.loadFailed')}
         </Text>
@@ -217,7 +250,7 @@ export function MovementGoalEditorBody({ userId, onSaved }: MovementGoalEditorBo
     typeSelection !== 'none' ? defaultValueDraft(typeSelection, period) : undefined;
 
   return (
-    <View className="px-4 py-4">
+    <View className={hideActions ? undefined : 'px-4 py-4'}>
       <CompactSegmentToggle
         variant="language"
         value={typeSelection}
@@ -234,7 +267,7 @@ export function MovementGoalEditorBody({ userId, onSaved }: MovementGoalEditorBo
 
       {typeSelection !== 'none' ? (
         <>
-          <Text className="mb-2 text-sm font-medium" style={{ color: TEXT_SECONDARY }}>
+          <Text className="mb-2 text-sm font-medium text-gray-700">
             {typeSelection === 'steps'
               ? t('settings.movementGoal.valueLabelSteps')
               : t('settings.movementGoal.valueLabelKm')}
@@ -288,24 +321,26 @@ export function MovementGoalEditorBody({ userId, onSaved }: MovementGoalEditorBo
         <Text className="mt-2 text-sm text-red-600">{inlineError}</Text>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        disabled={!canSave}
-        onPress={() => {
-          if (!canSave) {
-            return;
-          }
-          void handleSave();
-        }}
-        className={`mt-4 h-11 items-center justify-center rounded-xl ${
-          canSave ? 'bg-[#4F46E5]' : 'bg-indigo-300'
-        }`}>
-        {isSaving ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text className="text-base font-semibold text-white">{t('settings.common.save')}</Text>
-        )}
-      </Pressable>
+      {!hideActions ? (
+        <Pressable
+          accessibilityRole="button"
+          disabled={!canSave}
+          onPress={() => {
+            if (!canSave) {
+              return;
+            }
+            void handleSave();
+          }}
+          className={`mt-4 h-11 items-center justify-center rounded-xl ${
+            canSave ? 'bg-[#4F46E5]' : 'bg-indigo-300'
+          }`}>
+          {isSaving ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text className="text-base font-semibold text-white">{t('settings.common.save')}</Text>
+          )}
+        </Pressable>
+      ) : null}
     </View>
   );
 }
