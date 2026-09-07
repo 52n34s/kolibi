@@ -83,6 +83,7 @@ Rules:
 - Quantity in grams must always be derivable, even for countable items (estimated_count × estimated_grams_per_unit).
 - protein_g, carbs_g, fat_g, and fiber_g are grams for the estimated portion of THIS item (matching estimated_grams or estimated_count × estimated_grams_per_unit), not per 100 g. Use null when you cannot estimate a value — never 0 as a placeholder. 0 means the food genuinely contains none of that macro.
 - Use visible reference objects (fork, phone, card) to improve portion estimates when present.
+- When unsure about portion size, choose the conservative (smaller) estimate. Prefer underestimating over overestimating. Reference anchors: a typical bread slice is 40–50 g; one tablespoon of spread is about 15 g; a medium serving of cooked rice is about 150 g.
 
 Example:
 {
@@ -103,20 +104,20 @@ Example:
     {
       "name": "Cooked rice",
       "canonical_name": "rice_cooked",
-      "estimated_grams": 180,
+      "estimated_grams": 150,
       "estimated_count": null,
       "estimated_grams_per_unit": null,
-      "estimated_kcal": 234,
-      "protein_g": 4.3,
-      "carbs_g": 51,
-      "fat_g": 0.4,
-      "fiber_g": 0.6,
+      "estimated_kcal": 195,
+      "protein_g": 3.6,
+      "carbs_g": 43,
+      "fat_g": 0.3,
+      "fiber_g": 0.5,
       "confidence": "medium"
     }
   ]
 }`;
 
-const PROMPT_VERSION = 'v2-macros';
+const PROMPT_VERSION = 'v3-portions';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

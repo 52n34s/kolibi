@@ -5,27 +5,57 @@ import {
   type EditableMealItem,
 } from '@/services/mealVision/types';
 
+/**
+ * When false, only personal user_food_calibration is used (current production behavior).
+ * When true: personal → global median → no correction.
+ * Keep false until global_food_calibration exists and has been reviewed.
+ */
+export const GLOBAL_CALIBRATION_ENABLED = false;
+
 const MIN_SAMPLE_COUNT = 2;
 const MIN_AVG_RATIO = 0.5;
 const MAX_AVG_RATIO = 2.0;
 
-type CalibrationRow = {
+const GLOBAL_MIN_SAMPLE_COUNT = 5;
+const GLOBAL_MIN_USER_COUNT = 3;
+const GLOBAL_MIN_MEDIAN_RATIO = 0.7;
+const GLOBAL_MAX_MEDIAN_RATIO = 1.4;
+
+type PersonalCalibrationRow = {
   food_name_normalized: string;
   sample_count: number;
   avg_ratio: number;
+};
+
+type GlobalCalibrationRow = {
+  food_name_normalized: string;
+  sample_count: number;
+  user_count: number;
+  median_ratio: number;
 };
 
 function normalizeFoodName(canonicalName: string | undefined): string {
   return (canonicalName ?? '').trim().toLowerCase();
 }
 
-function shouldApplyCalibration(row: CalibrationRow): boolean {
+function shouldApplyPersonalCalibration(row: PersonalCalibrationRow): boolean {
   const ratio = Number(row.avg_ratio);
   return (
     row.sample_count >= MIN_SAMPLE_COUNT &&
     Number.isFinite(ratio) &&
     ratio >= MIN_AVG_RATIO &&
     ratio <= MAX_AVG_RATIO
+  );
+}
+
+function shouldApplyGlobalCalibration(row: GlobalCalibrationRow): boolean {
+  const ratio = Number(row.median_ratio);
+  return (
+    row.sample_count >= GLOBAL_MIN_SAMPLE_COUNT &&
+    row.user_count >= GLOBAL_MIN_USER_COUNT &&
+    Number.isFinite(ratio) &&
+    ratio >= GLOBAL_MIN_MEDIAN_RATIO &&
+    ratio <= GLOBAL_MAX_MEDIAN_RATIO
   );
 }
 
@@ -114,9 +144,65 @@ function applyRatioToItem(item: EditableMealItem, avgRatio: number): EditableMea
   };
 }
 
+async function loadPersonalCalibration(
+  userId: string,
+  names: string[],
+): Promise<Map<string, PersonalCalibrationRow>> {
+  const byName = new Map<string, PersonalCalibrationRow>();
+  const { data, error } = await supabase
+    .from('user_food_calibration')
+    .select('food_name_normalized, sample_count, avg_ratio')
+    .eq('user_id', userId)
+    .in('food_name_normalized', names);
+
+  if (error) {
+    console.warn('[food-calibration] personal load failed:', error);
+    return byName;
+  }
+
+  for (const row of (data ?? []) as PersonalCalibrationRow[]) {
+    if (!row?.food_name_normalized) {
+      continue;
+    }
+    byName.set(row.food_name_normalized, row);
+  }
+
+  return byName;
+}
+
+async function loadGlobalCalibration(
+  names: string[],
+): Promise<Map<string, GlobalCalibrationRow>> {
+  const byName = new Map<string, GlobalCalibrationRow>();
+  const { data, error } = await supabase
+    .from('global_food_calibration')
+    .select('food_name_normalized, sample_count, user_count, median_ratio')
+    .in('food_name_normalized', names);
+
+  if (error) {
+    console.warn('[food-calibration] global load failed:', error);
+    return byName;
+  }
+
+  for (const row of (data ?? []) as GlobalCalibrationRow[]) {
+    if (!row?.food_name_normalized) {
+      continue;
+    }
+    byName.set(row.food_name_normalized, row);
+  }
+
+  return byName;
+}
+
 /**
- * Loads the user's food calibration and scales AI gram estimates.
- * Applied only when sample_count >= 3 and avg_ratio is in [0.5, 2.0].
+ * Scales AI gram estimates after resolve_foods.
+ *
+ * Correction order (first match wins):
+ * 1. Personal user_food_calibration (sample_count >= 2, avg_ratio in [0.5, 2.0])
+ * 2. Global median from global_food_calibration — only if GLOBAL_CALIBRATION_ENABLED
+ *    (sample_count >= 5, user_count >= 3, median_ratio in [0.7, 1.4])
+ * 3. No correction
+ *
  * quantitySource stays 'ai' (calibrated value is the new AI baseline).
  */
 export async function applyUserFoodCalibration(
@@ -135,36 +221,40 @@ export async function applyUserFoodCalibration(
     return items;
   }
 
-  const { data, error } = await supabase
-    .from('user_food_calibration')
-    .select('food_name_normalized, sample_count, avg_ratio')
-    .eq('user_id', userId)
-    .in('food_name_normalized', names);
+  const personalByName = await loadPersonalCalibration(userId, names);
 
-  if (error) {
-    console.warn('[food-calibration] load failed, continuing without calibration:', error);
-    return items;
-  }
+  const namesWithoutPersonal = names.filter((name) => {
+    const row = personalByName.get(name);
+    return row == null || !shouldApplyPersonalCalibration(row);
+  });
 
-  const byName = new Map<string, CalibrationRow>();
-  for (const row of (data ?? []) as CalibrationRow[]) {
-    if (!row?.food_name_normalized) {
-      continue;
-    }
-    byName.set(row.food_name_normalized, row);
-  }
-
-  if (byName.size === 0) {
-    return items;
-  }
+  // Behind the flag: inactive until GLOBAL_CALIBRATION_ENABLED is flipped.
+  const globalByName =
+    GLOBAL_CALIBRATION_ENABLED && namesWithoutPersonal.length > 0
+      ? await loadGlobalCalibration(namesWithoutPersonal)
+      : new Map<string, GlobalCalibrationRow>();
 
   return items.map((item) => {
     const key = normalizeFoodName(item.canonicalName);
-    const row = byName.get(key);
-    if (!row || !shouldApplyCalibration(row)) {
+    if (!key) {
       return item;
     }
 
-    return applyRatioToItem(item, Number(row.avg_ratio));
+    // 1. Personal calibration
+    const personal = personalByName.get(key);
+    if (personal && shouldApplyPersonalCalibration(personal)) {
+      return applyRatioToItem(item, Number(personal.avg_ratio));
+    }
+
+    // 2. Global median (flag-gated)
+    if (GLOBAL_CALIBRATION_ENABLED) {
+      const global = globalByName.get(key);
+      if (global && shouldApplyGlobalCalibration(global)) {
+        return applyRatioToItem(item, Number(global.median_ratio));
+      }
+    }
+
+    // 3. No correction
+    return item;
   });
 }
