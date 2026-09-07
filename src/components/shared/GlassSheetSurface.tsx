@@ -7,6 +7,8 @@ import { getGlassCardStyle } from '@/components/ui/glass-styles';
 
 const SHEET_RADIUS = 24;
 const HANDLE_ROW_HEIGHT = 18;
+const DEFAULT_TINT_OPACITY = 0.18;
+const DEFAULT_BLUR_INTENSITY = 48;
 
 type GlassSheetSurfaceProps = {
   children: ReactNode;
@@ -14,23 +16,33 @@ type GlassSheetSurfaceProps = {
   contentStyle?: StyleProp<ViewStyle>;
   /** `sheet` = bottom sheet (rounded top only). `card` = centered dialog (all corners). */
   variant?: 'sheet' | 'card';
+  /** White tint over blur; higher = more opaque sheet (default 0.18). */
+  tintOpacity?: number;
+  blurIntensity?: number;
 };
 
 function SheetSurface({
   children,
   maxHeight,
   variant = 'sheet',
+  tintOpacity = DEFAULT_TINT_OPACITY,
+  blurIntensity = DEFAULT_BLUR_INTENSITY,
 }: {
   children: ReactNode;
   maxHeight?: number;
   variant?: 'sheet' | 'card';
+  tintOpacity?: number;
+  blurIntensity?: number;
 }) {
+  const androidBackground = `rgba(255, 255, 255, ${Math.min(0.92, tintOpacity + 0.45)})`;
+
   const surfaceStyle = getGlassCardStyle(
     variant === 'card'
       ? {
           borderRadius: SHEET_RADIUS,
           overflow: 'hidden',
           maxHeight,
+          ...(Platform.OS !== 'ios' ? { backgroundColor: androidBackground } : {}),
         }
       : {
           borderTopLeftRadius: SHEET_RADIUS,
@@ -39,13 +51,16 @@ function SheetSurface({
           borderBottomRightRadius: 0,
           overflow: 'hidden',
           maxHeight,
+          ...(Platform.OS !== 'ios' ? { backgroundColor: androidBackground } : {}),
         },
   );
 
   if (Platform.OS === 'ios') {
     return (
-      <BlurView intensity={48} tint="light" style={surfaceStyle}>
-        <View style={styles.blurTint}>{children}</View>
+      <BlurView intensity={blurIntensity} tint="light" style={surfaceStyle}>
+        <View style={[styles.blurTint, { backgroundColor: `rgba(255, 255, 255, ${tintOpacity})` }]}>
+          {children}
+        </View>
       </BlurView>
     );
   }
@@ -58,12 +73,18 @@ export function GlassSheetSurface({
   maxHeight,
   contentStyle,
   variant = 'sheet',
+  tintOpacity,
+  blurIntensity,
 }: GlassSheetSurfaceProps) {
   const insets = useSafeAreaInsets();
   const showHandle = variant === 'sheet';
 
   return (
-    <SheetSurface maxHeight={maxHeight} variant={variant}>
+    <SheetSurface
+      maxHeight={maxHeight}
+      variant={variant}
+      tintOpacity={tintOpacity}
+      blurIntensity={blurIntensity}>
       {showHandle ? (
         <View style={styles.handleRow}>
           <View style={styles.handle} />

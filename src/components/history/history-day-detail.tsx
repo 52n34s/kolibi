@@ -168,10 +168,10 @@ export function HistoryDayDetail({
     return buildHomeNutrientTileEntries({
       dietPreference,
       labels: {
-        protein: t('home.nutrients.protein'),
-        carbs: t('home.nutrients.carbs'),
-        fat: t('home.nutrients.fat'),
-        fiber: t('home.nutrients.fiber'),
+        protein: t('home.nutrients.short.protein'),
+        carbs: t('home.nutrients.short.carbs'),
+        fat: t('home.nutrients.short.fat'),
+        fiber: t('home.nutrients.short.fiber'),
       },
       totals: {
         protein: coverage.protein === 'empty' ? null : totals.protein,

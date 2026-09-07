@@ -15,6 +15,7 @@ import {
 
 import { GlassSheetSurface } from '@/components/shared/GlassSheetSurface';
 import { GLASS_SURFACE } from '@/components/ui/glass-styles';
+import { TEXT_SECONDARY } from '@/constants/brand';
 import {
   NUMERIC_DONE_INPUT_PROPS,
   isPartialNumericInput,
@@ -73,7 +74,9 @@ export function WeightInputSheet({
               onPress={(event) => event.stopPropagation()}>
               <GlassSheetSurface
                 maxHeight={maxSheetHeight}
-                contentStyle={styles.sheetContent}>
+                contentStyle={styles.sheetContent}
+                tintOpacity={0.52}
+                blurIntensity={64}>
                 <View style={styles.header}>
                   <Text style={styles.title}>{title}</Text>
                   <Pressable
@@ -82,7 +85,7 @@ export function WeightInputSheet({
                     hitSlop={12}
                     onPress={onClose}
                     style={styles.closeButton}>
-                    <Ionicons name="close" size={22} color="#6B7280" />
+                    <Ionicons name="close" size={22} color={TEXT_SECONDARY} />
                   </Pressable>
                 </View>
                 <View style={styles.body}>
@@ -95,7 +98,7 @@ export function WeightInputSheet({
                         ? t('home.weight.placeholderLbs')
                         : t('home.weight.placeholderKg')
                     }
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={TEXT_SECONDARY}
                     style={styles.input}
                     value={value}
                     onChangeText={(text) => {
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: TEXT_SECONDARY,
   },
   input: {
     marginBottom: 16,

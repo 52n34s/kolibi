@@ -7,10 +7,23 @@ import { kgToLbs, lbsToKg } from '@/lib/units';
 export async function updateTargetWeightKg(params: {
   userId: string;
   targetWeightKg: number;
+  /** YYYY-MM-DD, or null to clear. Omit to leave the column unchanged. */
+  progressStartDate?: string | null;
 }): Promise<void> {
+  const payload: {
+    target_weight_kg: number;
+    progress_start_date?: string | null;
+  } = {
+    target_weight_kg: params.targetWeightKg,
+  };
+
+  if (params.progressStartDate !== undefined) {
+    payload.progress_start_date = params.progressStartDate;
+  }
+
   const { error } = await supabase
     .from('profiles')
-    .update({ target_weight_kg: params.targetWeightKg })
+    .update(payload)
     .eq('id', params.userId);
 
   if (error) {

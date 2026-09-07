@@ -207,9 +207,15 @@
     "nutrients": {
       "eaten": "Gegessen",
       "protein": "Protein",
-      "carbs": "Kohlenh.",
+      "carbs": "Kohlenhydrate",
       "fat": "Fett",
-      "fiber": "Ballastst.",
+      "fiber": "Ballaststoffe",
+      "short": {
+        "protein": "Protein",
+        "carbs": "Kohlenh.",
+        "fat": "Fett",
+        "fiber": "Ballastst."
+      },
       "unitGrams": "g"
     },
     "movementGoal": {
@@ -673,6 +679,10 @@
       "sectionTitle": "Zielgewicht",
       "screenTitle": "Zielgewicht bearbeiten",
       "directEditSubtitle": "Dein Zielgewicht für den Fortschritt.",
+      "progressStartLabel": "Fortschritt zählt ab",
+      "progressStartHint": "Optional. Leer = ältester Gewichtseintrag. Beim ersten Setzen startet die Auswahl bei heute.",
+      "progressStartEmpty": "Nicht gesetzt",
+      "progressStartClear": "Datum entfernen",
       "notSet": "Nicht gesetzt",
       "invalid": "Bitte gib ein gültiges Gewicht ein.",
       "saveFailed": "Zielgewicht konnte nicht gespeichert werden. Bitte erneut versuchen."

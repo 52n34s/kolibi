@@ -30,7 +30,7 @@ export type HomeDashboardData = {
   profile: HomeProfile | null;
   latestCalorieGoal: HomeCalorieGoal | null;
   latestWeight: HomeLatestWeight | null;
-  /** Oldest weight_logs row — baseline for Home weight progress. */
+  /** Oldest weight_logs row (optionally from progress_start_date) — Home weight progress baseline. */
   startWeightKg: number | null;
   consumedCaloriesToday: number;
   consumedMacrosToday: TodayConsumedMacros;
@@ -44,17 +44,11 @@ const EMPTY_MACROS: TodayConsumedMacros = {
 };
 
 export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardData> {
-  const [
-    profileResult,
-    calorieGoalResult,
-    weightResult,
-    startWeightResult,
-    consumptionResult,
-  ] = await Promise.all([
+  const [profileResult, calorieGoalResult, weightResult, consumptionResult] = await Promise.all([
     supabase
       .from('profiles')
       .select(
-        'calorie_goal_source, target_weight_kg, diet_preference, movement_goal_type, movement_goal_value, movement_goal_period',
+        'calorie_goal_source, target_weight_kg, diet_preference, movement_goal_type, movement_goal_value, movement_goal_period, progress_start_date',
       )
       .eq('id', userId)
       .maybeSingle(),
@@ -72,13 +66,6 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
       .select('weight_kg, logged_at')
       .eq('user_id', userId)
       .order('logged_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('weight_logs')
-      .select('weight_kg')
-      .eq('user_id', userId)
-      .order('logged_at', { ascending: true })
       .limit(1)
       .maybeSingle(),
     fetchTodayConsumedCalories(userId).catch(() => ({
@@ -99,13 +86,30 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
     throw weightResult.error;
   }
 
+  const progressStartDate =
+    typeof profileResult.data?.progress_start_date === 'string'
+      ? profileResult.data.progress_start_date
+      : null;
+
+  let startWeightQuery = supabase
+    .from('weight_logs')
+    .select('weight_kg')
+    .eq('user_id', userId)
+    .order('logged_at', { ascending: true })
+    .limit(1);
+
+  if (progressStartDate != null) {
+    startWeightQuery = startWeightQuery.gte('logged_on', progressStartDate);
+  }
+
+  const startWeightResult = await startWeightQuery.maybeSingle();
+
   if (startWeightResult.error) {
     throw startWeightResult.error;
   }
 
   const startWeightRaw = startWeightResult.data?.weight_kg;
-  const startWeightKg =
-    startWeightRaw == null ? null : Number(startWeightRaw);
+  const startWeightKg = startWeightRaw == null ? null : Number(startWeightRaw);
 
   return {
     profile: profileResult.data

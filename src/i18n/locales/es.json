@@ -207,9 +207,15 @@
     "nutrients": {
       "eaten": "Consumido",
       "protein": "Proteína",
-      "carbs": "Carbohidr.",
+      "carbs": "Carbohidratos",
       "fat": "Grasa",
       "fiber": "Fibra",
+      "short": {
+        "protein": "Proteína",
+        "carbs": "Carbohidr.",
+        "fat": "Grasa",
+        "fiber": "Fibra"
+      },
       "unitGrams": "g"
     },
     "movementGoal": {
@@ -673,6 +679,10 @@
       "sectionTitle": "Peso objetivo",
       "screenTitle": "Editar peso objetivo",
       "directEditSubtitle": "Tu peso meta para seguir el progreso.",
+      "progressStartLabel": "El progreso cuenta desde",
+      "progressStartHint": "Opcional. Vacío = el peso más antiguo. Al fijarlo por primera vez, el selector empieza en hoy.",
+      "progressStartEmpty": "No establecido",
+      "progressStartClear": "Quitar fecha",
       "notSet": "No establecido",
       "invalid": "Introduce un peso válido.",
       "saveFailed": "No se pudo guardar el peso objetivo. Inténtalo de nuevo."

@@ -28,7 +28,11 @@ function formatAmount(value: number, decimals: 0 | 1): string {
   if (decimals === 0) {
     return String(Math.round(value));
   }
-  return (Math.round(value * 10) / 10).toFixed(1);
+  const rounded = Math.round(value * 10) / 10;
+  if (Number.isInteger(rounded)) {
+    return String(rounded);
+  }
+  return rounded.toFixed(1);
 }
 
 function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {

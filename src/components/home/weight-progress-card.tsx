@@ -16,8 +16,8 @@ type WeightProgressCardProps = {
 };
 
 /**
- * Glass card: start | target as small edge labels, bar between, current weight
- * centered below. Whole card opens today's weight sheet.
+ * Glass card: start (small) | current (large) | target (small) above the bar.
+ * Whole card opens today's weight sheet.
  */
 export function WeightProgressCard({
   currentValue,
@@ -43,10 +43,13 @@ export function WeightProgressCard({
       ]}>
       {showRange ? (
         <>
-          <View style={styles.edgeRow}>
+          <View style={styles.valuesRow}>
             <View style={styles.edgeLeft}>
               <Text style={styles.edgeLabel}>{startLabel}</Text>
               <Text style={styles.edgeValue}>{startValue}</Text>
+            </View>
+            <View style={styles.currentSlot}>
+              <Text style={styles.currentValue}>{currentValue}</Text>
             </View>
             <View style={styles.edgeRight}>
               <Text style={styles.edgeLabel}>{targetLabel}</Text>
@@ -57,10 +60,9 @@ export function WeightProgressCard({
             <View style={[styles.fill, { width: `${progressPercent}%` }]} />
           </View>
         </>
-      ) : null}
-      <Text style={[styles.currentValue, showRange && styles.currentValueBelowBar]}>
-        {currentValue}
-      </Text>
+      ) : (
+        <Text style={styles.currentValueAlone}>{currentValue}</Text>
+      )}
     </Pressable>
   );
 }
@@ -104,11 +106,10 @@ const styles = StyleSheet.create({
   cardPressed: {
     backgroundColor: 'rgba(79, 70, 229, 0.07)',
   },
-  edgeRow: {
+  valuesRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
+    alignItems: 'center',
+    gap: 8,
   },
   edgeLeft: {
     flex: 1,
@@ -129,6 +130,24 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#26234A',
   },
+  currentSlot: {
+    flexShrink: 0,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentValue: {
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#26234A',
+    textAlign: 'center',
+  },
+  currentValueAlone: {
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#26234A',
+    textAlign: 'center',
+  },
   track: {
     marginTop: 10,
     height: 3,
@@ -140,14 +159,5 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 1.5,
     backgroundColor: BRAND_INDIGO,
-  },
-  currentValue: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: '#26234A',
-    textAlign: 'center',
-  },
-  currentValueBelowBar: {
-    marginTop: 10,
   },
 });

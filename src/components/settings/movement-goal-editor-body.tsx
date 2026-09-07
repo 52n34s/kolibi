@@ -15,6 +15,7 @@ import { useProfileSettings } from '@/hooks/use-profile-settings';
 import {
   NUMERIC_DONE_INPUT_PROPS,
   isPartialNumericInput,
+  resolveNumericKeyboardType,
 } from '@/lib/numeric-input';
 import { requestHealthPermissions } from '@/lib/health';
 import {
@@ -273,7 +274,9 @@ export function MovementGoalEditorBody({
               : t('settings.movementGoal.valueLabelKm')}
           </Text>
           <TextInput
-            keyboardType="numbers-and-punctuation"
+            keyboardType={resolveNumericKeyboardType(
+              allowDecimals ? 'decimal-pad' : 'number-pad',
+            )}
             {...NUMERIC_DONE_INPUT_PROPS}
             value={valueDraft}
             onChangeText={(text) => {

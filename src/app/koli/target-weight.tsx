@@ -1,5 +1,5 @@
 import { Href, Stack, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -14,11 +14,20 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
-import { OnboardingField } from '@/components/onboarding/onboarding-field';
+import {
+  BirthDatePickerModal,
+  openBirthDatePickerAndroid,
+} from '@/components/onboarding/birth-date-picker';
+import {
+  OnboardingField,
+  OnboardingFieldPressable,
+} from '@/components/onboarding/onboarding-field';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
+import { localDateKey, parseDateOnly } from '@/lib/day-window';
+import { formatAppDate } from '@/lib/onboarding';
 import { kgToLbs } from '@/lib/units';
 import {
   parseWeightInputToKg,
@@ -29,9 +38,10 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 
 const GOALS_HREF = { pathname: '/koli', params: { segment: 'goals' } } as Href;
 const MAX_WEIGHT_KG = 699.9;
+const PROGRESS_START_MIN_DATE = new Date(2000, 0, 1);
 
 export default function TargetWeightSettingsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { contentTopPadding } = useMeshScreenInsets();
   const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
@@ -40,10 +50,19 @@ export default function TargetWeightSettingsScreen() {
   const { data, isLoading, isError, error } = useProfileSettings(userId);
 
   const [weightDraft, setWeightDraft] = useState('');
+  const [progressStartDate, setProgressStartDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   const targetWeightKg = data?.profile.target_weight_kg ?? null;
+  const storedProgressStartDate = data?.profile.progress_start_date ?? null;
+
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   useEffect(() => {
     if (!data || initialized) {
@@ -57,14 +76,42 @@ export default function TargetWeightSettingsScreen() {
         unitSystem === 'imperial' ? String(kgToLbs(targetWeightKg)) : String(targetWeightKg),
       );
     }
+
+    setProgressStartDate(
+      storedProgressStartDate != null ? parseDateOnly(storedProgressStartDate) : null,
+    );
     setInitialized(true);
-  }, [data, initialized, targetWeightKg, unitSystem]);
+  }, [data, initialized, storedProgressStartDate, targetWeightKg, unitSystem]);
 
   useEffect(() => {
     if (isError && error) {
       console.error('[TargetWeightSettings] load failed:', error);
     }
   }, [error, isError]);
+
+  function openProgressStartPicker() {
+    // First set: prefill today (empty remains allowed until the user opens the picker).
+    const pickerValue = progressStartDate ?? today;
+    if (progressStartDate == null) {
+      setProgressStartDate(today);
+    }
+
+    if (Platform.OS === 'android') {
+      openBirthDatePickerAndroid({
+        value: pickerValue,
+        minimumDate: PROGRESS_START_MIN_DATE,
+        maximumDate: today,
+        onChange: (date) => {
+          const next = new Date(date);
+          next.setHours(0, 0, 0, 0);
+          setProgressStartDate(next);
+        },
+      });
+      return;
+    }
+
+    setShowDatePicker(true);
+  }
 
   async function handleSave() {
     if (!userId) {
@@ -81,7 +128,12 @@ export default function TargetWeightSettingsScreen() {
     setIsSaving(true);
 
     try {
-      await updateTargetWeightKg({ userId, targetWeightKg: weightKg });
+      await updateTargetWeightKg({
+        userId,
+        targetWeightKg: weightKg,
+        progressStartDate:
+          progressStartDate == null ? null : localDateKey(progressStartDate),
+      });
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['macro-goal-editor', userId] });
       await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
@@ -140,6 +192,33 @@ export default function TargetWeightSettingsScreen() {
               value={weightDraft}
               onChangeText={setWeightDraft}
             />
+
+            <Text className="mb-2 mt-6 text-sm font-medium text-gray-700">
+              {t('settings.targetWeight.progressStartLabel')}
+            </Text>
+            <Text className="mb-2 text-sm text-gray-500">
+              {t('settings.targetWeight.progressStartHint')}
+            </Text>
+            <OnboardingFieldPressable onPress={openProgressStartPicker}>
+              <Text
+                className={`text-base ${
+                  progressStartDate != null ? 'text-gray-900' : 'text-gray-400'
+                }`}>
+                {progressStartDate != null
+                  ? formatAppDate(progressStartDate, i18n.language)
+                  : t('settings.targetWeight.progressStartEmpty')}
+              </Text>
+            </OnboardingFieldPressable>
+            {progressStartDate != null ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setProgressStartDate(null)}
+                className="mt-2 items-start py-1">
+                <Text className="text-sm font-medium text-indigo-600">
+                  {t('settings.targetWeight.progressStartClear')}
+                </Text>
+              </Pressable>
+            ) : null}
           </ScrollView>
 
           <View className="px-6 pb-8">
@@ -158,6 +237,19 @@ export default function TargetWeightSettingsScreen() {
           </View>
         </KeyboardAvoidingView>
       )}
+
+      <BirthDatePickerModal
+        visible={showDatePicker}
+        value={progressStartDate ?? today}
+        minimumDate={PROGRESS_START_MIN_DATE}
+        maximumDate={today}
+        onChange={(date) => {
+          const next = new Date(date);
+          next.setHours(0, 0, 0, 0);
+          setProgressStartDate(next);
+        }}
+        onClose={() => setShowDatePicker(false)}
+      />
       <NumberInputAccessory />
     </HomeLayout>
   );
