@@ -51,7 +51,6 @@ import {
 } from '@/lib/profile';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
-import { formatKcal } from '@/utils/format';
 
 export function ProfilePanel() {
   const { t, i18n } = useTranslation();
@@ -263,6 +262,8 @@ export function ProfilePanel() {
         cuisineContext: nextCuisine,
       });
       await refreshProfile();
+      await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['macro-goal-editor', userId] });
     } catch (saveError) {
       console.error('[ProfilePanel] food context save failed:', saveError);
       setDietPreference(previousDiet);
@@ -383,13 +384,6 @@ export function ProfilePanel() {
       },
     ]);
   }
-
-  const calorieGoalLabel =
-    data?.profile.daily_calorie_goal != null
-      ? t('settings.calorieGoal.value', {
-          calories: formatKcal(data.profile.daily_calorie_goal),
-        })
-      : t('settings.calorieGoal.notSet');
 
   if (isLoading) {
     return (
@@ -514,14 +508,6 @@ export function ProfilePanel() {
         </SettingsSection>
 
         <NotificationsSettingsSection userId={userId} />
-
-        <SettingsSection title={t('settings.calorieGoal.sectionTitle')}>
-          <SettingsRow
-            label={t('settings.calorieGoal.current')}
-            value={calorieGoalLabel}
-            onPress={() => router.push('/koli/calorie-goal' as Href)}
-          />
-        </SettingsSection>
 
         <SettingsSection title={t('settings.onboardingReview.sectionTitle')}>
           <SettingsRow
