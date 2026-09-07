@@ -131,26 +131,6 @@ export default function OnboardingScreen() {
   const [isPrefillingReview, setIsPrefillingReview] = useState(isReviewMode);
 
   useEffect(() => {
-    console.log('[onboarding] footer gate', {
-      step,
-      isSubmitting,
-      authInitialized,
-      hasUserId: Boolean(userId),
-      isSessionReady,
-      isFooterDisabled,
-      biologicalSex,
-    });
-  }, [
-    step,
-    isSubmitting,
-    authInitialized,
-    userId,
-    isSessionReady,
-    isFooterDisabled,
-    biologicalSex,
-  ]);
-
-  useEffect(() => {
     if (!isReviewMode || !session?.user?.id) {
       return;
     }
@@ -206,8 +186,7 @@ export default function OnboardingScreen() {
             setCustomCalorieGoal(calories);
           }
         }
-      } catch (prefillError) {
-        console.error('[Onboarding] review prefill failed:', prefillError);
+      } catch {
       } finally {
         if (!cancelled) {
           setIsPrefillingReview(false);
@@ -320,12 +299,6 @@ export default function OnboardingScreen() {
   }, [initializeUnitSystem]);
 
   useEffect(() => {
-    if (__DEV__) {
-      console.log('[Onboarding] showDatePicker changed:', showDatePicker);
-    }
-  }, [showDatePicker]);
-
-  useEffect(() => {
     if (step !== 2) {
       setShowDatePicker(false);
     }
@@ -346,7 +319,7 @@ export default function OnboardingScreen() {
           activityLevel: effectiveActivityLevelForCalories,
           goalType,
           customCalorieGoal: goalType === 'custom' ? parsedCustomCalories : null,
-        }),
+        }).dailyCalorieGoal,
       ),
     );
   }, [
@@ -429,41 +402,22 @@ export default function OnboardingScreen() {
   }
 
   function handleNext() {
-    console.log('[onboarding] Weiter onPress', {
-      fires: true,
-      step,
-      biologicalSex,
-      isFooterDisabled,
-      isSessionReady,
-      isSubmitting,
-    });
-
     const validationError = validateCurrentStep();
-    console.log('[onboarding] Weiter validation', { step, validationError });
     if (validationError) {
       setErrorMessage(validationError);
       return;
     }
 
     setErrorMessage(null);
-    setStep((current) => {
-      const next = Math.min(current + 1, TOTAL_STEPS - 1);
-      console.log('[onboarding] Weiter setStep', { from: current, to: next });
-      return next;
-    });
+    setStep((current) => Math.min(current + 1, TOTAL_STEPS - 1));
   }
 
   function handleBack() {
-    console.log('[onboarding] Zurück onPress', { step, isFooterDisabled });
     setErrorMessage(null);
     setStep((current) => Math.max(current - 1, 0));
   }
 
   function openDatePicker() {
-    if (__DEV__) {
-      console.log('[Onboarding] openDatePicker tapped, platform:', Platform.OS);
-    }
-
     if (Platform.OS === 'android') {
       openBirthDatePickerAndroid({
         value: birthDate ?? defaultBirthDate,
@@ -474,10 +428,6 @@ export default function OnboardingScreen() {
       return;
     }
 
-    if (__DEV__) {
-      console.log('[Onboarding] setting showDatePicker=true');
-    }
-
     setShowDatePicker(true);
   }
 
@@ -486,21 +436,8 @@ export default function OnboardingScreen() {
   }
 
   async function finishOnboarding(skipped: boolean) {
-    console.log('[onboarding] finishOnboarding enter', {
-      skipped,
-      step,
-      biologicalSex,
-      isFooterDisabled,
-      isSessionReady,
-    });
-
     const currentUserId = useAuthStore.getState().session?.user?.id;
     if (!currentUserId) {
-      console.error('[onboarding] finishOnboarding aborted: session not ready', {
-        skipped,
-        initialized: useAuthStore.getState().initialized,
-        session: useAuthStore.getState().session,
-      });
       setErrorMessage(t('onboarding.errors.sessionNotReady'));
       return;
     }
@@ -510,35 +447,14 @@ export default function OnboardingScreen() {
 
     try {
       if (skipped) {
-        console.log('[onboarding] finishOnboarding calling skipOnboarding', {
-          currentUserId,
-        });
         await skipOnboarding(currentUserId, dietPreference);
       } else {
         if (!birthDate || !activityLevel || !goalType) {
-          console.log('[onboarding] finishOnboarding missing required fields', {
-            birthDate,
-            activityLevel,
-            goalType,
-          });
           throw new Error(t('onboarding.errors.saveFailed'));
         }
 
         const calorieGoalSource =
           goalType === 'custom' || summaryManuallyEdited ? 'custom' : 'calculated';
-
-        console.log('[onboarding] finishOnboarding calling completeOnboarding', {
-          currentUserId,
-          dietPreference,
-          biologicalSex: effectiveSex,
-          birthDate,
-          heightCm: parsedHeight,
-          weightKg: parsedWeight,
-          activityLevel,
-          goalType,
-          calorieGoalSource,
-          dailyCalorieGoal: parsedDailyCalories,
-        });
 
         await completeOnboarding(currentUserId, {
           dietPreference,
@@ -550,82 +466,34 @@ export default function OnboardingScreen() {
           goalType,
           calorieGoalSource,
           dailyCalorieGoal: parsedDailyCalories,
+          tdee: maintenanceCalories,
         });
       }
 
-      console.log('[onboarding] finishOnboarding refreshOnboardingStatus start');
       await useAuthStore.getState().refreshOnboardingStatus();
-      console.log('[onboarding] finishOnboarding refreshOnboardingStatus done', {
-        isReviewMode,
-      });
-
       if (isReviewMode) {
         router.back();
         return;
       }
 
       router.replace('/home' as Href);
-    } catch (error) {
-      console.log('[onboarding] finishOnboarding catch full error', error);
-      console.error('[Onboarding] save failed:', error);
-
-      if (error && typeof error === 'object') {
-        const supabaseError = error as {
-          code?: string;
-          message?: string;
-          details?: string;
-          hint?: string;
-        };
-
-        console.log('[onboarding] finishOnboarding catch details', {
-          code: supabaseError.code,
-          message: supabaseError.message,
-          details: supabaseError.details,
-          hint: supabaseError.hint,
-          keys: Object.keys(error as object),
-          stringified: JSON.stringify(error),
-        });
-      }
-
+    } catch {
       setErrorMessage(t('onboarding.errors.saveFailed'));
     } finally {
       setIsSubmitting(false);
-      console.log('[onboarding] finishOnboarding finally', { skipped });
     }
   }
 
   function handleSkip() {
-    console.log('[onboarding] Überspringen onPress', {
-      fires: true,
-      step,
-      biologicalSex,
-      isFooterDisabled,
-      isSessionReady,
-      isSubmitting,
-    });
     void finishOnboarding(true);
   }
 
   /** Cancel = same persistence as Skip: set onboarded_at, then leave the flow. */
   function handleCancel() {
-    console.log('[onboarding] Cancel onPress', {
-      fires: true,
-      step,
-      isReviewMode,
-      isFooterDisabled,
-      isSessionReady,
-      isSubmitting,
-    });
     void finishOnboarding(true);
   }
 
   function handleFinish() {
-    console.log('[onboarding] Finish onPress', {
-      fires: true,
-      step,
-      biologicalSex,
-      isFooterDisabled,
-    });
     const validationError = validateCurrentStep();
     if (validationError) {
       setErrorMessage(validationError);
@@ -932,22 +800,8 @@ export default function OnboardingScreen() {
             finishLabel={isReviewMode ? t('settings.onboardingReview.save') : t('onboarding.finish')}
             hideSkip={isReviewMode}
             onBack={handleBack}
-            onSkip={() => {
-              console.log('[onboarding] Footer onSkip wrapper', {
-                step,
-                isFooterDisabled,
-                biologicalSex,
-              });
-              handleSkip();
-            }}
-            onNext={() => {
-              console.log('[onboarding] Footer onNext wrapper', {
-                step,
-                isFooterDisabled,
-                biologicalSex,
-              });
-              handleNext();
-            }}
+            onSkip={handleSkip}
+            onNext={handleNext}
             onFinish={handleFinish}
           />
         </View>

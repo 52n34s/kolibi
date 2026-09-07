@@ -118,6 +118,7 @@ export default function CalorieGoalSettingsScreen() {
       await updateDailyCalorieGoal({
         userId,
         dailyCalorieGoal: parsedDailyCalories,
+        tdee: maintenanceCalories,
       });
 
       await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
@@ -137,8 +138,8 @@ export default function CalorieGoalSettingsScreen() {
 
       <View className="px-6" style={{ paddingTop: contentTopPadding }}>
         <SettingsBackButton
-          label={t('settings.title')}
-          href={{ pathname: '/koli', params: { segment: 'settings', settingsSubSegment: 'profile' } } as Href}
+          label={t('koli.segments.goals')}
+          href={{ pathname: '/koli', params: { segment: 'goals' } } as Href}
         />
       </View>
 

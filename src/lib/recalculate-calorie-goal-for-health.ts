@@ -37,7 +37,7 @@ export async function recalculateCalorieGoalForHealthKitChange(
     healthConnected,
   );
 
-  const dailyCalorieGoal = calculateDailyCalorieGoal({
+  const { dailyCalorieGoal, maintenanceCalories } = calculateDailyCalorieGoal({
     biologicalSex: profile.biological_sex ?? 'prefer_not_to_say',
     birthDate: parseDateOnly(profile.birth_date),
     heightCm: profile.height_cm,
@@ -51,5 +51,6 @@ export async function recalculateCalorieGoalForHealthKitChange(
     dailyCalorieGoal,
     source: 'calculated',
     effectiveFrom: localDateKey(),
+    tdee: maintenanceCalories,
   });
 }

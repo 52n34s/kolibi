@@ -4,9 +4,18 @@ import type {
   CalorieGoalSource,
   GoalType,
 } from '@/lib/onboarding';
-import { upsertDailyCalorieGoal } from '@/lib/calorie-goals';
+import {
+  refreshMacrosKeepingCalorieGoal,
+  upsertDailyCalorieGoal,
+} from '@/lib/calorie-goals';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
+
+export type MovementGoalType = 'steps' | 'running_km' | 'distance_km';
+export type MovementGoalPeriod = 'day' | 'week';
+
+const PROFILE_SETTINGS_SELECT =
+  'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context, movement_goal_type, movement_goal_value, movement_goal_period';
 
 export type ProfileSettingsData = {
   id: string;
@@ -21,6 +30,9 @@ export type ProfileSettingsData = {
   trial_ends_at: string | null;
   diet_preference: string | null;
   cuisine_context: string[] | null;
+  movement_goal_type: MovementGoalType | null;
+  movement_goal_value: number | null;
+  movement_goal_period: MovementGoalPeriod | null;
   latest_weight_kg: number | null;
   daily_calorie_goal: number | null;
 };
@@ -56,9 +68,7 @@ export async function fetchProfileSettings(
   const [profileResult, weightResult, calorieGoalResult] = await Promise.all([
     supabase
       .from('profiles')
-      .select(
-        'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context',
-      )
+      .select(PROFILE_SETTINGS_SELECT)
       .eq('id', userId)
       .maybeSingle(),
     supabase
@@ -105,9 +115,7 @@ export async function fetchProfileSettings(
       await new Promise((resolve) => setTimeout(resolve, 400));
       const retry = await supabase
         .from('profiles')
-        .select(
-          'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context',
-        )
+        .select(PROFILE_SETTINGS_SELECT)
         .eq('id', userId)
         .maybeSingle();
 
@@ -123,12 +131,21 @@ export async function fetchProfileSettings(
     throw new Error('Profile not found');
   }
 
+  const movementGoalType = parseMovementGoalType(profile.movement_goal_type);
+  const movementGoalPeriod = parseMovementGoalPeriod(profile.movement_goal_period);
+  const rawMovementValue =
+    profile.movement_goal_value == null ? null : Number(profile.movement_goal_value);
+
   return {
     ...profile,
     diet_preference: profile.diet_preference ?? null,
     cuisine_context: Array.isArray(profile.cuisine_context)
       ? profile.cuisine_context
       : null,
+    movement_goal_type: movementGoalType,
+    movement_goal_value:
+      rawMovementValue != null && Number.isFinite(rawMovementValue) ? rawMovementValue : null,
+    movement_goal_period: movementGoalPeriod,
     latest_weight_kg: weightResult.data?.weight_kg ?? null,
     daily_calorie_goal: calorieGoalResult.data?.daily_calorie_goal ?? null,
   };
@@ -228,6 +245,67 @@ export async function updateFoodContext(params: {
       cuisine_context: params.cuisineContext,
     })
     .eq('id', userId);
+
+  if (error) {
+    throw error;
+  }
+
+  await refreshMacrosKeepingCalorieGoal(userId);
+}
+
+function parseMovementGoalType(value: unknown): MovementGoalType | null {
+  if (value === 'steps' || value === 'running_km' || value === 'distance_km') {
+    return value;
+  }
+  return null;
+}
+
+function parseMovementGoalPeriod(value: unknown): MovementGoalPeriod | null {
+  if (value === 'day' || value === 'week') {
+    return value;
+  }
+  return null;
+}
+
+/** Writes all three movement-goal columns together. Does not touch calorie_goals. */
+export async function updateMovementGoal(params: {
+  userId: string;
+  movementGoalType: MovementGoalType | null;
+  movementGoalValue: number | null;
+  movementGoalPeriod: MovementGoalPeriod | null;
+}): Promise<void> {
+  if (params.movementGoalType == null) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        movement_goal_type: null,
+        movement_goal_value: null,
+        movement_goal_period: null,
+      })
+      .eq('id', params.userId);
+
+    if (error) {
+      throw error;
+    }
+    return;
+  }
+
+  if (
+    params.movementGoalValue == null ||
+    !(params.movementGoalValue > 0) ||
+    params.movementGoalPeriod == null
+  ) {
+    throw new Error('invalid_movement_goal');
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      movement_goal_type: params.movementGoalType,
+      movement_goal_value: params.movementGoalValue,
+      movement_goal_period: params.movementGoalPeriod,
+    })
+    .eq('id', params.userId);
 
   if (error) {
     throw error;
@@ -348,6 +426,7 @@ export async function deleteOwnAccount() {
 export async function updateDailyCalorieGoal(params: {
   userId: string;
   dailyCalorieGoal: number;
+  tdee?: number | null;
 }) {
   const { error: profileError } = await supabase
     .from('profiles')
@@ -364,37 +443,6 @@ export async function updateDailyCalorieGoal(params: {
     userId: params.userId,
     dailyCalorieGoal: params.dailyCalorieGoal,
     source: 'custom',
-  });
-}
-
-export async function updateCalorieGoal(params: {
-  userId: string;
-  goalType: GoalType;
-  calorieGoalSource: CalorieGoalSource;
-  dailyCalorieGoal: number;
-  biologicalSex: BiologicalSex;
-  birthDate: Date;
-  heightCm: number;
-  weightKg: number;
-  activityLevel: ActivityLevel;
-}) {
-  const now = new Date().toISOString();
-
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({
-      goal_type: params.goalType,
-      calorie_goal_source: params.calorieGoalSource,
-    })
-    .eq('id', params.userId);
-
-  if (profileError) {
-    throw profileError;
-  }
-
-  await upsertDailyCalorieGoal({
-    userId: params.userId,
-    dailyCalorieGoal: params.dailyCalorieGoal,
-    source: params.calorieGoalSource,
+    tdee: params.tdee,
   });
 }

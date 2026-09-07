@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { upsertTodayWeightLog } from '@/lib/weight-logs';
 import { localDateKey } from '@/lib/day-window';
 import { upsertDailyCalorieGoal } from '@/lib/calorie-goals';
+import { suggestInitialTargetWeightKg } from '@/lib/macro-goals';
 import { useAuthStore } from '@/stores/auth-store';
 
 export type BiologicalSex = 'male' | 'female' | 'prefer_not_to_say';
@@ -249,18 +250,24 @@ function calculateRawDailyCalorieGoal(params: {
   activityLevel: ActivityLevel;
   goalType: GoalType;
   customCalorieGoal?: number | null;
-}): number {
+}): { rawCalories: number; maintenanceCalories: number } {
   const maintenanceCalories = calculateMaintenanceCalories(params);
 
   if (params.goalType === 'custom') {
-    return Math.round(params.customCalorieGoal ?? maintenanceCalories);
+    return {
+      rawCalories: Math.round(params.customCalorieGoal ?? maintenanceCalories),
+      maintenanceCalories,
+    };
   }
 
-  return calculatePredefinedGoalCalories({
-    weightKg: params.weightKg,
+  return {
+    rawCalories: calculatePredefinedGoalCalories({
+      weightKg: params.weightKg,
+      maintenanceCalories,
+      goalType: params.goalType,
+    }).rawCalories,
     maintenanceCalories,
-    goalType: params.goalType,
-  }).rawCalories;
+  };
 }
 
 export function calculateDailyCalorieGoal(params: {
@@ -271,9 +278,12 @@ export function calculateDailyCalorieGoal(params: {
   activityLevel: ActivityLevel;
   goalType: GoalType;
   customCalorieGoal?: number | null;
-}): number {
-  const rawCalories = calculateRawDailyCalorieGoal(params);
-  return Math.max(rawCalories, getMinimumDailyCalories(params.biologicalSex));
+}): { dailyCalorieGoal: number; maintenanceCalories: number } {
+  const { rawCalories, maintenanceCalories } = calculateRawDailyCalorieGoal(params);
+  return {
+    dailyCalorieGoal: Math.max(rawCalories, getMinimumDailyCalories(params.biologicalSex)),
+    maintenanceCalories,
+  };
 }
 
 export function calculateDailyCalorieGoalDetails(params: {
@@ -330,7 +340,11 @@ function delay(ms: number) {
 }
 
 async function loadOnboardingProfile(userId: string) {
-  return supabase.from('profiles').select('onboarded_at').eq('id', userId).maybeSingle();
+  return supabase
+    .from('profiles')
+    .select('onboarded_at, target_weight_kg')
+    .eq('id', userId)
+    .maybeSingle();
 }
 
 /**
@@ -340,6 +354,7 @@ async function loadOnboardingProfile(userId: string) {
 async function resolveOnboardingProfile(userId: string): Promise<{
   userId: string;
   onboardedAt: string | null;
+  targetWeightKg: number | null;
 }> {
   const first = await loadOnboardingProfile(userId);
   if (first.error) {
@@ -347,7 +362,11 @@ async function resolveOnboardingProfile(userId: string): Promise<{
   }
 
   if (first.data) {
-    return { userId, onboardedAt: first.data.onboarded_at };
+    return {
+      userId,
+      onboardedAt: first.data.onboarded_at,
+      targetWeightKg: parseTargetWeightKg(first.data.target_weight_kg),
+    };
   }
 
   const outcome = await useAuthStore.getState().recoverSessionIfUserMissing();
@@ -365,7 +384,11 @@ async function resolveOnboardingProfile(userId: string): Promise<{
     }
 
     if (second.data) {
-      return { userId: nextId, onboardedAt: second.data.onboarded_at };
+      return {
+        userId: nextId,
+        onboardedAt: second.data.onboarded_at,
+        targetWeightKg: parseTargetWeightKg(second.data.target_weight_kg),
+      };
     }
   }
 
@@ -377,24 +400,33 @@ async function resolveOnboardingProfile(userId: string): Promise<{
     }
 
     if (second.data) {
-      return { userId, onboardedAt: second.data.onboarded_at };
+      return {
+        userId,
+        onboardedAt: second.data.onboarded_at,
+        targetWeightKg: parseTargetWeightKg(second.data.target_weight_kg),
+      };
     }
   }
 
   throw new Error('Profile not found while skipping onboarding.');
 }
 
+function parseTargetWeightKg(value: unknown): number | null {
+  if (value == null) {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export async function skipOnboarding(userId: string, dietPreference: string | null = null) {
   const now = new Date().toISOString();
   const resolved = await resolveOnboardingProfile(userId);
   userId = resolved.userId;
-  console.log('[onboarding] skipOnboarding before update', { userId, now, dietPreference });
-
   const existing = { onboarded_at: resolved.onboardedAt };
 
   // Already set — leave untouched (fine).
   if (existing.onboarded_at) {
-    console.log('[onboarding] skipOnboarding noop: onboarded_at already set');
     return;
   }
 
@@ -405,8 +437,6 @@ export async function skipOnboarding(userId: string, dietPreference: string | nu
     .is('onboarded_at', null)
     .select('id, onboarded_at, diet_preference')
     .maybeSingle();
-
-  console.log('[onboarding] skipOnboarding after update', { data, error });
 
   if (error) {
     throw error;
@@ -450,12 +480,16 @@ export async function completeOnboarding(
     goalType: GoalType;
     calorieGoalSource: CalorieGoalSource;
     dailyCalorieGoal: number;
+    tdee?: number | null;
   },
 ) {
   const now = new Date().toISOString();
   const resolved = await resolveOnboardingProfile(userId);
   userId = resolved.userId;
-  const existingProfile = { onboarded_at: resolved.onboardedAt };
+  const existingProfile = {
+    onboarded_at: resolved.onboardedAt,
+    target_weight_kg: resolved.targetWeightKg,
+  };
 
   const profilePayload: {
     diet_preference: string | null;
@@ -466,6 +500,7 @@ export async function completeOnboarding(
     goal_type: GoalType;
     calorie_goal_source: CalorieGoalSource;
     onboarded_at?: string;
+    target_weight_kg?: number;
   } = {
     diet_preference: data.dietPreference,
     birth_date: localDateKey(data.birthDate),
@@ -481,10 +516,14 @@ export async function completeOnboarding(
     profilePayload.onboarded_at = now;
   }
 
-  console.log('[onboarding] completeOnboarding before profile update', {
-    userId,
-    profilePayload,
-  });
+  // Only seed target weight when unset — never overwrite a user-set value.
+  if (existingProfile.target_weight_kg == null) {
+    profilePayload.target_weight_kg = suggestInitialTargetWeightKg({
+      weightKg: data.weightKg,
+      heightCm: data.heightCm,
+      goalType: data.goalType,
+    });
+  }
 
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
@@ -492,11 +531,6 @@ export async function completeOnboarding(
     .eq('id', userId)
     .select('id, onboarded_at, biological_sex')
     .maybeSingle();
-
-  console.log('[onboarding] completeOnboarding after profile update', {
-    data: profileData,
-    error: profileError,
-  });
 
   if (profileError) {
     throw profileError;
@@ -525,36 +559,16 @@ export async function completeOnboarding(
     }
   }
 
-  try {
-    console.log('[onboarding] completeOnboarding before weight upsert', {
-      userId,
-      weightKg: data.weightKg,
-    });
-    await upsertTodayWeightLog({
-      userId,
-      weightKg: data.weightKg,
-      source: 'manual',
-    });
-    console.log('[onboarding] completeOnboarding weight upsert ok');
-  } catch (weightError) {
-    console.log('[onboarding] completeOnboarding weight upsert failed', weightError);
-    throw weightError;
-  }
+  await upsertTodayWeightLog({
+    userId,
+    weightKg: data.weightKg,
+    source: 'manual',
+  });
 
-  try {
-    console.log('[onboarding] completeOnboarding before calorie goal upsert', {
-      userId,
-      dailyCalorieGoal: data.dailyCalorieGoal,
-      calorieGoalSource: data.calorieGoalSource,
-    });
-    await upsertDailyCalorieGoal({
-      userId,
-      dailyCalorieGoal: data.dailyCalorieGoal,
-      source: data.calorieGoalSource,
-    });
-    console.log('[onboarding] completeOnboarding calorie goal upsert ok');
-  } catch (calorieError) {
-    console.log('[onboarding] completeOnboarding calorie goal upsert failed', calorieError);
-    throw calorieError;
-  }
+  await upsertDailyCalorieGoal({
+    userId,
+    dailyCalorieGoal: data.dailyCalorieGoal,
+    source: data.calorieGoalSource,
+    tdee: data.tdee,
+  });
 }
