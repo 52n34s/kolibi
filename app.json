@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kolibi",
     "slug": "kolibi",
-    "version": "1.0.6",
+    "version": "1.1.0",
     "orientation": "portrait",
     "runtimeVersion": {
       "policy": "appVersion"
@@ -25,7 +25,9 @@
         "aps-environment": "production",
         "com.apple.developer.healthkit": true,
         "com.apple.developer.healthkit.access": [],
-        "com.apple.security.application-groups": ["group.com.steffen.kolibi"]
+        "com.apple.security.application-groups": [
+          "group.com.steffen.kolibi"
+        ]
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

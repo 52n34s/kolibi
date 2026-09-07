@@ -305,7 +305,13 @@ export default function OnboardingScreen() {
   }, [step]);
 
   useEffect(() => {
-    if (step !== 7 || summaryManuallyEdited || !birthDate || !activityLevel || !goalType) {
+    if (
+      step !== 7 ||
+      summaryManuallyEdited ||
+      !birthDate ||
+      !effectiveActivityLevelForCalories ||
+      !goalType
+    ) {
       return;
     }
 
