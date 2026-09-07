@@ -612,6 +612,14 @@ export default function HomeScreen() {
   ]);
 
   const latestWeightKg = data?.latestWeight?.weight_kg ?? null;
+  const hasWeightLogToday = useMemo(() => {
+    const loggedAt = data?.latestWeight?.logged_at;
+    if (loggedAt == null) {
+      return false;
+    }
+
+    return localDateKey(new Date(loggedAt)) === localDateKey();
+  }, [data?.latestWeight?.logged_at]);
   const targetWeightKg = data?.profile?.target_weight_kg ?? null;
   const startWeightKg = data?.startWeightKg ?? null;
   const weightUnitLabels = useMemo(
@@ -1437,7 +1445,9 @@ export default function HomeScreen() {
       <WeightInputSheet
         visible={weightSheet != null}
         title={t('home.weight.modalTitle')}
-        subtitle={t('home.weight.modalSubtitle')}
+        subtitle={
+          hasWeightLogToday ? t('home.weight.modalSubtitle') : null
+        }
         unitSystem={unitSystem}
         value={weightDraft}
         isSaving={isSavingWeight}

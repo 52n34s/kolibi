@@ -1,15 +1,7 @@
 import { Href, Stack, router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import {
@@ -18,6 +10,7 @@ import {
 } from '@/components/settings/movement-goal-editor-body';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { useAuthStore } from '@/stores/auth-store';
 
 const GOALS_HREF = { pathname: '/koli', params: { segment: 'goals' } } as Href;
@@ -25,6 +18,7 @@ const GOALS_HREF = { pathname: '/koli', params: { segment: 'goals' } } as Href;
 export default function MovementGoalSettingsScreen() {
   const { t } = useTranslation();
   const { contentTopPadding } = useMeshScreenInsets();
+  const keyboardHeight = useKeyboardHeight();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
   const [actions, setActions] = useState<MovementGoalEditorActions | null>(null);
@@ -48,9 +42,7 @@ export default function MovementGoalSettingsScreen() {
           </Text>
         </View>
       ) : (
-        <KeyboardAvoidingView
-          className="flex-1"
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View className="flex-1" style={{ paddingBottom: keyboardHeight }}>
           <ScrollView
             className="flex-1 px-6"
             contentContainerStyle={{ paddingTop: 12, paddingBottom: 32 }}
@@ -86,7 +78,7 @@ export default function MovementGoalSettingsScreen() {
               )}
             </Pressable>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       )}
       <NumberInputAccessory />
     </HomeLayout>

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -25,6 +24,7 @@ import {
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { formatAppDate } from '@/lib/onboarding';
@@ -43,6 +43,7 @@ const PROGRESS_START_MIN_DATE = new Date(2000, 0, 1);
 export default function TargetWeightSettingsScreen() {
   const { t, i18n } = useTranslation();
   const { contentTopPadding } = useMeshScreenInsets();
+  const keyboardHeight = useKeyboardHeight();
   const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
@@ -165,9 +166,7 @@ export default function TargetWeightSettingsScreen() {
           </Text>
         </View>
       ) : (
-        <KeyboardAvoidingView
-          className="flex-1"
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View className="flex-1" style={{ paddingBottom: keyboardHeight }}>
           <ScrollView
             className="flex-1 px-6"
             contentContainerStyle={{ paddingTop: 12, paddingBottom: 32 }}
@@ -235,7 +234,7 @@ export default function TargetWeightSettingsScreen() {
               )}
             </Pressable>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       )}
 
       <BirthDatePickerModal

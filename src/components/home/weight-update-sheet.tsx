@@ -16,6 +16,7 @@ import {
 import { GlassSheetSurface } from '@/components/shared/GlassSheetSurface';
 import { GLASS_SURFACE } from '@/components/ui/glass-styles';
 import { TEXT_SECONDARY } from '@/constants/brand';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import {
   NUMERIC_DONE_INPUT_PROPS,
   isPartialNumericInput,
@@ -26,7 +27,8 @@ import type { UnitSystem } from '@/lib/unit-system';
 export type WeightInputSheetProps = {
   visible: boolean;
   title: string;
-  subtitle: string;
+  /** Shown only when today already has a weight log (replace hint). */
+  subtitle?: string | null;
   unitSystem: UnitSystem;
   value: string;
   isSaving: boolean;
@@ -49,6 +51,7 @@ export function WeightInputSheet({
   const { t } = useTranslation();
   const { height: windowHeight } = useWindowDimensions();
   const inputRef = useRef<TextInputType>(null);
+  const keyboardHeight = useKeyboardHeight();
   const maxSheetHeight = windowHeight * 0.88;
 
   useEffect(() => {
@@ -70,7 +73,10 @@ export function WeightInputSheet({
           <View style={styles.overlay}>
             <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
             <Pressable
-              style={[styles.sheetShell, { maxHeight: maxSheetHeight }]}
+              style={[
+                styles.sheetShell,
+                { maxHeight: maxSheetHeight, bottom: keyboardHeight },
+              ]}
               onPress={(event) => event.stopPropagation()}>
               <GlassSheetSurface
                 maxHeight={maxSheetHeight}
@@ -89,7 +95,7 @@ export function WeightInputSheet({
                   </Pressable>
                 </View>
                 <View style={styles.body}>
-                  <Text style={styles.subtitle}>{subtitle}</Text>
+                  {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
                   <TextInput
                     ref={inputRef}
                     keyboardType={resolveNumericKeyboardType('decimal-pad')}
@@ -142,9 +148,12 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    justifyContent: 'flex-end',
   },
   sheetShell: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
   },
   sheetContent: {
