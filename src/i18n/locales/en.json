@@ -197,8 +197,8 @@
       "label": "Remaining today",
       "dynamicLabel": "Remaining today",
       "overGoal": "kcal over",
-      "dailyGoalReference": "Daily goal: {{goal}} kcal",
-      "dynamicDailyGoalReference": "Daily goal {{goal}} · +{{burned}} burned",
+      "dailyGoalReference": "of {{goal}}",
+      "dynamicDailyGoalReference": "of {{total}} (+{{burned}} burned)",
       "notSpecified": "Not specified",
       "tapToSet": "Tap to set your goal",
       "emptyPrefix": "No calorie goal set · ",
@@ -211,6 +211,13 @@
       "fat": "Fat",
       "fiber": "Fiber",
       "unitGrams": "g"
+    },
+    "movementGoal": {
+      "labelSteps": "Steps",
+      "labelRunningKm": "Running",
+      "labelDistanceKm": "Everyday movement",
+      "unitSteps": "",
+      "unitKm": "km"
     },
     "trial": {
       "daysLeft_one": "Trial: {{count}} day left",
@@ -424,7 +431,10 @@
     }
   },
   "koli": {
-    "title": "Koli"
+    "title": "Koli",
+    "segments": {
+      "goals": "Goals"
+    }
   },
   "history": {
     "title": "History",
@@ -621,6 +631,37 @@
       "validationTitle": "Invalid calorie goal",
       "validationOutOfRange": "Please enter a value between {{min}} and {{max}} kcal. Minimum {{min}} kcal.",
       "saveFailed": "Could not save your calorie goal. Please try again."
+    },
+    "macroGoal": {
+      "sectionTitle": "Protein goal",
+      "value": "{{grams}} g",
+      "notSet": "Not set",
+      "recommended": "Recommended: {{value}} g",
+      "resetToRecommended": "Reset to recommended value",
+      "needsCalorieGoal": "Set a calorie goal first.",
+      "blockedNonPositive": "Enter a protein goal greater than 0 g.",
+      "blockedAboveMax": "This protein goal is above the allowed maximum.",
+      "softWarning": "Protein and fat would together exceed 85% of calories.",
+      "saveFailed": "Could not save your protein goal. Please try again."
+    },
+    "movementGoal": {
+      "sectionTitle": "Movement goal",
+      "summary": "{{value}} {{type}} {{period}}",
+      "type": {
+        "none": "No goal",
+        "steps": "Steps",
+        "runningKm": "Running",
+        "distanceKm": "Everyday movement"
+      },
+      "valueLabelSteps": "Steps",
+      "valueLabelKm": "Kilometers",
+      "period": {
+        "day": "per day",
+        "week": "per week"
+      },
+      "runningHint": "Only recorded runs count — without a running app, you won't have workouts.",
+      "blockedNonPositive": "Enter a target greater than 0.",
+      "saveFailed": "Could not save your movement goal. Please try again."
     },
     "onboardingReview": {
       "sectionTitle": "Profile data",
