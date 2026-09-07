@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import {
   NutrientTile,
@@ -11,6 +11,8 @@ export type NutrientTileGridItem = {
   value: number | null;
   unit: string;
   state?: NutrientTileState;
+  goalValue?: number | null;
+  onPress?: () => void;
 };
 
 type NutrientTileGridProps = {
@@ -29,15 +31,35 @@ function resolveState(item: NutrientTileGridItem): NutrientTileState {
 function TileRow({ items }: { items: NutrientTileGridItem[] }) {
   return (
     <View style={styles.row}>
-      {items.map((item) => (
-        <NutrientTile
-          key={item.key}
-          label={item.label}
-          value={item.value}
-          unit={item.unit}
-          state={resolveState(item)}
-        />
-      ))}
+      {items.map((item) => {
+        const tile = (
+          <NutrientTile
+            label={item.label}
+            value={item.value}
+            unit={item.unit}
+            state={resolveState(item)}
+            goalValue={item.goalValue}
+          />
+        );
+
+        if (item.onPress == null) {
+          return (
+            <View key={item.key} style={styles.tileSlot}>
+              {tile}
+            </View>
+          );
+        }
+
+        return (
+          <Pressable
+            key={item.key}
+            accessibilityRole="button"
+            onPress={item.onPress}
+            style={({ pressed }) => [styles.tileSlot, pressed && styles.tilePressed]}>
+            {tile}
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -71,6 +93,15 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: 6,
+  },
+  tileSlot: {
+    flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+  },
+  tilePressed: {
+    opacity: 0.72,
   },
 });

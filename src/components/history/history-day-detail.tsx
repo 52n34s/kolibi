@@ -183,8 +183,18 @@ export function HistoryDayDetail({
     }).map((entry) => ({
       ...entry,
       state: coverage[entry.key],
+      goalValue:
+        entry.key === 'protein'
+          ? (dayGoal?.proteinG ?? null)
+          : entry.key === 'carbs'
+            ? (dayGoal?.carbsG ?? null)
+            : entry.key === 'fat'
+              ? (dayGoal?.fatG ?? null)
+              : entry.key === 'fiber'
+                ? (dayGoal?.fiberG ?? null)
+                : null,
     }));
-  }, [dietPreference, meals, t]);
+  }, [dayGoal, dietPreference, meals, t]);
 
   const goalSummary = useMemo(() => {
     if (goalLoading) {
@@ -199,14 +209,14 @@ export function HistoryDayDetail({
     if (burned != null) {
       return t('history.day.goalProgressWithBurned', {
         consumed: formatKcal(dayTotalKcal),
-        goal: formatKcal(dayGoal),
+        goal: formatKcal(dayGoal.dailyCalorieGoal),
         burned: formatKcal(burned),
       });
     }
 
     return t('history.day.goalProgress', {
       consumed: formatKcal(dayTotalKcal),
-      goal: formatKcal(dayGoal),
+      goal: formatKcal(dayGoal.dailyCalorieGoal),
     });
   }, [dayGoal, dayHealthStats?.active_energy_kcal, dayTotalKcal, goalLoading, t]);
 
