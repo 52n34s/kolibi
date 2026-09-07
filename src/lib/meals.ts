@@ -110,7 +110,10 @@ function buildFoodAdjustmentRow(
     return null;
   }
 
-  const edited = wasQuantityUserCorrected(item);
+  // Only real quantity corrections — Ratio-1 (unedited AI) rows dilute avg_ratio.
+  if (!wasQuantityUserCorrected(item) || finalGrams === aiEstimatedGrams) {
+    return null;
+  }
 
   return {
     user_id: params.userId,
@@ -118,7 +121,7 @@ function buildFoodAdjustmentRow(
     food_name_normalized: normalizeFoodName(item.canonicalName),
     food_id: item.foodId ?? null,
     ai_estimated_grams: aiEstimatedGrams,
-    corrected_grams: edited ? finalGrams : aiEstimatedGrams,
+    corrected_grams: finalGrams,
     include_in_calibration: params.includeInCalibration,
   };
 }
@@ -912,6 +915,10 @@ export async function updateMealWithItems(params: {
           display_unit: row.display_unit,
           kcal: row.kcal,
           kcal_per_100g: row.kcal_per_100g,
+          protein_g: row.protein_g,
+          carbs_g: row.carbs_g,
+          fat_g: row.fat_g,
+          fiber_g: row.fiber_g,
           portion_factor: row.portion_factor,
           was_edited: true,
           sort_order: row.sort_order,
