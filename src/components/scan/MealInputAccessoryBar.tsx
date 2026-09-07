@@ -8,17 +8,24 @@ import {
 } from '@/components/scan/meal-input-bar-context';
 import { BRAND_INDIGO } from '@/constants/brand';
 
-export const MEAL_INPUT_BAR_HEIGHT = 64;
+export const MEAL_INPUT_BAR_HEIGHT_SINGLE = 64;
+export const MEAL_INPUT_BAR_HEIGHT_NAME = 76;
 export const MEAL_INPUT_KEYBOARD_GAP = 8;
 
-const BAR_HEIGHT = MEAL_INPUT_BAR_HEIGHT;
+/** Fixed bar heights — prefer these over onLayout while the keyboard animates. */
+export function mealInputBarHeightForField(field: MealStepperField | null | undefined): number {
+  return field === 'name' ? MEAL_INPUT_BAR_HEIGHT_NAME : MEAL_INPUT_BAR_HEIGHT_SINGLE;
+}
+
+const BAR_HEIGHT_SINGLE = MEAL_INPUT_BAR_HEIGHT_SINGLE;
+const BAR_HEIGHT_NAME = MEAL_INPUT_BAR_HEIGHT_NAME;
 const KEYBOARD_GAP = MEAL_INPUT_KEYBOARD_GAP;
 const CARET_BLINK_MS = 530;
 
 /**
  * Height budget (approx.):
- * - Current single-line value: font 28 + paddingTop 12 + paddingBottom 8 ≈ 48–64 → minHeight 64
- * - Name two-line value: font 22 / lineHeight 26 × 2 = 52 + same padding ≈ 72
+ * - Single-line value: font 28 + paddingTop 12 + paddingBottom 8 ≈ 48–64 → minHeight 64
+ * - Name two-line value: font 22 / lineHeight 26 × 2 = 52 + same padding ≈ 72 → minHeight 76
  * Host is bottom-anchored at keyboardHeight + 8, so extra height grows upward (away from keyboard).
  */
 const NAME_VALUE_LINE_HEIGHT = 26;
@@ -169,13 +176,13 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
     elevation: 1000,
-    minHeight: BAR_HEIGHT,
+    minHeight: BAR_HEIGHT_SINGLE,
   },
   hostName: {
-    minHeight: 76,
+    minHeight: BAR_HEIGHT_NAME,
   },
   bar: {
-    minHeight: BAR_HEIGHT,
+    minHeight: BAR_HEIGHT_SINGLE,
     overflow: 'hidden',
     borderTopWidth: 0.5,
     borderTopColor: 'rgba(255, 255, 255, 0.9)',
@@ -189,10 +196,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   barName: {
-    minHeight: 76,
+    minHeight: BAR_HEIGHT_NAME,
   },
   barSurface: {
-    minHeight: BAR_HEIGHT,
+    minHeight: BAR_HEIGHT_SINGLE,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -203,7 +210,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
   },
   barSurfaceName: {
-    minHeight: 76,
+    minHeight: BAR_HEIGHT_NAME,
     alignItems: 'flex-start',
   },
   meta: {

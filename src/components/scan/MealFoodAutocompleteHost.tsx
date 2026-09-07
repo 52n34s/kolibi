@@ -10,9 +10,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  MEAL_INPUT_BAR_HEIGHT,
   MEAL_INPUT_KEYBOARD_GAP,
+  mealInputBarHeightForField,
 } from '@/components/scan/MealInputAccessoryBar';
+import { useMealInputBarValues } from '@/components/scan/meal-input-bar-context';
 import { useFoodAutocompleteOverlayState } from '@/components/scan/meal-food-autocomplete-overlay';
 import { formatKcal } from '@/utils/format';
 
@@ -125,15 +126,18 @@ export function resolveFloatingBarDropdownPlacement(options: {
   keyboardHeight: number;
   windowHeight: number;
   topInset: number;
+  /** Fixed bar height for the active input mode (single-line vs name). */
+  barHeight: number;
   preferredMaxHeight?: number;
 }): FloatingBarDropdownPlacement {
   const preferredMaxHeight = options.preferredMaxHeight ?? FOOD_AUTOCOMPLETE_MAX_HEIGHT;
   const keyboardHeight = Math.max(0, options.keyboardHeight);
   const windowHeight = Math.max(0, options.windowHeight);
   const topInset = Math.max(0, options.topInset);
+  const barHeight = Math.max(0, options.barHeight);
 
   const bottom =
-    keyboardHeight + MEAL_INPUT_KEYBOARD_GAP + MEAL_INPUT_BAR_HEIGHT + DROPDOWN_GAP;
+    keyboardHeight + MEAL_INPUT_KEYBOARD_GAP + barHeight + DROPDOWN_GAP;
   const dropdownBottomY = windowHeight - bottom;
   const usableTop = topInset + FOOD_AUTOCOMPLETE_TOP_SCREEN_PADDING;
   const spaceAbove = Math.max(0, dropdownBottomY - usableTop);
@@ -192,6 +196,7 @@ export function resolveFieldDropdownPlacement(
 
 export function MealFoodAutocompleteHost() {
   const overlay = useFoodAutocompleteOverlayState();
+  const mealInputBarValues = useMealInputBarValues();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
@@ -208,12 +213,16 @@ export function MealFoodAutocompleteHost() {
   }
 
   const preferredMaxHeight = FOOD_AUTOCOMPLETE_MAX_HEIGHT;
+  const activeField = mealInputBarValues?.activeField?.field;
+  // Floating-bar autocomplete only runs during name entry; still resolve via field type.
+  const barHeight = mealInputBarHeightForField(activeField ?? 'name');
   const basePlacement: ModalDropdownPlacement =
     overlay.placementMode === 'floating-bar'
       ? resolveFloatingBarDropdownPlacement({
           keyboardHeight: overlay.keyboardHeight,
           windowHeight: overlay.windowHeight,
           topInset: insets.top,
+          barHeight,
           preferredMaxHeight,
         })
       : resolveFieldDropdownPlacement(overlay.anchor!, overlay.sheetLayout, {
