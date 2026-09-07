@@ -649,7 +649,17 @@ export default function OnboardingScreen() {
                     label={t(`onboarding.goal.${goal}`)}
                     layout="grid"
                     selected={goalType === goal}
-                    onPress={() => setGoalType(goal)}
+                    onPress={() => {
+                      if (goal === goalType) {
+                        return;
+                      }
+
+                      setGoalType(goal);
+                      // Recalculate summary unless choosing custom (user-supplied target).
+                      if (goal !== 'custom') {
+                        setSummaryManuallyEdited(false);
+                      }
+                    }}
                   />
                 </View>
               ))}
