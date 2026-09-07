@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { HistoryPanel } from '@/components/history/history-panel';
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
+import { GoalsPanel } from '@/components/koli/goals-panel';
 import { KoliHeaderTitle } from '@/components/koli/koli-header-title';
 import {
   KoliSegmentSwitcher,
@@ -18,7 +19,13 @@ import { SettingsBackButton } from '@/components/settings/settings-back-button';
 
 function resolveInitialSegment(segment: string | string[] | undefined): KoliSegment {
   const value = Array.isArray(segment) ? segment[0] : segment;
-  return value === 'settings' ? 'settings' : 'history';
+  if (value === 'settings') {
+    return 'settings';
+  }
+  if (value === 'goals') {
+    return 'goals';
+  }
+  return 'history';
 }
 
 function resolveSettingsSubSegment(
@@ -70,6 +77,8 @@ export default function KoliScreen() {
         <View className="mt-4 flex-1">
           {activeSegment === 'history' ? (
             <HistoryPanel />
+          ) : activeSegment === 'goals' ? (
+            <GoalsPanel />
           ) : (
             <SettingsAreaPanel initialSubSegment={resolveSettingsSubSegment(settingsSubSegment)} />
           )}

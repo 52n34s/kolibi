@@ -3,7 +3,6 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import Constants from 'expo-constants';
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,12 +46,6 @@ export function BirthDatePickerModal({
 }: BirthDatePickerProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-
-  useEffect(() => {
-    if (__DEV__) {
-      console.log('[BirthDatePickerModal] visible changed:', visible, 'platform:', Platform.OS);
-    }
-  }, [visible]);
 
   if (Platform.OS !== 'ios') {
     return null;

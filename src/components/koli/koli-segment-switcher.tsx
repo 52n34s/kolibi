@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
 
-export type KoliSegment = 'history' | 'settings';
+export type KoliSegment = 'history' | 'goals' | 'settings';
 
 type KoliSegmentSwitcherProps = {
   value: KoliSegment;
@@ -18,6 +18,7 @@ export function KoliSegmentSwitcher({ value, onChange }: KoliSegmentSwitcherProp
       onChange={onChange}
       segments={[
         { id: 'history', label: t('history.title') },
+        { id: 'goals', label: t('koli.segments.goals') },
         { id: 'settings', label: t('settings.title') },
       ]}
     />

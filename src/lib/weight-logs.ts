@@ -1,4 +1,5 @@
 import { localDateKey } from '@/lib/day-window';
+import { refreshMacrosKeepingCalorieGoal } from '@/lib/calorie-goals';
 import { supabase } from '@/lib/supabase';
 import type { UnitSystem } from '@/lib/unit-system';
 import { kgToLbs, lbsToKg } from '@/lib/units';
@@ -15,6 +16,8 @@ export async function updateTargetWeightKg(params: {
   if (error) {
     throw error;
   }
+
+  await refreshMacrosKeepingCalorieGoal(params.userId);
 }
 
 /** Seeds target weight from the current entry when none exists yet. Never overwrites. */
@@ -67,6 +70,7 @@ export async function upsertTodayWeightLog(params: {
 
   if (updatedRows && updatedRows.length > 0) {
     await maybeSeedTargetWeightKg({ userId: params.userId, weightKg: params.weightKg });
+    await refreshMacrosKeepingCalorieGoal(params.userId);
     return;
   }
 
@@ -83,6 +87,7 @@ export async function upsertTodayWeightLog(params: {
   }
 
   await maybeSeedTargetWeightKg({ userId: params.userId, weightKg: params.weightKg });
+  await refreshMacrosKeepingCalorieGoal(params.userId);
 }
 
 export function formatWeightForDisplay(params: {

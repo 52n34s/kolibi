@@ -379,6 +379,8 @@ export function MealItemRow({
             placeholderTextColor="#9CA3AF"
             cursorColor={BRAND_INDIGO}
             selectionColor={BRAND_INDIGO}
+            multiline
+            numberOfLines={2}
             returnKeyType="done"
             blurOnSubmit
             onSubmitEditing={() => Keyboard.dismiss()}
@@ -508,7 +510,7 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
   nameInputWrap: {
@@ -524,9 +526,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 10,
     paddingVertical: 7,
-    fontSize: 15,
+    fontSize: 14,
+    lineHeight: 18,
+    maxHeight: 50,
     fontWeight: '600',
     color: '#111827',
+    textAlignVertical: 'top',
   },
   nameInputFocused: {
     borderColor: '#4F46E5',

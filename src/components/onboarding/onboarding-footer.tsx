@@ -79,13 +79,6 @@ export function OnboardingFooter({
           className="h-12 flex-1 overflow-hidden rounded-xl"
           disabled={footerDisabled}
           onPress={() => {
-            console.log('[onboarding] Footer primary Pressable', {
-              step,
-              isLastStep,
-              footerDisabled,
-              isSubmitting,
-              actionsDisabled,
-            });
             if (isLastStep) {
               onFinish();
             } else {
@@ -113,10 +106,7 @@ export function OnboardingFooter({
         <OnboardingSkipLink
           label={skipLabel}
           disabled={footerDisabled}
-          onPress={() => {
-            console.log('[onboarding] SkipLink Pressable', { step, footerDisabled });
-            onSkip();
-          }}
+          onPress={onSkip}
         />
       ) : null}
     </View>

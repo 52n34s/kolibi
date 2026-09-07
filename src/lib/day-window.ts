@@ -8,6 +8,28 @@ export function localDayWindow(d: Date = new Date()) {
   return { startISO: start.toISOString(), endISO: end.toISOString() };
 }
 
+/**
+ * Local calendar window for movement goals.
+ * day → today from local midnight; week → current week from Monday 00:00.
+ * endDate is `now` so in-progress periods stop at the current moment.
+ */
+export function localMovementWindow(
+  period: 'day' | 'week',
+  now: Date = new Date(),
+): { start: Date; end: Date } {
+  const end = now;
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  if (period === 'week') {
+    const weekday = start.getDay(); // 0 = Sunday
+    const daysSinceMonday = weekday === 0 ? 6 : weekday - 1;
+    start.setDate(start.getDate() - daysSinceMonday);
+  }
+
+  return { start, end };
+}
+
 export function localDateKey(d: Date = new Date()): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
