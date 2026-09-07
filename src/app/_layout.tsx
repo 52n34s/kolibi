@@ -52,7 +52,10 @@ import { PostHogProvider } from 'posthog-react-native';
 import { useAuthStore } from '@/stores/auth-store';
 import { posthog } from '@/lib/analytics';
 import { applyEagerOtaUpdateOnLaunch } from '@/lib/eager-ota-update';
-import { syncHealthStatsForRecentDays } from '@/lib/health';
+import {
+  maybeUpgradeHealthReadTypesV2,
+  syncHealthStatsForRecentDays,
+} from '@/lib/health';
 import { ensurePushRegistration } from '@/lib/notifications';
 import { registerPremiumAccessCustomerInfoListener } from '@/lib/premium-query-sync';
 import {
@@ -139,6 +142,15 @@ function RootLayout() {
     }
 
     void syncHealthStatsForRecentDays(userId);
+  }, [initialized, userId]);
+
+  // One-time reauth for expanded HealthKit read types (existing connected users).
+  useEffect(() => {
+    if (!initialized || !userId) {
+      return;
+    }
+
+    void maybeUpgradeHealthReadTypesV2(userId);
   }, [initialized, userId]);
 
   // Configure once at app start (no appUserID); identity is applied via logIn below.

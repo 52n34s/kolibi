@@ -32,7 +32,7 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "NSHealthShareUsageDescription": "Kolibi liest deine verbrannten Kalorien aus Apple Health, damit dein Tagesziel deine Aktivität berücksichtigt.",
+        "NSHealthShareUsageDescription": "Kolibi liest deine verbrannten Kalorien, Schritte und Bewegungsdaten aus Apple Health, damit Tages- und Bewegungsziele deine Aktivität berücksichtigen.",
         "NSHealthUpdateUsageDescription": "Kolibi schreibt deine erfassten Kalorien nach Apple Health, damit sie dort zusammen mit deinen anderen Gesundheitsdaten sichtbar sind."
       }
     },
