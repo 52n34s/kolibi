@@ -1,5 +1,6 @@
 import { File } from 'expo-file-system';
 
+import { getAppLanguage, type SupportedLanguage } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import {
   visionResponseSchema,
@@ -63,7 +64,21 @@ type EdgeFunctionErrorPayload = {
   resetAt?: string;
 };
 
-export async function analyzeMealPhotos(photoUris: string[]): Promise<VisionResponse> {
+/** Two-letter app language for meal-vision; unknown → en. */
+export function resolveMealVisionLanguage(
+  language: string | null | undefined,
+): SupportedLanguage {
+  const code = language?.trim().toLowerCase().split('-')[0];
+  if (code === 'de' || code === 'es' || code === 'en') {
+    return code;
+  }
+  return 'en';
+}
+
+export async function analyzeMealPhotos(
+  photoUris: string[],
+  language?: string | null,
+): Promise<VisionResponse> {
   if (photoUris.length === 0) {
     throw new MealVisionApiError('At least one photo URI is required.');
   }
@@ -86,6 +101,7 @@ export async function analyzeMealPhotos(photoUris: string[]): Promise<VisionResp
   }
 
   const images = await Promise.all(photoUris.map((uri) => photoUriToBase64(uri)));
+  const languageCode = resolveMealVisionLanguage(language ?? getAppLanguage());
 
   const response = await fetch(`${supabaseUrl}/functions/v1/meal-vision-analyze`, {
     method: 'POST',
@@ -93,7 +109,7 @@ export async function analyzeMealPhotos(photoUris: string[]): Promise<VisionResp
       Authorization: `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ images }),
+    body: JSON.stringify({ images, language: languageCode }),
   });
 
   const payload = (await response.json()) as EdgeFunctionSuccessPayload & EdgeFunctionErrorPayload;

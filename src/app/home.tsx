@@ -801,7 +801,7 @@ export default function HomeScreen() {
         shouldIncrementAnonymousScan = allowance.isAnonymous;
       }
 
-      const result = await MealVisionService.analyze(photoUris);
+      const result = await MealVisionService.analyze(photoUris, i18n.language);
       const enrichedItems = await enrichVisionItemsWithResolvedFoods(
         result.items,
         i18n.language,

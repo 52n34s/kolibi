@@ -54,13 +54,14 @@ const CLIENT_MESSAGES = {
 const SYSTEM_PROMPT = `You are a nutrition assistant that analyzes meal photos and estimates visible food items with quantities and calories.
 Respond with valid JSON only. Do not wrap the JSON in markdown code fences.`;
 
-const USER_PROMPT = `Analyze the meal photo(s) and list every visible food item.
+function buildUserPrompt(language: string): string {
+  return `Analyze the meal photo(s) and list every visible food item.
 
 Return a JSON object with this shape:
 {
   "items": [
     {
-      "name": "Human-readable food name",
+      "name": "Human-readable food name in the requested language",
       "canonical_name": "snake_case_english_identifier",
       "estimated_grams": null,
       "estimated_count": null,
@@ -77,6 +78,8 @@ Return a JSON object with this shape:
 
 Rules:
 - Each item must include name, canonical_name, estimated_kcal, and confidence ("low" | "medium" | "high").
+- Write "name" in language code "${language}" (de = German, en = English, es = Spanish). This is the user-facing label.
+- Always write "canonical_name" as English snake_case (matching key for the foods database). Never translate canonical_name.
 - For weight-based foods: set estimated_grams (positive number), estimated_count: null, estimated_grams_per_unit: null.
 - For countable foods, ALWAYS provide both estimated_count AND estimated_grams_per_unit (approximate weight of a single unit in grams). Set estimated_grams to null.
 - Never set both estimated_grams and estimated_count on the same item.
@@ -85,11 +88,11 @@ Rules:
 - Use visible reference objects (fork, phone, card) to improve portion estimates when present.
 - When unsure about portion size, choose the conservative (smaller) estimate. Prefer underestimating over overestimating. Reference anchors: a typical bread slice is 40–50 g; one tablespoon of spread is about 15 g; a medium serving of cooked rice is about 150 g.
 
-Example:
+Example (German name, English canonical_name — always keep this split):
 {
   "items": [
     {
-      "name": "Banana",
+      "name": "Banane",
       "canonical_name": "banana",
       "estimated_grams": null,
       "estimated_count": 1,
@@ -102,8 +105,8 @@ Example:
       "confidence": "medium"
     },
     {
-      "name": "Cooked rice",
-      "canonical_name": "rice_cooked",
+      "name": "Gekochter Reis",
+      "canonical_name": "cooked_rice",
       "estimated_grams": 150,
       "estimated_count": null,
       "estimated_grams_per_unit": null,
@@ -116,8 +119,9 @@ Example:
     }
   ]
 }`;
+}
 
-const PROMPT_VERSION = 'v3-portions';
+const PROMPT_VERSION = 'v4-localized';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -199,6 +203,17 @@ const requestSchema = z.object({
     )
     .min(1)
     .max(3),
+  language: z
+    .string()
+    .optional()
+    .transform((value) => {
+      const code = value?.trim().toLowerCase().split('-')[0];
+      if (code === 'de' || code === 'es' || code === 'en') {
+        return code;
+      }
+      return 'en';
+    })
+    .default('en'),
 });
 
 type ScanLogStatus =
@@ -688,6 +703,7 @@ serve(async (req) => {
   }
 
   const images = parsedRequest.data.images;
+  const language = parsedRequest.data.language;
   const imageValidation = validateImages(images);
   if (!imageValidation.ok) {
     console.error('Image validation rejected request:', imageValidation.reason);
@@ -711,9 +727,10 @@ serve(async (req) => {
 
   try {
     const foodContextBlock = await loadFoodContextPromptBlock(serviceClient, user.id);
+    const userPromptBase = buildUserPrompt(language);
     const userPromptText = foodContextBlock
-      ? `${USER_PROMPT}\n\n${foodContextBlock}`
-      : USER_PROMPT;
+      ? `${userPromptBase}\n\n${foodContextBlock}`
+      : userPromptBase;
 
     const anthropicResponse = await callAnthropic(anthropicApiKey, images, userPromptText);
     const latencyMs = Date.now() - startedAt;
