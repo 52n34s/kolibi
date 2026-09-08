@@ -13,6 +13,7 @@ import type { MovementGoalType } from '@/lib/profile';
 import { formatWeightForDisplay } from '@/lib/weight-logs';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { formatKcal } from '@/utils/format';
 
 function movementTypeI18nKey(
   type: MovementGoalType,
@@ -46,6 +47,12 @@ export function GoalsPanel() {
     enabled: Boolean(userId),
   });
 
+  const dailyCalorieGoal = data?.profile?.daily_calorie_goal ?? null;
+  const calorieGoalLabel =
+    dailyCalorieGoal != null && Number.isFinite(dailyCalorieGoal)
+      ? t('settings.calorieGoal.value', { calories: formatKcal(dailyCalorieGoal) })
+      : t('settings.calorieGoal.notSet');
+
   const proteinValue = macroState?.proteinG ?? macroState?.recommendedProteinG ?? null;
   const fatValue = macroState?.fatG ?? null;
   const carbsValue = macroState?.carbsG ?? null;
@@ -60,9 +67,9 @@ export function GoalsPanel() {
         ? t('settings.macroGoal.value', { grams: Math.round(proteinValue) })
         : t('settings.macroGoal.notSet');
 
-  const movementType = data?.profile.movement_goal_type ?? null;
-  const movementValue = data?.profile.movement_goal_value ?? null;
-  const movementPeriod = data?.profile.movement_goal_period ?? null;
+  const movementType = data?.profile?.movement_goal_type ?? null;
+  const movementValue = data?.profile?.movement_goal_value ?? null;
+  const movementPeriod = data?.profile?.movement_goal_period ?? null;
   const movementGoalLabel =
     movementType != null && movementValue != null && movementPeriod != null
       ? t('settings.movementGoal.summary', {
@@ -72,7 +79,7 @@ export function GoalsPanel() {
         })
       : t('settings.movementGoal.type.none');
 
-  const targetWeightKg = data?.profile.target_weight_kg ?? null;
+  const targetWeightKg = data?.profile?.target_weight_kg ?? null;
   const targetWeightLabel = useMemo(() => {
     if (targetWeightKg == null || !Number.isFinite(targetWeightKg)) {
       return t('settings.targetWeight.notSet');
@@ -113,7 +120,15 @@ export function GoalsPanel() {
         {t('koli.segments.goals')}
       </Text>
 
-      <SettingsSection title={t('settings.macrosGoals.sectionTitle')}>
+      <SettingsSection>
+        <SettingsRow
+          label={t('settings.calorieGoal.sectionTitle')}
+          value={calorieGoalLabel}
+          onPress={() => router.push('/koli/calorie-goal' as Href)}
+        />
+      </SettingsSection>
+
+      <SettingsSection>
         <SettingsRow
           label={t('settings.macrosGoals.sectionTitle')}
           value={macrosGoalLabel}

@@ -118,20 +118,20 @@ export function HistoryPanel() {
   }, [latestWeightKg, t, unitSystem]);
 
   const weightValues = useMemo(
-    () => data?.weightLogs.map((entry) => entry.weight_kg) ?? [],
+    () => data?.weightLogs?.map((entry) => entry.weight_kg) ?? [],
     [data?.weightLogs],
   );
 
   const targetWeightKg = data?.targetWeightKg ?? null;
 
   const historyWeightEtaInput = useMemo((): WeightGoalEtaInput | null => {
-    if (targetWeightKg == null || !(targetWeightKg > 0) || !data?.weightLogs.length) {
+    if (targetWeightKg == null || !(targetWeightKg > 0) || !data?.weightLogs?.length) {
       return null;
     }
 
     const profile = profileSettings?.profile;
     let maintenanceCalories: number | null = null;
-    const dailyCalorieGoal = profileSettings?.profile.daily_calorie_goal ?? null;
+    const dailyCalorieGoal = profileSettings?.profile?.daily_calorie_goal ?? null;
 
     if (
       profile?.birth_date &&
@@ -171,7 +171,7 @@ export function HistoryPanel() {
     }
 
     return {
-      logs: data.weightLogs.map((entry) => ({
+      logs: (data?.weightLogs ?? []).map((entry) => ({
         weightKg: entry.weight_kg,
         loggedAt: entry.logged_at,
       })),
@@ -205,11 +205,11 @@ export function HistoryPanel() {
   }, [targetWeightKg, t, unitSystem]);
 
   const calorieValues = useMemo(
-    () => data?.dailyCalories.map((day) => day.totalCalories) ?? [],
+    () => data?.dailyCalories?.map((day) => day.totalCalories) ?? [],
     [data?.dailyCalories],
   );
 
-  const hasWeightData = (data?.weightLogs.length ?? 0) > 0;
+  const hasWeightData = (data?.weightLogs?.length ?? 0) > 0;
   const hasCalorieData = calorieValues.some((value) => value > 0);
 
   const gatePremiumAccess = useCallback(async (): Promise<boolean> => {
@@ -446,7 +446,7 @@ export function HistoryPanel() {
               <>
                 <CalorieBarChart values={calorieValues} width={chartWidth - 32} />
                 <View className="mt-3 flex-row justify-between px-1">
-                  {data?.dailyCalories.map((day) => (
+                  {data?.dailyCalories?.map((day) => (
                     <Text key={day.date} className="text-[10px] text-gray-500">
                       {formatShortDayLabel(day.date, i18n.language)}
                     </Text>

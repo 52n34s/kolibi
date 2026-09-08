@@ -39,7 +39,7 @@ import {
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
-import { HomeProgressRows, type HomeProgressRowItem, formatProgressAmount } from '@/components/home/home-progress-rows';
+import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import { TodayMealsSection } from '@/components/home/TodayMealsSection';
 import {
   WeightProgressCard,
@@ -64,7 +64,6 @@ import {
   resolveDisplayName,
 } from '@/lib/home';
 import { buildHomeNutrientTileEntries } from '@/lib/home-nutrients';
-import { expectedWeeklyAmount } from '@/lib/movement-week-pace';
 import { calculateAge } from '@/lib/onboarding';
 import { scaleMacrosForSportCalories } from '@/lib/sport-macro-scaling';
 import { MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY } from '@/lib/macros-goals-editor-math';
@@ -488,7 +487,7 @@ export default function HomeScreen() {
     return Math.min(100, Math.max(0, (calorieGoalDisplay.consumedToday / goal) * 100));
   }, [calorieGoalDisplay]);
 
-  const openProteinGoalEditor = useCallback(() => {
+  const openMacroGoalsEditor = useCallback(() => {
     if (data?.latestWeight?.weight_kg == null) {
       router.push({ pathname: '/onboarding', params: { mode: 'review' } } as Href);
       return;
@@ -574,7 +573,7 @@ export default function HomeScreen() {
                 ? (goal?.fiber_g ?? null)
                 : null,
       carbsFromSportG: entry.key === 'carbs' ? carbsFromSportG : 0,
-      onPress: entry.key === 'protein' ? openProteinGoalEditor : undefined,
+      onPress: openMacroGoalsEditor,
     }));
   }, [
     activeEnergyBurnedToday,
@@ -585,7 +584,7 @@ export default function HomeScreen() {
     data?.latestWeight?.weight_kg,
     data?.profile?.diet_preference,
     healthConnectedPreference,
-    openProteinGoalEditor,
+    openMacroGoalsEditor,
     sportEnergyDay,
     t,
   ]);
@@ -601,12 +600,9 @@ export default function HomeScreen() {
           goal: fiberGoal,
           decimals: 0 as const,
           onPress: tile.onPress,
-          valueKind: 'minimum' as const,
-          valueLabel:
+          valueLeadingNote:
             fiberGoal != null && fiberGoal > 0
-              ? t('home.nutrients.fiberMinimum', {
-                  grams: Math.round(fiberGoal),
-                })
+              ? `${t('home.nutrients.fiberMindPrefix')} `
               : undefined,
         };
       }
@@ -618,26 +614,23 @@ export default function HomeScreen() {
         goal: tile.goalValue ?? null,
         decimals: 0 as const,
         onPress: tile.onPress,
-        footerHint:
+        valueTrailingNote:
           tile.key === 'carbs' && tile.carbsFromSportG > 0
-            ? t('home.nutrients.carbsFromTraining', { grams: tile.carbsFromSportG })
+            ? t('home.nutrients.carbsFromTrainingInline', {
+                grams: tile.carbsFromSportG,
+              })
             : undefined,
       };
     });
 
     if (hasMovementGoal && movementGoalType != null && movementGoalValue != null) {
       const healthConnected = healthConnectedPreference === true;
-      const isWeekly = movementGoalPeriod === 'week';
       const decimals = movementGoalType === 'steps' ? (0 as const) : (1 as const);
       const unit =
         movementGoalType === 'steps'
           ? t('home.movementGoal.unitSteps')
           : t('home.movementGoal.unitKm');
       const actual = movementActual ?? 0;
-      const expected = isWeekly
-        ? expectedWeeklyAmount(movementGoalValue)
-        : null;
-      const format = (value: number) => formatProgressAmount(value, decimals);
 
       rows.push({
         key: 'movement',
@@ -651,16 +644,7 @@ export default function HomeScreen() {
         goal: movementGoalValue,
         decimals,
         dividerAbove: true,
-        expected,
-        valueKind: isWeekly ? 'weekly' : 'ratio',
-        valueLabel: isWeekly
-          ? t('home.movementGoal.weeklyProgress', {
-              actual: format(actual),
-              goal: format(movementGoalValue),
-              expected: format(expected ?? 0),
-              unit: unit ? ` ${unit}` : '',
-            })
-          : undefined,
+        valueUnit: unit ? ` ${unit}` : undefined,
         footerHint: healthConnected ? undefined : t('home.movementGoal.healthRequired'),
         onFooterPress: healthConnected
           ? undefined
@@ -678,7 +662,6 @@ export default function HomeScreen() {
     hasMovementGoal,
     healthConnectedPreference,
     movementActual,
-    movementGoalPeriod,
     movementGoalType,
     movementGoalValue,
     nutrientTiles,
@@ -854,7 +837,7 @@ export default function HomeScreen() {
   }
 
   function openCalorieGoalSettings() {
-    router.push('/koli/macro-goals' as Href);
+    router.push('/koli/calorie-goal' as Href);
   }
 
   async function handleScanPress() {

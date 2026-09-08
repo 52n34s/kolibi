@@ -223,7 +223,9 @@
       },
       "unitGrams": "g",
       "fiberMinimum": "At least {{grams}} g",
-      "carbsFromTraining": "+{{grams}} g from your training today"
+      "fiberMindPrefix": "min.",
+      "carbsFromTraining": "+{{grams}} g from your training today",
+      "carbsFromTrainingInline": " · +{{grams}} training"
     },
     "movementGoal": {
       "labelSteps": "Steps",
@@ -231,7 +233,6 @@
       "labelDistanceKm": "Everyday movement",
       "unitSteps": "",
       "unitKm": "km",
-      "weeklyProgress": "{{actual}} of {{goal}}{{unit}} · expected: {{expected}}{{unit}}",
       "healthRequired": "Apple Health must be connected."
     },
     "trial": {
@@ -649,6 +650,7 @@
       "completeOnboardingFirst": "Please complete your profile in onboarding review first.",
       "validationTitle": "Invalid calorie goal",
       "validationOutOfRange": "Please enter a value between {{min}} and {{max}} kcal. Minimum {{min}} kcal.",
+      "macrosRecalculatedHint": "Your macro goals will be adjusted accordingly.",
       "saveFailed": "Could not save your calorie goal. Please try again."
     },
     "macroGoal": {

@@ -1,8 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
-
-export type HomeProgressValueKind = 'ratio' | 'minimum' | 'weekly';
+import { BRAND_INDIGO, TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
 
 export type HomeProgressRowItem = {
   key: string;
@@ -17,16 +15,12 @@ export type HomeProgressRowItem = {
   /** Optional gray hint under the row (e.g. HealthKit required). */
   footerHint?: string;
   onFooterPress?: () => void;
-  /**
-   * ratio (default): "21/30"
-   * minimum: trailing value is `minimumLabel` (e.g. "Mindestens 30 g")
-   * weekly: "10.6 von 25 km · erwartet: 7 km" via weeklyLabel
-   */
-  valueKind?: HomeProgressValueKind;
-  /** Preformatted trailing value when valueKind is minimum or weekly. */
-  valueLabel?: string;
-  /** Expected amount by today for weekly goals — draws a marker on the bar. */
-  expected?: number | null;
+  /** Tertiary note before the ratio, e.g. "mind." */
+  valueLeadingNote?: string;
+  /** Tertiary note after the ratio, e.g. " · +111 Training" */
+  valueTrailingNote?: string;
+  /** Appended to the ratio in primary weight, e.g. " km" */
+  valueUnit?: string;
 };
 
 type HomeProgressRowsProps = {
@@ -54,22 +48,21 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
   const progressPercent = hasGoal
     ? Math.min(100, Math.max(0, ((actual ?? 0) / item.goal!) * 100))
     : 0;
-  const expectedPercent =
-    hasGoal && item.expected != null && item.expected > 0
-      ? Math.min(100, Math.max(0, (item.expected / item.goal!) * 100))
-      : null;
 
-  let valueText: string;
-  if (item.valueKind === 'minimum' || item.valueKind === 'weekly') {
-    valueText = item.valueLabel ?? '–';
-  } else if (hasGoal) {
+  let ratioText: string;
+  if (hasGoal) {
     const left = formatProgressAmount(actual ?? 0, decimals);
-    valueText = `${left}/${formatProgressAmount(item.goal!, decimals)}`;
+    ratioText = `${left}/${formatProgressAmount(item.goal!, decimals)}`;
   } else if (actual == null) {
-    valueText = '–';
+    ratioText = '–';
   } else {
-    valueText = formatProgressAmount(actual, decimals);
+    ratioText = formatProgressAmount(actual, decimals);
   }
+  if (item.valueUnit && ratioText !== '–') {
+    ratioText = `${ratioText}${item.valueUnit}`;
+  }
+
+  const hasNotes = Boolean(item.valueLeadingNote || item.valueTrailingNote);
 
   const row = (
     <View style={styles.row}>
@@ -80,24 +73,21 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
         {hasGoal ? (
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${progressPercent}%` }]} />
-            {expectedPercent != null ? (
-              <View
-                pointerEvents="none"
-                style={[styles.expectedMarker, { left: `${expectedPercent}%` }]}
-              />
-            ) : null}
           </View>
         ) : null}
       </View>
       <Text
-        style={[
-          styles.value,
-          (item.valueKind === 'minimum' || item.valueKind === 'weekly') && styles.valueWide,
-        ]}
+        style={[styles.value, hasNotes && styles.valueWide]}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.65}>
-        {valueText}
+        {item.valueLeadingNote ? (
+          <Text style={styles.valueNote}>{item.valueLeadingNote}</Text>
+        ) : null}
+        {ratioText}
+        {item.valueTrailingNote ? (
+          <Text style={styles.valueNote}>{item.valueTrailingNote}</Text>
+        ) : null}
       </Text>
     </View>
   );
@@ -181,27 +171,16 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 1.5,
     backgroundColor: 'rgba(79, 70, 229, 0.13)',
-    overflow: 'visible',
-    position: 'relative',
+    overflow: 'hidden',
   },
   fill: {
     height: '100%',
     borderRadius: 1.5,
     backgroundColor: BRAND_INDIGO,
   },
-  expectedMarker: {
-    position: 'absolute',
-    top: -3,
-    bottom: -3,
-    width: 2,
-    marginLeft: -1,
-    borderRadius: 1,
-    backgroundColor: '#26234A',
-    opacity: 0.45,
-  },
   value: {
     minWidth: 56,
-    maxWidth: 88,
+    maxWidth: 120,
     flexGrow: 0,
     flexShrink: 0,
     textAlign: 'right',
@@ -213,6 +192,11 @@ const styles = StyleSheet.create({
   valueWide: {
     minWidth: 72,
     maxWidth: 168,
+  },
+  valueNote: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: TEXT_TERTIARY,
   },
   footerHintWrap: {
     marginTop: 6,

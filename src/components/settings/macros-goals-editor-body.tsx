@@ -16,6 +16,7 @@ import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
 import { TEXT_SECONDARY } from '@/constants/brand';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
+import { useProfileSettings } from '@/hooks/use-profile-settings';
 import {
   fetchMacroGoalEditorState,
   getCalorieGoalErrorMessage,
@@ -54,7 +55,6 @@ import {
   NUMERIC_DONE_INPUT_PROPS,
   resolveNumericKeyboardType,
 } from '@/lib/numeric-input';
-import { fetchProfileSettings } from '@/lib/profile';
 import {
   getUserPreferenceOrDefault,
   setUserPreference,
@@ -126,10 +126,8 @@ export function MacrosGoalsEditorBody({
     ziel: MacroEmpfehlungsZiel;
   } | null>(null);
 
-  const { data: profileData, isLoading: profileLoading } = useQuery({
-    queryKey: ['profile-settings', userId],
-    queryFn: () => fetchProfileSettings(userId),
-  });
+  const { data: profileSettings, isLoading: profileLoading } = useProfileSettings(userId);
+  const profileData = profileSettings?.profile;
 
   const { data: macroState, isLoading: macroLoading, refetch } = useQuery({
     queryKey: ['macro-goal-editor', userId],

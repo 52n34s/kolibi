@@ -56,8 +56,8 @@ export default function TargetWeightSettingsScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  const targetWeightKg = data?.profile.target_weight_kg ?? null;
-  const storedProgressStartDate = data?.profile.progress_start_date ?? null;
+  const targetWeightKg = data?.profile?.target_weight_kg ?? null;
+  const storedProgressStartDate = data?.profile?.progress_start_date ?? null;
 
   const today = useMemo(() => {
     const d = new Date();
