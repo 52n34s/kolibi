@@ -233,6 +233,37 @@
       "unitKm": "km",
       "healthRequired": "Apple Health must be connected."
     },
+    "gym": {
+      "label": "Strength training",
+      "unitKcal": "kcal",
+      "screenTitle": "Strength training",
+      "subtitle": "Log manually — Health often misses gym sessions.",
+      "dateLabel": "Date",
+      "durationLabel": "Duration (minutes)",
+      "intensityLabel": "Intensity",
+      "intensity": {
+        "easy": {
+          "label": "Easy",
+          "hint": "You could talk normally between sets"
+        },
+        "normal": {
+          "label": "Normal",
+          "hint": "Slightly out of breath, talking in sentences"
+        },
+        "hard": {
+          "label": "Hard",
+          "hint": "Hardly a full sentence between efforts"
+        }
+      },
+      "kcalPreview": "About {{kcal}} kcal (excluding resting metabolism)",
+      "healthKitBlocked": "Apple Health already has a strength workout for this day. To avoid double-counting, manual entry is locked.",
+      "needsWeight": "Add your current weight on Home first.",
+      "invalidDuration": "Enter a duration between 1 and 600 minutes.",
+      "saveFailed": "Could not save the gym session. Please try again.",
+      "delete": "Delete entry",
+      "deleteTitle": "Delete entry?",
+      "deleteConfirm": "This strength-training entry will be removed."
+    },
     "trial": {
       "daysLeft_one": "Trial: {{count}} day left",
       "daysLeft_other": "Trial: {{count}} days left",
@@ -630,12 +661,19 @@
     },
     "notifications": {
       "sectionTitle": "Notifications",
+      "remindersSectionTitle": "Reminders",
       "toggleLabel": "Receive reminders",
       "activate": "Enable",
       "openIosSettings": "Open Settings",
       "undeterminedHint": "Kolibi can remind you about meals if you allow notifications.",
       "deniedHint": "Enable in iOS Settings",
-      "saveFailed": "Could not update notification settings. Please try again."
+      "saveFailed": "Could not update notification settings. Please try again.",
+      "learningHint": "Kolibi learns when you eat from your entries.",
+      "meals": {
+        "breakfast": "Breakfast",
+        "lunch": "Lunch",
+        "dinner": "Dinner"
+      }
     },
     "calorieGoal": {
       "sectionTitle": "Calorie goal",

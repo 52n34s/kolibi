@@ -17,6 +17,6 @@ export function useSportEnergyDayToday(
     refetchInterval: 5 * 60 * 1000,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30_000),
-    queryFn: async () => getSportEnergyDay({ ageYears }),
+    queryFn: async () => getSportEnergyDay({ ageYears, userId }),
   });
 }

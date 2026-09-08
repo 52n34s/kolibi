@@ -15,9 +15,13 @@ import { useFocusEffect } from 'expo-router';
 
 import { SettingsSection } from '@/components/settings/settings-section';
 import { SETTINGS_GLASS_DIVIDER_CLASS } from '@/components/ui/glass-styles';
+import { getAppLanguage } from '@/i18n';
 import {
-  getMealRemindersEnabled,
-  setMealRemindersEnabled,
+  DEFAULT_MEAL_REMINDER_PREFERENCES,
+  getMealReminderPreferences,
+  type MealReminderBucket,
+  type MealReminderPreferences,
+  upsertMealReminderPreferences,
 } from '@/lib/notification-preferences';
 import {
   ensurePushRegistration,
@@ -33,16 +37,46 @@ type NotificationsSettingsSectionProps = {
 
 const secureStore = createChunkedSecureStoreAdapter();
 
+const BUCKETS: MealReminderBucket[] = ['breakfast', 'lunch', 'dinner'];
+
+function enabledForBucket(prefs: MealReminderPreferences, bucket: MealReminderBucket): boolean {
+  if (bucket === 'breakfast') {
+    return prefs.breakfastEnabled;
+  }
+  if (bucket === 'lunch') {
+    return prefs.lunchEnabled;
+  }
+  return prefs.dinnerEnabled;
+}
+
+function withBucketEnabled(
+  prefs: MealReminderPreferences,
+  bucket: MealReminderBucket,
+  enabled: boolean,
+): MealReminderPreferences {
+  if (bucket === 'breakfast') {
+    return { ...prefs, breakfastEnabled: enabled };
+  }
+  if (bucket === 'lunch') {
+    return { ...prefs, lunchEnabled: enabled };
+  }
+  return { ...prefs, dinnerEnabled: enabled };
+}
+
 export function NotificationsSettingsSection({ userId }: NotificationsSettingsSectionProps) {
   const { t } = useTranslation();
   const [permissionStatus, setPermissionStatus] = useState<PermissionUiStatus>('loading');
-  const [remindersEnabled, setRemindersEnabled] = useState(true);
+  const [prefs, setPrefs] = useState<MealReminderPreferences>(DEFAULT_MEAL_REMINDER_PREFERENCES);
   const [isBusy, setIsBusy] = useState(false);
 
   const refreshPermissionStatus = useCallback(async () => {
     try {
       const current = await Notifications.getPermissionsAsync();
-      if (current.status === 'granted' || current.status === 'denied' || current.status === 'undetermined') {
+      if (
+        current.status === 'granted' ||
+        current.status === 'denied' ||
+        current.status === 'undetermined'
+      ) {
         setPermissionStatus(current.status);
       } else {
         setPermissionStatus('unavailable');
@@ -52,13 +86,13 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
     }
   }, []);
 
-  const refreshReminderPreference = useCallback(async () => {
+  const refreshPreferences = useCallback(async () => {
     if (!userId) {
       return;
     }
     try {
-      const enabled = await getMealRemindersEnabled(userId);
-      setRemindersEnabled(enabled);
+      const loaded = await getMealReminderPreferences(userId);
+      setPrefs({ ...loaded, locale: getAppLanguage() });
     } catch (error) {
       console.error('[NotificationsSettings] preference load failed:', error);
     }
@@ -67,8 +101,8 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
   useFocusEffect(
     useCallback(() => {
       void refreshPermissionStatus();
-      void refreshReminderPreference();
-    }, [refreshPermissionStatus, refreshReminderPreference]),
+      void refreshPreferences();
+    }, [refreshPermissionStatus, refreshPreferences]),
   );
 
   useEffect(() => {
@@ -80,6 +114,25 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
     return () => sub.remove();
   }, [refreshPermissionStatus]);
 
+  async function persistPrefs(next: MealReminderPreferences) {
+    if (!userId) {
+      return;
+    }
+
+    const withLocale = { ...next, locale: getAppLanguage() };
+    setPrefs(withLocale);
+    setIsBusy(true);
+    try {
+      await upsertMealReminderPreferences(userId, withLocale);
+    } catch (error) {
+      console.error('[NotificationsSettings] preference save failed:', error);
+      await refreshPreferences();
+      Alert.alert(t('settings.errors.title'), t('settings.notifications.saveFailed'));
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
   async function handleActivate() {
     if (!userId || isBusy) {
       return;
@@ -89,14 +142,13 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
     try {
       const result = await ensurePushRegistration(userId, { askIfUndetermined: true });
 
-      // Same nag-date rule as ensurePushOnMealSave — local to this UI entry point.
       if (result.status === 'denied' || (result.status === 'granted' && result.prompted)) {
         await secureStore.setItem(PUSH_PERMISSION_ASKED_KEY, new Date().toISOString());
       }
 
       await refreshPermissionStatus();
       if (result.status === 'granted') {
-        await refreshReminderPreference();
+        await refreshPreferences();
       }
     } catch (error) {
       console.error('[NotificationsSettings] activate failed:', error);
@@ -106,24 +158,20 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
     }
   }
 
-  async function handleRemindersToggle(nextValue: boolean) {
+  async function handleToggle(bucket: MealReminderBucket, nextValue: boolean) {
     if (!userId || isBusy) {
       return;
     }
 
-    const previous = remindersEnabled;
-    setRemindersEnabled(nextValue);
-    setIsBusy(true);
-
-    try {
-      await setMealRemindersEnabled(userId, nextValue);
-    } catch (error) {
-      console.error('[NotificationsSettings] preference save failed:', error);
-      setRemindersEnabled(previous);
-      Alert.alert(t('settings.errors.title'), t('settings.notifications.saveFailed'));
-    } finally {
-      setIsBusy(false);
+    if (nextValue && permissionStatus === 'granted') {
+      try {
+        await ensurePushRegistration(userId, { askIfUndetermined: false });
+      } catch (error) {
+        console.error('[NotificationsSettings] token sync failed:', error);
+      }
     }
+
+    await persistPrefs(withBucketEnabled(prefs, bucket, nextValue));
   }
 
   if (permissionStatus === 'loading' || permissionStatus === 'unavailable') {
@@ -131,7 +179,7 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
   }
 
   return (
-    <SettingsSection title={t('settings.notifications.sectionTitle')}>
+    <SettingsSection title={t('settings.notifications.remindersSectionTitle')}>
       {permissionStatus === 'undetermined' ? (
         <>
           <View className="px-4 py-3.5">
@@ -177,17 +225,31 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
 
       {permissionStatus === 'granted' ? (
         <>
-          <View className="flex-row items-center justify-between px-4 py-3.5">
-            <Text className="flex-1 text-base text-gray-900">
-              {t('settings.notifications.toggleLabel')}
+          {BUCKETS.map((bucket, index) => {
+            const enabled = enabledForBucket(prefs, bucket);
+            return (
+              <View
+                key={bucket}
+                className={index === 0 ? '' : `border-t ${SETTINGS_GLASS_DIVIDER_CLASS}`}>
+                <View className="flex-row items-center justify-between px-4 py-3.5">
+                  <Text className="flex-1 text-base text-gray-900">
+                    {t(`settings.notifications.meals.${bucket}`)}
+                  </Text>
+                  <Switch
+                    value={enabled}
+                    disabled={isBusy}
+                    onValueChange={(value) => void handleToggle(bucket, value)}
+                    trackColor={{ false: '#D1D5DB', true: '#4F46E5' }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+              </View>
+            );
+          })}
+          <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
+            <Text className="text-sm text-gray-500">
+              {t('settings.notifications.learningHint')}
             </Text>
-            <Switch
-              value={remindersEnabled}
-              disabled={isBusy}
-              onValueChange={(value) => void handleRemindersToggle(value)}
-              trackColor={{ false: '#D1D5DB', true: '#4F46E5' }}
-              thumbColor="#FFFFFF"
-            />
           </View>
         </>
       ) : null}

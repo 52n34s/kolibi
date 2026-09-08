@@ -16,6 +16,7 @@ const DINNER_END_MIN = 24 * 60;
 
 const BUCKETS = ['breakfast', 'lunch', 'dinner'] as const;
 type MealBucket = (typeof BUCKETS)[number];
+type ReminderLocale = 'de' | 'en' | 'es';
 
 const FALLBACK_TARGET_MINUTES: Record<MealBucket, number> = {
   breakfast: 8 * 60,
@@ -23,25 +24,35 @@ const FALLBACK_TARGET_MINUTES: Record<MealBucket, number> = {
   dinner: 19 * 60,
 };
 
-/** v1 DE-first copy; structure is ready for later locale maps. */
-const REMINDER_COPY: Record<MealBucket, { title: string; body: string }> = {
-  breakfast: {
-    title: 'Kolibi',
-    body: 'Zeit fürs Frühstück? Vergiss nicht zu tracken 📸',
+const REMINDER_BODY: Record<ReminderLocale, Record<MealBucket, string>> = {
+  de: {
+    breakfast: 'Was gab\'s zum Frühstück?',
+    lunch: 'Was gab\'s zum Mittag?',
+    dinner: 'Was gab\'s zum Abendessen?',
   },
-  lunch: {
-    title: 'Kolibi',
-    body: 'Mittagessen schon geloggt?',
+  en: {
+    breakfast: 'What was breakfast?',
+    lunch: 'What was lunch?',
+    dinner: 'What was dinner?',
   },
-  dinner: {
-    title: 'Kolibi',
-    body: 'Wie war dein Abendessen? Kurz festhalten.',
+  es: {
+    breakfast: '¿Qué desayunaste?',
+    lunch: '¿Qué almorzaste?',
+    dinner: '¿Qué cenaste?',
   },
 };
 
 type PushTokenRow = {
   user_id: string;
   expo_push_token: string;
+};
+
+type NotificationPreferencesRow = {
+  user_id: string;
+  breakfast_reminder_enabled: boolean | null;
+  lunch_reminder_enabled: boolean | null;
+  dinner_reminder_enabled: boolean | null;
+  reminder_locale: string | null;
 };
 
 type MealTimeStatsRow = {
@@ -75,6 +86,7 @@ type PendingReminder = {
   bucket: MealBucket;
   timeZone: string;
   localDate: string;
+  locale: ReminderLocale;
   tokens: string[];
 };
 
@@ -120,6 +132,13 @@ function resolveUserTimeZone(userId: string, raw: string | null | undefined): st
   }
 
   return trimmed;
+}
+
+function resolveLocale(raw: string | null | undefined): ReminderLocale {
+  if (raw === 'de' || raw === 'en' || raw === 'es') {
+    return raw;
+  }
+  return 'de';
 }
 
 function minutesSinceMidnightInZone(isoTimestamp: string, timeZone: string): number | null {
@@ -194,6 +213,20 @@ function parseTimeToMinutes(value: string | null | undefined): number | null {
   }
 
   return hours * 60 + minutes;
+}
+
+function isBucketEnabled(prefs: NotificationPreferencesRow | undefined, bucket: MealBucket): boolean {
+  if (!prefs) {
+    return false;
+  }
+
+  if (bucket === 'breakfast') {
+    return prefs.breakfast_reminder_enabled === true;
+  }
+  if (bucket === 'lunch') {
+    return prefs.lunch_reminder_enabled === true;
+  }
+  return prefs.dinner_reminder_enabled === true;
 }
 
 function resolveTargetMinutes(stats: MealTimeStatsRow | undefined, bucket: MealBucket): number {
@@ -320,6 +353,7 @@ serve(async (req) => {
   let skippedAlreadyLogged = 0;
   let skippedAlreadySent = 0;
   let skippedOutsideWindow = 0;
+  let skippedDisabled = 0;
   let errors = 0;
 
   const { data: tokenRows, error: tokensError } = await serviceClient
@@ -353,18 +387,36 @@ serve(async (req) => {
       skippedAlreadyLogged: 0,
       skippedAlreadySent: 0,
       skippedOutsideWindow: 0,
+      skippedDisabled: 0,
       errors: 0,
       now: nowIso,
     });
   }
 
-  const [{ data: statsRows, error: statsError }, { data: profileRows, error: profilesError }] =
-    await Promise.all([
-      serviceClient.from('user_meal_time_stats').select(
+  const [
+    { data: prefRows, error: prefsError },
+    { data: statsRows, error: statsError },
+    { data: profileRows, error: profilesError },
+  ] = await Promise.all([
+    serviceClient
+      .from('notification_preferences')
+      .select(
+        'user_id, breakfast_reminder_enabled, lunch_reminder_enabled, dinner_reminder_enabled, reminder_locale',
+      )
+      .in('user_id', userIds),
+    serviceClient
+      .from('user_meal_time_stats')
+      .select(
         'user_id, breakfast_avg_time, lunch_avg_time, dinner_avg_time, breakfast_sample_count, lunch_sample_count, dinner_sample_count',
-      ).in('user_id', userIds),
-      serviceClient.from('profiles').select('id, timezone').in('id', userIds),
-    ]);
+      )
+      .in('user_id', userIds),
+    serviceClient.from('profiles').select('id, timezone').in('id', userIds),
+  ]);
+
+  if (prefsError) {
+    console.error('Failed to load notification_preferences:', prefsError);
+    return jsonResponse({ error: 'PREFS_QUERY_FAILED', message: prefsError.message }, 500);
+  }
 
   if (statsError) {
     console.error('Failed to load user_meal_time_stats:', statsError);
@@ -374,6 +426,11 @@ serve(async (req) => {
   if (profilesError) {
     console.error('Failed to load profiles.timezone:', profilesError);
     return jsonResponse({ error: 'PROFILES_QUERY_FAILED', message: profilesError.message }, 500);
+  }
+
+  const prefsByUser = new Map<string, NotificationPreferencesRow>();
+  for (const row of (prefRows ?? []) as NotificationPreferencesRow[]) {
+    prefsByUser.set(row.user_id, row);
   }
 
   const statsByUser = new Map<string, MealTimeStatsRow>();
@@ -406,13 +463,21 @@ serve(async (req) => {
       continue;
     }
 
+    const prefs = prefsByUser.get(userId);
     const stats = statsByUser.get(userId);
     const tokens = tokensByUser.get(userId) ?? [];
     if (tokens.length === 0) {
       continue;
     }
 
+    const locale = resolveLocale(prefs?.reminder_locale);
+
     for (const bucket of BUCKETS) {
+      if (!isBucketEnabled(prefs, bucket)) {
+        skippedDisabled += 1;
+        continue;
+      }
+
       const targetMinutes = resolveTargetMinutes(stats, bucket);
       if (circularMinuteDistance(nowMinutes, targetMinutes) > WINDOW_MINUTES) {
         skippedOutsideWindow += 1;
@@ -424,6 +489,7 @@ serve(async (req) => {
         bucket,
         timeZone,
         localDate,
+        locale,
         tokens,
       });
     }
@@ -437,6 +503,7 @@ serve(async (req) => {
       skippedAlreadyLogged: 0,
       skippedAlreadySent: 0,
       skippedOutsideWindow,
+      skippedDisabled,
       errors,
       now: nowIso,
     });
@@ -518,11 +585,11 @@ serve(async (req) => {
   }
 
   for (const reminder of toSend) {
-    const copy = REMINDER_COPY[reminder.bucket];
+    const body = REMINDER_BODY[reminder.locale][reminder.bucket];
     const messages: ExpoPushMessage[] = reminder.tokens.map((token) => ({
       to: token,
-      title: copy.title,
-      body: copy.body,
+      title: 'Kolibi',
+      body,
       sound: 'default',
     }));
 
@@ -575,6 +642,7 @@ serve(async (req) => {
     skippedAlreadyLogged,
     skippedAlreadySent,
     skippedOutsideWindow,
+    skippedDisabled,
     errors,
     now: nowIso,
   });

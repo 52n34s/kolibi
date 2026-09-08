@@ -233,6 +233,37 @@
       "unitKm": "km",
       "healthRequired": "Apple Health muss verbunden sein."
     },
+    "gym": {
+      "label": "Krafttraining",
+      "unitKcal": "kcal",
+      "screenTitle": "Krafttraining",
+      "subtitle": "Manuell erfassen — Health erkennt Krafttraining oft unzuverlässig.",
+      "dateLabel": "Datum",
+      "durationLabel": "Dauer (Minuten)",
+      "intensityLabel": "Intensität",
+      "intensity": {
+        "easy": {
+          "label": "Locker",
+          "hint": "Konntest dich zwischendurch normal unterhalten"
+        },
+        "normal": {
+          "label": "Normal",
+          "hint": "Kurz außer Atem, Gespräch in Sätzen"
+        },
+        "hard": {
+          "label": "Hart",
+          "hint": "Kaum ein ganzer Satz zwischendurch"
+        }
+      },
+      "kcalPreview": "Geschätzt {{kcal}} kcal (ohne Ruheumsatz)",
+      "healthKitBlocked": "Für diesen Tag liegt bereits ein Krafttraining in Apple Health vor. Doppelzählung vermeiden — manueller Eintrag gesperrt.",
+      "needsWeight": "Bitte zuerst dein aktuelles Gewicht auf der Startseite erfassen.",
+      "invalidDuration": "Bitte eine Dauer zwischen 1 und 600 Minuten eingeben.",
+      "saveFailed": "Krafttraining konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      "delete": "Eintrag löschen",
+      "deleteTitle": "Eintrag löschen?",
+      "deleteConfirm": "Dieser Krafttraining-Eintrag wird entfernt."
+    },
     "trial": {
       "daysLeft_one": "Testzeitraum: noch {{count}} Tag",
       "daysLeft_other": "Testzeitraum: noch {{count}} Tage",
@@ -630,12 +661,19 @@
     },
     "notifications": {
       "sectionTitle": "Mitteilungen",
+      "remindersSectionTitle": "Erinnerungen",
       "toggleLabel": "Erinnerungen erhalten",
       "activate": "Aktivieren",
       "openIosSettings": "Einstellungen öffnen",
       "undeterminedHint": "Kolibi kann dich an Mahlzeiten erinnern, wenn du Mitteilungen erlaubst.",
       "deniedHint": "In den iOS-Einstellungen aktivieren",
-      "saveFailed": "Mitteilungs-Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen."
+      "saveFailed": "Mitteilungs-Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      "learningHint": "Kolibi lernt aus deinen Einträgen, wann du isst.",
+      "meals": {
+        "breakfast": "Frühstück",
+        "lunch": "Mittag",
+        "dinner": "Abend"
+      }
     },
     "calorieGoal": {
       "sectionTitle": "Kalorienziel",

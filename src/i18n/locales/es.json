@@ -233,6 +233,37 @@
       "unitKm": "km",
       "healthRequired": "Debes conectar Apple Health."
     },
+    "gym": {
+      "label": "Fuerza",
+      "unitKcal": "kcal",
+      "screenTitle": "Entrenamiento de fuerza",
+      "subtitle": "Regístralo a mano — Salud suele fallar con el gym.",
+      "dateLabel": "Fecha",
+      "durationLabel": "Duración (minutos)",
+      "intensityLabel": "Intensidad",
+      "intensity": {
+        "easy": {
+          "label": "Suave",
+          "hint": "Podías hablar con normalidad entre series"
+        },
+        "normal": {
+          "label": "Normal",
+          "hint": "Un poco sin aliento, hablando en frases"
+        },
+        "hard": {
+          "label": "Fuerte",
+          "hint": "Casi no cabía una frase entera"
+        }
+      },
+      "kcalPreview": "Unos {{kcal}} kcal (sin metabolismo en reposo)",
+      "healthKitBlocked": "Apple Salud ya tiene un entrenamiento de fuerza ese día. Para evitar doble conteo, el registro manual está bloqueado.",
+      "needsWeight": "Primero registra tu peso actual en Inicio.",
+      "invalidDuration": "Introduce una duración entre 1 y 600 minutos.",
+      "saveFailed": "No se pudo guardar la sesión. Inténtalo de nuevo.",
+      "delete": "Eliminar entrada",
+      "deleteTitle": "¿Eliminar entrada?",
+      "deleteConfirm": "Se eliminará esta sesión de fuerza."
+    },
     "trial": {
       "daysLeft_one": "Prueba: queda {{count}} día",
       "daysLeft_other": "Prueba: quedan {{count}} días",
@@ -630,12 +661,19 @@
     },
     "notifications": {
       "sectionTitle": "Notificaciones",
+      "remindersSectionTitle": "Recordatorios",
       "toggleLabel": "Recibir recordatorios",
       "activate": "Activar",
       "openIosSettings": "Abrir ajustes",
       "undeterminedHint": "Kolibi puede recordarte las comidas si permites las notificaciones.",
       "deniedHint": "Actívalo en los ajustes de iOS",
-      "saveFailed": "No se pudo guardar la configuración. Inténtalo de nuevo."
+      "saveFailed": "No se pudo guardar la configuración. Inténtalo de nuevo.",
+      "learningHint": "Kolibi aprende cuándo comes a partir de tus registros.",
+      "meals": {
+        "breakfast": "Desayuno",
+        "lunch": "Comida",
+        "dinner": "Cena"
+      }
     },
     "calorieGoal": {
       "sectionTitle": "Objetivo calórico",

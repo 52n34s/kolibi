@@ -17,6 +17,11 @@ export type HomeProgressRowItem = {
   onFooterPress?: () => void;
   /** Appended to the ratio in primary weight, e.g. " km" */
   valueUnit?: string;
+  /**
+   * Mon–Sun filled flags. When set, replaces the progress bar with seven dots
+   * (e.g. krafttraining week).
+   */
+  weekDayDots?: boolean[];
 };
 
 type HomeProgressRowsProps = {
@@ -37,6 +42,20 @@ export function formatProgressAmount(value: number, decimals: 0 | 1): string {
   return rounded.toFixed(1);
 }
 
+function WeekDayDots({ flags }: { flags: boolean[] }) {
+  const days = flags.length === 7 ? flags : [false, false, false, false, false, false, false];
+  return (
+    <View style={styles.dotsRow}>
+      {days.map((filled, index) => (
+        <View
+          key={index}
+          style={[styles.dot, filled ? styles.dotFilled : styles.dotEmpty]}
+        />
+      ))}
+    </View>
+  );
+}
+
 function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
   const decimals = item.decimals ?? 0;
   const hasGoal = item.goal != null && item.goal > 0;
@@ -44,6 +63,7 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
   const progressPercent = hasGoal
     ? Math.min(100, Math.max(0, ((actual ?? 0) / item.goal!) * 100))
     : 0;
+  const useWeekDots = item.weekDayDots != null;
 
   let valueText: string;
   if (hasGoal) {
@@ -64,7 +84,9 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
         {item.label}
       </Text>
       <View style={styles.barSlot}>
-        {hasGoal ? (
+        {useWeekDots ? (
+          <WeekDayDots flags={item.weekDayDots!} />
+        ) : hasGoal ? (
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${progressPercent}%` }]} />
           </View>
@@ -163,6 +185,23 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 1.5,
     backgroundColor: BRAND_INDIGO,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  dotFilled: {
+    backgroundColor: BRAND_INDIGO,
+  },
+  dotEmpty: {
+    backgroundColor: 'rgba(79, 70, 229, 0.18)',
   },
   value: {
     width: VALUE_WIDTH,

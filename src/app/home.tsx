@@ -53,6 +53,7 @@ import { useHasPremiumAccess, useTrialStatus } from '@/hooks/use-premium-access'
 import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useActiveEnergyBurnedToday } from '@/hooks/use-active-energy-burned';
+import { useGymSessionsWeek } from '@/hooks/use-gym-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useSportEnergyDayToday } from '@/hooks/use-sport-energy-day';
 import { formatKcal } from '@/utils/format';
@@ -64,6 +65,7 @@ import {
   resolveDisplayName,
 } from '@/lib/home';
 import { buildHomeNutrientTileEntries } from '@/lib/home-nutrients';
+import { weekDotFlags, weekGymKcalTotal } from '@/lib/gym-sessions';
 import { calculateAge } from '@/lib/onboarding';
 import { scaleMacrosForSportCalories } from '@/lib/sport-macro-scaling';
 import { MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY } from '@/lib/macros-goals-editor-math';
@@ -202,6 +204,7 @@ export default function HomeScreen() {
     type: movementGoalType,
     period: movementGoalPeriod,
   });
+  const { data: gymSessionsWeek = [] } = useGymSessionsWeek();
   const { hasAccess: hasPremiumAccessDb } = useHasPremiumAccess(userId);
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
@@ -439,6 +442,9 @@ export default function HomeScreen() {
     ? DEV_PREVIEW_CONSUMED_CALORIES || (data?.consumedCaloriesToday ?? 0)
     : (data?.consumedCaloriesToday ?? 0);
 
+  const burnedForDynamicGoal =
+    sportEnergyDay?.totalActiveKcal ?? activeEnergyBurnedToday ?? null;
+
   const calorieGoalDisplay = useMemo(() => {
     if (!hasCalorieGoal || dailyCalorieGoal == null) {
       return null;
@@ -447,19 +453,19 @@ export default function HomeScreen() {
     if (
       healthConnectedPreference &&
       adaptMacrosToTraining &&
-      activeEnergyBurnedToday != null
+      burnedForDynamicGoal != null
     ) {
       return getDynamicCalorieGoalDisplay(
         dailyCalorieGoal,
         consumedCaloriesToday,
-        activeEnergyBurnedToday,
+        burnedForDynamicGoal,
       );
     }
 
     return getCalorieGoalDisplay(dailyCalorieGoal, consumedCaloriesToday);
   }, [
-    activeEnergyBurnedToday,
     adaptMacrosToTraining,
+    burnedForDynamicGoal,
     consumedCaloriesToday,
     dailyCalorieGoal,
     hasCalorieGoal,
@@ -630,8 +636,24 @@ export default function HomeScreen() {
       });
     }
 
+    const gymKcal = weekGymKcalTotal(gymSessionsWeek);
+    rows.push({
+      key: 'gym',
+      label: t('home.gym.label'),
+      actual: gymKcal > 0 ? gymKcal : null,
+      goal: null,
+      decimals: 0 as const,
+      dividerAbove: true,
+      weekDayDots: weekDotFlags(gymSessionsWeek),
+      valueUnit: gymKcal > 0 ? ` ${t('home.gym.unitKcal')}` : undefined,
+      onPress: () => {
+        router.push('/koli/gym-log' as Href);
+      },
+    });
+
     return rows;
   }, [
+    gymSessionsWeek,
     hasMovementGoal,
     healthConnectedPreference,
     movementActual,
