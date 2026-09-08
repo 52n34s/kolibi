@@ -720,7 +720,7 @@
         "day": "pro Tag",
         "week": "pro Woche"
       },
-      "runningHint": "Nur aufgezeichnete Läufe zählen — ohne Lauf-App hast du keine Workouts.",
+      "runningHint": "Es zählen nur erfasste Läufe — ohne Lauf-App wird keine Bewegung erfasst.",
       "blockedNonPositive": "Bitte gib einen Zielwert größer als 0 ein.",
       "saveFailed": "Bewegungsziel konnte nicht gespeichert werden. Bitte erneut versuchen."
     },

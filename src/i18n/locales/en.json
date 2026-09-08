@@ -720,7 +720,7 @@
         "day": "per day",
         "week": "per week"
       },
-      "runningHint": "Only recorded runs count — without a running app, you won't have workouts.",
+      "runningHint": "Only recorded runs count — without a running app, you won't have any tracked movement.",
       "blockedNonPositive": "Enter a target greater than 0.",
       "saveFailed": "Could not save your movement goal. Please try again."
     },
