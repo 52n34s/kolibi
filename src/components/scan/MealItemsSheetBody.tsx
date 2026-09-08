@@ -8,25 +8,11 @@ import {
   ScrollView,
   StyleSheet,
   View,
-  useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMealInputBarActions } from '@/components/scan/meal-input-bar-context';
 
 export const MEAL_SHEET_MAX_HEIGHT_RATIO = 0.85;
-const SHEET_CHROME_HEIGHT = 54;
-const MEAL_SHEET_FIXED_CHROME_HEIGHT = 220;
-
-export function useMealItemsSheetLayout() {
-  const { height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const contentMaxHeight =
-    height * MEAL_SHEET_MAX_HEIGHT_RATIO - SHEET_CHROME_HEIGHT - Math.max(insets.bottom, 16);
-  const scrollMaxHeight = Math.max(100, contentMaxHeight - MEAL_SHEET_FIXED_CHROME_HEIGHT);
-
-  return { contentMaxHeight, scrollMaxHeight };
-}
 
 /** Syncs keyboard height into meal input bar context — call from MealItemsSheetBody. */
 export function useMealInputKeyboardHeight() {
@@ -74,7 +60,6 @@ export function MealItemsSheetBody({
   onScroll,
   onBackgroundPress,
 }: MealItemsSheetBodyProps) {
-  const { scrollMaxHeight } = useMealItemsSheetLayout();
   useMealInputKeyboardHeight();
 
   const setScrollRef = useCallback(
@@ -95,7 +80,7 @@ export function MealItemsSheetBody({
         {header}
         <ScrollView
           ref={setScrollRef}
-          style={[styles.list, { maxHeight: scrollMaxHeight }]}
+          style={styles.list}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -119,13 +104,14 @@ export function MealItemsSheetBody({
 
 const styles = StyleSheet.create({
   keyboardAvoid: {
-    flexGrow: 0,
+    flexShrink: 1,
   },
   body: {
-    flexGrow: 0,
+    flexShrink: 1,
   },
   list: {
     flexGrow: 0,
+    flexShrink: 1,
     marginBottom: 4,
   },
   listContent: {
