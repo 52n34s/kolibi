@@ -227,7 +227,7 @@
     },
     "movementGoal": {
       "labelSteps": "Pasos",
-      "labelRunningKm": "Carrera",
+      "labelRunningKm": "Running",
       "labelDistanceKm": "Movimiento diario",
       "unitSteps": "",
       "unitKm": "km",
@@ -711,7 +711,7 @@
       "type": {
         "none": "Sin objetivo",
         "steps": "Pasos",
-        "runningKm": "Carrera",
+        "runningKm": "Running",
         "distanceKm": "Movimiento diario"
       },
       "valueLabelSteps": "Pasos",
@@ -720,7 +720,7 @@
         "day": "por día",
         "week": "por semana"
       },
-      "runningHint": "Solo cuentan las carreras registradas — sin app de running no tendrás entrenamientos.",
+      "runningHint": "Solo cuentan las sesiones de running registradas — sin app de running no tendrás entrenamientos.",
       "blockedNonPositive": "Introduce un valor mayor que 0.",
       "saveFailed": "No se pudo guardar el objetivo de movimiento. Inténtalo de nuevo."
     },
