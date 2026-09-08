@@ -17,6 +17,12 @@ import {
   parseDateOnly,
 } from '@/lib/day-window';
 import type { MovementGoalPeriod, MovementGoalType } from '@/lib/profile';
+import {
+  MIN_SPORT_WORKOUT_DURATION_SECONDS,
+  resolveSportIntensity,
+  SportIntensity,
+  type SportEnergySegment,
+} from '@/lib/sport-macro-scaling';
 import { supabase } from '@/lib/supabase';
 import {
   getUserPreference,
@@ -25,8 +31,11 @@ import {
 
 /** One-time reauth after expanding HEALTH_READ_TYPES (steps / distance / workouts). */
 export const HEALTH_READ_TYPES_V2_KEY = 'health_read_types_v2';
+/** One-time reauth after adding heart rate for sport-intensity macros. */
+export const HEALTH_READ_TYPES_V3_KEY = 'health_read_types_v3';
 
 const ACTIVE_ENERGY_TYPE = 'HKQuantityTypeIdentifierActiveEnergyBurned' as const;
+const HEART_RATE_TYPE = 'HKQuantityTypeIdentifierHeartRate' as const;
 const STEP_COUNT_TYPE = 'HKQuantityTypeIdentifierStepCount' as const;
 const DISTANCE_WALKING_RUNNING_TYPE =
   'HKQuantityTypeIdentifierDistanceWalkingRunning' as const;
@@ -35,6 +44,7 @@ const WORKOUT_TYPE = 'HKWorkoutTypeIdentifier' as const;
 /** Types requested when the user connects Apple Health. */
 const HEALTH_READ_TYPES = [
   ACTIVE_ENERGY_TYPE,
+  HEART_RATE_TYPE,
   STEP_COUNT_TYPE,
   DISTANCE_WALKING_RUNNING_TYPE,
   WORKOUT_TYPE,
@@ -153,6 +163,32 @@ export async function maybeUpgradeHealthReadTypesV2(userId: string): Promise<voi
 }
 
 /**
+ * Once per device after heart-rate was added for intensity-aware sport macros.
+ */
+export async function maybeUpgradeHealthReadTypesV3(userId: string): Promise<void> {
+  if (Platform.OS !== 'ios') {
+    return;
+  }
+
+  const secureStore = createChunkedSecureStoreAdapter();
+  try {
+    const alreadyDone = await secureStore.getItem(HEALTH_READ_TYPES_V3_KEY);
+    if (alreadyDone != null) {
+      return;
+    }
+
+    const connected = await getUserPreference(userId, HEALTH_CONNECTED_PREFERENCE_KEY);
+    if (connected) {
+      await requestHealthPermissions();
+    }
+
+    await secureStore.setItem(HEALTH_READ_TYPES_V3_KEY, '1');
+  } catch (error) {
+    console.error('[Health] read-types v3 upgrade failed:', error);
+  }
+}
+
+/**
  * Best-effort read. Returns null when HealthKit is unavailable or the query fails.
  * @param dateKey — local `YYYY-MM-DD`; omit for today (endDate = now).
  */
@@ -216,6 +252,164 @@ export async function getActiveEnergyBurned(dateKey?: string): Promise<number | 
 
     console.warn('[Health] read active energy failed:', error);
     throw error;
+  }
+}
+
+function quantityDurationSeconds(duration: { unit: string; quantity: number } | undefined): number {
+  if (duration == null || !Number.isFinite(duration.quantity)) {
+    return 0;
+  }
+  const unit = duration.unit.toLowerCase();
+  if (unit === 's' || unit === 'sec' || unit === 'second' || unit === 'seconds') {
+    return duration.quantity;
+  }
+  if (unit === 'min' || unit === 'minute' || unit === 'minutes') {
+    return duration.quantity * 60;
+  }
+  if (unit === 'hr' || unit === 'h' || unit === 'hour' || unit === 'hours') {
+    return duration.quantity * 3600;
+  }
+  // HealthKit workout duration is typically seconds.
+  return duration.quantity;
+}
+
+function quantityEnergyKcal(energy: { unit: string; quantity: number } | undefined): number | null {
+  if (energy == null || !Number.isFinite(energy.quantity) || energy.quantity <= 0) {
+    return null;
+  }
+  const unit = energy.unit.toLowerCase();
+  if (unit === 'kcal' || unit === 'kilocalorie' || unit === 'kilocalories') {
+    return energy.quantity;
+  }
+  if (unit === 'cal' || unit === 'calorie' || unit === 'calories') {
+    return energy.quantity / 1000;
+  }
+  if (unit === 'kJ' || unit === 'kj' || unit === 'kilojoule' || unit === 'kilojoules') {
+    return energy.quantity / 4.184;
+  }
+  // Default HealthKit energy for workouts is often kcal.
+  return energy.quantity;
+}
+
+function heartRateToBpm(quantity: { unit: string; quantity: number } | undefined): number | null {
+  if (quantity == null || !Number.isFinite(quantity.quantity) || quantity.quantity <= 0) {
+    return null;
+  }
+  const unit = quantity.unit.toLowerCase();
+  // count/s → bpm
+  if (unit.includes('count/s') || unit === 'hz') {
+    return quantity.quantity * 60;
+  }
+  return quantity.quantity;
+}
+
+export type SportEnergyDay = {
+  /** Total Active Energy for the day (calorie hero / dynamic goal). */
+  totalActiveKcal: number;
+  /** Per-workout + residual everyday segments for macro scaling. */
+  segments: SportEnergySegment[];
+};
+
+/**
+ * Intensity-aware sport energy for today's macro scaling.
+ * Workouts are classified individually (HR → type → MODERATE).
+ * Active Energy not covered by workouts is treated as LOW (everyday movement).
+ * Does not write historical calorie goals — display-time only.
+ */
+export async function getSportEnergyDay(params: {
+  ageYears: number | null;
+  dateKey?: string;
+}): Promise<SportEnergyDay | null> {
+  if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
+    return null;
+  }
+
+  try {
+    let startDate: Date;
+    let endDate: Date;
+
+    if (params.dateKey == null) {
+      const window = localDayWindow();
+      startDate = new Date(window.startISO);
+      endDate = new Date();
+    } else {
+      const day = parseDateOnly(params.dateKey);
+      const window = localDayWindow(day);
+      startDate = new Date(window.startISO);
+      endDate = new Date(window.endISO);
+    }
+
+    const dateFilter = { startDate, endDate };
+
+    const [activeEnergy, workouts] = await Promise.all([
+      getActiveEnergyBurned(params.dateKey),
+      queryWorkoutSamples({
+        filter: { date: dateFilter },
+        limit: -1,
+      }),
+    ]);
+
+    if (activeEnergy == null) {
+      return null;
+    }
+
+    const segments: SportEnergySegment[] = [];
+    let workoutKcalSum = 0;
+
+    for (const workout of workouts) {
+      const durationSec = quantityDurationSeconds(workout.duration);
+      if (durationSec < MIN_SPORT_WORKOUT_DURATION_SECONDS) {
+        continue;
+      }
+
+      const kcal = quantityEnergyKcal(workout.totalEnergyBurned);
+      if (kcal == null) {
+        continue;
+      }
+
+      let averageHrBpm: number | null = null;
+      try {
+        const hrStats = await workout.getStatistic(HEART_RATE_TYPE, 'count/min');
+        averageHrBpm = heartRateToBpm(hrStats?.averageQuantity);
+      } catch {
+        averageHrBpm = null;
+      }
+
+      const intensity = resolveSportIntensity({
+        averageHrBpm,
+        ageYears: params.ageYears,
+        activityType: Number(workout.workoutActivityType),
+      });
+
+      const roundedKcal = Math.round(kcal);
+      if (roundedKcal <= 0) {
+        continue;
+      }
+
+      segments.push({ kcal: roundedKcal, intensity });
+      workoutKcalSum += roundedKcal;
+    }
+
+    const residualKcal = Math.max(0, activeEnergy - workoutKcalSum);
+    if (residualKcal > 0) {
+      segments.push({ kcal: residualKcal, intensity: SportIntensity.LOW });
+    }
+
+    return {
+      totalActiveKcal: activeEnergy,
+      segments,
+    };
+  } catch (error) {
+    if (isHealthAuthorizationNotDetermined(error)) {
+      console.warn(
+        '[Health] sport energy day: authorization notDetermined while health_connected expected true',
+        error,
+      );
+      return null;
+    }
+
+    console.warn('[Health] read sport energy day failed:', error);
+    return null;
   }
 }
 

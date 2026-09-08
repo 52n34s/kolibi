@@ -1,53 +1,45 @@
-import { supabase } from '@/lib/supabase';
-import { upsertTodayWeightLog } from '@/lib/weight-logs';
-import { localDateKey } from '@/lib/day-window';
+import {
+  ACTIVITY_FACTORS as ACTIVITY_FACTORS_MATH,
+  CalorieSource,
+  DAYS_PER_WEEK as DAYS_PER_WEEK_MATH,
+  GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK as GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK_MATH,
+  HARD_MINIMUM_DAILY_CALORIES as HARD_MINIMUM_DAILY_CALORIES_MATH,
+  KCAL_PER_KG_BODY_WEIGHT as KCAL_PER_KG_BODY_WEIGHT_MATH,
+  MAX_TDEE_ADJUSTMENT_FRACTION as MAX_TDEE_ADJUSTMENT_FRACTION_MATH,
+  calculateAge as calculateAgeMath,
+  calculateBmr as calculateBmrMath,
+  calculateMaintenanceCalories as calculateMaintenanceCaloriesMath,
+  calculateTdee as calculateTdeeMath,
+  calculateUncappedDailyCalorieAdjustment as calculateUncappedDailyCalorieAdjustmentMath,
+  resolveCalorieSource,
+  type ActivityLevel as ActivityLevelMath,
+  type BiologicalSex as BiologicalSexMath,
+  type GoalType as GoalTypeMath,
+} from '@/lib/calorie-goal-math';
 import { upsertDailyCalorieGoal } from '@/lib/calorie-goals';
+import { localDateKey } from '@/lib/day-window';
 import { suggestInitialTargetWeightKg } from '@/lib/macro-goals';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
+import { upsertTodayWeightLog } from '@/lib/weight-logs';
 
-export type BiologicalSex = 'male' | 'female' | 'prefer_not_to_say';
-export type ActivityLevel = 'mostly_sitting' | 'lightly_active' | 'active' | 'very_active';
-export type GoalType =
-  | 'maintain'
-  | 'lose_weight'
-  | 'gain_weight'
-  | 'faster_weight_loss'
-  | 'custom';
+export type BiologicalSex = BiologicalSexMath;
+export type ActivityLevel = ActivityLevelMath;
+export type GoalType = GoalTypeMath;
 export type CalorieGoalSource = 'calculated' | 'custom';
+export { CalorieSource, resolveCalorieSource };
 
-export const ACTIVITY_FACTORS: Record<ActivityLevel, number> = {
-  mostly_sitting: 1.2,
-  lightly_active: 1.375,
-  active: 1.55,
-  very_active: 1.725,
-};
-
-/** Sedentary baseline when HealthKit supplies actual active energy at runtime. */
-export const HEALTHKIT_ACTIVITY_LEVEL: ActivityLevel = 'mostly_sitting';
-
-export function resolveActivityLevelForCalorieGoal(
-  activityLevel: ActivityLevel,
-  healthConnected: boolean,
-): ActivityLevel {
-  return healthConnected ? HEALTHKIT_ACTIVITY_LEVEL : activityLevel;
-}
-
-export const HARD_MINIMUM_DAILY_CALORIES = 1000;
+export const ACTIVITY_FACTORS = ACTIVITY_FACTORS_MATH;
+export const HARD_MINIMUM_DAILY_CALORIES = HARD_MINIMUM_DAILY_CALORIES_MATH;
 export const MAXIMUM_DAILY_CALORIES = 6000;
-
-export const KCAL_PER_KG_BODY_WEIGHT = 7700;
-export const DAYS_PER_WEEK = 7;
-export const MAX_TDEE_ADJUSTMENT_FRACTION = 0.25;
+export const KCAL_PER_KG_BODY_WEIGHT = KCAL_PER_KG_BODY_WEIGHT_MATH;
+export const DAYS_PER_WEEK = DAYS_PER_WEEK_MATH;
+export const MAX_TDEE_ADJUSTMENT_FRACTION = MAX_TDEE_ADJUSTMENT_FRACTION_MATH;
 /** Soft warning band around maintenance (±30% ≈ below ~70% or above ~130% of TDEE). Save still allowed. */
 export const WARNING_TDEE_DEVIATION_FRACTION = 0.3;
 
 /** Target body-weight change rate per week (% of current body weight). */
-export const GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK = {
-  maintain: 0,
-  lose_weight: 0.5,
-  faster_weight_loss: 0.75,
-  gain_weight: 0.375,
-} as const satisfies Record<Exclude<GoalType, 'custom'>, number>;
+export const GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK = GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK_MATH;
 
 export const GOAL_WEIGHT_CHANGE_PERCENT_RANGES = {
   gain_weight: { min: 0.25, max: 0.5 },
@@ -102,8 +94,7 @@ export function calculateUncappedDailyCalorieAdjustment(
   weightKg: number,
   percentPerWeek: number,
 ): number {
-  const weeklyWeightChangeKg = weightKg * (percentPerWeek / 100);
-  return (weeklyWeightChangeKg * KCAL_PER_KG_BODY_WEIGHT) / DAYS_PER_WEEK;
+  return calculateUncappedDailyCalorieAdjustmentMath(weightKg, percentPerWeek);
 }
 
 function capDailyCalorieAdjustment(
@@ -188,15 +179,7 @@ export function formatAppDate(date: Date, locale: string): string {
 }
 
 export function calculateAge(birthDate: Date): number {
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age -= 1;
-  }
-
-  return age;
+  return calculateAgeMath(birthDate);
 }
 
 export function calculateBmr(params: {
@@ -205,23 +188,11 @@ export function calculateBmr(params: {
   heightCm: number;
   age: number;
 }): number {
-  const { biologicalSex, weightKg, heightCm, age } = params;
-  const maleBmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
-  const femaleBmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
-
-  if (biologicalSex === 'male') {
-    return maleBmr;
-  }
-
-  if (biologicalSex === 'female') {
-    return femaleBmr;
-  }
-
-  return (maleBmr + femaleBmr) / 2;
+  return calculateBmrMath(params);
 }
 
 export function calculateTdee(bmr: number, activityLevel: ActivityLevel): number {
-  return bmr * ACTIVITY_FACTORS[activityLevel];
+  return calculateTdeeMath(bmr, activityLevel);
 }
 
 export function calculateMaintenanceCalories(params: {
@@ -230,16 +201,9 @@ export function calculateMaintenanceCalories(params: {
   heightCm: number;
   weightKg: number;
   activityLevel: ActivityLevel;
+  calorieSource: CalorieSource;
 }): number {
-  const age = calculateAge(params.birthDate);
-  const bmr = calculateBmr({
-    biologicalSex: params.biologicalSex,
-    weightKg: params.weightKg,
-    heightCm: params.heightCm,
-    age,
-  });
-
-  return Math.round(calculateTdee(bmr, params.activityLevel));
+  return calculateMaintenanceCaloriesMath(params);
 }
 
 function calculateRawDailyCalorieGoal(params: {
@@ -248,6 +212,7 @@ function calculateRawDailyCalorieGoal(params: {
   heightCm: number;
   weightKg: number;
   activityLevel: ActivityLevel;
+  calorieSource: CalorieSource;
   goalType: GoalType;
   customCalorieGoal?: number | null;
 }): { rawCalories: number; maintenanceCalories: number } {
@@ -276,6 +241,7 @@ export function calculateDailyCalorieGoal(params: {
   heightCm: number;
   weightKg: number;
   activityLevel: ActivityLevel;
+  calorieSource: CalorieSource;
   goalType: GoalType;
   customCalorieGoal?: number | null;
 }): { dailyCalorieGoal: number; maintenanceCalories: number } {
@@ -292,6 +258,7 @@ export function calculateDailyCalorieGoalDetails(params: {
   heightCm: number;
   weightKg: number;
   activityLevel: ActivityLevel;
+  calorieSource: CalorieSource;
   goalType: GoalType;
   customCalorieGoal?: number | null;
 }): CalorieGoalCalculation {

@@ -1,0 +1,1128 @@
+{
+  "bmi24": {
+    "profile": {
+      "gewichtKg": 73.5,
+      "zielgewichtKg": 70,
+      "groesseCm": 175,
+      "basisKcal": 2000
+    },
+    "bezug": {
+      "bmi": 24,
+      "istZielgewicht": true,
+      "zielFloorAngewendet": false,
+      "bezugsgewichtKg": 70
+    },
+    "cases": {
+      "ABNEHMEN__OMNIVOR": {
+        "protein": {
+          "wert": 126,
+          "herleitung": "1,8 g pro kg Zielgewicht",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0,
+            "dietUpliftPercent": 0
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 248,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 504,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "ABNEHMEN__VEGETARISCH": {
+        "protein": {
+          "wert": 134,
+          "herleitung": "1,8 g pro kg Zielgewicht · +6 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.06,
+            "dietUpliftPercent": 6
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 240,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 536,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "ABNEHMEN__VEGAN": {
+        "protein": {
+          "wert": 141,
+          "herleitung": "1,8 g pro kg Zielgewicht · +12 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.12,
+            "dietUpliftPercent": 12
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 233,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 564,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "HALTEN__OMNIVOR": {
+        "protein": {
+          "wert": 112,
+          "herleitung": "1,6 g pro kg Zielgewicht",
+          "details": {
+            "proteinPerKg": 1.6,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0,
+            "dietUpliftPercent": 0
+          }
+        },
+        "fett": {
+          "wert": 62,
+          "herleitung": "28 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.28,
+            "fatPercent": 28,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 249,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 448,
+            "fatKcal": 558
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "HALTEN__VEGETARISCH": {
+        "protein": {
+          "wert": 119,
+          "herleitung": "1,6 g pro kg Zielgewicht · +6 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.6,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.06,
+            "dietUpliftPercent": 6
+          }
+        },
+        "fett": {
+          "wert": 62,
+          "herleitung": "28 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.28,
+            "fatPercent": 28,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 242,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 476,
+            "fatKcal": 558
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "HALTEN__VEGAN": {
+        "protein": {
+          "wert": 125,
+          "herleitung": "1,6 g pro kg Zielgewicht · +12 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.6,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.12,
+            "dietUpliftPercent": 12
+          }
+        },
+        "fett": {
+          "wert": 62,
+          "herleitung": "28 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.28,
+            "fatPercent": 28,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 236,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 500,
+            "fatKcal": 558
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "MUSKELAUFBAU__OMNIVOR": {
+        "protein": {
+          "wert": 126,
+          "herleitung": "1,8 g pro kg Zielgewicht",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0,
+            "dietUpliftPercent": 0
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 248,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 504,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "MUSKELAUFBAU__VEGETARISCH": {
+        "protein": {
+          "wert": 134,
+          "herleitung": "1,8 g pro kg Zielgewicht · +6 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.06,
+            "dietUpliftPercent": 6
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 240,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 536,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "MUSKELAUFBAU__VEGAN": {
+        "protein": {
+          "wert": 141,
+          "herleitung": "1,8 g pro kg Zielgewicht · +12 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.12,
+            "dietUpliftPercent": 12
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 233,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 564,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "AUSDAUERLEISTUNG__OMNIVOR": {
+        "protein": {
+          "wert": 105,
+          "herleitung": "1,5 g pro kg Zielgewicht",
+          "details": {
+            "proteinPerKg": 1.5,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0,
+            "dietUpliftPercent": 0
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 269,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 420,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "AUSDAUERLEISTUNG__VEGETARISCH": {
+        "protein": {
+          "wert": 111,
+          "herleitung": "1,5 g pro kg Zielgewicht · +6 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.5,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.06,
+            "dietUpliftPercent": 6
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 263,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 444,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      },
+      "AUSDAUERLEISTUNG__VEGAN": {
+        "protein": {
+          "wert": 118,
+          "herleitung": "1,5 g pro kg Zielgewicht · +12 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.5,
+            "bezugsgewichtKg": 70,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.12,
+            "dietUpliftPercent": 12
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 256,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 472,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 70,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 24
+      }
+    }
+  },
+  "bmi29": {
+    "profile": {
+      "gewichtKg": 88.8125,
+      "zielgewichtKg": 75,
+      "groesseCm": 175,
+      "basisKcal": 2000
+    },
+    "bezug": {
+      "bmi": 29,
+      "istZielgewicht": true,
+      "zielFloorAngewendet": false,
+      "bezugsgewichtKg": 75
+    },
+    "cases": {
+      "ABNEHMEN__OMNIVOR": {
+        "protein": {
+          "wert": 135,
+          "herleitung": "1,8 g pro kg Zielgewicht",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0,
+            "dietUpliftPercent": 0
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 239,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 540,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "ABNEHMEN__VEGETARISCH": {
+        "protein": {
+          "wert": 143,
+          "herleitung": "1,8 g pro kg Zielgewicht · +6 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.06,
+            "dietUpliftPercent": 6
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 231,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 572,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "ABNEHMEN__VEGAN": {
+        "protein": {
+          "wert": 151,
+          "herleitung": "1,8 g pro kg Zielgewicht · +12 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.12,
+            "dietUpliftPercent": 12
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 223,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 604,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "HALTEN__OMNIVOR": {
+        "protein": {
+          "wert": 120,
+          "herleitung": "1,6 g pro kg Zielgewicht",
+          "details": {
+            "proteinPerKg": 1.6,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0,
+            "dietUpliftPercent": 0
+          }
+        },
+        "fett": {
+          "wert": 62,
+          "herleitung": "28 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.28,
+            "fatPercent": 28,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 241,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 480,
+            "fatKcal": 558
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "HALTEN__VEGETARISCH": {
+        "protein": {
+          "wert": 127,
+          "herleitung": "1,6 g pro kg Zielgewicht · +6 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.6,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.06,
+            "dietUpliftPercent": 6
+          }
+        },
+        "fett": {
+          "wert": 62,
+          "herleitung": "28 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.28,
+            "fatPercent": 28,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 234,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 508,
+            "fatKcal": 558
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "HALTEN__VEGAN": {
+        "protein": {
+          "wert": 134,
+          "herleitung": "1,6 g pro kg Zielgewicht · +12 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.6,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.12,
+            "dietUpliftPercent": 12
+          }
+        },
+        "fett": {
+          "wert": 62,
+          "herleitung": "28 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.28,
+            "fatPercent": 28,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 227,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 536,
+            "fatKcal": 558
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "MUSKELAUFBAU__OMNIVOR": {
+        "protein": {
+          "wert": 135,
+          "herleitung": "1,8 g pro kg Zielgewicht",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0,
+            "dietUpliftPercent": 0
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 239,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 540,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "MUSKELAUFBAU__VEGETARISCH": {
+        "protein": {
+          "wert": 143,
+          "herleitung": "1,8 g pro kg Zielgewicht · +6 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.06,
+            "dietUpliftPercent": 6
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 231,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 572,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "MUSKELAUFBAU__VEGAN": {
+        "protein": {
+          "wert": 151,
+          "herleitung": "1,8 g pro kg Zielgewicht · +12 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.8,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.12,
+            "dietUpliftPercent": 12
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 223,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 604,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "AUSDAUERLEISTUNG__OMNIVOR": {
+        "protein": {
+          "wert": 113,
+          "herleitung": "1,5 g pro kg Zielgewicht",
+          "details": {
+            "proteinPerKg": 1.5,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0,
+            "dietUpliftPercent": 0
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 261,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 452,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "AUSDAUERLEISTUNG__VEGETARISCH": {
+        "protein": {
+          "wert": 119,
+          "herleitung": "1,5 g pro kg Zielgewicht · +6 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.5,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.06,
+            "dietUpliftPercent": 6
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 255,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 476,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      },
+      "AUSDAUERLEISTUNG__VEGAN": {
+        "protein": {
+          "wert": 126,
+          "herleitung": "1,5 g pro kg Zielgewicht · +12 % pflanzlich",
+          "details": {
+            "proteinPerKg": 1.5,
+            "bezugsgewichtKg": 75,
+            "bezugsart": "zielgewicht",
+            "zielFloorAngewendet": false,
+            "dietUplift": 0.12,
+            "dietUpliftPercent": 12
+          }
+        },
+        "fett": {
+          "wert": 56,
+          "herleitung": "25 % der Basiskalorien (2000 kcal)",
+          "details": {
+            "fatFraction": 0.25,
+            "fatPercent": 25,
+            "basisKcal": 2000
+          }
+        },
+        "kohlenhydrate": {
+          "wert": 248,
+          "herleitung": "Rest der Basiskalorien nach Protein und Fett",
+          "details": {
+            "basisKcal": 2000,
+            "proteinKcal": 504,
+            "fatKcal": 504
+          }
+        },
+        "ballaststoffe": {
+          "wert": 30,
+          "herleitung": "14 g je 1000 kcal · auf 5 g gerundet, mind. 30 g (2000 kcal)",
+          "details": {
+            "gPer1000Kcal": 14,
+            "roundToG": 5,
+            "minG": 30,
+            "basisKcal": 2000
+          }
+        },
+        "proteinBezugsgewichtKg": 75,
+        "proteinBezugIstZielgewicht": true,
+        "bmi": 29
+      }
+    }
+  },
+  "bmi24CurrentWins": {
+    "profile": {
+      "gewichtKg": 73.5,
+      "zielgewichtKg": 80,
+      "groesseCm": 175,
+      "basisKcal": 2000
+    },
+    "bezug": {
+      "bmi": 24,
+      "istZielgewicht": false,
+      "zielFloorAngewendet": false,
+      "bezugsgewichtKg": 73.5
+    }
+  }
+}

@@ -26,7 +26,10 @@ import { ManualMealEntrySheet } from '@/components/scan/ManualMealEntrySheet';
 import { MealEditSheet } from '@/components/scan/MealEditSheet';
 import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
+import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
 import { useHistory } from '@/hooks/use-history';
+import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
+import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
 import {
   isDayEditable,
@@ -35,6 +38,14 @@ import {
   resolveEatenAtForLocalDate,
 } from '@/lib/day-window';
 import { getLatestWeightKg } from '@/lib/history';
+import {
+  calculateMaintenanceCalories,
+  resolveCalorieSource,
+} from '@/lib/onboarding';
+import {
+  resolveGoalDirectionFromCalories,
+  type WeightGoalEtaInput,
+} from '@/lib/weight-goal-eta';
 import { MEAL_SOURCE } from '@/lib/meal-sources';
 import {
   deleteMeal,
@@ -71,6 +82,8 @@ export function HistoryPanel() {
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
   const { data, isLoading, isError, error } = useHistory(userId);
+  const { data: profileSettings } = useProfileSettings(userId);
+  const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
 
   const [selectedDateKey, setSelectedDateKey] = useState(() => localDateKey());
   const [sheetMode, setSheetMode] = useState<HistorySheetMode>({ kind: 'none' });
@@ -110,6 +123,71 @@ export function HistoryPanel() {
   );
 
   const targetWeightKg = data?.targetWeightKg ?? null;
+
+  const historyWeightEtaInput = useMemo((): WeightGoalEtaInput | null => {
+    if (targetWeightKg == null || !(targetWeightKg > 0) || !data?.weightLogs.length) {
+      return null;
+    }
+
+    const profile = profileSettings?.profile;
+    let maintenanceCalories: number | null = null;
+    const dailyCalorieGoal = profileSettings?.profile.daily_calorie_goal ?? null;
+
+    if (
+      profile?.birth_date &&
+      profile.activity_level &&
+      profile.height_cm &&
+      latestWeightKg != null
+    ) {
+      try {
+        maintenanceCalories = calculateMaintenanceCalories({
+          biologicalSex: profile.biological_sex ?? 'prefer_not_to_say',
+          birthDate: parseDateOnly(profile.birth_date),
+          heightCm: profile.height_cm,
+          weightKg: latestWeightKg,
+          activityLevel: profile.activity_level,
+          calorieSource: resolveCalorieSource(healthConnectedPreference === true),
+        });
+      } catch {
+        maintenanceCalories = null;
+      }
+    }
+
+    const direction =
+      dailyCalorieGoal != null && maintenanceCalories != null
+        ? resolveGoalDirectionFromCalories({
+            goalType: profile?.goal_type,
+            dailyCalorieGoal,
+            maintenanceCalories,
+          })
+        : targetWeightKg < (latestWeightKg ?? targetWeightKg)
+          ? 'loss'
+          : targetWeightKg > (latestWeightKg ?? targetWeightKg)
+            ? 'gain'
+            : 'none';
+
+    if (direction === 'none') {
+      return null;
+    }
+
+    return {
+      logs: data.weightLogs.map((entry) => ({
+        weightKg: entry.weight_kg,
+        loggedAt: entry.logged_at,
+      })),
+      targetWeightKg,
+      currentWeightKg: latestWeightKg,
+      dailyCalorieGoal,
+      maintenanceCalories,
+      goalDirection: direction,
+    };
+  }, [
+    data?.weightLogs,
+    healthConnectedPreference,
+    latestWeightKg,
+    profileSettings?.profile,
+    targetWeightKg,
+  ]);
 
   const targetLineLabel = useMemo(() => {
     if (targetWeightKg == null) {
@@ -334,12 +412,19 @@ export function HistoryPanel() {
           ]}>
           <View className="px-4 py-5">
             {hasWeightData ? (
-              <WeightLineChart
-                values={weightValues}
-                width={chartWidth - 32}
-                targetWeightKg={targetWeightKg}
-                targetLabel={targetLineLabel}
-              />
+              <>
+                <WeightLineChart
+                  values={weightValues}
+                  width={chartWidth - 32}
+                  targetWeightKg={targetWeightKg}
+                  targetLabel={targetLineLabel}
+                />
+                {historyWeightEtaInput ? (
+                  <View className="mt-4 px-1">
+                    <WeightGoalEtaMessage input={historyWeightEtaInput} />
+                  </View>
+                ) : null}
+              </>
             ) : (
               <View className="items-center py-8">
                 <Ionicons name="analytics-outline" size={28} color="#9CA3AF" />

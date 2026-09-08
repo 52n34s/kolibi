@@ -1,3 +1,10 @@
+import {
+  fiberGForBasisKcal,
+  proteinDietMultiplier,
+  resolveProteinPerKgBase,
+  resolveProteinRefKg,
+} from './macro-rules';
+
 export type MacroGoalsInput = {
   dailyCalorieGoal: number;
   weightKg: number | null;
@@ -22,40 +29,6 @@ export type MacroGoalPlausibility = {
   ok: boolean;
   reason?: string;
 };
-
-function proteinPerKgForGoalType(goalType: string | null): number {
-  switch (goalType) {
-    case 'lose_weight':
-      return 1.6;
-    case 'faster_weight_loss':
-      return 1.8;
-    case 'gain_weight':
-      return 1.6;
-    case 'maintain':
-      return 1.2;
-    case 'custom':
-      return 1.2;
-    case null:
-      return 1.2;
-    default:
-      return 1.2;
-  }
-}
-
-function proteinPerKgFromTdee(dailyCalorieGoal: number, tdee: number): number {
-  const deficitShare = 1 - dailyCalorieGoal / tdee;
-
-  if (deficitShare < 0) {
-    return 1.6;
-  }
-  if (deficitShare < 0.10) {
-    return 1.2;
-  }
-  if (deficitShare <= 0.20) {
-    return 1.6;
-  }
-  return 1.8;
-}
 
 /** Calendar age from YYYY-MM-DD; null if missing or unparseable. */
 function ageFromBirthDate(birthDate: string | null): number | null {
@@ -88,25 +61,6 @@ function ageFromBirthDate(birthDate: string | null): number | null {
   return age;
 }
 
-function resolveProteinRefKg(params: {
-  weightKg: number;
-  heightCm: number | null;
-  targetWeightKg: number | null;
-}): number {
-  const candidates: number[] = [params.weightKg];
-
-  if (params.heightCm != null) {
-    const heightM = params.heightCm / 100;
-    candidates.push(25 * heightM * heightM);
-  }
-
-  if (params.targetWeightKg != null) {
-    candidates.push(params.targetWeightKg);
-  }
-
-  return Math.min(...candidates);
-}
-
 export function computeMacroGoals(input: MacroGoalsInput): MacroGoalsResult {
   const nullResult: MacroGoalsResult = {
     proteinG: null,
@@ -127,26 +81,24 @@ export function computeMacroGoals(input: MacroGoalsInput): MacroGoalsResult {
     targetWeightKg: input.targetWeightKg,
   });
 
-  const tdee = input.tdee;
-  let proteinPerKg =
-    tdee != null && tdee > 0
-      ? proteinPerKgFromTdee(input.dailyCalorieGoal, tdee)
-      : proteinPerKgForGoalType(input.goalType);
+  let proteinPerKg = resolveProteinPerKgBase({
+    goalType: input.goalType,
+    dailyCalorieGoal: input.dailyCalorieGoal,
+    tdee: input.tdee,
+  });
 
   const age = ageFromBirthDate(input.birthDate);
   if (age != null && age >= 65) {
     proteinPerKg = proteinPerKg * 1.2;
   }
 
-  if (input.dietPreference === 'vegan') {
-    proteinPerKg = proteinPerKg * 1.12;
-  }
+  proteinPerKg = proteinPerKg * proteinDietMultiplier(input.dietPreference);
 
   const proteinG = Math.round(proteinPerKg * proteinRefKg);
   const fatFromCalories = (0.25 * input.dailyCalorieGoal) / 9;
   const fatFloor = 0.7 * proteinRefKg;
   const fatG = Math.round(Math.max(fatFromCalories, fatFloor));
-  const fiberG = Math.round(Math.max(30, (14 * input.dailyCalorieGoal) / 1000));
+  const fiberG = fiberGForBasisKcal(input.dailyCalorieGoal);
   const carbsRaw = (input.dailyCalorieGoal - proteinG * 4 - fatG * 9) / 4;
   const carbsG = Math.round(Math.max(0, carbsRaw));
 

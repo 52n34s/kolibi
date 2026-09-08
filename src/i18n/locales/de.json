@@ -153,10 +153,15 @@
     "activity": {
       "title": "Wie aktiv bist du?",
       "subtitle": "Wähle die Option, die deinen Alltag am besten beschreibt.",
+      "sportExcludeHint": "Sport zählen wir separat — es geht hier nur um deinen Alltag.",
       "mostly_sitting": "Überwiegend sitzend",
+      "mostly_sittingHint": "Bürojob, wenig Bewegung im Alltag",
       "lightly_active": "Leicht aktiv",
+      "lightly_activeHint": "Etwas Bewegung im Alltag, z. B. Wege zu Fuß",
       "active": "Aktiv",
-      "very_active": "Sehr aktiv"
+      "activeHint": "Viel auf den Beinen, z. B. Handwerk oder Pflege",
+      "very_active": "Sehr aktiv",
+      "very_activeHint": "Körperlich schwere Arbeit"
     },
     "goal": {
       "title": "Was ist dein Ziel?",
@@ -216,7 +221,9 @@
         "fat": "Fett",
         "fiber": "Ballastst."
       },
-      "unitGrams": "g"
+      "unitGrams": "g",
+      "fiberMinimum": "Mindestens {{grams}} g",
+      "carbsFromTraining": "+{{grams}} g durch dein Training heute"
     },
     "movementGoal": {
       "labelSteps": "Schritte",
@@ -224,6 +231,7 @@
       "labelDistanceKm": "Alltagsbewegung",
       "unitSteps": "",
       "unitKm": "km",
+      "weeklyProgress": "{{actual}} von {{goal}}{{unit}} · erwartet: {{expected}}{{unit}}",
       "healthRequired": "Apple Health muss verbunden sein."
     },
     "trial": {
@@ -616,6 +624,9 @@
       "disconnectConfirmMessage": "Dein Tagesziel wird wieder mit deinem Aktivitätslevel aus dem Onboarding berechnet, statt mit Apple-Health-Daten. Es kann sich dadurch ändern.",
       "disconnectConfirmCancel": "Abbrechen",
       "disconnectConfirmAction": "Trennen",
+      "recalculatedTitle": "Tagesziel aktualisiert",
+      "recalculatedOnConnect": "Dein Tagesziel basiert jetzt auf dem Grundumsatz. Trainingskalorien aus Apple Health werden tagesaktuell addiert.",
+      "recalculatedOnDisconnect": "Dein Tagesziel wird wieder mit deinem Aktivitätslevel aus dem Onboarding berechnet.",
       "saveFailed": "Health-Verbindung konnte nicht aktualisiert werden. Bitte erneut versuchen."
     },
     "notifications": {
@@ -640,7 +651,7 @@
       "validationOutOfRange": "Bitte gib einen Wert zwischen {{min}} und {{max}} kcal ein. Mindestens {{min}} kcal.",
       "saveFailed": "Kalorienziel konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
-    "macroGoal": {
+      "macroGoal": {
       "sectionTitle": "Proteinziel",
       "screenTitle": "Proteinziel bearbeiten",
       "directEditSubtitle": "Gib dein tägliches Proteinziel in Gramm ein.",
@@ -651,8 +662,46 @@
       "needsCalorieGoal": "Zuerst ein Kalorienziel setzen.",
       "blockedNonPositive": "Bitte gib ein Proteinziel größer als 0 g ein.",
       "blockedAboveMax": "Dieses Proteinziel liegt über dem erlaubten Maximum.",
+      "blockedProteinFatExceedCalories": "Protein und Fett würden das Kalorienziel überschreiten — Kohlenhydrate wären negativ.",
       "softWarning": "Protein und Fett würden zusammen mehr als 85 % der Kalorien ausmachen.",
       "saveFailed": "Proteinziel konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "macrosGoals": {
+      "sectionTitle": "Makroziele",
+      "screenTitle": "Makroziele",
+      "subtitle": "Protein, Fett und Kohlenhydrate hängen zusammen — hier stellst du sie gemeinsam ein.",
+      "goalSection": "Dein Ziel",
+      "macrosSection": "Makroziele",
+      "otherGoalsSection": "Weitere Ziele",
+      "adaptToTraining": "Makros an Training anpassen",
+      "recommended": "Empfohlen: {{value}} g",
+      "recommendedReset": "Empfohlen: {{value}} g · Zurücksetzen",
+      "fiberMinimum": "Mindestens {{value}} g",
+      "fiberMinimumReset": "Mindestens {{value}} g · Zurücksetzen",
+      "fiberMinimumHint": "Mindestwert — mehr ist unauffällig. Geht nicht in die Kalorienrechnung ein.",
+      "sumMatches": "Ergibt {{kcal}} kcal · dein Ziel",
+      "sumOver": "Ergibt {{kcal}} kcal · {{delta}} über deinem Ziel",
+      "sumUnder": "Ergibt {{kcal}} kcal · {{delta}} unter deinem Ziel",
+      "unlockCarbsTitle": "Kohlenhydrate freigeben?",
+      "unlockCarbsMessage": "Wenn du alle drei Makros festlegst, ändert sich dein Kalorienziel entsprechend.",
+      "unlockCarbsConfirm": "Freigeben",
+      "recalculateTitle": "Ziele neu berechnen?",
+      "recalculateMessage": "Dein Gewicht oder Ziel hat sich geändert. Sollen die empfohlenen Makros übernommen werden?",
+      "recalculateConfirm": "Neu berechnen",
+      "recalculateDecline": "Beibehalten",
+      "hintProteinLow": "Unterhalb dieses Werts steigt das Risiko für Muskelabbau im Kaloriendefizit.",
+      "hintProteinHigh": "Mehr bringt nach aktueller Studienlage keinen zusätzlichen Nutzen und verdrängt Kohlenhydrate.",
+      "hintFatLow": "Dauerhaft unter 20 % kann die Aufnahme fettlöslicher Vitamine beeinträchtigen.",
+      "blockedCarbsNegative": "Protein und Fett überschreiten das Kalorienziel — Kohlenhydrate wären negativ.",
+      "saveFailed": "Makroziele konnten nicht gespeichert werden. Bitte erneut versuchen.",
+      "summaryValue": "{{protein}} · {{fat}} · {{carbs}} g",
+      "ziel": {
+        "ABNEHMEN": "Abnehmen",
+        "HALTEN": "Halten",
+        "MUSKELAUFBAU": "Muskelaufbau",
+        "AUSDAUERLEISTUNG": "Ausdauerleistung",
+        "INDIVIDUELL": "Individuell"
+      }
     },
     "movementGoal": {
       "sectionTitle": "Bewegungsziel",
@@ -793,5 +842,17 @@
       "note": "Ich wollte selbst abnehmen und habe keine App gefunden, bei der Tracken schnell geht. Also hab ich Kolibi entwickelt.",
       "continue": "Weiter"
     }
+  },
+  "weightGoalEta": {
+    "reachedAround": "Zielgewicht {{eta}}",
+    "fuzzy": "etwa {{part}} {{month}} {{year}}",
+    "part": {
+      "early": "Anfang",
+      "mid": "Mitte",
+      "late": "Ende"
+    },
+    "overYear": "Zielgewicht in mehr als einem Jahr",
+    "notLosing": "Mit diesen Einstellungen nimmst du nicht ab.",
+    "notGaining": "Mit diesen Einstellungen nimmst du nicht zu."
   }
 }

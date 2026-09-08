@@ -39,7 +39,7 @@ import {
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
-import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
+import { HomeProgressRows, type HomeProgressRowItem, formatProgressAmount } from '@/components/home/home-progress-rows';
 import { TodayMealsSection } from '@/components/home/TodayMealsSection';
 import {
   WeightProgressCard,
@@ -54,8 +54,9 @@ import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useActiveEnergyBurnedToday } from '@/hooks/use-active-energy-burned';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
+import { useSportEnergyDayToday } from '@/hooks/use-sport-energy-day';
 import { formatKcal } from '@/utils/format';
-import { localDateKey } from '@/lib/day-window';
+import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import {
   getTimeOfDay,
   getCalorieGoalDisplay,
@@ -63,6 +64,13 @@ import {
   resolveDisplayName,
 } from '@/lib/home';
 import { buildHomeNutrientTileEntries } from '@/lib/home-nutrients';
+import { expectedWeeklyAmount } from '@/lib/movement-week-pace';
+import { calculateAge } from '@/lib/onboarding';
+import { scaleMacrosForSportCalories } from '@/lib/sport-macro-scaling';
+import { MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY } from '@/lib/macros-goals-editor-math';
+import {
+  getUserPreferenceOrDefault,
+} from '@/lib/user-preferences';
 import {
   buildWidgetSnapshot,
   widgetSnapshotComparableJson,
@@ -158,8 +166,29 @@ export default function HomeScreen() {
   const { data, isLoading, isError, error } = useHomeDashboard();
   const { data: todayMeals, isLoading: isTodayMealsLoading } = useTodayMeals();
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
+  const { data: adaptMacrosToTraining = true } = useQuery({
+    queryKey: ['macros-adapt-to-training', userId],
+    queryFn: () =>
+      getUserPreferenceOrDefault(userId!, MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY, true),
+    enabled: Boolean(userId),
+  });
   const { data: activeEnergyBurnedToday } = useActiveEnergyBurnedToday(
     healthConnectedPreference === true,
+  );
+  const ageYears = useMemo(() => {
+    const birthDate = data?.profile?.birth_date;
+    if (birthDate == null || birthDate === '') {
+      return null;
+    }
+    try {
+      return calculateAge(parseDateOnly(birthDate));
+    } catch {
+      return null;
+    }
+  }, [data?.profile?.birth_date]);
+  const { data: sportEnergyDay } = useSportEnergyDayToday(
+    healthConnectedPreference === true && adaptMacrosToTraining === true,
+    ageYears,
   );
   const movementGoalType = data?.profile?.movement_goal_type ?? null;
   const movementGoalValue = data?.profile?.movement_goal_value ?? null;
@@ -418,6 +447,7 @@ export default function HomeScreen() {
 
     if (
       healthConnectedPreference &&
+      adaptMacrosToTraining &&
       activeEnergyBurnedToday != null
     ) {
       return getDynamicCalorieGoalDisplay(
@@ -430,6 +460,7 @@ export default function HomeScreen() {
     return getCalorieGoalDisplay(dailyCalorieGoal, consumedCaloriesToday);
   }, [
     activeEnergyBurnedToday,
+    adaptMacrosToTraining,
     consumedCaloriesToday,
     dailyCalorieGoal,
     hasCalorieGoal,
@@ -463,12 +494,58 @@ export default function HomeScreen() {
       return;
     }
 
-    router.push('/koli/protein-goal' as Href);
+    router.push('/koli/macro-goals' as Href);
   }, [data?.latestWeight?.weight_kg]);
 
   const nutrientTiles = useMemo(() => {
     const macros = data?.consumedMacrosToday;
     const goal = data?.latestCalorieGoal;
+    const basisKcal = dailyCalorieGoal;
+    const baseProteinG = goal?.protein_g ?? null;
+    const baseFatG = goal?.fat_g ?? null;
+    const baseCarbsG = goal?.carbs_g ?? null;
+
+    let proteinGoal = baseProteinG;
+    let fatGoal = baseFatG;
+    let carbsGoal = baseCarbsG;
+    let carbsFromSportG = 0;
+
+    if (
+      adaptMacrosToTraining &&
+      basisKcal != null &&
+      baseProteinG != null &&
+      baseFatG != null &&
+      baseCarbsG != null
+    ) {
+      const scaled =
+        sportEnergyDay != null
+          ? scaleMacrosForSportCalories({
+              basisKcal,
+              segments: sportEnergyDay.segments,
+              proteinG: baseProteinG,
+              fatBasisG: baseFatG,
+              carbsBasisG: baseCarbsG,
+              weightKg: data?.latestWeight?.weight_kg ?? null,
+            })
+          : scaleMacrosForSportCalories({
+              basisKcal,
+              sportKcal:
+                healthConnectedPreference === true && activeEnergyBurnedToday != null
+                  ? activeEnergyBurnedToday
+                  : 0,
+              proteinG: baseProteinG,
+              fatBasisG: baseFatG,
+              carbsBasisG: baseCarbsG,
+              weightKg: data?.latestWeight?.weight_kg ?? null,
+            });
+      if (scaled.ok) {
+        proteinGoal = scaled.proteinG;
+        fatGoal = scaled.fatG;
+        carbsGoal = scaled.carbsG;
+        carbsFromSportG = scaled.carbsFromSportG;
+      }
+    }
+
     return buildHomeNutrientTileEntries({
       dietPreference: data?.profile?.diet_preference,
       labels: {
@@ -488,36 +565,80 @@ export default function HomeScreen() {
       ...entry,
       goalValue:
         entry.key === 'protein'
-          ? (goal?.protein_g ?? null)
+          ? proteinGoal
           : entry.key === 'carbs'
-            ? (goal?.carbs_g ?? null)
+            ? carbsGoal
             : entry.key === 'fat'
-              ? (goal?.fat_g ?? null)
+              ? fatGoal
               : entry.key === 'fiber'
                 ? (goal?.fiber_g ?? null)
                 : null,
+      carbsFromSportG: entry.key === 'carbs' ? carbsFromSportG : 0,
       onPress: entry.key === 'protein' ? openProteinGoalEditor : undefined,
     }));
   }, [
+    activeEnergyBurnedToday,
+    adaptMacrosToTraining,
+    dailyCalorieGoal,
     data?.consumedMacrosToday,
     data?.latestCalorieGoal,
+    data?.latestWeight?.weight_kg,
     data?.profile?.diet_preference,
+    healthConnectedPreference,
     openProteinGoalEditor,
+    sportEnergyDay,
     t,
   ]);
 
   const homeProgressRows = useMemo((): HomeProgressRowItem[] => {
-    const rows: HomeProgressRowItem[] = nutrientTiles.map((tile) => ({
-      key: tile.key,
-      label: tile.label,
-      actual: tile.value,
-      goal: tile.goalValue ?? null,
-      decimals: 0,
-      onPress: tile.onPress,
-    }));
+    const rows: HomeProgressRowItem[] = nutrientTiles.map((tile) => {
+      if (tile.key === 'fiber') {
+        const fiberGoal = tile.goalValue ?? null;
+        return {
+          key: tile.key,
+          label: tile.label,
+          actual: tile.value,
+          goal: fiberGoal,
+          decimals: 0 as const,
+          onPress: tile.onPress,
+          valueKind: 'minimum' as const,
+          valueLabel:
+            fiberGoal != null && fiberGoal > 0
+              ? t('home.nutrients.fiberMinimum', {
+                  grams: Math.round(fiberGoal),
+                })
+              : undefined,
+        };
+      }
+
+      return {
+        key: tile.key,
+        label: tile.label,
+        actual: tile.value,
+        goal: tile.goalValue ?? null,
+        decimals: 0 as const,
+        onPress: tile.onPress,
+        footerHint:
+          tile.key === 'carbs' && tile.carbsFromSportG > 0
+            ? t('home.nutrients.carbsFromTraining', { grams: tile.carbsFromSportG })
+            : undefined,
+      };
+    });
 
     if (hasMovementGoal && movementGoalType != null && movementGoalValue != null) {
       const healthConnected = healthConnectedPreference === true;
+      const isWeekly = movementGoalPeriod === 'week';
+      const decimals = movementGoalType === 'steps' ? (0 as const) : (1 as const);
+      const unit =
+        movementGoalType === 'steps'
+          ? t('home.movementGoal.unitSteps')
+          : t('home.movementGoal.unitKm');
+      const actual = movementActual ?? 0;
+      const expected = isWeekly
+        ? expectedWeeklyAmount(movementGoalValue)
+        : null;
+      const format = (value: number) => formatProgressAmount(value, decimals);
+
       rows.push({
         key: 'movement',
         label:
@@ -526,10 +647,20 @@ export default function HomeScreen() {
             : movementGoalType === 'running_km'
               ? t('home.movementGoal.labelRunningKm')
               : t('home.movementGoal.labelDistanceKm'),
-        actual: movementActual ?? 0,
+        actual,
         goal: movementGoalValue,
-        decimals: movementGoalType === 'steps' ? 0 : 1,
+        decimals,
         dividerAbove: true,
+        expected,
+        valueKind: isWeekly ? 'weekly' : 'ratio',
+        valueLabel: isWeekly
+          ? t('home.movementGoal.weeklyProgress', {
+              actual: format(actual),
+              goal: format(movementGoalValue),
+              expected: format(expected ?? 0),
+              unit: unit ? ` ${unit}` : '',
+            })
+          : undefined,
         footerHint: healthConnected ? undefined : t('home.movementGoal.healthRequired'),
         onFooterPress: healthConnected
           ? undefined
@@ -547,6 +678,7 @@ export default function HomeScreen() {
     hasMovementGoal,
     healthConnectedPreference,
     movementActual,
+    movementGoalPeriod,
     movementGoalType,
     movementGoalValue,
     nutrientTiles,
@@ -722,7 +854,7 @@ export default function HomeScreen() {
   }
 
   function openCalorieGoalSettings() {
-    router.push('/koli/calorie-goal' as Href);
+    router.push('/koli/macro-goals' as Href);
   }
 
   async function handleScanPress() {

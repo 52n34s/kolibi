@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react-native';
 
 import { localDateKey } from '@/lib/day-window';
 import { computeMacroGoals, isMacroGoalPlausible } from '@/lib/macro-goals';
+import { fiberGForBasisKcal } from '@/lib/macro-rules';
 import { supabase } from '@/lib/supabase';
 
 type ExistingMacroRow = {
@@ -32,10 +33,6 @@ type LatestCalorieGoalRow = ExistingMacroRow & {
   goal_type: string | null;
 };
 
-function fiberGForCalories(dailyCalorieGoal: number): number {
-  return Math.round(Math.max(30, (14 * dailyCalorieGoal) / 1000));
-}
-
 /** Shared fat / carbs / fiber derivation from protein + calories (custom + calculated preserve path). */
 export function recalculateFatCarbsFiber(params: {
   dailyCalorieGoal: number;
@@ -45,7 +42,7 @@ export function recalculateFatCarbsFiber(params: {
   const fatFromCalories = (0.25 * params.dailyCalorieGoal) / 9;
   const fatFloor = 0.7 * params.proteinRefKg;
   const fatG = Math.round(Math.max(fatFromCalories, fatFloor));
-  const fiberG = fiberGForCalories(params.dailyCalorieGoal);
+  const fiberG = fiberGForBasisKcal(params.dailyCalorieGoal);
   const carbsG = Math.round(
     Math.max(0, (params.dailyCalorieGoal - params.proteinG * 4 - fatG * 9) / 4),
   );
@@ -54,7 +51,10 @@ export function recalculateFatCarbsFiber(params: {
 
 export type CustomProteinGoalValidation =
   | { status: 'ok' }
-  | { status: 'blocked'; reason: 'non_positive' | 'above_max' }
+  | {
+      status: 'blocked';
+      reason: 'non_positive' | 'above_max' | 'protein_fat_exceed_calories';
+    }
   | { status: 'warning'; reason: string };
 
 /** Single validation entry for custom protein goal UI (hard block vs soft warning). */
@@ -76,6 +76,11 @@ export function validateCustomProteinGoal(params: {
     proteinG: params.proteinG,
     proteinRefKg: params.proteinRefKg,
   });
+
+  // Carbs must not go negative: protein + fat energy cannot exceed the calorie target.
+  if (params.proteinG * 4 + derived.fatG * 9 > params.dailyCalorieGoal) {
+    return { status: 'blocked', reason: 'protein_fat_exceed_calories' };
+  }
 
   const plausibility = isMacroGoalPlausible(
     params.proteinG,
@@ -118,6 +123,9 @@ async function fetchLatestCalorieGoalRow(userId: string): Promise<LatestCalorieG
 export type MacroGoalEditorState = {
   dailyCalorieGoal: number;
   proteinG: number | null;
+  fatG: number | null;
+  carbsG: number | null;
+  fiberG: number | null;
   proteinRefKg: number | null;
   macroGoalSource: string | null;
   recommendedProteinG: number | null;
@@ -150,6 +158,9 @@ export async function fetchMacroGoalEditorState(
   return {
     dailyCalorieGoal,
     proteinG: latest.protein_g == null ? null : Number(latest.protein_g),
+    fatG: latest.fat_g == null ? null : Number(latest.fat_g),
+    carbsG: latest.carbs_g == null ? null : Number(latest.carbs_g),
+    fiberG: latest.fiber_g == null ? null : Number(latest.fiber_g),
     proteinRefKg: storedRefKg ?? recommended.proteinRefKg,
     macroGoalSource: latest.macro_goal_source ?? null,
     recommendedProteinG: recommended.proteinG,
@@ -243,6 +254,91 @@ export async function saveCustomProteinGoal(params: {
       carbs_g: derived.carbsG,
       fiber_g: derived.fiberG,
       goal_type: latest.goal_type ?? context.goalType,
+    },
+    { onConflict: 'user_id,effective_from' },
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function saveMacrosGoalsBundle(params: {
+  userId: string;
+  dailyCalorieGoal: number;
+  /** When true, calorie goal source becomes custom (unlocked macros drive calories). */
+  calorieGoalIsCustom: boolean;
+  proteinG: number;
+  fatG: number;
+  carbsG: number;
+  fiberG: number | null;
+  proteinRefKg: number | null;
+  goalType: string | null;
+  /** Defaults to custom when omitted. */
+  macroGoalSource?: 'custom' | 'calculated';
+}): Promise<void> {
+  if (
+    !params.calorieGoalIsCustom &&
+    params.proteinG * 4 + params.fatG * 9 > params.dailyCalorieGoal
+  ) {
+    throw new Error('protein_goal_protein_fat_exceed_calories');
+  }
+  if (params.carbsG < 0) {
+    throw new Error('protein_goal_protein_fat_exceed_calories');
+  }
+
+  if (params.calorieGoalIsCustom) {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ calorie_goal_source: 'custom' })
+      .eq('id', params.userId);
+    if (profileError) {
+      throw profileError;
+    }
+  }
+
+  if (params.goalType != null) {
+    const { error: goalTypeError } = await supabase
+      .from('profiles')
+      .update({ goal_type: params.goalType })
+      .eq('id', params.userId);
+    if (goalTypeError) {
+      throw goalTypeError;
+    }
+  }
+
+  const context = await loadMacroContext(params.userId);
+  const proteinRefKg =
+    params.proteinRefKg != null && params.proteinRefKg > 0
+      ? params.proteinRefKg
+      : context.weightKg;
+
+  if (proteinRefKg == null || !(proteinRefKg > 0)) {
+    throw new Error('missing_protein_ref_kg');
+  }
+
+  const effectiveFromDate = localDateKey();
+  const latest = await fetchLatestCalorieGoalRow(params.userId);
+  const calorieSource = params.calorieGoalIsCustom
+    ? 'custom'
+    : latest?.source === 'custom' || latest?.source === 'calculated'
+      ? latest.source
+      : 'calculated';
+
+  const { error } = await supabase.from('calorie_goals').upsert(
+    {
+      user_id: params.userId,
+      daily_calorie_goal: params.dailyCalorieGoal,
+      source: calorieSource,
+      effective_from: effectiveFromDate,
+      protein_g: params.proteinG,
+      protein_per_kg: params.proteinG / proteinRefKg,
+      protein_ref_kg: proteinRefKg,
+      macro_goal_source: params.macroGoalSource ?? 'custom',
+      fat_g: params.fatG,
+      carbs_g: params.carbsG,
+      fiber_g: params.fiberG,
+      goal_type: params.goalType ?? context.goalType,
     },
     { onConflict: 'user_id,effective_from' },
   );
@@ -389,7 +485,7 @@ export async function upsertDailyCalorieGoal(params: {
       macroFields.protein_per_kg = proteinPerKg;
       macroFields.protein_ref_kg = proteinRefKg;
       macroFields.macro_goal_source = 'custom';
-      macroFields.fiber_g = fiberGForCalories(params.dailyCalorieGoal);
+      macroFields.fiber_g = fiberGForBasisKcal(params.dailyCalorieGoal);
 
       if (proteinG != null && proteinRefKg != null) {
         const derived = recalculateFatCarbsFiber({

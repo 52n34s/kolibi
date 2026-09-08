@@ -153,10 +153,15 @@
     "activity": {
       "title": "How active are you?",
       "subtitle": "Choose the option that best describes your typical day.",
+      "sportExcludeHint": "We count workouts separately — this is only about your everyday life.",
       "mostly_sitting": "Mostly sitting",
+      "mostly_sittingHint": "Desk job, little movement during the day",
       "lightly_active": "Lightly active",
+      "lightly_activeHint": "Some daily movement, e.g. walking short trips",
       "active": "Active",
-      "very_active": "Very active"
+      "activeHint": "On your feet a lot, e.g. trades or caregiving",
+      "very_active": "Very active",
+      "very_activeHint": "Physically demanding work"
     },
     "goal": {
       "title": "What's your goal?",
@@ -216,7 +221,9 @@
         "fat": "Fat",
         "fiber": "Fiber"
       },
-      "unitGrams": "g"
+      "unitGrams": "g",
+      "fiberMinimum": "At least {{grams}} g",
+      "carbsFromTraining": "+{{grams}} g from your training today"
     },
     "movementGoal": {
       "labelSteps": "Steps",
@@ -224,6 +231,7 @@
       "labelDistanceKm": "Everyday movement",
       "unitSteps": "",
       "unitKm": "km",
+      "weeklyProgress": "{{actual}} of {{goal}}{{unit}} · expected: {{expected}}{{unit}}",
       "healthRequired": "Apple Health must be connected."
     },
     "trial": {
@@ -616,6 +624,9 @@
       "disconnectConfirmMessage": "Your daily goal will be recalculated using your onboarding activity level instead of Apple Health data. It may change as a result.",
       "disconnectConfirmCancel": "Cancel",
       "disconnectConfirmAction": "Disconnect",
+      "recalculatedTitle": "Daily goal updated",
+      "recalculatedOnConnect": "Your daily goal is now based on your basal metabolic rate. Workout calories from Apple Health are added throughout the day.",
+      "recalculatedOnDisconnect": "Your daily goal is calculated from your onboarding activity level again.",
       "saveFailed": "Could not update your Health connection. Please try again."
     },
     "notifications": {
@@ -651,8 +662,46 @@
       "needsCalorieGoal": "Set a calorie goal first.",
       "blockedNonPositive": "Enter a protein goal greater than 0 g.",
       "blockedAboveMax": "This protein goal is above the allowed maximum.",
+      "blockedProteinFatExceedCalories": "Protein and fat would exceed your calorie goal — carbs would go negative.",
       "softWarning": "Protein and fat would together exceed 85% of calories.",
       "saveFailed": "Could not save your protein goal. Please try again."
+    },
+    "macrosGoals": {
+      "sectionTitle": "Macro goals",
+      "screenTitle": "Macro goals",
+      "subtitle": "Protein, fat, and carbs affect each other — set them together here.",
+      "goalSection": "Your goal",
+      "macrosSection": "Macro goals",
+      "otherGoalsSection": "Other goals",
+      "adaptToTraining": "Adapt macros to training",
+      "recommended": "Recommended: {{value}} g",
+      "recommendedReset": "Recommended: {{value}} g · Reset",
+      "fiberMinimum": "At least {{value}} g",
+      "fiberMinimumReset": "At least {{value}} g · Reset",
+      "fiberMinimumHint": "Minimum — exceeding it is fine. Not counted in calories.",
+      "sumMatches": "Equals {{kcal}} kcal · your goal",
+      "sumOver": "Equals {{kcal}} kcal · {{delta}} over your goal",
+      "sumUnder": "Equals {{kcal}} kcal · {{delta}} under your goal",
+      "unlockCarbsTitle": "Unlock carbohydrates?",
+      "unlockCarbsMessage": "If you set all three macros, your calorie goal will change accordingly.",
+      "unlockCarbsConfirm": "Unlock",
+      "recalculateTitle": "Recalculate goals?",
+      "recalculateMessage": "Your weight or goal changed. Apply the recommended macros?",
+      "recalculateConfirm": "Recalculate",
+      "recalculateDecline": "Keep current",
+      "hintProteinLow": "Below this level, the risk of muscle loss increases in a calorie deficit.",
+      "hintProteinHigh": "More does not add benefit based on current evidence and crowds out carbohydrates.",
+      "hintFatLow": "Staying under 20% long-term can impair absorption of fat-soluble vitamins.",
+      "blockedCarbsNegative": "Protein and fat exceed the calorie goal — carbohydrates would be negative.",
+      "saveFailed": "Could not save macro goals. Please try again.",
+      "summaryValue": "{{protein}} · {{fat}} · {{carbs}} g",
+      "ziel": {
+        "ABNEHMEN": "Lose weight",
+        "HALTEN": "Maintain",
+        "MUSKELAUFBAU": "Build muscle",
+        "AUSDAUERLEISTUNG": "Endurance",
+        "INDIVIDUELL": "Custom"
+      }
     },
     "movementGoal": {
       "sectionTitle": "Movement goal",
@@ -793,5 +842,17 @@
       "note": "I wanted to lose weight myself and couldn't find an app where tracking was actually fast. So I built Kolibi.",
       "continue": "Continue"
     }
+  },
+  "weightGoalEta": {
+    "reachedAround": "Target weight {{eta}}",
+    "fuzzy": "around {{part}} {{month}} {{year}}",
+    "part": {
+      "early": "early",
+      "mid": "mid",
+      "late": "late"
+    },
+    "overYear": "Target weight in more than a year",
+    "notLosing": "With these settings you will not lose weight.",
+    "notGaining": "With these settings you will not gain weight."
   }
 }

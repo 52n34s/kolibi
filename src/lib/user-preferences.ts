@@ -21,6 +21,30 @@ export async function getUserPreference(userId: string, preferenceKey: string): 
   return data?.is_enabled ?? false;
 }
 
+/** Like getUserPreference, but uses `defaultValue` when no row exists. */
+export async function getUserPreferenceOrDefault(
+  userId: string,
+  preferenceKey: string,
+  defaultValue: boolean,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('user_preferences')
+    .select('is_enabled')
+    .eq('user_id', userId)
+    .eq('preference_key', preferenceKey)
+    .maybeSingle<UserPreferenceRow>();
+
+  if (error) {
+    throw error;
+  }
+
+  if (data == null) {
+    return defaultValue;
+  }
+
+  return data.is_enabled;
+}
+
 export async function setUserPreference(
   userId: string,
   preferenceKey: string,

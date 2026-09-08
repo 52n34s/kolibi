@@ -1,5 +1,9 @@
 import { fetchTodayConsumedCalories, type TodayConsumedMacros } from '@/lib/meals';
 import type { MovementGoalPeriod, MovementGoalType } from '@/lib/profile';
+import {
+  CalorieSource,
+  resolveEffectiveDailyCalorieGoal,
+} from '@/lib/calorie-goal-math';
 import { supabase } from '@/lib/supabase';
 
 export type HomeProfile = {
@@ -9,6 +13,7 @@ export type HomeProfile = {
   movement_goal_type: MovementGoalType | null;
   movement_goal_value: number | null;
   movement_goal_period: MovementGoalPeriod | null;
+  birth_date: string | null;
 };
 
 export type HomeCalorieGoal = {
@@ -48,7 +53,7 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
     supabase
       .from('profiles')
       .select(
-        'calorie_goal_source, target_weight_kg, diet_preference, movement_goal_type, movement_goal_value, movement_goal_period, progress_start_date',
+        'calorie_goal_source, target_weight_kg, diet_preference, movement_goal_type, movement_goal_value, movement_goal_period, progress_start_date, birth_date',
       )
       .eq('id', userId)
       .maybeSingle(),
@@ -122,6 +127,10 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
           movement_goal_period: parseMovementGoalPeriod(
             profileResult.data.movement_goal_period,
           ),
+          birth_date:
+            typeof profileResult.data.birth_date === 'string'
+              ? profileResult.data.birth_date
+              : null,
         }
       : null,
     latestCalorieGoal: calorieGoalResult.data
@@ -262,7 +271,11 @@ export function getDynamicCalorieGoalDisplay(
   consumedToday: number,
   activeEnergyBurned: number,
 ): CalorieGoalDisplay {
-  const adjustedDailyGoal = dailyGoal + activeEnergyBurned;
+  const adjustedDailyGoal = resolveEffectiveDailyCalorieGoal({
+    calorieSource: CalorieSource.HEALTH,
+    baseDailyGoal: dailyGoal,
+    activeEnergyBurnedKcal: activeEnergyBurned,
+  });
   const display = getCalorieGoalDisplay(adjustedDailyGoal, consumedToday);
 
   return {

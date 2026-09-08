@@ -26,7 +26,13 @@ import { HeightInput } from '@/components/onboarding/height-input';
 import { OnboardingLayout } from '@/components/onboarding/onboarding-layout';
 import { OptionCard } from '@/components/onboarding/option-card';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
+import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
 import { parseDateOnly } from '@/lib/day-window';
+import { suggestInitialTargetWeightKg } from '@/lib/macro-goals';
+import {
+  resolveGoalDirectionFromCalories,
+  type WeightGoalEtaInput,
+} from '@/lib/weight-goal-eta';
 import {
   ActivityOptionIcon,
   DietOptionIcon,
@@ -47,7 +53,7 @@ import {
   isCalorieGoalFarFromTdee,
   isValidDailyCalorieGoalInput,
   MAXIMUM_DAILY_CALORIES,
-  resolveActivityLevelForCalorieGoal,
+  resolveCalorieSource,
   skipOnboarding,
 } from '@/lib/onboarding';
 import { fetchProfileSettings } from '@/lib/profile';
@@ -226,16 +232,13 @@ export default function OnboardingScreen() {
   const parsedCustomCalories = Number(customCalorieGoal);
   const parsedDailyCalories = Number(dailyCalorieGoal);
 
-  const effectiveActivityLevelForCalories = useMemo(() => {
-    if (!activityLevel) {
-      return null;
-    }
-
-    return resolveActivityLevelForCalorieGoal(activityLevel, healthConnectedPreference === true);
-  }, [activityLevel, healthConnectedPreference]);
+  const calorieSource = useMemo(
+    () => resolveCalorieSource(healthConnectedPreference === true),
+    [healthConnectedPreference],
+  );
 
   const maintenanceCalories = useMemo(() => {
-    if (!birthDate || !effectiveActivityLevelForCalories || !parsedHeight || !parsedWeight) {
+    if (!birthDate || !activityLevel || !parsedHeight || !parsedWeight) {
       return null;
     }
 
@@ -244,9 +247,10 @@ export default function OnboardingScreen() {
       birthDate,
       heightCm: parsedHeight,
       weightKg: parsedWeight,
-      activityLevel: effectiveActivityLevelForCalories,
+      activityLevel,
+      calorieSource,
     });
-  }, [birthDate, effectiveActivityLevelForCalories, effectiveSex, parsedHeight, parsedWeight]);
+  }, [activityLevel, birthDate, calorieSource, effectiveSex, parsedHeight, parsedWeight]);
 
   const showCustomGoalFarFromTdeeWarning = isCalorieGoalFarFromTdee(
     parsedCustomCalories,
@@ -258,7 +262,7 @@ export default function OnboardingScreen() {
     (summaryManuallyEdited || goalType === 'custom');
 
   const calorieGoalCalculation = useMemo(() => {
-    if (!birthDate || !effectiveActivityLevelForCalories || !goalType || !parsedHeight || !parsedWeight) {
+    if (!birthDate || !activityLevel || !goalType || !parsedHeight || !parsedWeight) {
       return null;
     }
 
@@ -267,18 +271,80 @@ export default function OnboardingScreen() {
       birthDate,
       heightCm: parsedHeight,
       weightKg: parsedWeight,
-      activityLevel: effectiveActivityLevelForCalories,
+      activityLevel,
+      calorieSource,
       goalType,
       customCalorieGoal: goalType === 'custom' ? parsedCustomCalories : null,
     });
   }, [
+    activityLevel,
     birthDate,
-    effectiveActivityLevelForCalories,
+    calorieSource,
     effectiveSex,
     goalType,
     parsedCustomCalories,
     parsedHeight,
     parsedWeight,
+  ]);
+
+  const onboardingWeightEtaInput = useMemo((): WeightGoalEtaInput | null => {
+    if (!goalType || !parsedHeight || !parsedWeight || !maintenanceCalories) {
+      return null;
+    }
+    const dailyFromCalc = calorieGoalCalculation?.dailyCalories ?? null;
+    const daily =
+      summaryManuallyEdited || goalType === 'custom'
+        ? parsedDailyCalories > 0
+          ? parsedDailyCalories
+          : goalType === 'custom' && parsedCustomCalories > 0
+            ? parsedCustomCalories
+            : dailyFromCalc
+        : dailyFromCalc ?? (parsedDailyCalories > 0 ? parsedDailyCalories : null);
+
+    if (daily == null || !(daily > 0)) {
+      return null;
+    }
+
+    const direction = resolveGoalDirectionFromCalories({
+      goalType,
+      dailyCalorieGoal: daily,
+      maintenanceCalories,
+    });
+    if (direction === 'none') {
+      return null;
+    }
+
+    let targetWeightKg = suggestInitialTargetWeightKg({
+      weightKg: parsedWeight,
+      heightCm: parsedHeight,
+      goalType,
+    });
+    // Custom goals keep weight unchanged in suggestInitialTargetWeightKg — seed a
+    // modest target so a calorie deficit/surplus still yields an ETA.
+    if (goalType === 'custom' && Math.abs(targetWeightKg - parsedWeight) < 0.05) {
+      targetWeightKg = suggestInitialTargetWeightKg({
+        weightKg: parsedWeight,
+        heightCm: parsedHeight,
+        goalType: direction === 'loss' ? 'lose_weight' : 'gain_weight',
+      });
+    }
+    return {
+      logs: [],
+      targetWeightKg,
+      currentWeightKg: parsedWeight,
+      dailyCalorieGoal: daily,
+      maintenanceCalories,
+      goalDirection: direction,
+    };
+  }, [
+    calorieGoalCalculation?.dailyCalories,
+    goalType,
+    maintenanceCalories,
+    parsedCustomCalories,
+    parsedDailyCalories,
+    parsedHeight,
+    parsedWeight,
+    summaryManuallyEdited,
   ]);
 
   useEffect(() => {
@@ -309,7 +375,7 @@ export default function OnboardingScreen() {
       step !== 7 ||
       summaryManuallyEdited ||
       !birthDate ||
-      !effectiveActivityLevelForCalories ||
+      !activityLevel ||
       !goalType
     ) {
       return;
@@ -322,15 +388,17 @@ export default function OnboardingScreen() {
           birthDate,
           heightCm: parsedHeight,
           weightKg: parsedWeight,
-          activityLevel: effectiveActivityLevelForCalories,
+          activityLevel,
+          calorieSource,
           goalType,
           customCalorieGoal: goalType === 'custom' ? parsedCustomCalories : null,
         }).dailyCalorieGoal,
       ),
     );
   }, [
+    activityLevel,
     birthDate,
-    effectiveActivityLevelForCalories,
+    calorieSource,
     effectiveSex,
     goalType,
     parsedCustomCalories,
@@ -615,6 +683,9 @@ export default function OnboardingScreen() {
               title={t('onboarding.activity.title')}
               subtitle={t('onboarding.activity.subtitle')}
             />
+            <Text className="mb-4 text-sm text-gray-600">
+              {t('onboarding.activity.sportExcludeHint')}
+            </Text>
             <View className="flex-row flex-wrap gap-3">
               {ACTIVITY_LEVELS.map((level) => (
                 <View key={level} className="w-[48%] self-stretch">
@@ -623,6 +694,7 @@ export default function OnboardingScreen() {
                       <ActivityOptionIcon level={level} selected={activityLevel === level} />
                     }
                     label={t(`onboarding.activity.${level}`)}
+                    hint={t(`onboarding.activity.${level}Hint`)}
                     layout="grid"
                     selected={activityLevel === level}
                     onPress={() => setActivityLevel(level)}
@@ -669,6 +741,11 @@ export default function OnboardingScreen() {
                 {t('onboarding.goal.faster_weight_lossWarning')}
               </Text>
             )}
+            {onboardingWeightEtaInput && goalType !== 'custom' ? (
+              <View className="mt-2 mb-1">
+                <WeightGoalEtaMessage input={onboardingWeightEtaInput} />
+              </View>
+            ) : null}
             {goalType === 'custom' && (
               <>
                 <OnboardingField
@@ -682,6 +759,11 @@ export default function OnboardingScreen() {
                     {t('onboarding.summary.farFromTdeeWarning')}
                   </Text>
                 )}
+                {onboardingWeightEtaInput ? (
+                  <View className="mt-3">
+                    <WeightGoalEtaMessage input={onboardingWeightEtaInput} />
+                  </View>
+                ) : null}
               </>
             )}
           </View>
@@ -704,6 +786,11 @@ export default function OnboardingScreen() {
                 {t('onboarding.summary.tdee', { calories: formatKcal(maintenanceCalories) })}
               </Text>
             )}
+            {onboardingWeightEtaInput ? (
+              <View className="mb-4">
+                <WeightGoalEtaMessage input={onboardingWeightEtaInput} />
+              </View>
+            ) : null}
             {calorieGoalCalculation?.clampedToMinimum && !summaryManuallyEdited && (
               <Text className="mb-4 text-sm text-amber-700">
                 {t('onboarding.summary.minimumApplied', {

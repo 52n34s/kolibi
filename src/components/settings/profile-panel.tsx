@@ -178,6 +178,12 @@ export function ProfilePanel() {
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
 
+      Alert.alert(
+        t('settings.health.recalculatedTitle'),
+        t('settings.health.recalculatedOnConnect'),
+        [{ text: t('settings.common.ok') }],
+      );
+
       // Read access is not reported as granted/denied on iOS. If nothing is
       // readable, show a non-blocking hint pointing to the Health app.
       // Transient HealthKit errors must not fail the connect (pref already saved).
@@ -218,6 +224,11 @@ export function ProfilePanel() {
       await queryClient.invalidateQueries({ queryKey: ['active-energy-burned-today'] });
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+      Alert.alert(
+        t('settings.health.recalculatedTitle'),
+        t('settings.health.recalculatedOnDisconnect'),
+        [{ text: t('settings.common.ok') }],
+      );
     } catch (saveError) {
       console.error('[ProfilePanel] health disconnect failed:', saveError);
       Alert.alert(t('settings.errors.title'), t('settings.health.saveFailed'));

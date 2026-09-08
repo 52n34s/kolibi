@@ -2,7 +2,7 @@ import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { upsertDailyCalorieGoal } from '@/lib/calorie-goals';
 import {
   calculateDailyCalorieGoal,
-  resolveActivityLevelForCalorieGoal,
+  resolveCalorieSource,
   type GoalType,
 } from '@/lib/onboarding';
 import { fetchProfileSettings } from '@/lib/profile';
@@ -32,17 +32,15 @@ export async function recalculateCalorieGoalForHealthKitChange(
     return;
   }
 
-  const activityLevel = resolveActivityLevelForCalorieGoal(
-    profile.activity_level,
-    healthConnected,
-  );
+  const calorieSource = resolveCalorieSource(healthConnected);
 
   const { dailyCalorieGoal, maintenanceCalories } = calculateDailyCalorieGoal({
     biologicalSex: profile.biological_sex ?? 'prefer_not_to_say',
     birthDate: parseDateOnly(profile.birth_date),
     heightCm: profile.height_cm,
     weightKg: profile.latest_weight_kg,
-    activityLevel,
+    activityLevel: profile.activity_level,
+    calorieSource,
     goalType: goalType as Exclude<GoalType, 'custom'>,
   });
 

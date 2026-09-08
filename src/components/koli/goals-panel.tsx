@@ -13,7 +13,6 @@ import type { MovementGoalType } from '@/lib/profile';
 import { formatWeightForDisplay } from '@/lib/weight-logs';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
-import { formatKcal } from '@/utils/format';
 
 function movementTypeI18nKey(
   type: MovementGoalType,
@@ -47,18 +46,19 @@ export function GoalsPanel() {
     enabled: Boolean(userId),
   });
 
-  const calorieGoalLabel =
-    data?.profile.daily_calorie_goal != null
-      ? t('settings.calorieGoal.value', {
-          calories: formatKcal(data.profile.daily_calorie_goal),
-        })
-      : t('settings.calorieGoal.notSet');
-
   const proteinValue = macroState?.proteinG ?? macroState?.recommendedProteinG ?? null;
-  const proteinGoalLabel =
-    proteinValue != null
-      ? t('settings.macroGoal.value', { grams: Math.round(proteinValue) })
-      : t('settings.macroGoal.notSet');
+  const fatValue = macroState?.fatG ?? null;
+  const carbsValue = macroState?.carbsG ?? null;
+  const macrosGoalLabel =
+    proteinValue != null && fatValue != null && carbsValue != null
+      ? t('settings.macrosGoals.summaryValue', {
+          protein: Math.round(proteinValue),
+          fat: Math.round(fatValue),
+          carbs: Math.round(carbsValue),
+        })
+      : proteinValue != null
+        ? t('settings.macroGoal.value', { grams: Math.round(proteinValue) })
+        : t('settings.macroGoal.notSet');
 
   const movementType = data?.profile.movement_goal_type ?? null;
   const movementValue = data?.profile.movement_goal_value ?? null;
@@ -113,19 +113,11 @@ export function GoalsPanel() {
         {t('koli.segments.goals')}
       </Text>
 
-      <SettingsSection title={t('settings.calorieGoal.sectionTitle')}>
+      <SettingsSection title={t('settings.macrosGoals.sectionTitle')}>
         <SettingsRow
-          label={t('settings.calorieGoal.current')}
-          value={calorieGoalLabel}
-          onPress={() => router.push('/koli/calorie-goal' as Href)}
-        />
-      </SettingsSection>
-
-      <SettingsSection>
-        <SettingsRow
-          label={t('settings.macroGoal.sectionTitle')}
-          value={proteinGoalLabel}
-          onPress={() => router.push('/koli/protein-goal' as Href)}
+          label={t('settings.macrosGoals.sectionTitle')}
+          value={macrosGoalLabel}
+          onPress={() => router.push('/koli/macro-goals' as Href)}
         />
       </SettingsSection>
 

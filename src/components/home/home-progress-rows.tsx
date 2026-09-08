@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 
+export type HomeProgressValueKind = 'ratio' | 'minimum' | 'weekly';
+
 export type HomeProgressRowItem = {
   key: string;
   label: string;
@@ -15,13 +17,23 @@ export type HomeProgressRowItem = {
   /** Optional gray hint under the row (e.g. HealthKit required). */
   footerHint?: string;
   onFooterPress?: () => void;
+  /**
+   * ratio (default): "21/30"
+   * minimum: trailing value is `minimumLabel` (e.g. "Mindestens 30 g")
+   * weekly: "10.6 von 25 km · erwartet: 7 km" via weeklyLabel
+   */
+  valueKind?: HomeProgressValueKind;
+  /** Preformatted trailing value when valueKind is minimum or weekly. */
+  valueLabel?: string;
+  /** Expected amount by today for weekly goals — draws a marker on the bar. */
+  expected?: number | null;
 };
 
 type HomeProgressRowsProps = {
   rows: HomeProgressRowItem[];
 };
 
-function formatAmount(value: number, decimals: 0 | 1): string {
+export function formatProgressAmount(value: number, decimals: 0 | 1): string {
   if (!Number.isFinite(value)) {
     return '–';
   }
@@ -42,15 +54,21 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
   const progressPercent = hasGoal
     ? Math.min(100, Math.max(0, ((actual ?? 0) / item.goal!) * 100))
     : 0;
+  const expectedPercent =
+    hasGoal && item.expected != null && item.expected > 0
+      ? Math.min(100, Math.max(0, (item.expected / item.goal!) * 100))
+      : null;
 
   let valueText: string;
-  if (hasGoal) {
-    const left = formatAmount(actual ?? 0, decimals);
-    valueText = `${left}/${formatAmount(item.goal!, decimals)}`;
+  if (item.valueKind === 'minimum' || item.valueKind === 'weekly') {
+    valueText = item.valueLabel ?? '–';
+  } else if (hasGoal) {
+    const left = formatProgressAmount(actual ?? 0, decimals);
+    valueText = `${left}/${formatProgressAmount(item.goal!, decimals)}`;
   } else if (actual == null) {
     valueText = '–';
   } else {
-    valueText = formatAmount(actual, decimals);
+    valueText = formatProgressAmount(actual, decimals);
   }
 
   const row = (
@@ -62,14 +80,23 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
         {hasGoal ? (
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${progressPercent}%` }]} />
+            {expectedPercent != null ? (
+              <View
+                pointerEvents="none"
+                style={[styles.expectedMarker, { left: `${expectedPercent}%` }]}
+              />
+            ) : null}
           </View>
         ) : null}
       </View>
       <Text
-        style={styles.value}
+        style={[
+          styles.value,
+          (item.valueKind === 'minimum' || item.valueKind === 'weekly') && styles.valueWide,
+        ]}
         numberOfLines={1}
         adjustsFontSizeToFit
-        minimumFontScale={0.75}>
+        minimumFontScale={0.65}>
         {valueText}
       </Text>
     </View>
@@ -153,13 +180,24 @@ const styles = StyleSheet.create({
   track: {
     height: 3,
     borderRadius: 1.5,
-    overflow: 'hidden',
     backgroundColor: 'rgba(79, 70, 229, 0.13)',
+    overflow: 'visible',
+    position: 'relative',
   },
   fill: {
     height: '100%',
     borderRadius: 1.5,
     backgroundColor: BRAND_INDIGO,
+  },
+  expectedMarker: {
+    position: 'absolute',
+    top: -3,
+    bottom: -3,
+    width: 2,
+    marginLeft: -1,
+    borderRadius: 1,
+    backgroundColor: '#26234A',
+    opacity: 0.45,
   },
   value: {
     minWidth: 56,
@@ -171,6 +209,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#26234A',
     fontVariant: ['tabular-nums'],
+  },
+  valueWide: {
+    minWidth: 72,
+    maxWidth: 168,
   },
   footerHintWrap: {
     marginTop: 6,

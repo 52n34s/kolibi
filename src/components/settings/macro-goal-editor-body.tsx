@@ -254,7 +254,9 @@ export function MacroGoalEditorBody({
         <Text className="mt-2 text-sm text-red-600">
           {validation.reason === 'above_max'
             ? t('settings.macroGoal.blockedAboveMax')
-            : t('settings.macroGoal.blockedNonPositive')}
+            : validation.reason === 'protein_fat_exceed_calories'
+              ? t('settings.macroGoal.blockedProteinFatExceedCalories')
+              : t('settings.macroGoal.blockedNonPositive')}
         </Text>
       ) : null}
       {validation?.status === 'warning' ? (

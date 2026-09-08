@@ -54,6 +54,7 @@ import { posthog } from '@/lib/analytics';
 import { applyEagerOtaUpdateOnLaunch } from '@/lib/eager-ota-update';
 import {
   maybeUpgradeHealthReadTypesV2,
+  maybeUpgradeHealthReadTypesV3,
   syncHealthStatsForRecentDays,
 } from '@/lib/health';
 import { ensurePushRegistration } from '@/lib/notifications';
@@ -151,6 +152,7 @@ function RootLayout() {
     }
 
     void maybeUpgradeHealthReadTypesV2(userId);
+    void maybeUpgradeHealthReadTypesV3(userId);
   }, [initialized, userId]);
 
   // Configure once at app start (no appUserID); identity is applied via logIn below.
