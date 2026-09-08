@@ -223,9 +223,7 @@
       },
       "unitGrams": "g",
       "fiberMinimum": "Mindestens {{grams}} g",
-      "fiberMindPrefix": "mind.",
-      "carbsFromTraining": "+{{grams}} g durch dein Training heute",
-      "carbsFromTrainingInline": " · +{{grams}} Training"
+      "carbsFromTraining": "+{{grams}} g durch dein Training heute"
     },
     "movementGoal": {
       "labelSteps": "Schritte",

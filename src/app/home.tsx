@@ -507,7 +507,6 @@ export default function HomeScreen() {
     let proteinGoal = baseProteinG;
     let fatGoal = baseFatG;
     let carbsGoal = baseCarbsG;
-    let carbsFromSportG = 0;
 
     if (
       adaptMacrosToTraining &&
@@ -541,7 +540,6 @@ export default function HomeScreen() {
         proteinGoal = scaled.proteinG;
         fatGoal = scaled.fatG;
         carbsGoal = scaled.carbsG;
-        carbsFromSportG = scaled.carbsFromSportG;
       }
     }
 
@@ -572,7 +570,6 @@ export default function HomeScreen() {
               : entry.key === 'fiber'
                 ? (goal?.fiber_g ?? null)
                 : null,
-      carbsFromSportG: entry.key === 'carbs' ? carbsFromSportG : 0,
       onPress: openMacroGoalsEditor,
     }));
   }, [
@@ -590,38 +587,14 @@ export default function HomeScreen() {
   ]);
 
   const homeProgressRows = useMemo((): HomeProgressRowItem[] => {
-    const rows: HomeProgressRowItem[] = nutrientTiles.map((tile) => {
-      if (tile.key === 'fiber') {
-        const fiberGoal = tile.goalValue ?? null;
-        return {
-          key: tile.key,
-          label: tile.label,
-          actual: tile.value,
-          goal: fiberGoal,
-          decimals: 0 as const,
-          onPress: tile.onPress,
-          valueLeadingNote:
-            fiberGoal != null && fiberGoal > 0
-              ? `${t('home.nutrients.fiberMindPrefix')} `
-              : undefined,
-        };
-      }
-
-      return {
-        key: tile.key,
-        label: tile.label,
-        actual: tile.value,
-        goal: tile.goalValue ?? null,
-        decimals: 0 as const,
-        onPress: tile.onPress,
-        valueTrailingNote:
-          tile.key === 'carbs' && tile.carbsFromSportG > 0
-            ? t('home.nutrients.carbsFromTrainingInline', {
-                grams: tile.carbsFromSportG,
-              })
-            : undefined,
-      };
-    });
+    const rows: HomeProgressRowItem[] = nutrientTiles.map((tile) => ({
+      key: tile.key,
+      label: tile.label,
+      actual: tile.value,
+      goal: tile.goalValue ?? null,
+      decimals: 0 as const,
+      onPress: tile.onPress,
+    }));
 
     if (hasMovementGoal && movementGoalType != null && movementGoalValue != null) {
       const healthConnected = healthConnectedPreference === true;

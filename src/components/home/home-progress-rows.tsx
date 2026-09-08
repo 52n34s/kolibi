@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BRAND_INDIGO, TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
+import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 
 export type HomeProgressRowItem = {
   key: string;
@@ -15,10 +15,6 @@ export type HomeProgressRowItem = {
   /** Optional gray hint under the row (e.g. HealthKit required). */
   footerHint?: string;
   onFooterPress?: () => void;
-  /** Tertiary note before the ratio, e.g. "mind." */
-  valueLeadingNote?: string;
-  /** Tertiary note after the ratio, e.g. " · +111 Training" */
-  valueTrailingNote?: string;
   /** Appended to the ratio in primary weight, e.g. " km" */
   valueUnit?: string;
 };
@@ -49,20 +45,18 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
     ? Math.min(100, Math.max(0, ((actual ?? 0) / item.goal!) * 100))
     : 0;
 
-  let ratioText: string;
+  let valueText: string;
   if (hasGoal) {
     const left = formatProgressAmount(actual ?? 0, decimals);
-    ratioText = `${left}/${formatProgressAmount(item.goal!, decimals)}`;
+    valueText = `${left}/${formatProgressAmount(item.goal!, decimals)}`;
   } else if (actual == null) {
-    ratioText = '–';
+    valueText = '–';
   } else {
-    ratioText = formatProgressAmount(actual, decimals);
+    valueText = formatProgressAmount(actual, decimals);
   }
-  if (item.valueUnit && ratioText !== '–') {
-    ratioText = `${ratioText}${item.valueUnit}`;
+  if (item.valueUnit && valueText !== '–') {
+    valueText = `${valueText}${item.valueUnit}`;
   }
-
-  const hasNotes = Boolean(item.valueLeadingNote || item.valueTrailingNote);
 
   const row = (
     <View style={styles.row}>
@@ -76,18 +70,8 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
           </View>
         ) : null}
       </View>
-      <Text
-        style={[styles.value, hasNotes && styles.valueWide]}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.65}>
-        {item.valueLeadingNote ? (
-          <Text style={styles.valueNote}>{item.valueLeadingNote}</Text>
-        ) : null}
-        {ratioText}
-        {item.valueTrailingNote ? (
-          <Text style={styles.valueNote}>{item.valueTrailingNote}</Text>
-        ) : null}
+      <Text style={styles.value} numberOfLines={1}>
+        {valueText}
       </Text>
     </View>
   );
@@ -135,6 +119,8 @@ export function HomeProgressRows({ rows }: HomeProgressRowsProps) {
 }
 
 const LABEL_WIDTH = 112;
+/** Fits longest value "10.6/25 km" at 13/600 tabular-nums (iPhone SE). */
+const VALUE_WIDTH = 78;
 
 const styles = StyleSheet.create({
   list: {
@@ -179,8 +165,7 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND_INDIGO,
   },
   value: {
-    minWidth: 56,
-    maxWidth: 120,
+    width: VALUE_WIDTH,
     flexGrow: 0,
     flexShrink: 0,
     textAlign: 'right',
@@ -188,15 +173,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#26234A',
     fontVariant: ['tabular-nums'],
-  },
-  valueWide: {
-    minWidth: 72,
-    maxWidth: 168,
-  },
-  valueNote: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: TEXT_TERTIARY,
   },
   footerHintWrap: {
     marginTop: 6,
