@@ -198,6 +198,10 @@
       "afternoonNoName": "Buenas tardes",
       "eveningNoName": "Buenas noches"
     },
+    "tabs": {
+      "today": "Hoy",
+      "meals": "Comidas"
+    },
     "calorieGoal": {
       "label": "Restantes hoy",
       "dynamicLabel": "Restantes hoy",
@@ -233,18 +237,25 @@
       "unitKm": "km",
       "healthRequired": "Debes conectar Apple Health."
     },
-    "gym": {
-      "label": "Fuerza",
-      "unitKcal": "kcal",
-      "screenTitle": "Entrenamiento de fuerza",
-      "subtitle": "Regístralo a mano — Salud suele fallar con el gym.",
+    "training": {
+      "label": "Entrenamiento",
+      "screenTitle": "Entrenamiento",
+      "subtitle": "Regístralo a mano — Apple Salud suele fallar con algunos tipos de entrenamiento.",
+      "activityLabel": "Tipo",
+      "activity": {
+        "strength": "Fuerza",
+        "yoga": "Yoga/Pilates",
+        "swimming": "Natación",
+        "cycling": "Ciclismo",
+        "other": "Otro"
+      },
       "dateLabel": "Fecha",
       "durationLabel": "Duración (minutos)",
       "intensityLabel": "Intensidad",
       "intensity": {
         "easy": {
           "label": "Suave",
-          "hint": "Podías hablar con normalidad entre series"
+          "hint": "Podías hablar con normalidad entre esfuerzos"
         },
         "normal": {
           "label": "Normal",
@@ -256,13 +267,16 @@
         }
       },
       "kcalPreview": "Unos {{kcal}} kcal (sin metabolismo en reposo)",
-      "healthKitBlocked": "Apple Salud ya tiene un entrenamiento de fuerza ese día. Para evitar doble conteo, el registro manual está bloqueado.",
+      "kcalOptionalLabel": "Calorías (opcional)",
+      "kcalOptionalPlaceholder": "p. ej. 329",
+      "invalidKcal": "Introduce un número positivo de calorías o deja el campo vacío.",
+      "healthKitBlocked": "Apple Salud ya tiene un entrenamiento coincidente ese día. Para evitar doble conteo, el registro manual está bloqueado.",
       "needsWeight": "Primero registra tu peso actual en Inicio.",
       "invalidDuration": "Introduce una duración entre 1 y 600 minutos.",
       "saveFailed": "No se pudo guardar la sesión. Inténtalo de nuevo.",
       "delete": "Eliminar entrada",
       "deleteTitle": "¿Eliminar entrada?",
-      "deleteConfirm": "Se eliminará esta sesión de fuerza."
+      "deleteConfirm": "Se eliminará esta sesión de entrenamiento."
     },
     "trial": {
       "daysLeft_one": "Prueba: queda {{count}} día",
@@ -761,6 +775,17 @@
       "runningHint": "Solo cuentan las sesiones de running registradas — sin app de running no tendrás movimientos registrados.",
       "blockedNonPositive": "Introduce un valor mayor que 0.",
       "saveFailed": "No se pudo guardar el objetivo de movimiento. Inténtalo de nuevo."
+    },
+    "trainingGoal": {
+      "sectionTitle": "Entrenamiento",
+      "screenTitle": "Entrenamiento",
+      "explanation": "Apple Salud suele registrar mal algunos tipos de entrenamiento. Define un objetivo semanal — las entradas manuales cierran ese hueco y aparecen en Inicio.",
+      "valueLabel": "Sesiones por semana",
+      "summary": "{{count}} × por semana",
+      "notSet": "Sin objetivo",
+      "clear": "Eliminar objetivo",
+      "invalid": "Introduce un número entre 1 y 14.",
+      "saveFailed": "No se pudo guardar el objetivo de entrenamiento. Inténtalo de nuevo."
     },
     "targetWeight": {
       "sectionTitle": "Peso objetivo",

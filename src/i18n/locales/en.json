@@ -198,6 +198,10 @@
       "afternoonNoName": "Good afternoon",
       "eveningNoName": "Good evening"
     },
+    "tabs": {
+      "today": "Today",
+      "meals": "Meals"
+    },
     "calorieGoal": {
       "label": "Remaining today",
       "dynamicLabel": "Remaining today",
@@ -233,18 +237,25 @@
       "unitKm": "km",
       "healthRequired": "Apple Health must be connected."
     },
-    "gym": {
-      "label": "Strength training",
-      "unitKcal": "kcal",
-      "screenTitle": "Strength training",
-      "subtitle": "Log manually — Health often misses gym sessions.",
+    "training": {
+      "label": "Training",
+      "screenTitle": "Training",
+      "subtitle": "Log manually — Apple Health often misses some workout types.",
+      "activityLabel": "Activity",
+      "activity": {
+        "strength": "Strength",
+        "yoga": "Yoga/Pilates",
+        "swimming": "Swimming",
+        "cycling": "Cycling",
+        "other": "Other"
+      },
       "dateLabel": "Date",
       "durationLabel": "Duration (minutes)",
       "intensityLabel": "Intensity",
       "intensity": {
         "easy": {
           "label": "Easy",
-          "hint": "You could talk normally between sets"
+          "hint": "You could talk normally between efforts"
         },
         "normal": {
           "label": "Normal",
@@ -256,13 +267,16 @@
         }
       },
       "kcalPreview": "About {{kcal}} kcal (excluding resting metabolism)",
-      "healthKitBlocked": "Apple Health already has a strength workout for this day. To avoid double-counting, manual entry is locked.",
+      "kcalOptionalLabel": "Calories (optional)",
+      "kcalOptionalPlaceholder": "e.g. 329",
+      "invalidKcal": "Enter a positive calorie number or leave the field empty.",
+      "healthKitBlocked": "Apple Health already has a matching workout for this day. To avoid double-counting, manual entry is locked.",
       "needsWeight": "Add your current weight on Home first.",
       "invalidDuration": "Enter a duration between 1 and 600 minutes.",
-      "saveFailed": "Could not save the gym session. Please try again.",
+      "saveFailed": "Could not save the training session. Please try again.",
       "delete": "Delete entry",
       "deleteTitle": "Delete entry?",
-      "deleteConfirm": "This strength-training entry will be removed."
+      "deleteConfirm": "This training entry will be removed."
     },
     "trial": {
       "daysLeft_one": "Trial: {{count}} day left",
@@ -761,6 +775,17 @@
       "runningHint": "Only recorded runs count — without a running app, you won't have any tracked movement.",
       "blockedNonPositive": "Enter a target greater than 0.",
       "saveFailed": "Could not save your movement goal. Please try again."
+    },
+    "trainingGoal": {
+      "sectionTitle": "Training",
+      "screenTitle": "Training",
+      "explanation": "Apple Health often tracks some workout types poorly. Set a weekly goal — manual entries close the gap and show up on Home.",
+      "valueLabel": "Sessions per week",
+      "summary": "{{count}} × per week",
+      "notSet": "No goal",
+      "clear": "Clear goal",
+      "invalid": "Enter a number between 1 and 14.",
+      "saveFailed": "Could not save your training goal. Please try again."
     },
     "targetWeight": {
       "sectionTitle": "Target weight",

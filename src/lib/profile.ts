@@ -15,7 +15,7 @@ export type MovementGoalType = 'steps' | 'running_km' | 'distance_km';
 export type MovementGoalPeriod = 'day' | 'week';
 
 const PROFILE_SETTINGS_SELECT =
-  'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context, movement_goal_type, movement_goal_value, movement_goal_period, target_weight_kg, progress_start_date';
+  'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context, movement_goal_type, movement_goal_value, movement_goal_period, target_weight_kg, progress_start_date, training_sessions_per_week';
 
 export type ProfileSettingsData = {
   id: string;
@@ -35,6 +35,7 @@ export type ProfileSettingsData = {
   movement_goal_period: MovementGoalPeriod | null;
   target_weight_kg: number | null;
   progress_start_date: string | null;
+  training_sessions_per_week: number | null;
   latest_weight_kg: number | null;
   daily_calorie_goal: number | null;
 };
@@ -157,6 +158,13 @@ export async function fetchProfileSettings(
     })(),
     progress_start_date:
       typeof profile.progress_start_date === 'string' ? profile.progress_start_date : null,
+    training_sessions_per_week: (() => {
+      if (profile.training_sessions_per_week == null) {
+        return null;
+      }
+      const parsed = Number(profile.training_sessions_per_week);
+      return Number.isFinite(parsed) && parsed >= 1 && parsed <= 14 ? parsed : null;
+    })(),
     latest_weight_kg: weightResult.data?.weight_kg ?? null,
     daily_calorie_goal: calorieGoalResult.data?.daily_calorie_goal ?? null,
   };
@@ -316,6 +324,28 @@ export async function updateMovementGoal(params: {
       movement_goal_value: params.movementGoalValue,
       movement_goal_period: params.movementGoalPeriod,
     })
+    .eq('id', params.userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+/** Weekly training goal. null clears the goal (Home row hidden). Does not delete training_sessions. */
+export async function updateTrainingSessionsPerWeek(params: {
+  userId: string;
+  sessionsPerWeek: number | null;
+}): Promise<void> {
+  if (params.sessionsPerWeek != null) {
+    const value = Math.round(params.sessionsPerWeek);
+    if (!(value >= 1 && value <= 14)) {
+      throw new Error('invalid_training_sessions_per_week');
+    }
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ training_sessions_per_week: params.sessionsPerWeek })
     .eq('id', params.userId);
 
   if (error) {

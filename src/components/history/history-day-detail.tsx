@@ -28,7 +28,7 @@ import {
   buildHomeNutrientTileEntries,
   type NutrientKey,
 } from '@/lib/home-nutrients';
-import { formatTodayMealQuantityLabel, type TodayMeal, type TodayMealItem } from '@/lib/meals';
+import { buildMealListTitle, formatTodayMealQuantityLabel, type TodayMeal, type TodayMealItem } from '@/lib/meals';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
 
@@ -102,16 +102,6 @@ function formatMealTime(eatenAt: string, locale: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function buildIngredientSummary(meal: TodayMeal, unnamed: string): string {
-  const names = meal.items.map((item) => item.name.trim()).filter(Boolean);
-  if (names.length === 0) {
-    return unnamed;
-  }
-
-  const preview = names.slice(0, 3).join(', ');
-  return names.length > 3 ? `${preview}…` : preview;
 }
 
 export function HistoryDayDetail({
@@ -288,10 +278,16 @@ export function HistoryDayDetail({
           ) : (meals?.length ?? 0) > 0 ? (
             <View style={{ gap: 10 }}>
               {(meals ?? []).map((meal) => {
-                const summary = buildIngredientSummary(meal, t('home.meals.unnamedMeal'));
+                const summary =
+                  buildMealListTitle(meal) || t('home.meals.unnamedMeal');
                 const content = (
                   <View className="rounded-xl bg-white/55 px-4 py-3">
-                    <Text className="text-base font-semibold text-gray-900">{summary}</Text>
+                    <Text
+                      className="text-base font-semibold text-gray-900"
+                      numberOfLines={1}
+                      ellipsizeMode="tail">
+                      {summary}
+                    </Text>
                     <Text className="mt-1 text-sm text-gray-500">
                       {t('home.meals.rowMeta', {
                         quantity: formatTodayMealQuantityLabel(meal, t, unitSystem),

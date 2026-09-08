@@ -14,6 +14,7 @@ export type HomeProfile = {
   movement_goal_value: number | null;
   movement_goal_period: MovementGoalPeriod | null;
   birth_date: string | null;
+  training_sessions_per_week: number | null;
 };
 
 export type HomeCalorieGoal = {
@@ -53,7 +54,7 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
     supabase
       .from('profiles')
       .select(
-        'calorie_goal_source, target_weight_kg, diet_preference, movement_goal_type, movement_goal_value, movement_goal_period, progress_start_date, birth_date',
+        'calorie_goal_source, target_weight_kg, diet_preference, movement_goal_type, movement_goal_value, movement_goal_period, progress_start_date, birth_date, training_sessions_per_week',
       )
       .eq('id', userId)
       .maybeSingle(),
@@ -131,6 +132,14 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
             typeof profileResult.data.birth_date === 'string'
               ? profileResult.data.birth_date
               : null,
+          training_sessions_per_week: (() => {
+            const raw = profileResult.data.training_sessions_per_week;
+            if (raw == null) {
+              return null;
+            }
+            const parsed = Number(raw);
+            return Number.isFinite(parsed) && parsed >= 1 && parsed <= 14 ? parsed : null;
+          })(),
         }
       : null,
     latestCalorieGoal: calorieGoalResult.data

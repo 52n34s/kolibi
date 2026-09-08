@@ -420,6 +420,22 @@ export type TodayMeal = {
   items: TodayMealItem[];
 };
 
+/**
+ * Compact list title for Home / History rows.
+ * Built at display time from meal_items names (meals has no display-name column).
+ * One item → full name; several → first name + remaining count (e.g. "Broccoli +3").
+ */
+export function buildMealListTitle(meal: TodayMeal): string {
+  const names = meal.items.map((item) => item.name.trim()).filter(Boolean);
+  if (names.length === 0) {
+    return '';
+  }
+  if (names.length === 1) {
+    return names[0];
+  }
+  return `${names[0]} +${names.length - 1}`;
+}
+
 export async function fetchMealsForLocalDate(
   userId: string,
   dateKey: string,

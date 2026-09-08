@@ -19,7 +19,7 @@ export type HomeProgressRowItem = {
   valueUnit?: string;
   /**
    * Mon–Sun filled flags. When set, replaces the progress bar with seven dots
-   * (e.g. krafttraining week).
+   * (e.g. training week).
    */
   weekDayDots?: boolean[];
 };

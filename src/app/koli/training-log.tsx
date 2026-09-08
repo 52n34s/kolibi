@@ -27,21 +27,26 @@ import { useHealthConnectedPreference } from '@/hooks/use-health-connected-prefe
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
-import { calculateGymCalories, type GymIntensity } from '@/lib/gym-calories';
-import {
-  deleteGymSessionForDate,
-  fetchGymSessionForDate,
-  isGymLogDateAllowed,
-  localWeekDateKeys,
-  upsertGymSession,
-} from '@/lib/gym-sessions';
-import { hasStrengthTrainingWorkoutOnDate } from '@/lib/health';
+import { hasMatchingTrainingWorkoutOnDate } from '@/lib/health';
 import { formatAppDate } from '@/lib/onboarding';
+import {
+  TRAINING_ACTIVITIES,
+  calculateTrainingCalories,
+  type TrainingActivity,
+  type TrainingIntensity,
+} from '@/lib/training-calories';
+import {
+  deleteTrainingSessionForDate,
+  fetchTrainingSessionForDate,
+  isTrainingLogDateAllowed,
+  localWeekDateKeys,
+  upsertTrainingSession,
+} from '@/lib/training-sessions';
 import { useAuthStore } from '@/stores/auth-store';
 
-const INTENSITIES: GymIntensity[] = ['easy', 'normal', 'hard'];
+const INTENSITIES: TrainingIntensity[] = ['easy', 'normal', 'hard'];
 
-export default function GymLogScreen() {
+export default function TrainingLogScreen() {
   const { t, i18n } = useTranslation();
   const { contentTopPadding } = useMeshScreenInsets();
   const keyboardHeight = useKeyboardHeight();
@@ -56,18 +61,21 @@ export default function GymLogScreen() {
   const minDate = parseDateOnly(weekKeys[0]);
   const maxDate = parseDateOnly(todayKey);
 
+  const [activity, setActivity] = useState<TrainingActivity>('strength');
   const [loggedOn, setLoggedOn] = useState(todayKey);
   const [durationDraft, setDurationDraft] = useState('45');
-  const [intensity, setIntensity] = useState<GymIntensity>('normal');
+  const [intensity, setIntensity] = useState<TrainingIntensity>('normal');
+  const [kcalDraft, setKcalDraft] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [initializedForDate, setInitializedForDate] = useState<string | null>(null);
 
   const weightKg = homeData?.latestWeight?.weight_kg ?? null;
   const durationMinutes = Number(durationDraft);
-  const kcalPreview =
+  const estimatedKcal =
     weightKg != null && Number.isFinite(durationMinutes) && durationMinutes > 0
-      ? calculateGymCalories({
+      ? calculateTrainingCalories({
+          activity,
           weightKg,
           durationMinutes,
           intensity,
@@ -75,16 +83,16 @@ export default function GymLogScreen() {
       : null;
 
   const { data: existingSession, isLoading: sessionLoading } = useQuery({
-    queryKey: ['gym-session', userId, loggedOn],
+    queryKey: ['training-session', userId, loggedOn],
     enabled: Boolean(userId),
-    queryFn: () => fetchGymSessionForDate(userId!, loggedOn),
+    queryFn: () => fetchTrainingSessionForDate(userId!, loggedOn),
   });
 
   const { data: healthBlocked = false, isLoading: healthCheckLoading } = useQuery({
-    queryKey: ['gym-health-strength', loggedOn, healthConnected],
+    queryKey: ['training-health-match', loggedOn, activity, healthConnected],
     enabled: healthConnected === true,
     queryFn: async () => {
-      const result = await hasStrengthTrainingWorkoutOnDate(loggedOn);
+      const result = await hasMatchingTrainingWorkoutOnDate(loggedOn, activity);
       return result === true;
     },
   });
@@ -98,11 +106,17 @@ export default function GymLogScreen() {
     }
 
     if (existingSession) {
+      setActivity(existingSession.activity);
       setDurationDraft(String(existingSession.durationMinutes));
       setIntensity(existingSession.intensity);
+      setKcalDraft(
+        existingSession.kcalSource === 'manual' ? String(existingSession.kcal) : '',
+      );
     } else {
+      setActivity('strength');
       setDurationDraft('45');
       setIntensity('normal');
+      setKcalDraft('');
     }
     setInitializedForDate(loggedOn);
   }, [existingSession, initializedForDate, loggedOn, sessionLoading]);
@@ -117,7 +131,7 @@ export default function GymLogScreen() {
         maximumDate: maxDate,
         onChange: (date) => {
           const nextKey = localDateKey(date);
-          if (isGymLogDateAllowed(nextKey)) {
+          if (isTrainingLogDateAllowed(nextKey)) {
             setLoggedOn(nextKey);
             setInitializedForDate(null);
           }
@@ -128,13 +142,13 @@ export default function GymLogScreen() {
     setShowDatePicker(true);
   }, [maxDate, minDate, selectedDate]);
 
-  async function invalidateGymQueries() {
+  async function invalidateTrainingQueries() {
     if (!userId) {
       return;
     }
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['gym-sessions-week', userId] }),
-      queryClient.invalidateQueries({ queryKey: ['gym-session', userId] }),
+      queryClient.invalidateQueries({ queryKey: ['training-sessions-week', userId] }),
+      queryClient.invalidateQueries({ queryKey: ['training-session', userId] }),
       queryClient.invalidateQueries({ queryKey: ['sport-energy-day-today', userId] }),
     ]);
   }
@@ -145,29 +159,42 @@ export default function GymLogScreen() {
     }
 
     if (weightKg == null || !(weightKg > 0)) {
-      Alert.alert(t('settings.errors.title'), t('home.gym.needsWeight'));
+      Alert.alert(t('settings.errors.title'), t('home.training.needsWeight'));
       return;
     }
 
     if (!Number.isFinite(durationMinutes) || durationMinutes <= 0 || durationMinutes > 600) {
-      Alert.alert(t('settings.errors.title'), t('home.gym.invalidDuration'));
+      Alert.alert(t('settings.errors.title'), t('home.training.invalidDuration'));
       return;
+    }
+
+    const kcalTrimmed = kcalDraft.trim();
+    let manualKcal: number | null = null;
+    if (kcalTrimmed.length > 0) {
+      const parsed = Number(kcalTrimmed.replace(',', '.'));
+      if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 5000) {
+        Alert.alert(t('settings.errors.title'), t('home.training.invalidKcal'));
+        return;
+      }
+      manualKcal = Math.round(parsed);
     }
 
     setIsSaving(true);
     try {
-      await upsertGymSession({
+      await upsertTrainingSession({
         userId,
         loggedOn,
+        activity,
         durationMinutes: Math.round(durationMinutes),
         intensity,
         weightKg,
+        manualKcal,
       });
-      await invalidateGymQueries();
+      await invalidateTrainingQueries();
       router.back();
     } catch (error) {
-      console.error('[GymLog] save failed:', error);
-      Alert.alert(t('settings.errors.title'), t('home.gym.saveFailed'));
+      console.error('[TrainingLog] save failed:', error);
+      Alert.alert(t('settings.errors.title'), t('home.training.saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -178,21 +205,21 @@ export default function GymLogScreen() {
       return;
     }
 
-    Alert.alert(t('home.gym.deleteTitle'), t('home.gym.deleteConfirm'), [
+    Alert.alert(t('home.training.deleteTitle'), t('home.training.deleteConfirm'), [
       { text: t('settings.common.cancel'), style: 'cancel' },
       {
-        text: t('home.gym.delete'),
+        text: t('home.training.delete'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
             setIsSaving(true);
             try {
-              await deleteGymSessionForDate(userId, loggedOn);
-              await invalidateGymQueries();
+              await deleteTrainingSessionForDate(userId, loggedOn);
+              await invalidateTrainingQueries();
               router.back();
             } catch (error) {
-              console.error('[GymLog] delete failed:', error);
-              Alert.alert(t('settings.errors.title'), t('home.gym.saveFailed'));
+              console.error('[TrainingLog] delete failed:', error);
+              Alert.alert(t('settings.errors.title'), t('home.training.saveFailed'));
             } finally {
               setIsSaving(false);
             }
@@ -231,12 +258,38 @@ export default function GymLogScreen() {
             contentContainerStyle={{ paddingTop: 12, paddingBottom: 32 + keyboardHeight }}
             keyboardShouldPersistTaps="always">
             <Text className="mb-2 text-2xl font-bold text-gray-900">
-              {t('home.gym.screenTitle')}
+              {t('home.training.screenTitle')}
             </Text>
-            <Text className="mb-6 text-base text-gray-500">{t('home.gym.subtitle')}</Text>
+            <Text className="mb-6 text-base text-gray-500">{t('home.training.subtitle')}</Text>
 
             <Text className="mb-2 text-sm font-medium text-gray-700">
-              {t('home.gym.dateLabel')}
+              {t('home.training.activityLabel')}
+            </Text>
+            <View className="mb-1 flex-row flex-wrap gap-2">
+              {TRAINING_ACTIVITIES.map((id) => {
+                const selected = activity === id;
+                return (
+                  <Pressable
+                    key={id}
+                    onPress={() => setActivity(id)}
+                    className={`rounded-full border px-3.5 py-2 ${
+                      selected
+                        ? 'border-[#4F46E5] bg-[#EEF2FF]'
+                        : 'border-gray-200 bg-white'
+                    }`}>
+                    <Text
+                      className={`text-sm font-semibold ${
+                        selected ? 'text-[#4F46E5]' : 'text-gray-800'
+                      }`}>
+                      {t(`home.training.activity.${id}`)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text className="mb-2 mt-5 text-sm font-medium text-gray-700">
+              {t('home.training.dateLabel')}
             </Text>
             <OnboardingFieldPressable onPress={openDatePicker}>
               <Text className="text-base text-gray-900">
@@ -245,7 +298,7 @@ export default function GymLogScreen() {
             </OnboardingFieldPressable>
 
             <Text className="mb-2 mt-5 text-sm font-medium text-gray-700">
-              {t('home.gym.durationLabel')}
+              {t('home.training.durationLabel')}
             </Text>
             <OnboardingField
               keyboardType="numeric"
@@ -256,7 +309,7 @@ export default function GymLogScreen() {
             />
 
             <Text className="mb-2 mt-5 text-sm font-medium text-gray-700">
-              {t('home.gym.intensityLabel')}
+              {t('home.training.intensityLabel')}
             </Text>
             <View className="gap-2">
               {INTENSITIES.map((id) => {
@@ -275,30 +328,47 @@ export default function GymLogScreen() {
                       className={`text-base font-semibold ${
                         selected ? 'text-[#4F46E5]' : 'text-gray-900'
                       }`}>
-                      {t(`home.gym.intensity.${id}.label`)}
+                      {t(`home.training.intensity.${id}.label`)}
                     </Text>
                     <Text className="mt-1 text-sm text-gray-500">
-                      {t(`home.gym.intensity.${id}.hint`)}
+                      {t(`home.training.intensity.${id}.hint`)}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
 
-            {kcalPreview != null && !healthBlocked ? (
-              <Text className="mt-5 text-sm text-gray-500">
-                {t('home.gym.kcalPreview', { kcal: kcalPreview })}
+            <Text className="mb-2 mt-5 text-sm font-medium text-gray-700">
+              {t('home.training.kcalOptionalLabel')}
+            </Text>
+            <OnboardingField
+              keyboardType="numeric"
+              placeholder={
+                estimatedKcal != null
+                  ? String(estimatedKcal)
+                  : t('home.training.kcalOptionalPlaceholder')
+              }
+              value={kcalDraft}
+              onChangeText={setKcalDraft}
+              editable={!healthBlocked}
+            />
+
+            {estimatedKcal != null && !healthBlocked ? (
+              <Text className="mt-3 text-sm text-gray-500">
+                {t('home.training.kcalPreview', { kcal: estimatedKcal })}
               </Text>
             ) : null}
 
             {healthBlocked ? (
               <Text className="mt-5 text-sm text-amber-700">
-                {t('home.gym.healthKitBlocked')}
+                {t('home.training.healthKitBlocked')}
               </Text>
             ) : null}
 
             {weightKg == null ? (
-              <Text className="mt-5 text-sm text-amber-700">{t('home.gym.needsWeight')}</Text>
+              <Text className="mt-5 text-sm text-amber-700">
+                {t('home.training.needsWeight')}
+              </Text>
             ) : null}
           </ScrollView>
 
@@ -322,7 +392,7 @@ export default function GymLogScreen() {
                 disabled={isSaving}
                 onPress={() => void handleDelete()}>
                 <Text className="text-base font-medium text-red-600">
-                  {t('home.gym.delete')}
+                  {t('home.training.delete')}
                 </Text>
               </Pressable>
             ) : null}
@@ -337,7 +407,7 @@ export default function GymLogScreen() {
         maximumDate={maxDate}
         onChange={(date) => {
           const nextKey = localDateKey(date);
-          if (isGymLogDateAllowed(nextKey)) {
+          if (isTrainingLogDateAllowed(nextKey)) {
             setLoggedOn(nextKey);
             setInitializedForDate(null);
           }

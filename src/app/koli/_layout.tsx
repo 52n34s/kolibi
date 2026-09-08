@@ -10,8 +10,9 @@ export default function KoliLayout() {
       <Stack.Screen name="protein-goal" options={{ title: '' }} />
       <Stack.Screen name="macro-goals" options={{ title: '' }} />
       <Stack.Screen name="movement-goal" options={{ title: '' }} />
+      <Stack.Screen name="training-goal" options={{ title: '' }} />
       <Stack.Screen name="target-weight" options={{ title: '' }} />
-      <Stack.Screen name="gym-log" options={{ title: '' }} />
+      <Stack.Screen name="training-log" options={{ title: '' }} />
     </Stack>
   );
 }

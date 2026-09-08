@@ -198,6 +198,10 @@
       "afternoonNoName": "Guten Tag",
       "eveningNoName": "Guten Abend"
     },
+    "tabs": {
+      "today": "Heute",
+      "meals": "Mahlzeiten"
+    },
     "calorieGoal": {
       "label": "Heute übrig",
       "dynamicLabel": "Verbleibend heute",
@@ -233,11 +237,18 @@
       "unitKm": "km",
       "healthRequired": "Apple Health muss verbunden sein."
     },
-    "gym": {
-      "label": "Krafttraining",
-      "unitKcal": "kcal",
-      "screenTitle": "Krafttraining",
-      "subtitle": "Manuell erfassen — Health erkennt Krafttraining oft unzuverlässig.",
+    "training": {
+      "label": "Training",
+      "screenTitle": "Training",
+      "subtitle": "Manuell erfassen — Apple Health erkennt manche Trainingsarten oft unzuverlässig.",
+      "activityLabel": "Trainingsart",
+      "activity": {
+        "strength": "Krafttraining",
+        "yoga": "Yoga/Pilates",
+        "swimming": "Schwimmen",
+        "cycling": "Radfahren",
+        "other": "Sonstiges"
+      },
       "dateLabel": "Datum",
       "durationLabel": "Dauer (Minuten)",
       "intensityLabel": "Intensität",
@@ -256,13 +267,16 @@
         }
       },
       "kcalPreview": "Geschätzt {{kcal}} kcal (ohne Ruheumsatz)",
-      "healthKitBlocked": "Für diesen Tag liegt bereits ein Krafttraining in Apple Health vor. Doppelzählung vermeiden — manueller Eintrag gesperrt.",
+      "kcalOptionalLabel": "Kalorien (optional)",
+      "kcalOptionalPlaceholder": "z. B. 329",
+      "invalidKcal": "Bitte eine positive Kalorienzahl eingeben oder das Feld leer lassen.",
+      "healthKitBlocked": "Für diesen Tag liegt bereits ein passendes Workout in Apple Health vor. Doppelzählung vermeiden — manueller Eintrag gesperrt.",
       "needsWeight": "Bitte zuerst dein aktuelles Gewicht auf der Startseite erfassen.",
       "invalidDuration": "Bitte eine Dauer zwischen 1 und 600 Minuten eingeben.",
-      "saveFailed": "Krafttraining konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      "saveFailed": "Training konnte nicht gespeichert werden. Bitte erneut versuchen.",
       "delete": "Eintrag löschen",
       "deleteTitle": "Eintrag löschen?",
-      "deleteConfirm": "Dieser Krafttraining-Eintrag wird entfernt."
+      "deleteConfirm": "Dieser Trainingseintrag wird entfernt."
     },
     "trial": {
       "daysLeft_one": "Testzeitraum: noch {{count}} Tag",
@@ -761,6 +775,17 @@
       "runningHint": "Es zählen nur erfasste Läufe — ohne Lauf-App wird keine Bewegung erfasst.",
       "blockedNonPositive": "Bitte gib einen Zielwert größer als 0 ein.",
       "saveFailed": "Bewegungsziel konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "trainingGoal": {
+      "sectionTitle": "Training",
+      "screenTitle": "Training",
+      "explanation": "Apple Health erfasst manche Trainingsarten oft unzuverlässig. Setze ein Wochenziel — manuelle Einträge schließen die Lücke und erscheinen auf der Startseite.",
+      "valueLabel": "Einheiten pro Woche",
+      "summary": "{{count}} × pro Woche",
+      "notSet": "Kein Ziel",
+      "clear": "Ziel löschen",
+      "invalid": "Bitte eine Zahl zwischen 1 und 14 eingeben.",
+      "saveFailed": "Trainingsziel konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
     "targetWeight": {
       "sectionTitle": "Zielgewicht",

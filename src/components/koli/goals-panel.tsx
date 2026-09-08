@@ -146,6 +146,21 @@ export function GoalsPanel() {
 
       <SettingsSection>
         <SettingsRow
+          label={t('settings.trainingGoal.sectionTitle')}
+          value={
+            data?.profile?.training_sessions_per_week != null &&
+            data.profile.training_sessions_per_week >= 1
+              ? t('settings.trainingGoal.summary', {
+                  count: data.profile.training_sessions_per_week,
+                })
+              : t('settings.trainingGoal.notSet')
+          }
+          onPress={() => router.push('/koli/training-goal' as Href)}
+        />
+      </SettingsSection>
+
+      <SettingsSection>
+        <SettingsRow
           label={t('settings.targetWeight.sectionTitle')}
           value={targetWeightLabel}
           onPress={() => router.push('/koli/target-weight' as Href)}

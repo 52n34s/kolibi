@@ -23,8 +23,9 @@ import {
   SportIntensity,
   type SportEnergySegment,
 } from '@/lib/sport-macro-scaling';
-import { mapGymIntensityToSportIntensity } from '@/lib/gym-calories';
-import { fetchGymSessionForDate } from '@/lib/gym-sessions';
+import { mapTrainingIntensityToSportIntensity } from '@/lib/training-calories';
+import type { TrainingActivity } from '@/lib/training-calories';
+import { fetchTrainingSessionForDate } from '@/lib/training-sessions';
 import { supabase } from '@/lib/supabase';
 import {
   getUserPreference,
@@ -43,10 +44,19 @@ const DISTANCE_WALKING_RUNNING_TYPE =
   'HKQuantityTypeIdentifierDistanceWalkingRunning' as const;
 const WORKOUT_TYPE = 'HKWorkoutTypeIdentifier' as const;
 
-const STRENGTH_WORKOUT_ACTIVITY_TYPES: ReadonlySet<number> = new Set([
-  WorkoutActivityType.traditionalStrengthTraining,
-  WorkoutActivityType.functionalStrengthTraining,
-]);
+const TRAINING_ACTIVITY_HK_TYPES: Record<
+  TrainingActivity,
+  readonly WorkoutActivityType[]
+> = {
+  strength: [
+    WorkoutActivityType.traditionalStrengthTraining,
+    WorkoutActivityType.functionalStrengthTraining,
+  ],
+  yoga: [WorkoutActivityType.yoga, WorkoutActivityType.pilates],
+  swimming: [WorkoutActivityType.swimming],
+  cycling: [WorkoutActivityType.cycling],
+  other: [],
+};
 
 /** Types requested when the user connects Apple Health. */
 const HEALTH_READ_TYPES = [
@@ -321,9 +331,12 @@ export type SportEnergyDay = {
  * Intensity-aware sport energy for today's macro scaling and dynamic calorie burn.
  * Workouts are classified individually (HR → type → MODERATE).
  * Active Energy not covered by workouts is treated as LOW (everyday movement).
- * Manual gym_sessions are added as an extra segment when no HealthKit strength
- * workout exists for the day (HealthKit wins). Watch-tracked AE during gym without
- * a strength workout sample is still inside the residual — there is no subtractor.
+ * Manual training_sessions are added as an extra segment when
+ * training_sessions_per_week is set and no matching HealthKit workout exists
+ * for that session's activity (HealthKit wins). Clearing the weekly goal keeps
+ * rows in training_sessions but excludes them here.
+ * Watch-tracked AE during training without a matching workout sample is still
+ * inside the residual — there is no subtractor.
  * Does not write historical calorie goals — display-time only.
  */
 export async function getSportEnergyDay(params: {
@@ -367,13 +380,11 @@ export async function getSportEnergyDay(params: {
 
     const segments: SportEnergySegment[] = [];
     let workoutKcalSum = 0;
-    let hasStrengthWorkout = false;
+    const hkActivityTypesPresent = new Set<number>();
 
     for (const workout of workouts) {
       const activityType = Number(workout.workoutActivityType);
-      if (STRENGTH_WORKOUT_ACTIVITY_TYPES.has(activityType)) {
-        hasStrengthWorkout = true;
-      }
+      hkActivityTypesPresent.add(activityType);
 
       const durationSec = quantityDurationSeconds(workout.duration);
       if (durationSec < MIN_SPORT_WORKOUT_DURATION_SECONDS) {
@@ -413,24 +424,49 @@ export async function getSportEnergyDay(params: {
       segments.push({ kcal: residualKcal, intensity: SportIntensity.LOW });
     }
 
-    let gymKcalAdded = 0;
-    if (params.userId && !hasStrengthWorkout) {
+    let trainingKcalAdded = 0;
+    // Only when a weekly training goal is set; clearing training_sessions_per_week
+    // keeps training_sessions rows but excludes them from sport energy.
+    if (params.userId) {
       try {
-        const gymSession = await fetchGymSessionForDate(params.userId, dateKey);
-        if (gymSession != null && gymSession.kcal > 0) {
-          gymKcalAdded = gymSession.kcal;
-          segments.push({
-            kcal: gymKcalAdded,
-            intensity: mapGymIntensityToSportIntensity(gymSession.intensity),
-          });
+        const { data: trainingProfile, error: trainingProfileError } = await supabase
+          .from('profiles')
+          .select('training_sessions_per_week')
+          .eq('id', params.userId)
+          .maybeSingle();
+
+        if (trainingProfileError) {
+          throw trainingProfileError;
         }
-      } catch (gymError) {
-        console.warn('[Health] gym session load for sport energy failed:', gymError);
+
+        const sessionsPerWeek =
+          trainingProfile?.training_sessions_per_week == null
+            ? null
+            : Number(trainingProfile.training_sessions_per_week);
+
+        if (sessionsPerWeek != null && Number.isFinite(sessionsPerWeek) && sessionsPerWeek >= 1) {
+          const trainingSession = await fetchTrainingSessionForDate(params.userId, dateKey);
+          if (trainingSession != null && trainingSession.kcal > 0) {
+            const matchingHkTypes = TRAINING_ACTIVITY_HK_TYPES[trainingSession.activity];
+            const hkAlreadyHasMatching = matchingHkTypes.some((type) =>
+              hkActivityTypesPresent.has(type),
+            );
+            if (!hkAlreadyHasMatching) {
+              trainingKcalAdded = trainingSession.kcal;
+              segments.push({
+                kcal: trainingKcalAdded,
+                intensity: mapTrainingIntensityToSportIntensity(trainingSession.intensity),
+              });
+            }
+          }
+        }
+      } catch (trainingError) {
+        console.warn('[Health] training session load for sport energy failed:', trainingError);
       }
     }
 
     return {
-      totalActiveKcal: activeEnergy + gymKcalAdded,
+      totalActiveKcal: activeEnergy + trainingKcalAdded,
       segments,
     };
   } catch (error) {
@@ -523,15 +559,22 @@ export async function getMovementActual(params: {
 }
 
 /**
- * True when HealthKit already has a traditional or functional strength workout
- * on the local calendar day — blocks a manual gym_sessions entry for that day.
+ * True when HealthKit already has a workout matching the selected training
+ * activity on the local calendar day — blocks a manual training_sessions entry.
  * Returns null when Health is unavailable / not authorized / non-iOS.
+ * `other` never blocks (no HealthKit types mapped).
  */
-export async function hasStrengthTrainingWorkoutOnDate(
+export async function hasMatchingTrainingWorkoutOnDate(
   dateKey: string,
+  activity: TrainingActivity,
 ): Promise<boolean | null> {
   if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
     return null;
+  }
+
+  const types = TRAINING_ACTIVITY_HK_TYPES[activity];
+  if (types.length === 0) {
+    return false;
   }
 
   try {
@@ -542,34 +585,29 @@ export async function hasStrengthTrainingWorkoutOnDate(
       endDate: new Date(window.endISO),
     };
 
-    const [traditional, functional] = await Promise.all([
-      queryWorkoutSamples({
-        filter: {
-          workoutActivityType: WorkoutActivityType.traditionalStrengthTraining,
-          date: dateFilter,
-        },
-        limit: 1,
-      }),
-      queryWorkoutSamples({
-        filter: {
-          workoutActivityType: WorkoutActivityType.functionalStrengthTraining,
-          date: dateFilter,
-        },
-        limit: 1,
-      }),
-    ]);
+    const results = await Promise.all(
+      types.map((workoutActivityType) =>
+        queryWorkoutSamples({
+          filter: {
+            workoutActivityType,
+            date: dateFilter,
+          },
+          limit: 1,
+        }),
+      ),
+    );
 
-    return (traditional?.length ?? 0) > 0 || (functional?.length ?? 0) > 0;
+    return results.some((samples) => (samples?.length ?? 0) > 0);
   } catch (error) {
     if (isHealthAuthorizationNotDetermined(error)) {
       console.warn(
-        '[Health] strength workout check: authorization notDetermined',
+        '[Health] training workout check: authorization notDetermined',
         error,
       );
       return null;
     }
 
-    console.warn('[Health] strength workout check failed:', error);
+    console.warn('[Health] training workout check failed:', error);
     return null;
   }
 }

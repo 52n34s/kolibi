@@ -41,6 +41,7 @@ import {
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import { TodayMealsSection } from '@/components/home/TodayMealsSection';
+import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
 import {
   WeightProgressCard,
   weightGoalProgressPercent,
@@ -53,7 +54,7 @@ import { useHasPremiumAccess, useTrialStatus } from '@/hooks/use-premium-access'
 import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useActiveEnergyBurnedToday } from '@/hooks/use-active-energy-burned';
-import { useGymSessionsWeek } from '@/hooks/use-gym-sessions-week';
+import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useSportEnergyDayToday } from '@/hooks/use-sport-energy-day';
 import { formatKcal } from '@/utils/format';
@@ -65,7 +66,7 @@ import {
   resolveDisplayName,
 } from '@/lib/home';
 import { buildHomeNutrientTileEntries } from '@/lib/home-nutrients';
-import { weekDotFlags, weekGymKcalTotal } from '@/lib/gym-sessions';
+import { weekDotFlags } from '@/lib/training-sessions';
 import { calculateAge } from '@/lib/onboarding';
 import { scaleMacrosForSportCalories } from '@/lib/sport-macro-scaling';
 import { MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY } from '@/lib/macros-goals-editor-math';
@@ -132,6 +133,7 @@ const CALORIE_OVER_GOAL_COLOR = '#D97706';
 const MAX_WEIGHT_KG = 699.9;
 const SIGNUP_ROUTE = '/(auth)/login' as Href;
 
+type HomeTab = 'today' | 'meals';
 type WeightSheetKind = 'current' | null;
 
 function navigateToSignup() {
@@ -199,12 +201,17 @@ export default function HomeScreen() {
     movementGoalValue != null &&
     movementGoalValue > 0 &&
     movementGoalPeriod != null;
+  const trainingSessionsPerWeek = data?.profile?.training_sessions_per_week ?? null;
+  const hasTrainingGoal =
+    trainingSessionsPerWeek != null &&
+    Number.isFinite(trainingSessionsPerWeek) &&
+    trainingSessionsPerWeek >= 1;
   const { data: movementActual } = useMovementGoalActual({
     enabled: healthConnectedPreference === true && hasMovementGoal,
     type: movementGoalType,
     period: movementGoalPeriod,
   });
-  const { data: gymSessionsWeek = [] } = useGymSessionsWeek();
+  const { data: trainingSessionsWeek = [] } = useTrainingSessionsWeek(hasTrainingGoal);
   const { hasAccess: hasPremiumAccessDb } = useHasPremiumAccess(userId);
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
@@ -225,6 +232,7 @@ export default function HomeScreen() {
 
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallWithValuePitch, setPaywallWithValuePitch] = useState(false);
+  const [homeTab, setHomeTab] = useState<HomeTab>('today');
   const [weightSheet, setWeightSheet] = useState<WeightSheetKind>(null);
   const [weightDraft, setWeightDraft] = useState('');
   const [isSavingWeight, setIsSavingWeight] = useState(false);
@@ -592,8 +600,8 @@ export default function HomeScreen() {
     t,
   ]);
 
-  const homeProgressRows = useMemo((): HomeProgressRowItem[] => {
-    const rows: HomeProgressRowItem[] = nutrientTiles.map((tile) => ({
+  const calorieMacroRows = useMemo((): HomeProgressRowItem[] => {
+    return nutrientTiles.map((tile) => ({
       key: tile.key,
       label: tile.label,
       actual: tile.value,
@@ -601,6 +609,10 @@ export default function HomeScreen() {
       decimals: 0 as const,
       onPress: tile.onPress,
     }));
+  }, [nutrientTiles]);
+
+  const activityRows = useMemo((): HomeProgressRowItem[] => {
+    const rows: HomeProgressRowItem[] = [];
 
     if (hasMovementGoal && movementGoalType != null && movementGoalValue != null) {
       const healthConnected = healthConnectedPreference === true;
@@ -622,7 +634,6 @@ export default function HomeScreen() {
         actual,
         goal: movementGoalValue,
         decimals,
-        dividerAbove: true,
         valueUnit: unit ? ` ${unit}` : undefined,
         footerHint: healthConnected ? undefined : t('home.movementGoal.healthRequired'),
         onFooterPress: healthConnected
@@ -636,30 +647,31 @@ export default function HomeScreen() {
       });
     }
 
-    const gymKcal = weekGymKcalTotal(gymSessionsWeek);
-    rows.push({
-      key: 'gym',
-      label: t('home.gym.label'),
-      actual: gymKcal > 0 ? gymKcal : null,
-      goal: null,
-      decimals: 0 as const,
-      dividerAbove: true,
-      weekDayDots: weekDotFlags(gymSessionsWeek),
-      valueUnit: gymKcal > 0 ? ` ${t('home.gym.unitKcal')}` : undefined,
-      onPress: () => {
-        router.push('/koli/gym-log' as Href);
-      },
-    });
+    if (hasTrainingGoal && trainingSessionsPerWeek != null) {
+      rows.push({
+        key: 'training',
+        label: t('home.training.label'),
+        actual: trainingSessionsWeek.length,
+        goal: trainingSessionsPerWeek,
+        decimals: 0 as const,
+        dividerAbove: rows.length > 0,
+        weekDayDots: weekDotFlags(trainingSessionsWeek),
+        onPress: () => {
+          router.push('/koli/training-log' as Href);
+        },
+      });
+    }
 
     return rows;
   }, [
-    gymSessionsWeek,
+    trainingSessionsPerWeek,
+    trainingSessionsWeek,
+    hasTrainingGoal,
     hasMovementGoal,
     healthConnectedPreference,
     movementActual,
     movementGoalType,
     movementGoalValue,
-    nutrientTiles,
     t,
   ]);
 
@@ -1334,10 +1346,10 @@ export default function HomeScreen() {
           className="flex-1 px-6"
           contentContainerStyle={{ paddingTop: contentTopPadding, paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}>
-          <Text className="mb-6 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
+          <Text className="mb-4 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
 
           {isAnonymousUser ? (
-            <Pressable className="mt-1 mb-2" onPress={() => navigateToSignIn()}>
+            <Pressable className="mb-2" onPress={() => navigateToSignIn()}>
               <Text className="text-gray-500" style={{ fontSize: 11 }}>
                 {t('home.returningUser.prompt')}
               </Text>
@@ -1358,83 +1370,109 @@ export default function HomeScreen() {
             )
           ) : null}
 
-          {calorieGoalDisplay ? (
-            <View style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-              <View className="px-5 py-6">
-                <Text
-                  style={[
-                    styles.calorieHeroValue,
-                    {
-                      color: calorieGoalDisplay.isOverGoal
-                        ? CALORIE_OVER_GOAL_COLOR
-                        : CALORIE_GOAL_ACCENT,
-                      textAlign: 'center',
-                    },
-                  ]}>
-                  {formatKcal(calorieGoalDisplay.mainValue)}
-                </Text>
-                {calorieGoalDisplay.showOverLabel ? (
-                  <Text className="mt-1 text-center text-base font-medium text-amber-700">
-                    {t('home.calorieGoal.overGoal')}
-                  </Text>
-                ) : null}
-                <Text
-                  className={`text-center text-sm text-gray-500 ${calorieGoalDisplay.showOverLabel ? 'mt-1' : 'mt-2'}`}>
-                  {calorieGoalDisplay.mode === 'dynamic'
-                    ? t('home.calorieGoal.dynamicDailyGoalReference', {
-                        total: formatKcal(
-                          calorieGoalDisplay.dailyGoal +
-                            (calorieGoalDisplay.activeEnergyBurned ?? 0),
-                        ),
-                        burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
-                      })
-                    : t('home.calorieGoal.dailyGoalReference', {
-                        goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
-                      })}
-                </Text>
-                <View className="mt-5">
-                  <HomeProgressRows rows={homeProgressRows} />
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View style={getOnboardingSecondarySurfaceStyle()}>
-              <Pressable
-                onPress={openCalorieGoalSettings}
-                style={({ pressed }) => [
-                  pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
-                ]}>
-                <View className="flex-row items-center px-4 py-3">
-                  <Text className="flex-1 text-sm text-gray-500">
-                    {t('home.calorieGoal.emptyPrefix')}
-                    <Text className="font-medium text-[#4F46E5]">
-                      {t('home.calorieGoal.emptyAction')}
-                    </Text>
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-                </View>
-              </Pressable>
-            </View>
-          )}
-
-          <View className="mt-4">
-            <WeightProgressCard
-              currentValue={weightLabel}
-              startLabel={t('home.weight.startTitle')}
-              startValue={startWeightLabel}
-              targetLabel={t('home.weight.targetTitle')}
-              targetValue={targetWeightLabel}
-              progressPercent={weightProgressPercent}
-              accessibilityLabel={t('home.weight.label')}
-              onPress={openCurrentWeightSheet}
+          <View className="mb-5">
+            <PillSegmentSwitcher
+              value={homeTab}
+              onChange={setHomeTab}
+              segments={[
+                { id: 'today', label: t('home.tabs.today') },
+                { id: 'meals', label: t('home.tabs.meals') },
+              ]}
             />
           </View>
 
-          <TodayMealsSection
-            meals={todayMeals}
-            isLoading={isTodayMealsLoading}
-            onMealPress={handleTodayMealPress}
-          />
+          {homeTab === 'today' ? (
+            <>
+              {calorieGoalDisplay ? (
+                <View
+                  style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+                  <View className="px-5 py-6">
+                    <Text
+                      style={[
+                        styles.calorieHeroValue,
+                        {
+                          color: calorieGoalDisplay.isOverGoal
+                            ? CALORIE_OVER_GOAL_COLOR
+                            : CALORIE_GOAL_ACCENT,
+                          textAlign: 'center',
+                        },
+                      ]}>
+                      {formatKcal(calorieGoalDisplay.mainValue)}
+                    </Text>
+                    {calorieGoalDisplay.showOverLabel ? (
+                      <Text className="mt-1 text-center text-base font-medium text-amber-700">
+                        {t('home.calorieGoal.overGoal')}
+                      </Text>
+                    ) : null}
+                    <Text
+                      className={`text-center text-sm text-gray-500 ${calorieGoalDisplay.showOverLabel ? 'mt-1' : 'mt-2'}`}>
+                      {calorieGoalDisplay.mode === 'dynamic'
+                        ? t('home.calorieGoal.dynamicDailyGoalReference', {
+                            total: formatKcal(
+                              calorieGoalDisplay.dailyGoal +
+                                (calorieGoalDisplay.activeEnergyBurned ?? 0),
+                            ),
+                            burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
+                          })
+                        : t('home.calorieGoal.dailyGoalReference', {
+                            goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
+                          })}
+                    </Text>
+                    <View className="mt-5">
+                      <HomeProgressRows rows={calorieMacroRows} />
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View style={getOnboardingSecondarySurfaceStyle()}>
+                  <Pressable
+                    onPress={openCalorieGoalSettings}
+                    style={({ pressed }) => [
+                      pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
+                    ]}>
+                    <View className="flex-row items-center px-4 py-3">
+                      <Text className="flex-1 text-sm text-gray-500">
+                        {t('home.calorieGoal.emptyPrefix')}
+                        <Text className="font-medium text-[#4F46E5]">
+                          {t('home.calorieGoal.emptyAction')}
+                        </Text>
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                    </View>
+                  </Pressable>
+                </View>
+              )}
+
+              {activityRows.length > 0 ? (
+                <View
+                  className="mt-4"
+                  style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+                  <View className="px-5 py-4">
+                    <HomeProgressRows rows={activityRows} />
+                  </View>
+                </View>
+              ) : null}
+
+              <View className="mt-6">
+                <WeightProgressCard
+                  currentValue={weightLabel}
+                  startLabel={t('home.weight.startTitle')}
+                  startValue={startWeightLabel}
+                  targetLabel={t('home.weight.targetTitle')}
+                  targetValue={targetWeightLabel}
+                  progressPercent={weightProgressPercent}
+                  accessibilityLabel={t('home.weight.label')}
+                  onPress={openCurrentWeightSheet}
+                />
+              </View>
+            </>
+          ) : (
+            <TodayMealsSection
+              meals={todayMeals}
+              isLoading={isTodayMealsLoading}
+              onMealPress={handleTodayMealPress}
+            />
+          )}
         </ScrollView>
 
         <View className="absolute bottom-8 left-0 right-0 items-center px-6">
