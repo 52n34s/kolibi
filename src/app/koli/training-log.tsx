@@ -1,5 +1,6 @@
 import { Stack, router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import * as Sentry from '@sentry/react-native';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -36,11 +37,12 @@ import {
   type TrainingIntensity,
 } from '@/lib/training-calories';
 import {
-  deleteTrainingSessionForDate,
-  fetchTrainingSessionForDate,
+  deleteTrainingSessionById,
+  fetchTrainingSessionsForDate,
+  insertTrainingSession,
   isTrainingLogDateAllowed,
   localWeekDateKeys,
-  upsertTrainingSession,
+  type TrainingSession,
 } from '@/lib/training-sessions';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -68,7 +70,6 @@ export default function TrainingLogScreen() {
   const [kcalDraft, setKcalDraft] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [initializedForDate, setInitializedForDate] = useState<string | null>(null);
 
   const weightKg = homeData?.latestWeight?.weight_kg ?? null;
   const durationMinutes = Number(durationDraft);
@@ -82,10 +83,13 @@ export default function TrainingLogScreen() {
         })
       : null;
 
-  const { data: existingSession, isLoading: sessionLoading } = useQuery({
-    queryKey: ['training-session', userId, loggedOn],
+  const {
+    data: daySessions = [],
+    isLoading: sessionsLoading,
+  } = useQuery({
+    queryKey: ['training-sessions-day', userId, loggedOn],
     enabled: Boolean(userId),
-    queryFn: () => fetchTrainingSessionForDate(userId!, loggedOn),
+    queryFn: () => fetchTrainingSessionsForDate(userId!, loggedOn),
   });
 
   const { data: healthBlocked = false, isLoading: healthCheckLoading } = useQuery({
@@ -97,31 +101,18 @@ export default function TrainingLogScreen() {
     },
   });
 
-  useEffect(() => {
-    if (sessionLoading) {
-      return;
-    }
-    if (initializedForDate === loggedOn) {
-      return;
-    }
-
-    if (existingSession) {
-      setActivity(existingSession.activity);
-      setDurationDraft(String(existingSession.durationMinutes));
-      setIntensity(existingSession.intensity);
-      setKcalDraft(
-        existingSession.kcalSource === 'manual' ? String(existingSession.kcal) : '',
-      );
-    } else {
-      setActivity('strength');
-      setDurationDraft('45');
-      setIntensity('normal');
-      setKcalDraft('');
-    }
-    setInitializedForDate(loggedOn);
-  }, [existingSession, initializedForDate, loggedOn, sessionLoading]);
-
   const selectedDate = useMemo(() => parseDateOnly(loggedOn), [loggedOn]);
+
+  const changeLoggedOn = useCallback((nextKey: string) => {
+    if (!isTrainingLogDateAllowed(nextKey)) {
+      return;
+    }
+    setLoggedOn(nextKey);
+    setActivity('strength');
+    setDurationDraft('45');
+    setIntensity('normal');
+    setKcalDraft('');
+  }, []);
 
   const openDatePicker = useCallback(() => {
     if (Platform.OS === 'android') {
@@ -130,26 +121,23 @@ export default function TrainingLogScreen() {
         minimumDate: minDate,
         maximumDate: maxDate,
         onChange: (date) => {
-          const nextKey = localDateKey(date);
-          if (isTrainingLogDateAllowed(nextKey)) {
-            setLoggedOn(nextKey);
-            setInitializedForDate(null);
-          }
+          changeLoggedOn(localDateKey(date));
         },
       });
       return;
     }
     setShowDatePicker(true);
-  }, [maxDate, minDate, selectedDate]);
+  }, [changeLoggedOn, maxDate, minDate, selectedDate]);
 
   async function invalidateTrainingQueries() {
     if (!userId) {
       return;
     }
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['training-sessions-week', userId] }),
-      queryClient.invalidateQueries({ queryKey: ['training-session', userId] }),
+      queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] }),
       queryClient.invalidateQueries({ queryKey: ['sport-energy-day-today', userId] }),
+      queryClient.invalidateQueries({ queryKey: ['training-sessions-week', userId] }),
+      queryClient.invalidateQueries({ queryKey: ['training-sessions-day', userId] }),
     ]);
   }
 
@@ -181,7 +169,7 @@ export default function TrainingLogScreen() {
 
     setIsSaving(true);
     try {
-      await upsertTrainingSession({
+      await insertTrainingSession({
         userId,
         loggedOn,
         activity,
@@ -194,14 +182,15 @@ export default function TrainingLogScreen() {
       router.back();
     } catch (error) {
       console.error('[TrainingLog] save failed:', error);
+      Sentry.captureException(error);
       Alert.alert(t('settings.errors.title'), t('home.training.saveFailed'));
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleDelete() {
-    if (!userId || !existingSession || isSaving) {
+  function handleDelete(sessionRow: TrainingSession) {
+    if (!userId || isSaving) {
       return;
     }
 
@@ -214,11 +203,11 @@ export default function TrainingLogScreen() {
           void (async () => {
             setIsSaving(true);
             try {
-              await deleteTrainingSessionForDate(userId, loggedOn);
+              await deleteTrainingSessionById(userId, sessionRow.id);
               await invalidateTrainingQueries();
-              router.back();
             } catch (error) {
               console.error('[TrainingLog] delete failed:', error);
+              Sentry.captureException(error);
               Alert.alert(t('settings.errors.title'), t('home.training.saveFailed'));
             } finally {
               setIsSaving(false);
@@ -263,6 +252,58 @@ export default function TrainingLogScreen() {
             <Text className="mb-6 text-base text-gray-500">{t('home.training.subtitle')}</Text>
 
             <Text className="mb-2 text-sm font-medium text-gray-700">
+              {t('home.training.dateLabel')}
+            </Text>
+            <OnboardingFieldPressable onPress={openDatePicker}>
+              <Text className="text-base text-gray-900">
+                {formatAppDate(selectedDate, i18n.language)}
+              </Text>
+            </OnboardingFieldPressable>
+
+            {sessionsLoading ? (
+              <View className="mt-6 items-center py-4">
+                <ActivityIndicator color="#4F46E5" />
+              </View>
+            ) : daySessions.length > 0 ? (
+              <View className="mt-6 gap-2">
+                <Text className="mb-1 text-sm font-medium text-gray-700">
+                  {t('home.training.existingLabel')}
+                </Text>
+                {daySessions.map((row) => (
+                  <View
+                    key={row.id}
+                    className="flex-row items-center rounded-xl border border-gray-200 bg-white px-4 py-3">
+                    <View className="flex-1 pr-3">
+                      <Text className="text-base font-semibold text-gray-900">
+                        {t(`home.training.activity.${row.activity}`)}
+                      </Text>
+                      <Text className="mt-1 text-sm text-gray-500">
+                        {t('home.training.sessionMeta', {
+                          minutes: row.durationMinutes,
+                          intensity: t(`home.training.intensity.${row.intensity}.label`),
+                          kcal: row.kcal,
+                        })}
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={isSaving}
+                      onPress={() => handleDelete(row)}
+                      hitSlop={8}>
+                      <Text className="text-sm font-medium text-red-600">
+                        {t('home.training.delete')}
+                      </Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            <Text className="mb-2 mt-8 text-base font-semibold text-gray-900">
+              {t('home.training.addAnother')}
+            </Text>
+
+            <Text className="mb-2 mt-3 text-sm font-medium text-gray-700">
               {t('home.training.activityLabel')}
             </Text>
             <View className="mb-1 flex-row flex-wrap gap-2">
@@ -287,15 +328,6 @@ export default function TrainingLogScreen() {
                 );
               })}
             </View>
-
-            <Text className="mb-2 mt-5 text-sm font-medium text-gray-700">
-              {t('home.training.dateLabel')}
-            </Text>
-            <OnboardingFieldPressable onPress={openDatePicker}>
-              <Text className="text-base text-gray-900">
-                {formatAppDate(selectedDate, i18n.language)}
-              </Text>
-            </OnboardingFieldPressable>
 
             <Text className="mb-2 mt-5 text-sm font-medium text-gray-700">
               {t('home.training.durationLabel')}
@@ -386,16 +418,6 @@ export default function TrainingLogScreen() {
                 </Text>
               )}
             </Pressable>
-            {existingSession && !healthBlocked ? (
-              <Pressable
-                className="mt-3 h-11 items-center justify-center"
-                disabled={isSaving}
-                onPress={() => void handleDelete()}>
-                <Text className="text-base font-medium text-red-600">
-                  {t('home.training.delete')}
-                </Text>
-              </Pressable>
-            ) : null}
           </View>
         </>
       )}
@@ -406,11 +428,7 @@ export default function TrainingLogScreen() {
         minimumDate={minDate}
         maximumDate={maxDate}
         onChange={(date) => {
-          const nextKey = localDateKey(date);
-          if (isTrainingLogDateAllowed(nextKey)) {
-            setLoggedOn(nextKey);
-            setInitializedForDate(null);
-          }
+          changeLoggedOn(localDateKey(date));
         }}
         onClose={() => setShowDatePicker(false)}
       />

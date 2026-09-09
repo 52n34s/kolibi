@@ -1,24 +1,21 @@
 -- Manual training sessions (HealthKit is unreliable for many workout types).
--- kcal is the effective value (MET estimate or manual override); kcal_source records which.
+-- estimated_kcal is the effective value (MET estimate or manual override); kcal_source records which.
 
 CREATE TABLE IF NOT EXISTS public.training_sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
   logged_on date NOT NULL,
-  activity text NOT NULL DEFAULT 'strength'
-    CHECK (activity IN ('strength', 'yoga', 'swimming', 'cycling', 'other')),
-  duration_minutes integer NOT NULL CHECK (duration_minutes > 0 AND duration_minutes <= 600),
+  training_type text NOT NULL DEFAULT 'strength'
+    CHECK (training_type IN ('strength', 'yoga', 'swimming', 'cycling', 'other')),
+  duration_min integer NOT NULL CHECK (duration_min > 0 AND duration_min <= 600),
   intensity text NOT NULL CHECK (intensity IN ('easy', 'normal', 'hard')),
-  weight_kg numeric(5, 2) NOT NULL CHECK (weight_kg > 0),
-  kcal integer NOT NULL CHECK (kcal >= 0),
+  estimated_kcal integer NOT NULL CHECK (estimated_kcal >= 0),
   kcal_source text NOT NULL DEFAULT 'estimated' CHECK (kcal_source IN ('estimated', 'manual')),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, logged_on)
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS training_sessions_user_logged_on_idx
-  ON public.training_sessions (user_id, logged_on DESC);
+  ON public.training_sessions (user_id, logged_on);
 
 ALTER TABLE public.training_sessions ENABLE ROW LEVEL SECURITY;
 

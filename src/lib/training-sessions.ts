@@ -14,23 +14,24 @@ export type TrainingSession = {
   id: string;
   userId: string;
   loggedOn: string;
+  /** App domain name for DB column `training_type`. */
   activity: TrainingActivity;
   durationMinutes: number;
   intensity: TrainingIntensity;
-  weightKg: number;
+  /** Effective kcal (MET estimate or manual) — DB column `estimated_kcal`. */
   kcal: number;
   kcalSource: TrainingKcalSource;
 };
 
+/** Matches public.training_sessions columns. */
 type TrainingSessionRow = {
   id: string;
   user_id: string;
   logged_on: string;
-  activity: string;
-  duration_minutes: number;
+  training_type: string;
+  duration_min: number;
   intensity: string;
-  weight_kg: number;
-  kcal: number;
+  estimated_kcal: number;
   kcal_source: string | null;
 };
 
@@ -39,8 +40,8 @@ function isTrainingKcalSource(value: string | null | undefined): value is Traini
 }
 
 function mapRow(row: TrainingSessionRow): TrainingSession {
-  if (!isTrainingActivity(row.activity)) {
-    throw new Error(`Invalid training activity: ${row.activity}`);
+  if (!isTrainingActivity(row.training_type)) {
+    throw new Error(`Invalid training_type: ${row.training_type}`);
   }
   if (!isTrainingIntensity(row.intensity)) {
     throw new Error(`Invalid training intensity: ${row.intensity}`);
@@ -50,17 +51,16 @@ function mapRow(row: TrainingSessionRow): TrainingSession {
     id: row.id,
     userId: row.user_id,
     loggedOn: row.logged_on,
-    activity: row.activity,
-    durationMinutes: row.duration_minutes,
+    activity: row.training_type,
+    durationMinutes: row.duration_min,
     intensity: row.intensity,
-    weightKg: Number(row.weight_kg),
-    kcal: row.kcal,
+    kcal: row.estimated_kcal,
     kcalSource: isTrainingKcalSource(row.kcal_source) ? row.kcal_source : 'estimated',
   };
 }
 
 const TRAINING_SESSION_SELECT =
-  'id, user_id, logged_on, activity, duration_minutes, intensity, weight_kg, kcal, kcal_source';
+  'id, user_id, logged_on, training_type, duration_min, intensity, estimated_kcal, kcal_source';
 
 /** Monday–Sunday local date keys for the week containing `now`. */
 export function localWeekDateKeys(now: Date = new Date()): string[] {
@@ -90,7 +90,8 @@ export async function fetchTrainingSessionsForWeek(
     .eq('user_id', userId)
     .gte('logged_on', keys[0])
     .lte('logged_on', keys[6])
-    .order('logged_on', { ascending: true });
+    .order('logged_on', { ascending: true })
+    .order('created_at', { ascending: true });
 
   if (error) {
     throw error;
@@ -99,30 +100,31 @@ export async function fetchTrainingSessionsForWeek(
   return ((data ?? []) as TrainingSessionRow[]).map(mapRow);
 }
 
-export async function fetchTrainingSessionForDate(
+export async function fetchTrainingSessionsForDate(
   userId: string,
   loggedOn: string,
-): Promise<TrainingSession | null> {
+): Promise<TrainingSession[]> {
   const { data, error } = await supabase
     .from('training_sessions')
     .select(TRAINING_SESSION_SELECT)
     .eq('user_id', userId)
     .eq('logged_on', loggedOn)
-    .maybeSingle<TrainingSessionRow>();
+    .order('created_at', { ascending: true });
 
   if (error) {
     throw error;
   }
 
-  return data ? mapRow(data) : null;
+  return ((data ?? []) as TrainingSessionRow[]).map(mapRow);
 }
 
-export async function upsertTrainingSession(params: {
+export async function insertTrainingSession(params: {
   userId: string;
   loggedOn: string;
   activity: TrainingActivity;
   durationMinutes: number;
   intensity: TrainingIntensity;
+  /** Used only for MET estimate — not stored (no weight_kg column). */
   weightKg: number;
   /** When set and > 0, stored as manual kcal; otherwise MET estimate. */
   manualKcal?: number | null;
@@ -146,20 +148,15 @@ export async function upsertTrainingSession(params: {
 
   const { data, error } = await supabase
     .from('training_sessions')
-    .upsert(
-      {
-        user_id: params.userId,
-        logged_on: params.loggedOn,
-        activity: params.activity,
-        duration_minutes: params.durationMinutes,
-        intensity: params.intensity,
-        weight_kg: params.weightKg,
-        kcal,
-        kcal_source: kcalSource,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,logged_on' },
-    )
+    .insert({
+      user_id: params.userId,
+      logged_on: params.loggedOn,
+      training_type: params.activity,
+      duration_min: params.durationMinutes,
+      intensity: params.intensity,
+      estimated_kcal: kcal,
+      kcal_source: kcalSource,
+    })
     .select(TRAINING_SESSION_SELECT)
     .single<TrainingSessionRow>();
 
@@ -170,21 +167,22 @@ export async function upsertTrainingSession(params: {
   return mapRow(data);
 }
 
-export async function deleteTrainingSessionForDate(
+export async function deleteTrainingSessionById(
   userId: string,
-  loggedOn: string,
+  sessionId: string,
 ): Promise<void> {
   const { error } = await supabase
     .from('training_sessions')
     .delete()
     .eq('user_id', userId)
-    .eq('logged_on', loggedOn);
+    .eq('id', sessionId);
 
   if (error) {
     throw error;
   }
 }
 
+/** True for each Mon–Sun day that has ≥1 session (multiple same-day rows → one filled dot). */
 export function weekDotFlags(
   sessions: TrainingSession[],
   now: Date = new Date(),
@@ -192,6 +190,11 @@ export function weekDotFlags(
   const keys = localWeekDateKeys(now);
   const logged = new Set(sessions.map((session) => session.loggedOn));
   return keys.map((key) => logged.has(key));
+}
+
+/** Distinct calendar days with ≥1 session — weekly goal progress (not row count). */
+export function countDistinctTrainingDays(sessions: TrainingSession[]): number {
+  return new Set(sessions.map((session) => session.loggedOn)).size;
 }
 
 /** Clamp selectable training log date to roughly the current local week (Mon–today). */

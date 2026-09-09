@@ -25,7 +25,7 @@ import {
 } from '@/lib/sport-macro-scaling';
 import { mapTrainingIntensityToSportIntensity } from '@/lib/training-calories';
 import type { TrainingActivity } from '@/lib/training-calories';
-import { fetchTrainingSessionForDate } from '@/lib/training-sessions';
+import { fetchTrainingSessionsForDate } from '@/lib/training-sessions';
 import { supabase } from '@/lib/supabase';
 import {
   getUserPreference,
@@ -445,19 +445,24 @@ export async function getSportEnergyDay(params: {
             : Number(trainingProfile.training_sessions_per_week);
 
         if (sessionsPerWeek != null && Number.isFinite(sessionsPerWeek) && sessionsPerWeek >= 1) {
-          const trainingSession = await fetchTrainingSessionForDate(params.userId, dateKey);
-          if (trainingSession != null && trainingSession.kcal > 0) {
+          const trainingSessions = await fetchTrainingSessionsForDate(params.userId, dateKey);
+          for (const trainingSession of trainingSessions) {
+            if (!(trainingSession.kcal > 0)) {
+              continue;
+            }
             const matchingHkTypes = TRAINING_ACTIVITY_HK_TYPES[trainingSession.activity];
             const hkAlreadyHasMatching = matchingHkTypes.some((type) =>
               hkActivityTypesPresent.has(type),
             );
-            if (!hkAlreadyHasMatching) {
-              trainingKcalAdded = trainingSession.kcal;
-              segments.push({
-                kcal: trainingKcalAdded,
-                intensity: mapTrainingIntensityToSportIntensity(trainingSession.intensity),
-              });
+            // HealthKit wins per activity type only — other manual types still count.
+            if (hkAlreadyHasMatching) {
+              continue;
             }
+            trainingKcalAdded += trainingSession.kcal;
+            segments.push({
+              kcal: trainingSession.kcal,
+              intensity: mapTrainingIntensityToSportIntensity(trainingSession.intensity),
+            });
           }
         }
       } catch (trainingError) {

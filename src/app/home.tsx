@@ -66,7 +66,7 @@ import {
   resolveDisplayName,
 } from '@/lib/home';
 import { buildHomeNutrientTileEntries } from '@/lib/home-nutrients';
-import { weekDotFlags } from '@/lib/training-sessions';
+import { countDistinctTrainingDays, weekDotFlags } from '@/lib/training-sessions';
 import { calculateAge } from '@/lib/onboarding';
 import { scaleMacrosForSportCalories } from '@/lib/sport-macro-scaling';
 import { MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY } from '@/lib/macros-goals-editor-math';
@@ -651,7 +651,7 @@ export default function HomeScreen() {
       rows.push({
         key: 'training',
         label: t('home.training.label'),
-        actual: trainingSessionsWeek.length,
+        actual: countDistinctTrainingDays(trainingSessionsWeek),
         goal: trainingSessionsPerWeek,
         decimals: 0 as const,
         dividerAbove: rows.length > 0,
