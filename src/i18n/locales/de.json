@@ -679,10 +679,11 @@
       "toggleLabel": "Erinnerungen erhalten",
       "activate": "Aktivieren",
       "openIosSettings": "Einstellungen öffnen",
-      "undeterminedHint": "Kolibi kann dich an Mahlzeiten erinnern, wenn du Mitteilungen erlaubst.",
-      "deniedHint": "In den iOS-Einstellungen aktivieren",
+      "undeterminedHint": "Beim Einschalten einer Erinnerung fragt iOS nach der Mitteilungsberechtigung.",
+      "deniedHint": "Mitteilungen sind deaktiviert. Aktiviere sie in den iOS-Einstellungen, damit Erinnerungen ankommen.",
       "saveFailed": "Mitteilungs-Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
       "learningHint": "Kolibi lernt aus deinen Einträgen, wann du isst.",
+      "tokenRegistrationFailed": "Die Registrierung für Mitteilungen ist fehlgeschlagen. Bitte später erneut versuchen.",
       "meals": {
         "breakfast": "Frühstück",
         "lunch": "Mittag",

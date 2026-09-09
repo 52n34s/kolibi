@@ -679,10 +679,11 @@
       "toggleLabel": "Receive reminders",
       "activate": "Enable",
       "openIosSettings": "Open Settings",
-      "undeterminedHint": "Kolibi can remind you about meals if you allow notifications.",
-      "deniedHint": "Enable in iOS Settings",
+      "undeterminedHint": "Turning on a reminder asks iOS for notification permission.",
+      "deniedHint": "Notifications are off. Enable them in iOS Settings so reminders can arrive.",
       "saveFailed": "Could not update notification settings. Please try again.",
       "learningHint": "Kolibi learns when you eat from your entries.",
+      "tokenRegistrationFailed": "Notification registration failed. Please try again later.",
       "meals": {
         "breakfast": "Breakfast",
         "lunch": "Lunch",

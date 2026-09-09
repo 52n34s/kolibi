@@ -679,10 +679,11 @@
       "toggleLabel": "Recibir recordatorios",
       "activate": "Activar",
       "openIosSettings": "Abrir ajustes",
-      "undeterminedHint": "Kolibi puede recordarte las comidas si permites las notificaciones.",
-      "deniedHint": "Actívalo en los ajustes de iOS",
+      "undeterminedHint": "Al activar un recordatorio, iOS pedirá permiso para notificaciones.",
+      "deniedHint": "Las notificaciones están desactivadas. Actívalas en Ajustes de iOS para recibir recordatorios.",
       "saveFailed": "No se pudo guardar la configuración. Inténtalo de nuevo.",
       "learningHint": "Kolibi aprende cuándo comes a partir de tus registros.",
+      "tokenRegistrationFailed": "No se pudo registrar para notificaciones. Inténtalo de nuevo más tarde.",
       "meals": {
         "breakfast": "Desayuno",
         "lunch": "Comida",

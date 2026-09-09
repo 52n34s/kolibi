@@ -1,8 +1,8 @@
 import * as Notifications from 'expo-notifications';
-import { useCallback, useEffect, useState } from 'react';
+import * as Sentry from '@sentry/react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
   Alert,
   AppState,
   Linking,
@@ -26,6 +26,7 @@ import {
 import {
   ensurePushRegistration,
   PUSH_PERMISSION_ASKED_KEY,
+  userHasPushToken,
 } from '@/lib/notifications';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 
@@ -49,6 +50,10 @@ function enabledForBucket(prefs: MealReminderPreferences, bucket: MealReminderBu
   return prefs.dinnerEnabled;
 }
 
+function anyReminderEnabled(prefs: MealReminderPreferences): boolean {
+  return prefs.breakfastEnabled || prefs.lunchEnabled || prefs.dinnerEnabled;
+}
+
 function withBucketEnabled(
   prefs: MealReminderPreferences,
   bucket: MealReminderBucket,
@@ -63,24 +68,34 @@ function withBucketEnabled(
   return { ...prefs, dinnerEnabled: enabled };
 }
 
+function mapPermissionStatus(
+  status: Notifications.PermissionStatus,
+): Exclude<PermissionUiStatus, 'loading'> {
+  if (status === 'granted' || status === 'denied' || status === 'undetermined') {
+    return status;
+  }
+  return 'unavailable';
+}
+
+function reportTokenRegistrationFailed() {
+  Sentry.captureMessage('push token registration failed', {
+    level: 'warning',
+    tags: { reason: 'push_token_registration_failed' },
+  });
+}
+
 export function NotificationsSettingsSection({ userId }: NotificationsSettingsSectionProps) {
   const { t } = useTranslation();
   const [permissionStatus, setPermissionStatus] = useState<PermissionUiStatus>('loading');
   const [prefs, setPrefs] = useState<MealReminderPreferences>(DEFAULT_MEAL_REMINDER_PREFERENCES);
   const [isBusy, setIsBusy] = useState(false);
+  const [tokenRegistrationFailed, setTokenRegistrationFailed] = useState(false);
+  const tokenBackfillAttemptedRef = useRef(false);
 
   const refreshPermissionStatus = useCallback(async () => {
     try {
       const current = await Notifications.getPermissionsAsync();
-      if (
-        current.status === 'granted' ||
-        current.status === 'denied' ||
-        current.status === 'undetermined'
-      ) {
-        setPermissionStatus(current.status);
-      } else {
-        setPermissionStatus('unavailable');
-      }
+      setPermissionStatus(mapPermissionStatus(current.status));
     } catch {
       setPermissionStatus('unavailable');
     }
@@ -93,16 +108,71 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
     try {
       const loaded = await getMealReminderPreferences(userId);
       setPrefs({ ...loaded, locale: getAppLanguage() });
+      return { ...loaded, locale: getAppLanguage() };
     } catch (error) {
       console.error('[NotificationsSettings] preference load failed:', error);
+      return null;
     }
   }, [userId]);
 
+  /**
+   * If OS permission is granted and reminders are on but push_tokens has no row,
+   * try registration once per focus. Without a token, send-meal-reminders cannot deliver.
+   */
+  const maybeBackfillPushToken = useCallback(
+    async (nextPermission: PermissionUiStatus, nextPrefs: MealReminderPreferences) => {
+      if (!userId || tokenBackfillAttemptedRef.current) {
+        return;
+      }
+      if (nextPermission !== 'granted' || !anyReminderEnabled(nextPrefs)) {
+        return;
+      }
+
+      tokenBackfillAttemptedRef.current = true;
+
+      try {
+        const hasToken = await userHasPushToken(userId);
+        if (hasToken) {
+          setTokenRegistrationFailed(false);
+          return;
+        }
+
+        const result = await ensurePushRegistration(userId, { askIfUndetermined: false });
+        if (result.status === 'granted') {
+          setTokenRegistrationFailed(false);
+          return;
+        }
+
+        if (result.status === 'token_failed' || result.status === 'unavailable') {
+          if (result.status !== 'token_failed') {
+            reportTokenRegistrationFailed();
+          }
+          setTokenRegistrationFailed(true);
+        }
+      } catch (error) {
+        console.error('[NotificationsSettings] token backfill failed:', error);
+        reportTokenRegistrationFailed();
+        setTokenRegistrationFailed(true);
+      }
+    },
+    [userId],
+  );
+
+  // Re-read OS permission whenever this screen is focused (and when returning from Settings).
   useFocusEffect(
     useCallback(() => {
-      void refreshPermissionStatus();
-      void refreshPreferences();
-    }, [refreshPermissionStatus, refreshPreferences]),
+      tokenBackfillAttemptedRef.current = false;
+
+      void (async () => {
+        await refreshPermissionStatus();
+        const loaded = await refreshPreferences();
+        const current = await Notifications.getPermissionsAsync();
+        const permission = mapPermissionStatus(current.status);
+        if (loaded) {
+          await maybeBackfillPushToken(permission, loaded);
+        }
+      })();
+    }, [maybeBackfillPushToken, refreshPermissionStatus, refreshPreferences]),
   );
 
   useEffect(() => {
@@ -133,80 +203,131 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
     }
   }
 
-  async function handleActivate() {
-    if (!userId || isBusy) {
+  /**
+   * User-initiated system dialog. Always asks when undetermined (no nag skip).
+   * PUSH_PERMISSION_ASKED_KEY is written only after the OS returns granted/denied.
+   */
+  async function requestPermissionFromUser(): Promise<'granted' | 'denied'> {
+    const requested = await Notifications.requestPermissionsAsync();
+    await secureStore.setItem(PUSH_PERMISSION_ASKED_KEY, new Date().toISOString());
+    const next = mapPermissionStatus(requested.status);
+    setPermissionStatus(next === 'undetermined' ? 'denied' : next);
+    return requested.status === 'granted' ? 'granted' : 'denied';
+  }
+
+  async function handleToggle(bucket: MealReminderBucket, nextValue: boolean) {
+    if (!userId || isBusy || permissionStatus === 'denied' || permissionStatus === 'loading') {
+      return;
+    }
+
+    // Turning off never needs permission or a push token.
+    if (!nextValue) {
+      setTokenRegistrationFailed(false);
+      await persistPrefs(withBucketEnabled(prefs, bucket, false));
+      return;
+    }
+
+    let status = permissionStatus;
+
+    if (status === 'undetermined') {
+      setIsBusy(true);
+      try {
+        status = await requestPermissionFromUser();
+      } catch (error) {
+        console.error('[NotificationsSettings] permission request failed:', error);
+        Alert.alert(t('settings.errors.title'), t('settings.notifications.saveFailed'));
+        return;
+      } finally {
+        setIsBusy(false);
+      }
+
+      if (status !== 'granted') {
+        // Toggle stays off — never persist enabled without a grant.
+        return;
+      }
+    }
+
+    if (status !== 'granted') {
       return;
     }
 
     setIsBusy(true);
     try {
-      const result = await ensurePushRegistration(userId, { askIfUndetermined: true });
-
-      if (result.status === 'denied' || (result.status === 'granted' && result.prompted)) {
-        await secureStore.setItem(PUSH_PERMISSION_ASKED_KEY, new Date().toISOString());
+      const result = await ensurePushRegistration(userId, { askIfUndetermined: false });
+      if (result.status !== 'granted') {
+        // token_failed is already reported inside registerPushToken.
+        if (result.status !== 'token_failed') {
+          reportTokenRegistrationFailed();
+        }
+        setTokenRegistrationFailed(true);
+        // Toggle stays off — send-meal-reminders cannot deliver without push_tokens.
+        return;
       }
-
-      await refreshPermissionStatus();
-      if (result.status === 'granted') {
-        await refreshPreferences();
-      }
+      setTokenRegistrationFailed(false);
     } catch (error) {
-      console.error('[NotificationsSettings] activate failed:', error);
-      Alert.alert(t('settings.errors.title'), t('settings.notifications.saveFailed'));
+      console.error('[NotificationsSettings] token sync failed:', error);
+      reportTokenRegistrationFailed();
+      setTokenRegistrationFailed(true);
+      return;
     } finally {
       setIsBusy(false);
     }
-  }
 
-  async function handleToggle(bucket: MealReminderBucket, nextValue: boolean) {
-    if (!userId || isBusy) {
-      return;
-    }
-
-    if (nextValue && permissionStatus === 'granted') {
-      try {
-        await ensurePushRegistration(userId, { askIfUndetermined: false });
-      } catch (error) {
-        console.error('[NotificationsSettings] token sync failed:', error);
-      }
-    }
-
-    await persistPrefs(withBucketEnabled(prefs, bucket, nextValue));
+    await persistPrefs(withBucketEnabled(prefs, bucket, true));
   }
 
   if (permissionStatus === 'loading' || permissionStatus === 'unavailable') {
     return null;
   }
 
+  const togglesDisabled = isBusy || permissionStatus === 'denied';
+
   return (
     <SettingsSection title={t('settings.notifications.remindersSectionTitle')}>
+      {BUCKETS.map((bucket, index) => {
+        const storedEnabled = enabledForBucket(prefs, bucket);
+        // Only show ON when OS permission is actually granted.
+        const displayEnabled = permissionStatus === 'granted' && storedEnabled;
+
+        return (
+          <View
+            key={bucket}
+            className={index === 0 ? '' : `border-t ${SETTINGS_GLASS_DIVIDER_CLASS}`}>
+            <View className="flex-row items-center justify-between px-4 py-3.5">
+              <Text
+                className={`flex-1 text-base ${
+                  permissionStatus === 'denied' ? 'text-gray-400' : 'text-gray-900'
+                }`}>
+                {t(`settings.notifications.meals.${bucket}`)}
+              </Text>
+              <Switch
+                value={displayEnabled}
+                disabled={togglesDisabled}
+                onValueChange={(value) => void handleToggle(bucket, value)}
+                trackColor={{ false: '#D1D5DB', true: '#4F46E5' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
+        );
+      })}
+
       {permissionStatus === 'undetermined' ? (
-        <>
-          <View className="px-4 py-3.5">
-            <Pressable
-              className="h-11 items-center justify-center rounded-xl bg-[#4F46E5]"
-              disabled={isBusy}
-              onPress={() => void handleActivate()}>
-              {isBusy ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text className="text-base font-semibold text-white">
-                  {t('settings.notifications.activate')}
-                </Text>
-              )}
-            </Pressable>
-          </View>
-          <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
-            <Text className="text-sm text-gray-500">
-              {t('settings.notifications.undeterminedHint')}
-            </Text>
-          </View>
-        </>
+        <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
+          <Text className="text-sm text-gray-500">
+            {t('settings.notifications.undeterminedHint')}
+          </Text>
+        </View>
       ) : null}
 
       {permissionStatus === 'denied' ? (
         <>
-          <View className="px-4 py-3.5">
+          <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
+            <Text className="text-sm text-gray-500">
+              {t('settings.notifications.deniedHint')}
+            </Text>
+          </View>
+          <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
             <Pressable
               className="h-11 items-center justify-center rounded-xl bg-[#4F46E5]"
               onPress={() => void Linking.openSettings()}>
@@ -215,43 +336,23 @@ export function NotificationsSettingsSection({ userId }: NotificationsSettingsSe
               </Text>
             </Pressable>
           </View>
-          <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
-            <Text className="text-sm text-gray-500">
-              {t('settings.notifications.deniedHint')}
-            </Text>
-          </View>
         </>
       ) : null}
 
-      {permissionStatus === 'granted' ? (
-        <>
-          {BUCKETS.map((bucket, index) => {
-            const enabled = enabledForBucket(prefs, bucket);
-            return (
-              <View
-                key={bucket}
-                className={index === 0 ? '' : `border-t ${SETTINGS_GLASS_DIVIDER_CLASS}`}>
-                <View className="flex-row items-center justify-between px-4 py-3.5">
-                  <Text className="flex-1 text-base text-gray-900">
-                    {t(`settings.notifications.meals.${bucket}`)}
-                  </Text>
-                  <Switch
-                    value={enabled}
-                    disabled={isBusy}
-                    onValueChange={(value) => void handleToggle(bucket, value)}
-                    trackColor={{ false: '#D1D5DB', true: '#4F46E5' }}
-                    thumbColor="#FFFFFF"
-                  />
-                </View>
-              </View>
-            );
-          })}
-          <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
-            <Text className="text-sm text-gray-500">
-              {t('settings.notifications.learningHint')}
-            </Text>
-          </View>
-        </>
+      {permissionStatus === 'granted' && tokenRegistrationFailed ? (
+        <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
+          <Text className="text-sm text-amber-700">
+            {t('settings.notifications.tokenRegistrationFailed')}
+          </Text>
+        </View>
+      ) : null}
+
+      {permissionStatus === 'granted' && !tokenRegistrationFailed ? (
+        <View className={`border-t ${SETTINGS_GLASS_DIVIDER_CLASS} px-4 py-3.5`}>
+          <Text className="text-sm text-gray-500">
+            {t('settings.notifications.learningHint')}
+          </Text>
+        </View>
       ) : null}
     </SettingsSection>
   );

@@ -133,6 +133,10 @@ async function registerPushToken(userId: string): Promise<'granted' | 'token_fai
     return 'granted';
   } catch (error) {
     Sentry.captureException(error, { tags: { flow: 'push-registration' } });
+    Sentry.captureMessage('push token registration failed', {
+      level: 'warning',
+      tags: { reason: 'push_token_registration_failed' },
+    });
     console.error('[Notifications] token registration failed:', error);
     return 'token_failed';
   }
@@ -240,6 +244,22 @@ export async function ensurePushRegistration(
 
   const tokenStatus = await registerPushToken(userId);
   return { status: tokenStatus, prompted };
+}
+
+/** True when this user has at least one row in push_tokens (any device). */
+export async function userHasPushToken(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('push_tokens')
+    .select('expo_push_token')
+    .eq('user_id', userId)
+    .limit(1);
+
+  if (error) {
+    console.error('[Notifications] push_tokens lookup failed:', error);
+    return false;
+  }
+
+  return (data?.length ?? 0) > 0;
 }
 
 export async function unregisterPushToken(userId: string) {
