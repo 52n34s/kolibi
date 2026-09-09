@@ -12,6 +12,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
@@ -263,6 +265,33 @@ export default function HomeScreen() {
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [isSavingMealEdit, setIsSavingMealEdit] = useState(false);
   const [isDeletingMeal, setIsDeletingMeal] = useState(false);
+
+  const switchHomeTab = useCallback((tab: HomeTab) => {
+    setHomeTab(tab);
+  }, []);
+
+  const homeTabSwipeGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-24, 24])
+        .failOffsetY([-16, 16])
+        .onEnd((event) => {
+          'worklet';
+          const distance = 56;
+          const flick = 450;
+          const toMeals =
+            event.translationX < -distance || event.velocityX < -flick;
+          const toToday =
+            event.translationX > distance || event.velocityX > flick;
+
+          if (toMeals) {
+            runOnJS(switchHomeTab)('meals');
+          } else if (toToday) {
+            runOnJS(switchHomeTab)('today');
+          }
+        }),
+    [switchHomeTab],
+  );
 
   const secureStore = useMemo(() => createChunkedSecureStoreAdapter(), []);
 
@@ -1342,138 +1371,140 @@ export default function HomeScreen() {
         <HistoryKoliButton accessibilityLabel={t('koli.title')} />
       </View>
       <View className="flex-1">
-        <ScrollView
-          className="flex-1 px-6"
-          contentContainerStyle={{ paddingTop: contentTopPadding, paddingBottom: 120 }}
-          showsVerticalScrollIndicator={false}>
-          <Text className="mb-4 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
+        <GestureDetector gesture={homeTabSwipeGesture}>
+          <ScrollView
+            className="flex-1 px-6"
+            contentContainerStyle={{ paddingTop: contentTopPadding, paddingBottom: 120 }}
+            showsVerticalScrollIndicator={false}>
+            <Text className="mb-4 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
 
-          {isAnonymousUser ? (
-            <Pressable className="mb-2" onPress={() => navigateToSignIn()}>
-              <Text className="text-gray-500" style={{ fontSize: 11 }}>
-                {t('home.returningUser.prompt')}
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {isInTrial ? (
-            trialDaysLeft === 0 ? (
-              <Pressable className="mb-2" onPress={() => openPaywall({ withValuePitch: false })}>
+            {isAnonymousUser ? (
+              <Pressable className="mb-2" onPress={() => navigateToSignIn()}>
                 <Text className="text-gray-500" style={{ fontSize: 11 }}>
-                  {t('home.trial.endsToday')}
+                  {t('home.returningUser.prompt')}
                 </Text>
               </Pressable>
-            ) : (
-              <Text className="mb-2 text-gray-500" style={{ fontSize: 11 }}>
-                {t('home.trial.daysLeft', { count: trialDaysLeft })}
-              </Text>
-            )
-          ) : null}
+            ) : null}
 
-          <View className="mb-5">
-            <PillSegmentSwitcher
-              value={homeTab}
-              onChange={setHomeTab}
-              segments={[
-                { id: 'today', label: t('home.tabs.today') },
-                { id: 'meals', label: t('home.tabs.meals') },
-              ]}
-            />
-          </View>
-
-          {homeTab === 'today' ? (
-            <>
-              {calorieGoalDisplay ? (
-                <View
-                  style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-                  <View className="px-5 py-6">
-                    <Text
-                      style={[
-                        styles.calorieHeroValue,
-                        {
-                          color: calorieGoalDisplay.isOverGoal
-                            ? CALORIE_OVER_GOAL_COLOR
-                            : CALORIE_GOAL_ACCENT,
-                          textAlign: 'center',
-                        },
-                      ]}>
-                      {formatKcal(calorieGoalDisplay.mainValue)}
-                    </Text>
-                    {calorieGoalDisplay.showOverLabel ? (
-                      <Text className="mt-1 text-center text-base font-medium text-amber-700">
-                        {t('home.calorieGoal.overGoal')}
-                      </Text>
-                    ) : null}
-                    <Text
-                      className={`text-center text-sm text-gray-500 ${calorieGoalDisplay.showOverLabel ? 'mt-1' : 'mt-2'}`}>
-                      {calorieGoalDisplay.mode === 'dynamic'
-                        ? t('home.calorieGoal.dynamicDailyGoalReference', {
-                            total: formatKcal(
-                              calorieGoalDisplay.dailyGoal +
-                                (calorieGoalDisplay.activeEnergyBurned ?? 0),
-                            ),
-                            burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
-                          })
-                        : t('home.calorieGoal.dailyGoalReference', {
-                            goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
-                          })}
-                    </Text>
-                    <View className="mt-5">
-                      <HomeProgressRows rows={calorieMacroRows} />
-                    </View>
-                  </View>
-                </View>
+            {isInTrial ? (
+              trialDaysLeft === 0 ? (
+                <Pressable className="mb-2" onPress={() => openPaywall({ withValuePitch: false })}>
+                  <Text className="text-gray-500" style={{ fontSize: 11 }}>
+                    {t('home.trial.endsToday')}
+                  </Text>
+                </Pressable>
               ) : (
-                <View style={getOnboardingSecondarySurfaceStyle()}>
-                  <Pressable
-                    onPress={openCalorieGoalSettings}
-                    style={({ pressed }) => [
-                      pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
-                    ]}>
-                    <View className="flex-row items-center px-4 py-3">
-                      <Text className="flex-1 text-sm text-gray-500">
-                        {t('home.calorieGoal.emptyPrefix')}
-                        <Text className="font-medium text-[#4F46E5]">
-                          {t('home.calorieGoal.emptyAction')}
-                        </Text>
+                <Text className="mb-2 text-gray-500" style={{ fontSize: 11 }}>
+                  {t('home.trial.daysLeft', { count: trialDaysLeft })}
+                </Text>
+              )
+            ) : null}
+
+            <View className="mb-5">
+              <PillSegmentSwitcher
+                value={homeTab}
+                onChange={setHomeTab}
+                segments={[
+                  { id: 'today', label: t('home.tabs.today') },
+                  { id: 'meals', label: t('home.tabs.meals') },
+                ]}
+              />
+            </View>
+
+            {homeTab === 'today' ? (
+              <>
+                {calorieGoalDisplay ? (
+                  <View
+                    style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+                    <View className="px-5 py-6">
+                      <Text
+                        style={[
+                          styles.calorieHeroValue,
+                          {
+                            color: calorieGoalDisplay.isOverGoal
+                              ? CALORIE_OVER_GOAL_COLOR
+                              : CALORIE_GOAL_ACCENT,
+                            textAlign: 'center',
+                          },
+                        ]}>
+                        {formatKcal(calorieGoalDisplay.mainValue)}
                       </Text>
-                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                      {calorieGoalDisplay.showOverLabel ? (
+                        <Text className="mt-1 text-center text-base font-medium text-amber-700">
+                          {t('home.calorieGoal.overGoal')}
+                        </Text>
+                      ) : null}
+                      <Text
+                        className={`text-center text-sm text-gray-500 ${calorieGoalDisplay.showOverLabel ? 'mt-1' : 'mt-2'}`}>
+                        {calorieGoalDisplay.mode === 'dynamic'
+                          ? t('home.calorieGoal.dynamicDailyGoalReference', {
+                              total: formatKcal(
+                                calorieGoalDisplay.dailyGoal +
+                                  (calorieGoalDisplay.activeEnergyBurned ?? 0),
+                              ),
+                              burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
+                            })
+                          : t('home.calorieGoal.dailyGoalReference', {
+                              goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
+                            })}
+                      </Text>
+                      <View className="mt-5">
+                        <HomeProgressRows rows={calorieMacroRows} />
+                      </View>
                     </View>
-                  </Pressable>
-                </View>
-              )}
-
-              {activityRows.length > 0 ? (
-                <View
-                  className="mt-4"
-                  style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-                  <View className="px-5 py-4">
-                    <HomeProgressRows rows={activityRows} />
                   </View>
-                </View>
-              ) : null}
+                ) : (
+                  <View style={getOnboardingSecondarySurfaceStyle()}>
+                    <Pressable
+                      onPress={openCalorieGoalSettings}
+                      style={({ pressed }) => [
+                        pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
+                      ]}>
+                      <View className="flex-row items-center px-4 py-3">
+                        <Text className="flex-1 text-sm text-gray-500">
+                          {t('home.calorieGoal.emptyPrefix')}
+                          <Text className="font-medium text-[#4F46E5]">
+                            {t('home.calorieGoal.emptyAction')}
+                          </Text>
+                        </Text>
+                        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                      </View>
+                    </Pressable>
+                  </View>
+                )}
 
-              <View className="mt-6">
-                <WeightProgressCard
-                  currentValue={weightLabel}
-                  startLabel={t('home.weight.startTitle')}
-                  startValue={startWeightLabel}
-                  targetLabel={t('home.weight.targetTitle')}
-                  targetValue={targetWeightLabel}
-                  progressPercent={weightProgressPercent}
-                  accessibilityLabel={t('home.weight.label')}
-                  onPress={openCurrentWeightSheet}
-                />
-              </View>
-            </>
-          ) : (
-            <TodayMealsSection
-              meals={todayMeals}
-              isLoading={isTodayMealsLoading}
-              onMealPress={handleTodayMealPress}
-            />
-          )}
-        </ScrollView>
+                {activityRows.length > 0 ? (
+                  <View
+                    className="mt-4"
+                    style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+                    <View className="px-5 py-4">
+                      <HomeProgressRows rows={activityRows} />
+                    </View>
+                  </View>
+                ) : null}
+
+                <View className="mt-6">
+                  <WeightProgressCard
+                    currentValue={weightLabel}
+                    startLabel={t('home.weight.startTitle')}
+                    startValue={startWeightLabel}
+                    targetLabel={t('home.weight.targetTitle')}
+                    targetValue={targetWeightLabel}
+                    progressPercent={weightProgressPercent}
+                    accessibilityLabel={t('home.weight.label')}
+                    onPress={openCurrentWeightSheet}
+                  />
+                </View>
+              </>
+            ) : (
+              <TodayMealsSection
+                meals={todayMeals}
+                isLoading={isTodayMealsLoading}
+                onMealPress={handleTodayMealPress}
+              />
+            )}
+          </ScrollView>
+        </GestureDetector>
 
         <View className="absolute bottom-8 left-0 right-0 items-center px-6">
           <View className="flex-row items-end justify-center gap-5">

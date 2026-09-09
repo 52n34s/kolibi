@@ -19,6 +19,7 @@ import {
 } from '@/components/scan/meal-food-autocomplete-overlay';
 import {
   applyOffProductToRow,
+  changeRowItemAbsoluteMacro,
   changeRowItemKcal,
   changeRowItemName,
   changeRowItemQuantity,
@@ -393,6 +394,9 @@ function ManualMealEntrySheetContent({
               onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
               onChangeQuantity={(id, value) =>
                 updateRowItem(id, (row) => changeRowItemQuantity(row, value))
+              }
+              onChangeMacro={(id, key, value) =>
+                updateRowItem(id, (row) => changeRowItemAbsoluteMacro(row, key, value))
               }
               onChangeUnit={(id, unit) => updateRowItem(id, (row) => changeRowItemUnit(row, unit))}
               onNameFieldFocus={handleNameFieldFocus}

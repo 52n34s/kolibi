@@ -436,6 +436,40 @@ export function buildMealListTitle(meal: TodayMeal): string {
   return `${names[0]} +${names.length - 1}`;
 }
 
+/**
+ * Per-meal macros for list rows. A macro is unknown when every item leaves it null
+ * (SQL meal totals coalesce missing to 0 — those must not show as "0 g").
+ */
+export function getMealMacroDisplay(meal: TodayMeal): {
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+} {
+  const resolve = (
+    itemKey: 'protein_g' | 'carbs_g' | 'fat_g' | 'fiber_g',
+    total: number,
+  ): number | null => {
+    if (meal.items.length > 0) {
+      const anyKnown = meal.items.some((item) => item[itemKey] != null);
+      return anyKnown ? total : null;
+    }
+
+    // No line items (shouldn't happen for Home) — treat 0 + kcal as data gap.
+    if (meal.total_kcal > 0 && total === 0) {
+      return null;
+    }
+    return total;
+  };
+
+  return {
+    proteinG: resolve('protein_g', meal.total_protein_g),
+    carbsG: resolve('carbs_g', meal.total_carbs_g),
+    fatG: resolve('fat_g', meal.total_fat_g),
+    fiberG: resolve('fiber_g', meal.total_fiber_g),
+  };
+}
+
 export async function fetchMealsForLocalDate(
   userId: string,
   dateKey: string,

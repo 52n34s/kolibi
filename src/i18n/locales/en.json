@@ -310,6 +310,10 @@
       "emptySubtitle": "Scan your first meal to start tracking.",
       "unnamedMeal": "Meal",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
+      "macroAbbrevProtein": "P",
+      "macroAbbrevCarbs": "C",
+      "macroAbbrevFat": "F",
+      "macroAbbrevFiber": "Fb",
       "quantityMass": "{{amount}} {{unit}}",
       "quantityCount": "{{count}} pcs"
     },
@@ -323,7 +327,16 @@
       "kcalLabel": "kcal",
       "densityHint": "{{kcal}} kcal / 100 {{unit}}",
       "pcsUnavailableTitle": "Piece weight unknown",
-      "pcsUnavailableMessage": "The piece weight for this product is not known."
+      "pcsUnavailableMessage": "The piece weight for this product is not known.",
+      "nutrientsToggle": "Nutrients",
+      "nutrientsEmpty": "No nutrients entered",
+      "nutrientsAbbrevProtein": "P",
+      "nutrientsAbbrevCarbs": "C",
+      "nutrientsAbbrevFat": "F",
+      "proteinLabel": "Protein (g)",
+      "carbsLabel": "Carbs (g)",
+      "fatLabel": "Fat (g)",
+      "fiberLabel": "Fiber (g)"
     },
     "manualEntry": {
       "buttonLabel": "Manual",

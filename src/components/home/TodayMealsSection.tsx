@@ -1,14 +1,20 @@
 import { Image } from 'expo-image';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   getOnboardingIdleCardStyle,
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
-import { buildMealListTitle, formatTodayMealQuantityLabel, type TodayMeal } from '@/lib/meals';
+import { TEXT_SECONDARY } from '@/constants/brand';
+import {
+  buildMealListTitle,
+  formatTodayMealQuantityLabel,
+  getMealMacroDisplay,
+  type TodayMeal,
+} from '@/lib/meals';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
 
@@ -23,6 +29,31 @@ function formatMealTime(eatenAt: string, locale: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatMealMacrosLine(
+  meal: TodayMeal,
+  t: (key: string) => string,
+): string | null {
+  const macros = getMealMacroDisplay(meal);
+  const parts: string[] = [];
+
+  if (macros.proteinG != null) {
+    parts.push(
+      `${Math.round(macros.proteinG)} g ${t('home.meals.macroAbbrevProtein')}`,
+    );
+  }
+  if (macros.carbsG != null) {
+    parts.push(`${Math.round(macros.carbsG)} g ${t('home.meals.macroAbbrevCarbs')}`);
+  }
+  if (macros.fatG != null) {
+    parts.push(`${Math.round(macros.fatG)} g ${t('home.meals.macroAbbrevFat')}`);
+  }
+  if (macros.fiberG != null) {
+    parts.push(`${Math.round(macros.fiberG)} g ${t('home.meals.macroAbbrevFiber')}`);
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 export function TodayMealsSection({ meals, isLoading, onMealPress }: TodayMealsSectionProps) {
@@ -72,6 +103,7 @@ export function TodayMealsSection({ meals, isLoading, onMealPress }: TodayMealsS
       {mealRows.map((meal) => {
         const summary = buildMealListTitle(meal);
         const timeLabel = formatMealTime(meal.eaten_at, i18n.language);
+        const macrosLine = formatMealMacrosLine(meal, t);
 
         return (
           <Pressable
@@ -93,6 +125,11 @@ export function TodayMealsSection({ meals, isLoading, onMealPress }: TodayMealsS
                   time: timeLabel,
                 })}
               </Text>
+              {macrosLine ? (
+                <Text style={styles.macrosLine} numberOfLines={1} ellipsizeMode="tail">
+                  {macrosLine}
+                </Text>
+              ) : null}
             </View>
           </Pressable>
         );
@@ -100,3 +137,12 @@ export function TodayMealsSection({ meals, isLoading, onMealPress }: TodayMealsS
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  macrosLine: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '500',
+    color: TEXT_SECONDARY,
+  },
+});

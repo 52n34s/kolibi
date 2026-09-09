@@ -27,6 +27,7 @@ import {
 } from '@/components/scan/barcode-quantity-utils';
 import { MealItemRow } from '@/components/scan/MealItemRow';
 import {
+  changeRowItemAbsoluteMacro,
   changeRowItemKcal,
   changeRowItemName,
   changeRowItemQuantity,
@@ -232,6 +233,9 @@ function BarcodeQuantityContent({
           onChangeKcal={(id, value) => updateRowItem(id, (row) => changeRowItemKcal(row, value))}
           onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
           onChangeQuantity={handleRowQuantityChange}
+          onChangeMacro={(id, key, value) =>
+            updateRowItem(id, (row) => changeRowItemAbsoluteMacro(row, key, value))
+          }
           onChangeUnit={(id, unit) => {
             setSelectedOption('custom');
             updateRowItem(id, (row) => changeRowItemUnit(row, unit));

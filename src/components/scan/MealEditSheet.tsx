@@ -12,6 +12,7 @@ import {
 
 import { MealItemRow } from '@/components/scan/MealItemRow';
 import {
+  changeRowItemAbsoluteMacro,
   changeRowItemKcal,
   changeRowItemName,
   changeRowItemQuantity,
@@ -345,6 +346,9 @@ export function MealEditSheet({
                 onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
                 onChangeQuantity={(id, value) =>
                   updateRowItem(id, (row) => changeRowItemQuantity(row, value))
+                }
+                onChangeMacro={(id, key, value) =>
+                  updateRowItem(id, (row) => changeRowItemAbsoluteMacro(row, key, value))
                 }
                 onChangeUnit={(id, unit) => updateRowItem(id, (row) => changeRowItemUnit(row, unit))}
                 onRemove={rowItems.length > 1 ? handleRemoveProduct : undefined}

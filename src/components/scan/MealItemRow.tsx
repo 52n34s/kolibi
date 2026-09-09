@@ -24,6 +24,7 @@ import {
   isLinkedItem,
   isPcsUnitAvailable,
   KCAL_STEP,
+  type MealItemMacroKey,
   type MealItemRowItem,
   type MealItemUnit,
 } from '@/components/scan/meal-item-row-model';
@@ -44,6 +45,7 @@ export type MealItemRowProps = {
   onChangeUnit: (id: string, unit: MealItemUnit) => void;
   onChangeQuantity: (id: string, value: number) => void;
   onChangeKcal: (id: string, value: number) => void;
+  onChangeMacro: (id: string, key: MealItemMacroKey, value: number | null) => void;
   onRemove?: (id: string) => void;
   invalid?: boolean;
   onNameFieldFocus?: (id: string, anchor: NameFieldAnchor) => void;
@@ -214,6 +216,127 @@ function StepperField({
   );
 }
 
+function formatMacroDisplay(value: number | null): string {
+  if (value == null) {
+    return '';
+  }
+
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function parseMacroInput(text: string): number | null {
+  const normalized = text.trim().replace(',', '.');
+  if (normalized === '' || normalized === '.') {
+    return null;
+  }
+
+  const value = Number.parseFloat(normalized);
+  if (!Number.isFinite(value) || value < 0) {
+    return null;
+  }
+
+  return Math.round(value * 10) / 10;
+}
+
+type MacroNumberFieldProps = {
+  label: string;
+  value: number | null;
+  onChange: (value: number | null) => void;
+};
+
+function MacroNumberField({ label, value, onChange }: MacroNumberFieldProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [draftText, setDraftText] = useState('');
+  const [selectAllOnFocus, setSelectAllOnFocus] = useState(true);
+  const skipNextSelectionChangeRef = useRef(false);
+  const displayValue = isFocused ? draftText : formatMacroDisplay(value);
+
+  function commitDraft(text: string) {
+    onChange(parseMacroInput(text));
+  }
+
+  return (
+    <View style={styles.macroField}>
+      <Text style={styles.macroLabel}>{label}</Text>
+      <TextInput
+        accessibilityLabel={label}
+        keyboardType="numbers-and-punctuation"
+        returnKeyType="done"
+        blurOnSubmit
+        selectTextOnFocus={selectAllOnFocus}
+        onSubmitEditing={() => Keyboard.dismiss()}
+        style={[styles.macroInput, isFocused && styles.macroInputFocused]}
+        value={displayValue}
+        placeholder="—"
+        placeholderTextColor="#9CA3AF"
+        onBlur={() => {
+          commitDraft(draftText);
+          setIsFocused(false);
+          setSelectAllOnFocus(true);
+          skipNextSelectionChangeRef.current = false;
+          setDraftText('');
+        }}
+        onSelectionChange={() => {
+          if (skipNextSelectionChangeRef.current) {
+            skipNextSelectionChangeRef.current = false;
+            return;
+          }
+
+          if (selectAllOnFocus) {
+            setSelectAllOnFocus(false);
+          }
+        }}
+        onChangeText={(text) => {
+          if (!isPartialNumericInput(text, true)) {
+            return;
+          }
+
+          setDraftText(text);
+          const normalized = text.trim().replace(',', '.');
+          if (normalized === '') {
+            onChange(null);
+            return;
+          }
+          if (normalized === '.') {
+            return;
+          }
+
+          const parsed = Number.parseFloat(normalized);
+          if (Number.isFinite(parsed) && parsed >= 0) {
+            onChange(Math.round(parsed * 10) / 10);
+          }
+        }}
+        onFocus={() => {
+          const initialDraft = formatMacroDisplay(value);
+          setIsFocused(true);
+          setDraftText(initialDraft);
+          setSelectAllOnFocus(true);
+          skipNextSelectionChangeRef.current = true;
+        }}
+      />
+    </View>
+  );
+}
+
+function formatCollapsedNutrientsSummary(
+  item: MealItemRowItem,
+  t: (key: string) => string,
+): string | null {
+  const parts: string[] = [];
+  if (item.proteinG != null) {
+    parts.push(`${Math.round(item.proteinG)} ${t('home.mealItemRow.nutrientsAbbrevProtein')}`);
+  }
+  if (item.carbsG != null) {
+    parts.push(`${Math.round(item.carbsG)} ${t('home.mealItemRow.nutrientsAbbrevCarbs')}`);
+  }
+  if (item.fatG != null) {
+    parts.push(`${Math.round(item.fatG)} ${t('home.mealItemRow.nutrientsAbbrevFat')}`);
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
 function getQuantityBarSuffix(
   unit: MealItemUnit,
   unitSystem: UnitSystem,
@@ -254,6 +377,7 @@ export function MealItemRow({
   onChangeUnit,
   onChangeQuantity,
   onChangeKcal,
+  onChangeMacro,
   onRemove,
   invalid = false,
   onNameFieldFocus,
@@ -267,6 +391,7 @@ export function MealItemRow({
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [nameFocused, setNameFocused] = useState(false);
   const [nameDraft, setNameDraft] = useState(item.name);
+  const [nutrientsExpanded, setNutrientsExpanded] = useState(false);
   const lastSentNameRef = useRef(item.name);
   const nameInputWrapRef = useRef<View>(null);
 
@@ -473,6 +598,49 @@ export function MealItemRow({
         />
       </View>
 
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: nutrientsExpanded }}
+        style={styles.nutrientsToggle}
+        onPress={() => setNutrientsExpanded((current) => !current)}>
+        <View style={styles.nutrientsToggleText}>
+          <Text style={styles.nutrientsToggleTitle}>{t('home.mealItemRow.nutrientsToggle')}</Text>
+          <Text style={styles.nutrientsToggleSummary}>
+            {formatCollapsedNutrientsSummary(item, t) ?? t('home.mealItemRow.nutrientsEmpty')}
+          </Text>
+        </View>
+        <Ionicons
+          name={nutrientsExpanded ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color="#6B7280"
+        />
+      </Pressable>
+
+      {nutrientsExpanded ? (
+        <View style={styles.macrosGrid}>
+          <MacroNumberField
+            label={t('home.mealItemRow.proteinLabel')}
+            value={item.proteinG}
+            onChange={(value) => onChangeMacro(item.id, 'protein', value)}
+          />
+          <MacroNumberField
+            label={t('home.mealItemRow.carbsLabel')}
+            value={item.carbsG}
+            onChange={(value) => onChangeMacro(item.id, 'carbs', value)}
+          />
+          <MacroNumberField
+            label={t('home.mealItemRow.fatLabel')}
+            value={item.fatG}
+            onChange={(value) => onChangeMacro(item.id, 'fat', value)}
+          />
+          <MacroNumberField
+            label={t('home.mealItemRow.fiberLabel')}
+            value={item.fiberG}
+            onChange={(value) => onChangeMacro(item.id, 'fiber', value)}
+          />
+        </View>
+      ) : null}
+
       {isLinkedItem(item) ? (
         <Text style={styles.densityHint}>
           {t('home.mealItemRow.densityHint', {
@@ -606,5 +774,59 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#6B7280',
     textAlign: 'center',
+  },
+  nutrientsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  nutrientsToggleText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  nutrientsToggleTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  nutrientsToggleSummary: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  macrosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  macroField: {
+    width: '47%',
+    flexGrow: 1,
+    minWidth: 120,
+  },
+  macroLabel: {
+    marginBottom: 4,
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  macroInput: {
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  macroInputFocused: {
+    borderColor: '#4F46E5',
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
   },
 });

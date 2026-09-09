@@ -415,6 +415,64 @@ export function changeRowItemName(item: MealItemRowItem, name: string): MealItem
   return { ...item, name };
 }
 
+export type MealItemMacroKey = 'protein' | 'carbs' | 'fat' | 'fiber';
+
+const MACRO_ABSOLUTE_KEY: Record<MealItemMacroKey, keyof AbsoluteMacros> = {
+  protein: 'proteinG',
+  carbs: 'carbsG',
+  fat: 'fatG',
+  fiber: 'fiberG',
+};
+
+/** Empty → null (unknown). With grams > 0, derives macrosPer100g for that field so quantity stays coupled. */
+export function changeRowItemAbsoluteMacro(
+  item: MealItemRowItem,
+  key: MealItemMacroKey,
+  absoluteGrams: number | null,
+): MealItemRowItem {
+  const absoluteKey = MACRO_ABSOLUTE_KEY[key];
+  const normalized =
+    absoluteGrams == null || !Number.isFinite(absoluteGrams)
+      ? null
+      : Math.max(0, Math.round(absoluteGrams * 10) / 10);
+
+  const nextAbsolutes: AbsoluteMacros = {
+    ...rowAbsoluteMacros(item),
+    [absoluteKey]: normalized,
+  };
+
+  const grams = getRowItemTotalGrams(item);
+  let nextMacrosPer100g: MacrosPer100g | null = item.macrosPer100g;
+
+  if (grams > 0) {
+    const base: MacrosPer100g = item.macrosPer100g ?? {
+      protein: null,
+      carbs: null,
+      fat: null,
+      fiber: null,
+    };
+    const density: MacrosPer100g = {
+      ...base,
+      [key]: normalized == null ? null : (normalized / grams) * 100,
+    };
+    const allNull =
+      density.protein == null &&
+      density.carbs == null &&
+      density.fat == null &&
+      density.fiber == null;
+    nextMacrosPer100g = allNull ? null : density;
+  }
+
+  return {
+    ...item,
+    proteinG: nextAbsolutes.proteinG,
+    carbsG: nextAbsolutes.carbsG,
+    fatG: nextAbsolutes.fatG,
+    fiberG: nextAbsolutes.fiberG,
+    macrosPer100g: nextMacrosPer100g,
+  };
+}
+
 export function getRowItemValidationIssue(item: MealItemRowItem): MealRowValidationIssue | null {
   if (item.name.trim().length === 0) {
     return 'missingName';

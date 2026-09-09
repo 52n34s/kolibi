@@ -47,6 +47,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PostHogProvider } from 'posthog-react-native';
 
 import { useAuthStore } from '@/stores/auth-store';
@@ -213,16 +214,16 @@ function RootLayout() {
     </QueryClientProvider>
   );
 
-  if (!posthog) {
-    return app;
+  let tree = app;
+  if (posthog) {
+    try {
+      tree = <PostHogProvider client={posthog}>{app}</PostHogProvider>;
+    } catch (error) {
+      console.error('[PostHog] provider failed:', error);
+    }
   }
 
-  try {
-    return <PostHogProvider client={posthog}>{app}</PostHogProvider>;
-  } catch (error) {
-    console.error('[PostHog] provider failed:', error);
-    return app;
-  }
+  return <GestureHandlerRootView style={{ flex: 1 }}>{tree}</GestureHandlerRootView>;
 }
 
 export default Sentry.wrap(RootLayout);

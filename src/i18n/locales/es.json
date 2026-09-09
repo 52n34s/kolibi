@@ -310,6 +310,10 @@
       "emptySubtitle": "Escanea tu primera comida para empezar.",
       "unnamedMeal": "Comida",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
+      "macroAbbrevProtein": "P",
+      "macroAbbrevCarbs": "C",
+      "macroAbbrevFat": "G",
+      "macroAbbrevFiber": "Fi",
       "quantityMass": "{{amount}} {{unit}}",
       "quantityCount": "{{count}} uds."
     },
@@ -323,7 +327,16 @@
       "kcalLabel": "kcal",
       "densityHint": "{{kcal}} kcal / 100 {{unit}}",
       "pcsUnavailableTitle": "Peso por unidad desconocido",
-      "pcsUnavailableMessage": "No se conoce el peso por unidad de este producto."
+      "pcsUnavailableMessage": "No se conoce el peso por unidad de este producto.",
+      "nutrientsToggle": "Nutrientes",
+      "nutrientsEmpty": "Sin nutrientes registrados",
+      "nutrientsAbbrevProtein": "P",
+      "nutrientsAbbrevCarbs": "C",
+      "nutrientsAbbrevFat": "G",
+      "proteinLabel": "Proteína (g)",
+      "carbsLabel": "Carbohidratos (g)",
+      "fatLabel": "Grasa (g)",
+      "fiberLabel": "Fibra (g)"
     },
     "manualEntry": {
       "buttonLabel": "Manual",

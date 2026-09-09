@@ -310,6 +310,10 @@
       "emptySubtitle": "Scanne deine erste Mahlzeit, um zu starten.",
       "unnamedMeal": "Mahlzeit",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
+      "macroAbbrevProtein": "P",
+      "macroAbbrevCarbs": "K",
+      "macroAbbrevFat": "F",
+      "macroAbbrevFiber": "B",
       "quantityMass": "{{amount}} {{unit}}",
       "quantityCount": "{{count}} Stück"
     },
@@ -323,7 +327,16 @@
       "kcalLabel": "kcal",
       "densityHint": "{{kcal}} kcal / 100 {{unit}}",
       "pcsUnavailableTitle": "Stückgewicht unbekannt",
-      "pcsUnavailableMessage": "Das Stückgewicht für dieses Produkt ist nicht bekannt."
+      "pcsUnavailableMessage": "Das Stückgewicht für dieses Produkt ist nicht bekannt.",
+      "nutrientsToggle": "Nährwerte",
+      "nutrientsEmpty": "Keine Nährwerte hinterlegt",
+      "nutrientsAbbrevProtein": "P",
+      "nutrientsAbbrevCarbs": "K",
+      "nutrientsAbbrevFat": "F",
+      "proteinLabel": "Protein (g)",
+      "carbsLabel": "Kohlenhydrate (g)",
+      "fatLabel": "Fett (g)",
+      "fiberLabel": "Ballaststoffe (g)"
     },
     "manualEntry": {
       "buttonLabel": "Manuell",
