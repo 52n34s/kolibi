@@ -373,13 +373,15 @@
       "buttonLabel": "Search food",
       "title": "Search food",
       "placeholder": "e.g. rice, yogurt…",
-      "minLengthHint": "Type at least 3 characters to search.",
+      "minLengthHint": "Type at least 2 characters to search.",
       "rateLimited": "Too many searches right now. You can still enter the product manually.",
       "searchUnavailable": "Search is temporarily unavailable — enter amount and calories yourself.",
       "searching": "Searching…",
       "kcalPer100g": "{{kcal}} kcal / 100 g",
       "enterManually": "Enter \"{{query}}\" manually",
-      "noResultsHint": "No match — you can enter it yourself."
+      "noResultsHint": "No match — you can enter it yourself.",
+      "suggestionsRecent": "Recent",
+      "suggestionsFrequent": "Frequent"
     },
     "mealEdit": {
       "title": "Edit meal",

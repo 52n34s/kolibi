@@ -11,6 +11,7 @@ import type {
   NameFieldAnchor,
   SheetLayout,
 } from '@/components/scan/FoodNameAutocompleteDropdown';
+import type { FoodSuggestionMode } from '@/lib/food-suggestions';
 import type { FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
 
 export type FoodAutocompletePlacementMode = 'floating-bar' | 'field';
@@ -27,6 +28,13 @@ export type FoodAutocompleteOverlayState = {
   rateLimited: boolean;
   searchUnavailable: boolean;
   onSelect: (product: FoodSearchProduct) => void;
+  /**
+   * Set only while `results` are history suggestions rather than search hits — the
+   * manual entry sheet is the only caller that does so. `null`/omitted means no
+   * switcher, which is what the scan and edit sheets keep getting.
+   */
+  suggestionMode?: FoodSuggestionMode | null;
+  onSuggestionModeChange?: (mode: FoodSuggestionMode) => void;
 };
 
 type FoodAutocompleteOverlayActions = {

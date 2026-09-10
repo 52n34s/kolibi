@@ -36,7 +36,18 @@ import { MealItemsSheetBody, MEAL_SHEET_MAX_HEIGHT_RATIO } from '@/components/sc
 import { mealEntrySheetStyles as styles } from '@/components/scan/meal-entry-shared';
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import { useFoodNameSearch } from '@/hooks/use-food-name-search';
+import { useFoodSuggestions } from '@/hooks/use-food-suggestions';
+import {
+  FOOD_SUGGESTION_MIN_ROWS,
+  sortFoodSuggestions,
+  type FoodSuggestionMode,
+} from '@/lib/food-suggestions';
 import { resolveFoodIdForOffProduct } from '@/lib/foods-cache';
+import {
+  getStoredMealSuggestMode,
+  setStoredMealSuggestMode,
+} from '@/lib/meal-suggest-mode-storage';
+import { useAuthStore } from '@/stores/auth-store';
 import type { FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
 import type { EditableMealItem } from '@/services/mealVision/types';
 import { formatKcal } from '@/utils/format';
@@ -58,14 +69,22 @@ export function ManualMealEntrySheet({
   onDismissed,
   onSave,
 }: ManualMealEntrySheetProps) {
+  // Modal.onShow fires once the presentation animation is done. Focusing before that
+  // lets iOS swallow the keyboard or stutter the slide-in, so autofocus waits for it.
+  // A counter rather than a flag: the content remounts per open and compares against
+  // the value it mounted with, so there is nothing to reset when the sheet closes.
+  const [presentationId, setPresentationId] = useState(0);
+
   return (
     <GlassBottomSheet
       visible={visible}
       onClose={onClose}
+      onShow={() => setPresentationId((id) => id + 1)}
       onDismissed={onDismissed}
       maxHeightRatio={MEAL_SHEET_MAX_HEIGHT_RATIO}>
       <ManualMealEntrySheetContent
         visible={visible}
+        presentationId={presentationId}
         isSaving={isSaving}
         onSave={onSave}
       />
@@ -75,14 +94,19 @@ export function ManualMealEntrySheet({
 
 function ManualMealEntrySheetContent({
   visible,
+  presentationId,
   isSaving,
   onSave,
-}: Pick<ManualMealEntrySheetProps, 'visible' | 'isSaving' | 'onSave'>) {
+}: Pick<ManualMealEntrySheetProps, 'visible' | 'isSaving' | 'onSave'> & {
+  presentationId: number;
+}) {
   const { t } = useTranslation();
   const { height: windowHeight } = useWindowDimensions();
   const mealInputBarValues = useMealInputBarValues();
   const mealInputBarActions = useMealInputBarActions();
   const overlayActions = useFoodAutocompleteOverlayActions();
+  const session = useAuthStore((state) => state.session);
+  const userId = session?.user?.id;
   const keyboardHeight = mealInputBarValues?.keyboardHeight ?? 0;
   const scrollRef = useRef<ScrollView>(null);
   const sheetRootRef = useRef<View>(null);
@@ -94,6 +118,11 @@ function ManualMealEntrySheetContent({
   const [nameAnchor, setNameAnchor] = useState<NameFieldAnchor | null>(null);
   const [sheetLayout, setSheetLayout] = useState<SheetLayout | null>(null);
   const [scrollRemeasureTick, setScrollRemeasureTick] = useState(0);
+  const [suggestMode, setSuggestMode] = useState<FoodSuggestionMode>(getStoredMealSuggestMode);
+  const [pendingNameFocusItemId, setPendingNameFocusItemId] = useState<string | null>(null);
+  const didAutoFocusRef = useRef(false);
+  const [mountPresentationId] = useState(presentationId);
+  const isPresented = presentationId > mountPresentationId;
 
   const activeRow = useMemo(
     () => rowItems.find((item) => item.id === activeAutocompleteItemId) ?? null,
@@ -107,12 +136,24 @@ function ManualMealEntrySheetContent({
     searchEnabled,
   );
 
+  // Empty field → history suggestions. The moment anything is typed the regular
+  // search owns the dropdown again and the switcher disappears with it.
+  const isQueryEmpty = (activeRow?.name ?? '').trim().length === 0;
+  const suggestionsEnabled = searchEnabled && isQueryEmpty;
+  const { data: suggestions } = useFoodSuggestions(userId, suggestionsEnabled);
+  const showSuggestions =
+    suggestionsEnabled && (suggestions?.length ?? 0) >= FOOD_SUGGESTION_MIN_ROWS;
+
+  const suggestionProducts = useMemo(
+    () => (showSuggestions ? sortFoodSuggestions(suggestions!, suggestMode) : []),
+    [showSuggestions, suggestMode, suggestions],
+  );
+
   const dropdownVisible =
     activeAutocompleteItemId != null &&
-    canSearch &&
     nameAnchor != null &&
     sheetLayout != null &&
-    (isSearching || hasSettled);
+    (showSuggestions || (canSearch && (isSearching || hasSettled)));
 
   const placementMode = resolveFoodAutocompletePlacementMode(
     keyboardHeight,
@@ -173,6 +214,26 @@ function ManualMealEntrySheetContent({
     setNameAnchor(null);
   }, []);
 
+  const handleSuggestionModeChange = useCallback((mode: FoodSuggestionMode) => {
+    setSuggestMode(mode);
+    setStoredMealSuggestMode(mode);
+  }, []);
+
+  const handleNameFocusHandled = useCallback(() => {
+    setPendingNameFocusItemId(null);
+  }, []);
+
+  // Autofocus the first row once the sheet has finished presenting. The ref keeps it
+  // to a single shot — the content unmounts on close, so it re-arms on the next open.
+  useEffect(() => {
+    if (!isPresented || didAutoFocusRef.current) {
+      return;
+    }
+
+    didAutoFocusRef.current = true;
+    setPendingNameFocusItemId(rowItems[0]?.id ?? null);
+  }, [isPresented, rowItems]);
+
   useEffect(() => {
     if (nameAnchor) {
       measureSheetLayout();
@@ -218,7 +279,9 @@ function ManualMealEntrySheetContent({
 
   function handleAddProduct() {
     clearAutocomplete();
-    setRowItems((current) => [...current, createEmptyRowItem()]);
+    const nextItem = createEmptyRowItem();
+    setRowItems((current) => [...current, nextItem]);
+    setPendingNameFocusItemId(nextItem.id);
     setShouldScrollToEnd(true);
   }
 
@@ -304,10 +367,12 @@ function ManualMealEntrySheetContent({
       sheetLayout,
       keyboardHeight,
       windowHeight,
-      results,
-      isSearching,
-      rateLimited,
-      searchUnavailable,
+      results: showSuggestions ? suggestionProducts : results,
+      isSearching: showSuggestions ? false : isSearching,
+      rateLimited: showSuggestions ? false : rateLimited,
+      searchUnavailable: showSuggestions ? false : searchUnavailable,
+      suggestionMode: showSuggestions ? suggestMode : null,
+      onSuggestionModeChange: showSuggestions ? handleSuggestionModeChange : undefined,
       onSelect: handleSelectOffProductStable,
     });
 
@@ -317,6 +382,7 @@ function ManualMealEntrySheetContent({
   }, [
     dropdownVisible,
     handleSelectOffProductStable,
+    handleSuggestionModeChange,
     isSearching,
     keyboardHeight,
     nameAnchor,
@@ -326,6 +392,9 @@ function ManualMealEntrySheetContent({
     searchUnavailable,
     results,
     sheetLayout,
+    showSuggestions,
+    suggestMode,
+    suggestionProducts,
     visible,
     windowHeight,
   ]);
@@ -402,6 +471,8 @@ function ManualMealEntrySheetContent({
           onNameFieldFocus={handleNameFieldFocus}
           onQuantityFieldFocus={clearAutocomplete}
           onKcalFieldFocus={clearAutocomplete}
+          shouldFocusName={pendingNameFocusItemId === item.id}
+          onNameFocusHandled={handleNameFocusHandled}
           onRemove={rowItems.length > 1 ? handleRemoveProduct : undefined}
         />
       ))}

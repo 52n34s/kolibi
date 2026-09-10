@@ -2,8 +2,10 @@ import { supabase } from '@/lib/supabase';
 import type { FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
 
 const SEARCH_RESULT_LIMIT = 15;
+/** Two characters is enough for real foods like "Ei" or "Öl"; the RPC filters the noise. */
+export const FOOD_NAME_SEARCH_MIN_LENGTH = 2;
 
-type FoodSearchRow = {
+export type FoodSearchRow = {
   id: string;
   name: string;
   name_normalized: string | null;
@@ -17,7 +19,7 @@ type FoodSearchRow = {
   category: string | null;
 };
 
-function resolveLanguageCode(language: string): string {
+export function resolveLanguageCode(language: string): string {
   return language.split('-')[0]?.toLowerCase() ?? 'en';
 }
 
@@ -36,7 +38,7 @@ function resolveDisplayName(row: FoodSearchRow, languageCode: string): string {
   return row.name.trim();
 }
 
-function mapFoodRowToSearchProduct(
+export function mapFoodRowToSearchProduct(
   row: FoodSearchRow,
   languageCode: string,
 ): FoodSearchProduct {
@@ -63,7 +65,7 @@ export async function searchFoodsByName(
   languageCode: string,
 ): Promise<FoodSearchProduct[]> {
   const trimmedQuery = query.trim();
-  if (trimmedQuery.length < 3) {
+  if (trimmedQuery.length < FOOD_NAME_SEARCH_MIN_LENGTH) {
     return [];
   }
 

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { searchFoodsByName } from '@/lib/food-name-search';
+import { FOOD_NAME_SEARCH_MIN_LENGTH, searchFoodsByName } from '@/lib/food-name-search';
 import type { FoodSearchProduct } from '@/services/barcode/OpenFoodFactsService';
 
-export const FOOD_NAME_SEARCH_MIN_LENGTH = 3;
+// Single source of truth lives in the lib next to the query it guards.
+export { FOOD_NAME_SEARCH_MIN_LENGTH };
 export const FOOD_NAME_SEARCH_DEBOUNCE_MS = 350;
 export const FOOD_NAME_SEARCH_CACHE_MAX_ENTRIES = 50;
 

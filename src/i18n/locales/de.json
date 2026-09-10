@@ -373,13 +373,15 @@
       "buttonLabel": "Lebensmittel suchen",
       "title": "Lebensmittel suchen",
       "placeholder": "z. B. Reis, Joghurt…",
-      "minLengthHint": "Mindestens 3 Zeichen eingeben, um zu suchen.",
+      "minLengthHint": "Mindestens 2 Zeichen eingeben, um zu suchen.",
       "rateLimited": "Gerade zu viele Suchanfragen. Du kannst das Produkt weiterhin manuell eintragen.",
       "searchUnavailable": "Suche gerade nicht verfügbar – gib Menge und kcal einfach selbst ein.",
       "searching": "Suche läuft…",
       "kcalPer100g": "{{kcal}} kcal / 100 g",
       "enterManually": "„{{query}}“ manuell eintragen",
-      "noResultsHint": "Kein Eintrag – du kannst ihn selbst eintragen."
+      "noResultsHint": "Kein Eintrag – du kannst ihn selbst eintragen.",
+      "suggestionsRecent": "Zuletzt",
+      "suggestionsFrequent": "Häufig"
     },
     "mealEdit": {
       "title": "Mahlzeit bearbeiten",

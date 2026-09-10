@@ -373,13 +373,15 @@
       "buttonLabel": "Buscar alimento",
       "title": "Buscar alimento",
       "placeholder": "p. ej. arroz, yogur…",
-      "minLengthHint": "Escribe al menos 3 caracteres para buscar.",
+      "minLengthHint": "Escribe al menos 2 caracteres para buscar.",
       "rateLimited": "Demasiadas búsquedas ahora mismo. Aún puedes introducir el producto manualmente.",
       "searchUnavailable": "La búsqueda no está disponible ahora — introduce cantidad y calorías tú mismo.",
       "searching": "Buscando…",
       "kcalPer100g": "{{kcal}} kcal / 100 g",
       "enterManually": "Introducir \"{{query}}\" manualmente",
-      "noResultsHint": "Sin coincidencias — puedes introducirlo tú mismo."
+      "noResultsHint": "Sin coincidencias — puedes introducirlo tú mismo.",
+      "suggestionsRecent": "Recientes",
+      "suggestionsFrequent": "Frecuentes"
     },
     "mealEdit": {
       "title": "Editar comida",

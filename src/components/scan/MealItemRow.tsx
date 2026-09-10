@@ -52,6 +52,9 @@ export type MealItemRowProps = {
   onQuantityFieldFocus?: (id: string) => void;
   onKcalFieldFocus?: (id: string) => void;
   remeasureTrigger?: number;
+  /** Parent-driven focus for the name field — see ManualMealEntrySheet's autofocus. */
+  shouldFocusName?: boolean;
+  onNameFocusHandled?: () => void;
 };
 
 type StepperFieldProps = {
@@ -384,6 +387,8 @@ export function MealItemRow({
   onQuantityFieldFocus,
   onKcalFieldFocus,
   remeasureTrigger = 0,
+  shouldFocusName = false,
+  onNameFocusHandled,
 }: MealItemRowProps) {
   const { t } = useTranslation();
   const mealInputBarActions = useMealInputBarActions();
@@ -394,6 +399,7 @@ export function MealItemRow({
   const [nutrientsExpanded, setNutrientsExpanded] = useState(false);
   const lastSentNameRef = useRef(item.name);
   const nameInputWrapRef = useRef<View>(null);
+  const nameInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     initializeUnitSystem();
@@ -421,6 +427,21 @@ export function MealItemRow({
 
     reportNameAnchor();
   }, [nameFocused, remeasureTrigger, item.id]);
+
+  // One frame of delay so the row is laid out before focus() — otherwise the
+  // anchor measured in onFocus is stale and the dropdown lands in the wrong place.
+  useEffect(() => {
+    if (!shouldFocusName) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      nameInputRef.current?.focus();
+      onNameFocusHandled?.();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [shouldFocusName, onNameFocusHandled]);
 
   const displayQuantity = toDisplay(item.quantity, item.unit, unitSystem);
   const quantityStep = getQuantityStep(item.unit, unitSystem);
@@ -499,6 +520,7 @@ export function MealItemRow({
       <View style={styles.headerRow}>
         <View ref={nameInputWrapRef} style={styles.nameInputWrap} collapsable={false}>
           <TextInput
+            ref={nameInputRef}
             accessibilityLabel={t('home.manualEntry.namePlaceholder')}
             placeholder={t('home.manualEntry.namePlaceholder')}
             placeholderTextColor="#9CA3AF"
@@ -695,7 +717,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     fontSize: 14,
-    lineHeight: 18,
     maxHeight: 50,
     fontWeight: '600',
     color: '#111827',

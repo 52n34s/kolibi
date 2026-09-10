@@ -15,6 +15,7 @@ import {
 } from '@/components/scan/MealInputAccessoryBar';
 import { useMealInputBarValues } from '@/components/scan/meal-input-bar-context';
 import { useFoodAutocompleteOverlayState } from '@/components/scan/meal-food-autocomplete-overlay';
+import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
 import { formatKcal } from '@/utils/format';
 
 import {
@@ -30,6 +31,8 @@ import {
 } from './FoodNameAutocompleteDropdown';
 
 export const FOOD_AUTOCOMPLETE_DROPDOWN_Z_INDEX = 1001;
+/** Pill switcher row above the suggestion list — compact segments plus its padding. */
+export const FOOD_AUTOCOMPLETE_SUGGEST_HEADER_HEIGHT = 52;
 
 const DROPDOWN_GAP = 8;
 const DROPDOWN_GAP_DOWN = 4;
@@ -99,23 +102,32 @@ function resolvePanelHeight(options: {
   showStatusMessage: boolean;
   showEmptyState: boolean;
   resultCount: number;
+  /** Switcher row stacked above the list — eats from the same cap. */
+  headerHeight?: number;
 }): number {
-  if (options.isSearching) {
-    return Math.min(FOOD_AUTOCOMPLETE_LOADING_ROW_HEIGHT, options.maxHeightCap);
-  }
+  const headerHeight = options.headerHeight ?? 0;
+  const bodyCap = Math.max(0, options.maxHeightCap - headerHeight);
 
-  if (options.showStatusMessage || options.showEmptyState) {
-    return Math.min(FOOD_AUTOCOMPLETE_STATUS_TEXT_HEIGHT, options.maxHeightCap);
-  }
+  const bodyHeight = (() => {
+    if (options.isSearching) {
+      return Math.min(FOOD_AUTOCOMPLETE_LOADING_ROW_HEIGHT, bodyCap);
+    }
 
-  if (options.resultCount > 0) {
-    return resolveResultsViewportHeight({
-      resultCount: options.resultCount,
-      maxHeightCap: options.maxHeightCap,
-    });
-  }
+    if (options.showStatusMessage || options.showEmptyState) {
+      return Math.min(FOOD_AUTOCOMPLETE_STATUS_TEXT_HEIGHT, bodyCap);
+    }
 
-  return Math.min(MIN_DROPDOWN_HEIGHT, options.maxHeightCap);
+    if (options.resultCount > 0) {
+      return resolveResultsViewportHeight({
+        resultCount: options.resultCount,
+        maxHeightCap: bodyCap,
+      });
+    }
+
+    return Math.min(MIN_DROPDOWN_HEIGHT, bodyCap);
+  })();
+
+  return Math.min(options.maxHeightCap, headerHeight + bodyHeight);
 }
 
 /**
@@ -238,6 +250,9 @@ export function MealFoodAutocompleteHost() {
 
   const resultCount = overlay.results.length;
   const maxHeightCap = basePlacement.maxHeight;
+  const showSuggestionSwitcher =
+    overlay.suggestionMode != null && overlay.onSuggestionModeChange != null;
+  const headerHeight = showSuggestionSwitcher ? FOOD_AUTOCOMPLETE_SUGGEST_HEADER_HEIGHT : 0;
 
   const panelHeight = resolvePanelHeight({
     maxHeightCap,
@@ -245,6 +260,7 @@ export function MealFoodAutocompleteHost() {
     showStatusMessage,
     showEmptyState,
     resultCount,
+    headerHeight,
   });
 
   const placement: ModalDropdownPlacement =
@@ -260,9 +276,9 @@ export function MealFoodAutocompleteHost() {
     resultCount > 0
       ? resolveResultsViewportHeight({
           resultCount,
-          maxHeightCap: placement.maxHeight,
+          maxHeightCap: Math.max(0, placement.maxHeight - headerHeight),
         })
-      : panelHeight;
+      : Math.max(0, panelHeight - headerHeight);
   const resultsScrollEnabled = resultsContentHeight > resultsViewportHeight;
 
   const containerStyle =
@@ -285,6 +301,20 @@ export function MealFoodAutocompleteHost() {
   return (
     <View pointerEvents="box-none" style={[styles.host, containerStyle]}>
       <View style={[styles.panel, { height: panelHeight, maxHeight: placement.maxHeight }]}>
+        {showSuggestionSwitcher ? (
+          <View style={styles.suggestionSwitcherRow}>
+            <PillSegmentSwitcher
+              compact
+              value={overlay.suggestionMode!}
+              segments={[
+                { id: 'recent', label: t('home.foodSearch.suggestionsRecent') },
+                { id: 'frequent', label: t('home.foodSearch.suggestionsFrequent') },
+              ]}
+              onChange={(mode) => overlay.onSuggestionModeChange?.(mode)}
+            />
+          </View>
+        ) : null}
+
         {overlay.isSearching ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color="#4F46E5" size="small" />
@@ -387,6 +417,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: '#6B7280',
+  },
+  suggestionSwitcherRow: {
+    height: FOOD_AUTOCOMPLETE_SUGGEST_HEADER_HEIGHT,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   resultsScroll: {
     flexGrow: 0,
