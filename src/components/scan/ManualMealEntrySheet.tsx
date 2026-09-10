@@ -337,75 +337,74 @@ function ManualMealEntrySheetContent({
   }, [overlayActions, visible]);
 
   return (
-    <View ref={sheetRootRef} style={styles.sheetRoot} collapsable={false}>
-        <MealItemsSheetBody
-          scrollRef={scrollRef}
-          onBackgroundPress={handleBackgroundPress}
-          onScroll={handleListScroll}
-          header={
-            <>
-              <Text style={styles.title}>{t('home.manualEntry.title')}</Text>
-              <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
-              <Text style={styles.totalLabel}>{t('home.manualEntry.totalKcal')}</Text>
-            </>
+    <MealItemsSheetBody
+      scrollRef={scrollRef}
+      rootRef={sheetRootRef}
+      onBackgroundPress={handleBackgroundPress}
+      onScroll={handleListScroll}
+      header={
+        <>
+          <Text style={styles.title}>{t('home.manualEntry.title')}</Text>
+          <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
+          <Text style={styles.totalLabel}>{t('home.manualEntry.totalKcal')}</Text>
+        </>
+      }
+      footer={
+        <>
+          {!canSave && saveBlockIssue != null ? (
+            <Text style={styles.saveHint}>{t(mealValidationIssueToManualEntryKey(saveBlockIssue))}</Text>
+          ) : null}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('home.manualEntry.addProduct')}
+            style={styles.addButton}
+            onPress={handleAddProduct}>
+            <Ionicons name="add-circle-outline" size={18} color="#4F46E5" />
+            <Text style={styles.addButtonLabel}>{t('home.manualEntry.addProduct')}</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('home.manualEntry.save')}
+            disabled={isSaving || !canSave}
+            style={[styles.saveShell, (isSaving || !canSave) && styles.saveDisabled]}
+            onPress={handleSavePress}>
+            <LinearGradient
+              colors={['#4F46E5', '#7CE7C7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.saveGradient}>
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.saveLabel}>{t('home.manualEntry.save')}</Text>
+              )}
+            </LinearGradient>
+          </Pressable>
+        </>
+      }>
+      {rowItems.map((item) => (
+        <MealItemRow
+          key={item.id}
+          invalid={!isRowItemValid(item)}
+          item={item}
+          remeasureTrigger={scrollRemeasureTick}
+          onChangeKcal={(id, value) => updateRowItem(id, (row) => changeRowItemKcal(row, value))}
+          onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
+          onChangeQuantity={(id, value) =>
+            updateRowItem(id, (row) => changeRowItemQuantity(row, value))
           }
-          footer={
-            <>
-              {!canSave && saveBlockIssue != null ? (
-                <Text style={styles.saveHint}>{t(mealValidationIssueToManualEntryKey(saveBlockIssue))}</Text>
-              ) : null}
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('home.manualEntry.addProduct')}
-                style={styles.addButton}
-                onPress={handleAddProduct}>
-                <Ionicons name="add-circle-outline" size={18} color="#4F46E5" />
-                <Text style={styles.addButtonLabel}>{t('home.manualEntry.addProduct')}</Text>
-              </Pressable>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('home.manualEntry.save')}
-                disabled={isSaving || !canSave}
-                style={[styles.saveShell, (isSaving || !canSave) && styles.saveDisabled]}
-                onPress={handleSavePress}>
-                <LinearGradient
-                  colors={['#4F46E5', '#7CE7C7']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.saveGradient}>
-                  {isSaving ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.saveLabel}>{t('home.manualEntry.save')}</Text>
-                  )}
-                </LinearGradient>
-              </Pressable>
-            </>
-          }>
-          {rowItems.map((item) => (
-            <MealItemRow
-              key={item.id}
-              invalid={!isRowItemValid(item)}
-              item={item}
-              remeasureTrigger={scrollRemeasureTick}
-              onChangeKcal={(id, value) => updateRowItem(id, (row) => changeRowItemKcal(row, value))}
-              onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
-              onChangeQuantity={(id, value) =>
-                updateRowItem(id, (row) => changeRowItemQuantity(row, value))
-              }
-              onChangeMacro={(id, key, value) =>
-                updateRowItem(id, (row) => changeRowItemAbsoluteMacro(row, key, value))
-              }
-              onChangeUnit={(id, unit) => updateRowItem(id, (row) => changeRowItemUnit(row, unit))}
-              onNameFieldFocus={handleNameFieldFocus}
-              onQuantityFieldFocus={clearAutocomplete}
-              onKcalFieldFocus={clearAutocomplete}
-              onRemove={rowItems.length > 1 ? handleRemoveProduct : undefined}
-            />
-          ))}
-        </MealItemsSheetBody>
-      </View>
+          onChangeMacro={(id, key, value) =>
+            updateRowItem(id, (row) => changeRowItemAbsoluteMacro(row, key, value))
+          }
+          onChangeUnit={(id, unit) => updateRowItem(id, (row) => changeRowItemUnit(row, unit))}
+          onNameFieldFocus={handleNameFieldFocus}
+          onQuantityFieldFocus={clearAutocomplete}
+          onKcalFieldFocus={clearAutocomplete}
+          onRemove={rowItems.length > 1 ? handleRemoveProduct : undefined}
+        />
+      ))}
+    </MealItemsSheetBody>
   );
 }

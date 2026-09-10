@@ -147,6 +147,8 @@ export function MealEditSheet({
     [plateTotalKcal, portionFactor],
   );
 
+  const showItems = !isLoading && !loadError;
+
   const saveBlockIssue = useMemo(() => {
     if (isLoading || loadError) {
       return null;
@@ -223,28 +225,99 @@ export function MealEditSheet({
     onDeleteMeal(mealId);
   }
 
+  function renderFooter() {
+    if (!showItems) {
+      return null;
+    }
+
+    if (confirmingDelete) {
+      return (
+        <View style={styles.deleteConfirmBlock}>
+          <Text style={styles.deleteConfirmMessage}>{t('home.meal.deleteMealConfirm')}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('home.meal.deleteMeal')}
+            disabled={isSaving || isDeleting}
+            style={styles.deleteConfirmAction}
+            onPress={handleConfirmDelete}>
+            {isDeleting ? (
+              <ActivityIndicator color="#DC2626" />
+            ) : (
+              <Text style={styles.deleteMealLabel}>{t('home.meal.deleteMeal')}</Text>
+            )}
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('settings.common.cancel')}
+            disabled={isDeleting}
+            style={styles.deleteConfirmCancel}
+            onPress={() => setConfirmingDelete(false)}>
+            <Text style={styles.deleteConfirmCancelLabel}>{t('settings.common.cancel')}</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        {!canSave && saveBlockIssue != null ? (
+          <Text style={styles.saveHint}>
+            {t(mealValidationIssueToManualEntryKey(saveBlockIssue))}
+          </Text>
+        ) : null}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('home.manualEntry.addProduct')}
+          style={styles.addButton}
+          onPress={handleAddProduct}>
+          <Ionicons name="add-circle-outline" size={18} color="#4F46E5" />
+          <Text style={styles.addButtonLabel}>{t('home.manualEntry.addProduct')}</Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('home.mealEdit.save')}
+          disabled={isSaving || isDeleting || !canSave}
+          style={[styles.saveShell, (isSaving || isDeleting || !canSave) && styles.saveDisabled]}
+          onPress={handleSavePress}>
+          <LinearGradient
+            colors={['#4F46E5', '#7CE7C7']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.saveGradient}>
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.saveLabel}>{t('home.mealEdit.save')}</Text>
+            )}
+          </LinearGradient>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('home.meal.deleteMeal')}
+          disabled={isSaving || isDeleting}
+          style={styles.deleteMealButton}
+          onPress={handleDeleteMealPress}>
+          <Text style={styles.deleteMealLabel}>{t('home.meal.deleteMeal')}</Text>
+        </Pressable>
+      </>
+    );
+  }
+
   return (
     <GlassBottomSheet
       visible={visible}
       onClose={onClose}
       onDismissed={onDismissed}
       maxHeightRatio={MEAL_SHEET_MAX_HEIGHT_RATIO}>
-      <View style={styles.sheetBody}>
-        <Text style={styles.title}>{t('home.mealEdit.title')}</Text>
-
-        {isLoading ? (
-          <View style={styles.loadingState}>
-            <ActivityIndicator color="#4F46E5" />
-            <Text style={styles.loadingLabel}>{t('home.mealEdit.loading')}</Text>
-          </View>
-        ) : loadError ? (
-          <View style={styles.loadingState}>
-            <Text style={styles.loadingLabel}>{t('home.mealEdit.loadError')}</Text>
-          </View>
-        ) : (
-          <MealItemsSheetBody
-            scrollRef={scrollRef}
-            header={
+      <MealItemsSheetBody
+        scrollRef={scrollRef}
+        header={
+          <>
+            <Text style={styles.title}>{t('home.mealEdit.title')}</Text>
+            {showItems ? (
               <>
                 <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
                 <Text style={styles.totalLabel}>{t('home.manualEntry.totalKcal')}</Text>
@@ -255,108 +328,39 @@ export function MealEditSheet({
                 ) : null}
                 <MealPortionFactorChips value={portionFactor} onChange={setPortionFactor} />
               </>
-            }
-            footer={
-              confirmingDelete ? (
-                <View style={styles.deleteConfirmBlock}>
-                  <Text style={styles.deleteConfirmMessage}>
-                    {t('home.meal.deleteMealConfirm')}
-                  </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('home.meal.deleteMeal')}
-                    disabled={isSaving || isDeleting}
-                    style={styles.deleteConfirmAction}
-                    onPress={handleConfirmDelete}>
-                    {isDeleting ? (
-                      <ActivityIndicator color="#DC2626" />
-                    ) : (
-                      <Text style={styles.deleteMealLabel}>{t('home.meal.deleteMeal')}</Text>
-                    )}
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('settings.common.cancel')}
-                    disabled={isDeleting}
-                    style={styles.deleteConfirmCancel}
-                    onPress={() => setConfirmingDelete(false)}>
-                    <Text style={styles.deleteConfirmCancelLabel}>
-                      {t('settings.common.cancel')}
-                    </Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <>
-                  {!canSave && saveBlockIssue != null ? (
-                    <Text style={styles.saveHint}>
-                      {t(mealValidationIssueToManualEntryKey(saveBlockIssue))}
-                    </Text>
-                  ) : null}
-
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('home.manualEntry.addProduct')}
-                    style={styles.addButton}
-                    onPress={handleAddProduct}>
-                    <Ionicons name="add-circle-outline" size={18} color="#4F46E5" />
-                    <Text style={styles.addButtonLabel}>{t('home.manualEntry.addProduct')}</Text>
-                  </Pressable>
-
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('home.mealEdit.save')}
-                    disabled={isSaving || isDeleting || !canSave}
-                    style={[
-                      styles.saveShell,
-                      (isSaving || isDeleting || !canSave) && styles.saveDisabled,
-                    ]}
-                    onPress={handleSavePress}>
-                    <LinearGradient
-                      colors={['#4F46E5', '#7CE7C7']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.saveGradient}>
-                      {isSaving ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.saveLabel}>{t('home.mealEdit.save')}</Text>
-                      )}
-                    </LinearGradient>
-                  </Pressable>
-
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('home.meal.deleteMeal')}
-                    disabled={isSaving || isDeleting}
-                    style={styles.deleteMealButton}
-                    onPress={handleDeleteMealPress}>
-                    <Text style={styles.deleteMealLabel}>{t('home.meal.deleteMeal')}</Text>
-                  </Pressable>
-                </>
-              )
-            }>
-            {rowItems.map((item) => (
-              <MealItemRow
-                key={item.id}
-                invalid={!isRowItemValid(item)}
-                item={item}
-                onChangeKcal={(id, value) =>
-                  updateRowItem(id, (row) => changeRowItemKcal(row, value))
-                }
-                onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
-                onChangeQuantity={(id, value) =>
-                  updateRowItem(id, (row) => changeRowItemQuantity(row, value))
-                }
-                onChangeMacro={(id, key, value) =>
-                  updateRowItem(id, (row) => changeRowItemAbsoluteMacro(row, key, value))
-                }
-                onChangeUnit={(id, unit) => updateRowItem(id, (row) => changeRowItemUnit(row, unit))}
-                onRemove={rowItems.length > 1 ? handleRemoveProduct : undefined}
-              />
-            ))}
-          </MealItemsSheetBody>
+            ) : null}
+          </>
+        }
+        footer={renderFooter()}>
+        {showItems ? (
+          rowItems.map((item) => (
+            <MealItemRow
+              key={item.id}
+              invalid={!isRowItemValid(item)}
+              item={item}
+              onChangeKcal={(id, value) =>
+                updateRowItem(id, (row) => changeRowItemKcal(row, value))
+              }
+              onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
+              onChangeQuantity={(id, value) =>
+                updateRowItem(id, (row) => changeRowItemQuantity(row, value))
+              }
+              onChangeMacro={(id, key, value) =>
+                updateRowItem(id, (row) => changeRowItemAbsoluteMacro(row, key, value))
+              }
+              onChangeUnit={(id, unit) => updateRowItem(id, (row) => changeRowItemUnit(row, unit))}
+              onRemove={rowItems.length > 1 ? handleRemoveProduct : undefined}
+            />
+          ))
+        ) : (
+          <View style={styles.loadingState}>
+            {isLoading ? <ActivityIndicator color="#4F46E5" /> : null}
+            <Text style={styles.loadingLabel}>
+              {t(isLoading ? 'home.mealEdit.loading' : 'home.mealEdit.loadError')}
+            </Text>
+          </View>
         )}
-      </View>
+      </MealItemsSheetBody>
     </GlassBottomSheet>
   );
 }

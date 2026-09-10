@@ -1,9 +1,6 @@
 import { StyleSheet } from 'react-native';
 
 export const mealEntrySheetStyles = StyleSheet.create({
-  sheetBody: {
-    flexGrow: 0,
-  },
   title: {
     marginBottom: 12,
     fontSize: 18,
@@ -109,10 +106,6 @@ export const mealEntrySheetStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#4F46E5',
-  },
-  sheetRoot: {
-    position: 'relative',
-    flexGrow: 0,
   },
   loadingState: {
     alignItems: 'center',
