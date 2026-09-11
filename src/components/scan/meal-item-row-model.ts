@@ -326,6 +326,18 @@ export function changeRowItemQuantity(
   });
 }
 
+/** Fixed density: kcal edits rescale the quantity; kcalPer100g never changes. */
+function rescaleQuantityForKcal(item: MealItemRowItem, nextKcal: number): MealItemRowItem {
+  return {
+    ...item,
+    kcal: nextKcal,
+    quantity: computeQuantityFromKcal(item, nextKcal),
+    kcalPer100g: item.kcalPer100g,
+    kcalPer100gSource: item.kcalPer100gSource ?? 'database',
+    quantitySource: 'derived',
+  };
+}
+
 export function changeRowItemKcal(item: MealItemRowItem, kcal: number): MealItemRowItem {
   const nextKcal = Math.max(MIN_KCAL, Math.round(kcal));
 
@@ -333,31 +345,30 @@ export function changeRowItemKcal(item: MealItemRowItem, kcal: number): MealItem
     return { ...item, kcal: nextKcal };
   }
 
-  // Derived density: user kcal edit updates the reference; quantity stays put.
-  if (item.kcalPer100gSource === 'derived') {
-    const menge = getLinkedMenge(item);
-    const nextKcalPer100g =
-      menge > 0 ? Math.max(0, (nextKcal / menge) * 100) : item.kcalPer100g;
+  switch (item.kcalPer100gSource) {
+    // Derived density: user kcal edit updates the reference; quantity stays put.
+    case 'derived': {
+      const menge = getLinkedMenge(item);
+      const nextKcalPer100g =
+        menge > 0 ? Math.max(0, (nextKcal / menge) * 100) : item.kcalPer100g;
 
-    return {
-      ...item,
-      kcal: nextKcal,
-      kcalPer100g: nextKcalPer100g,
-      kcalPer100gSource: 'derived',
-    };
+      return {
+        ...item,
+        kcal: nextKcal,
+        kcalPer100g: nextKcalPer100g,
+        kcalPer100gSource: 'derived',
+      };
+    }
+    // A transcribed label is as fixed as a verified foods row.
+    case 'label':
+    case 'database':
+    case null:
+      return rescaleQuantityForKcal(item, nextKcal);
+    default: {
+      const exhaustive: never = item.kcalPer100gSource;
+      throw new Error(`Unhandled kcalPer100gSource: ${String(exhaustive)}`);
+    }
   }
-
-  // Database density: kcal edits rescale quantity; kcalPer100g never changes.
-  const nextQuantity = computeQuantityFromKcal(item, nextKcal);
-
-  return {
-    ...item,
-    kcal: nextKcal,
-    quantity: nextQuantity,
-    kcalPer100g: item.kcalPer100g,
-    kcalPer100gSource: item.kcalPer100gSource ?? 'database',
-    quantitySource: 'derived',
-  };
 }
 
 export function changeRowItemUnit(item: MealItemRowItem, unit: MealItemUnit): MealItemRowItem {

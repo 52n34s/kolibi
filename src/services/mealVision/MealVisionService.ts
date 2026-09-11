@@ -3,7 +3,10 @@ import { File } from 'expo-file-system';
 import { getAppLanguage, type SupportedLanguage } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import {
+  visionLabelResponseSchema,
   visionResponseSchema,
+  type LabelPlausibility,
+  type VisionLabel,
   type VisionResponse,
 } from '@/services/mealVision/types';
 
@@ -54,9 +57,23 @@ async function photoUriToBase64(uri: string): Promise<MealVisionImagePayload> {
   };
 }
 
+/** Opt-in flags sent to the edge function; 'label' turns on nutrition-table reading. */
+const MEAL_VISION_FEATURES = ['label'];
+
 type EdgeFunctionSuccessPayload = {
-  items: VisionResponse['items'];
+  image_type?: 'meal' | 'label';
+  items?: VisionResponse['items'];
+  label?: unknown;
+  plausibility?: unknown;
 };
+
+/**
+ * A plate of food, or a transcribed nutrition label. An older function build
+ * answers with a bare { items } and no image_type — that still reads as 'meal'.
+ */
+export type MealVisionResult =
+  | { kind: 'meal'; items: VisionResponse['items'] }
+  | { kind: 'label'; label: VisionLabel; plausibility: LabelPlausibility | null };
 
 type EdgeFunctionErrorPayload = {
   error?: string;
@@ -78,7 +95,7 @@ export function resolveMealVisionLanguage(
 export async function analyzeMealPhotos(
   photoUris: string[],
   language?: string | null,
-): Promise<VisionResponse> {
+): Promise<MealVisionResult> {
   if (photoUris.length === 0) {
     throw new MealVisionApiError('At least one photo URI is required.');
   }
@@ -109,7 +126,11 @@ export async function analyzeMealPhotos(
       Authorization: `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ images, language: languageCode }),
+    body: JSON.stringify({
+      images,
+      features: MEAL_VISION_FEATURES,
+      language: languageCode,
+    }),
   });
 
   const payload = (await response.json()) as EdgeFunctionSuccessPayload & EdgeFunctionErrorPayload;
@@ -141,13 +162,27 @@ export async function analyzeMealPhotos(
     throw new MealVisionApiError('The meal analysis service failed.');
   }
 
+  if (payload.image_type === 'label') {
+    const validatedLabel = visionLabelResponseSchema.safeParse(payload);
+
+    if (!validatedLabel.success) {
+      throw new MealVisionParseError('The meal analysis response was invalid.');
+    }
+
+    return {
+      kind: 'label',
+      label: validatedLabel.data.label,
+      plausibility: validatedLabel.data.plausibility,
+    };
+  }
+
   const validated = visionResponseSchema.safeParse({ items: payload.items });
 
   if (!validated.success) {
     throw new MealVisionParseError('The meal analysis response was invalid.');
   }
 
-  return validated.data;
+  return { kind: 'meal', items: validated.data.items };
 }
 
 export const MealVisionService = {

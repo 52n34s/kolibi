@@ -23,12 +23,16 @@ import { ManualEntryButton } from '@/components/home/ManualEntryButton';
 import { ScanMealButton } from '@/components/home/ScanMealButton';
 import { BarcodeFlowModal, type BarcodeFlowState } from '@/components/scan/BarcodeFlowModal';
 import {
+  createRowItemId,
   rowItemsToEditable,
   type MealItemRowItem,
 } from '@/components/scan/meal-item-row-model';
 import { ManualMealEntrySheet } from '@/components/scan/ManualMealEntrySheet';
 import { MealEditSheet } from '@/components/scan/MealEditSheet';
-import { MealConfirmationSheet } from '@/components/scan/MealConfirmationSheet';
+import {
+  MealConfirmationSheet,
+  type MealLabelContext,
+} from '@/components/scan/MealConfirmationSheet';
 import { MultiPhotoCameraFlow } from '@/components/scan/MultiPhotoCameraFlow';
 import { ScanApiErrorSheet } from '@/components/scan/ScanApiErrorSheet';
 import { ScanOptionsSheet } from '@/components/scan/ScanOptionsSheet';
@@ -122,7 +126,11 @@ import {
   MealVisionRateLimitError,
   MealVisionService,
 } from '@/services/mealVision/MealVisionService';
-import type { EditableMealItem } from '@/services/mealVision/types';
+import {
+  labelQuantityPresetSource,
+  labelToEditableItem,
+  type EditableMealItem,
+} from '@/services/mealVision/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
@@ -244,6 +252,7 @@ export default function HomeScreen() {
   const [isAnalyzingMeal, setIsAnalyzingMeal] = useState(false);
   const [showMealConfirmation, setShowMealConfirmation] = useState(false);
   const [visionItems, setVisionItems] = useState<EditableMealItem[]>([]);
+  const [labelContext, setLabelContext] = useState<MealLabelContext | null>(null);
   const [isSavingMeal, setIsSavingMeal] = useState(false);
   const [showRateLimitSheet, setShowRateLimitSheet] = useState(false);
   const [rateLimitResetAt, setRateLimitResetAt] = useState<string | null>(null);
@@ -961,14 +970,26 @@ export default function HomeScreen() {
       }
 
       const result = await MealVisionService.analyze(photoUris, i18n.language);
-      const enrichedItems = await enrichVisionItemsWithResolvedFoods(
-        result.items,
-        i18n.language,
-      );
-      const calibratedItems = userId
-        ? await applyUserFoodCalibration(userId, enrichedItems)
-        : enrichedItems;
-      setVisionItems(calibratedItems);
+
+      if (result.kind === 'label') {
+        // Transcribed densities: no foods lookup, no portion calibration.
+        setVisionItems([labelToEditableItem(result.label, createRowItemId())]);
+        setLabelContext({
+          presetSource: labelQuantityPresetSource(result.label),
+          plausibilityPassed: result.plausibility?.passed ?? null,
+        });
+      } else {
+        const enrichedItems = await enrichVisionItemsWithResolvedFoods(
+          result.items,
+          i18n.language,
+        );
+        const calibratedItems = userId
+          ? await applyUserFoodCalibration(userId, enrichedItems)
+          : enrichedItems;
+        setVisionItems(calibratedItems);
+        setLabelContext(null);
+      }
+
       setShowMealConfirmation(true);
       await deleteMealPhotoUris(photoUris);
       setPendingPhotoUris([]);
@@ -1564,6 +1585,7 @@ export default function HomeScreen() {
         visible={showMealConfirmation}
         items={visionItems}
         isSaving={isSavingMeal}
+        labelContext={labelContext}
         onClose={handleMealConfirmationClose}
         onDismissed={handleMealSheetDismissed}
         onSave={(items, portionFactor) => void handleMealSave(items, portionFactor)}

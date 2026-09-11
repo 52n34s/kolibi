@@ -1,4 +1,8 @@
 import { localDayWindow, localDateKey, parseDateOnly } from '@/lib/day-window';
+import {
+  buildFoodAdjustmentRow,
+  type InsertedMealItemRow,
+} from '@/lib/food-adjustments';
 import { supabase } from '@/lib/supabase';
 import {
   includeMealInCalibration,
@@ -11,7 +15,6 @@ import {
   getBaselineTotalGrams,
   getItemTotalGrams,
   wasMealItemEdited,
-  wasQuantityUserCorrected,
   type EditableMealItem,
   type MacrosPer100g,
 } from '@/services/mealVision/types';
@@ -21,21 +24,12 @@ type SavedMealRow = {
   total_kcal: number;
 };
 
-type InsertedMealItemRow = {
-  id: string;
-  sort_order: number;
-};
-
 function normalizeKcalPer100g(value: number | null | undefined): number | null {
   if (value == null || !Number.isFinite(value) || value <= 0) {
     return null;
   }
 
   return value;
-}
-
-function normalizeFoodName(canonicalName: string | undefined): string {
-  return (canonicalName ?? '').trim().toLowerCase();
 }
 
 function isFreeCountItem(item: EditableMealItem): boolean {
@@ -69,61 +63,6 @@ function isItemQuantityValid(item: EditableMealItem): boolean {
   }
 
   return getItemTotalGrams(item) > 0;
-}
-
-type FoodAdjustmentRow = {
-  user_id: string;
-  meal_item_id: string;
-  food_name_normalized: string;
-  food_id: string | null;
-  ai_estimated_grams: number;
-  corrected_grams: number;
-  include_in_calibration: boolean;
-};
-
-function buildFoodAdjustmentRow(
-  item: EditableMealItem,
-  insertedItem: InsertedMealItemRow,
-  params: { userId: string; includeInCalibration: boolean },
-): FoodAdjustmentRow | null {
-  if (item.origin !== 'ai') {
-    return null;
-  }
-
-  const aiEstimatedGrams = getBaselineTotalGrams(item);
-
-  if (aiEstimatedGrams <= 0) {
-    console.warn(
-      '[recordFoodAdjustments] skipping item without AI baseline grams:',
-      item.canonicalName,
-    );
-    return null;
-  }
-
-  const finalGrams = getItemTotalGrams(item);
-
-  if (finalGrams <= 0) {
-    console.warn(
-      '[recordFoodAdjustments] skipping item with invalid final grams:',
-      item.canonicalName,
-    );
-    return null;
-  }
-
-  // Only real quantity corrections — Ratio-1 (unedited AI) rows dilute avg_ratio.
-  if (!wasQuantityUserCorrected(item) || finalGrams === aiEstimatedGrams) {
-    return null;
-  }
-
-  return {
-    user_id: params.userId,
-    meal_item_id: insertedItem.id,
-    food_name_normalized: normalizeFoodName(item.canonicalName),
-    food_id: item.foodId ?? null,
-    ai_estimated_grams: aiEstimatedGrams,
-    corrected_grams: finalGrams,
-    include_in_calibration: params.includeInCalibration,
-  };
 }
 
 async function insertMealAndReload(

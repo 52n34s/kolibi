@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+import {
+  getDefaultOption,
+  getQuantityGramsForOption,
+  type QuantityPresetSource,
+} from '@/components/scan/barcode-quantity-utils';
+
 export const visionConfidenceSchema = z.enum(['low', 'medium', 'high']);
 
 const boundedMacroSchema = z.number().min(0).max(1000).optional();
@@ -65,6 +71,46 @@ export const visionResponseSchema = z.object({
   items: z.array(visionFoodItemSchema).min(1).max(30),
 });
 
+/** Nutrition table transcribed off packaging — mirrors the edge function's label schema. */
+export const visionLabelBasisSchema = z.enum(['per_100g', 'per_100ml']);
+
+const labelPer100Schema = z.number().min(0).max(1000).nullable().default(null);
+const labelWeightSchema = z.number().min(0).max(100_000).nullable().default(null);
+
+export const visionLabelSchema = z.object({
+  name: z.string().min(1),
+  canonical_name: z.string().min(1),
+  basis: visionLabelBasisSchema,
+  kcal_per_100: z.number().min(0).max(2000),
+  protein_per_100: labelPer100Schema,
+  carbs_per_100: labelPer100Schema,
+  fat_per_100: labelPer100Schema,
+  fiber_per_100: labelPer100Schema,
+  sugar_per_100: labelPer100Schema,
+  package_grams: labelWeightSchema,
+  serving_grams: labelWeightSchema,
+  confidence: visionConfidenceSchema,
+});
+
+/** Server-side Atwater cross-check; display only, never persisted. */
+export const labelPlausibilitySchema = z.object({
+  checked: z.boolean(),
+  expected_kcal_eu: z.number().nullable(),
+  expected_kcal_us: z.number().nullable(),
+  passed: z.boolean().nullable(),
+});
+
+export const visionLabelResponseSchema = z.object({
+  image_type: z.literal('label'),
+  label: visionLabelSchema,
+  plausibility: labelPlausibilitySchema.nullable().default(null),
+});
+
+export type VisionLabelBasis = z.infer<typeof visionLabelBasisSchema>;
+export type VisionLabel = z.infer<typeof visionLabelSchema>;
+export type LabelPlausibility = z.infer<typeof labelPlausibilitySchema>;
+export type VisionLabelResponse = z.infer<typeof visionLabelResponseSchema>;
+
 export type VisionConfidence = z.infer<typeof visionConfidenceSchema>;
 export type VisionFoodItem = z.infer<typeof visionFoodItemSchema>;
 export type VisionResponse = z.infer<typeof visionResponseSchema>;
@@ -73,8 +119,12 @@ export type QuantitySource = 'user' | 'derived' | 'ai';
 
 export type DisplayUnit = 'g' | 'ml';
 
-/** Origin of kcalPer100g: verified foods row vs derived from model kcal/grams. */
-export type KcalPer100gSource = 'database' | 'derived';
+/**
+ * Origin of kcalPer100g: verified foods row, derived from model kcal/grams, or
+ * transcribed off a nutrition label. 'label' couples like 'database' but never
+ * feeds portion calibration — the density is read, not estimated.
+ */
+export type KcalPer100gSource = 'database' | 'derived' | 'label';
 
 /** Macro density per 100 g. null on a field = unknown (never coerced to 0). */
 export type MacrosPer100g = {
@@ -355,4 +405,63 @@ export function wasQuantityUserCorrected(item: EditableMealItem): boolean {
   }
 
   return wasMealItemEdited(item);
+}
+
+/** Package/serving sizes a label printed, in the shape the quantity presets take. */
+export function labelQuantityPresetSource(label: VisionLabel): QuantityPresetSource {
+  return {
+    quantityGrams: label.package_grams,
+    servingSizeGrams: label.serving_grams,
+  };
+}
+
+/**
+ * One editable item from a transcribed nutrition label.
+ * The start amount follows the barcode flow's default (package, then serving);
+ * when the label printed neither, the amount stays empty and the sheet's own
+ * validation turns it into a required field.
+ */
+export function labelToEditableItem(label: VisionLabel, id: string): EditableMealItem {
+  const presetSource = labelQuantityPresetSource(label);
+  const option = getDefaultOption(presetSource);
+  const quantityGrams =
+    option === 'custom' ? 0 : getQuantityGramsForOption(option, presetSource, 0);
+
+  const macrosPer100g: MacrosPer100g = {
+    protein: optionalMacro(label.protein_per_100),
+    carbs: optionalMacro(label.carbs_per_100),
+    fat: optionalMacro(label.fat_per_100),
+    fiber: optionalMacro(label.fiber_per_100),
+  };
+  const kcalPer100g = label.kcal_per_100 > 0 ? label.kcal_per_100 : null;
+  const kcal =
+    kcalPer100g != null ? Math.max(0, Math.round((kcalPer100g / 100) * quantityGrams)) : 0;
+  const absoluteMacros = absoluteMacrosFromPer100g(
+    macrosPer100g,
+    quantityGrams,
+    EMPTY_ABSOLUTE_MACROS,
+  );
+
+  return {
+    id,
+    name: label.name,
+    canonicalName: label.canonical_name,
+    origin: 'ai',
+    quantityGrams,
+    quantityCount: null,
+    gramsPerUnit: null,
+    kcal,
+    confidence: label.confidence,
+    baselineGrams: quantityGrams,
+    baselineCount: null,
+    baselineGramsPerUnit: null,
+    baselineKcal: kcal,
+    foodId: null,
+    kcalPer100g,
+    kcalPer100gSource: 'label',
+    quantitySource: 'ai',
+    displayUnit: label.basis === 'per_100ml' ? 'ml' : 'g',
+    macrosPer100g,
+    ...absoluteMacros,
+  };
 }

@@ -4,6 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, Text } from 'react-native';
 
+import {
+  getAvailableQuantityOptions,
+  getDefaultOption,
+  getQuantityGramsForOption,
+  type QuantityOption,
+  type QuantityPresetSource,
+} from '@/components/scan/barcode-quantity-utils';
 import { MealItemRow } from '@/components/scan/MealItemRow';
 import {
   changeRowItemAbsoluteMacro,
@@ -24,6 +31,7 @@ import {
 import { mealEntrySheetStyles as styles } from '@/components/scan/meal-entry-shared';
 import { MealItemsSheetBody, MEAL_SHEET_MAX_HEIGHT_RATIO } from '@/components/scan/MealItemsSheetBody';
 import { MealPortionFactorChips } from '@/components/scan/MealPortionFactorChips';
+import { QuantityPresetPills } from '@/components/scan/QuantityPresetPills';
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import {
   createManualEditableItem,
@@ -31,10 +39,21 @@ import {
 } from '@/services/mealVision/types';
 import { formatKcal } from '@/utils/format';
 
+/**
+ * Set when the sheet was opened from a transcribed nutrition label: the printed
+ * sizes drive quantity presets instead of the "how much did you eat" chips,
+ * and a failed server-side kcal check is surfaced on the row.
+ */
+export type MealLabelContext = {
+  presetSource: QuantityPresetSource;
+  plausibilityPassed: boolean | null;
+};
+
 type MealConfirmationSheetProps = {
   visible: boolean;
   items: EditableMealItem[];
   isSaving: boolean;
+  labelContext?: MealLabelContext | null;
   onClose: () => void;
   onDismissed?: () => void;
   onSave: (items: EditableMealItem[], portionFactor: number) => void;
@@ -48,6 +67,7 @@ export function MealConfirmationSheet({
   visible,
   items,
   isSaving,
+  labelContext = null,
   onClose,
   onDismissed,
   onSave,
@@ -58,6 +78,7 @@ export function MealConfirmationSheet({
   const [editableById, setEditableById] = useState<Map<string, EditableMealItem>>(new Map());
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState(false);
   const [portionFactor, setPortionFactor] = useState(1);
+  const [quantityOption, setQuantityOption] = useState<QuantityOption>('custom');
 
   useEffect(() => {
     if (visible) {
@@ -65,8 +86,11 @@ export function MealConfirmationSheet({
       setEditableById(new Map(items.map((item) => [item.id, item])));
       setShouldScrollToEnd(false);
       setPortionFactor(1);
+      setQuantityOption(
+        labelContext ? getDefaultOption(labelContext.presetSource) : 'custom',
+      );
     }
-  }, [items, visible]);
+  }, [items, labelContext, visible]);
 
   useEffect(() => {
     if (!shouldScrollToEnd) {
@@ -86,6 +110,14 @@ export function MealConfirmationSheet({
   );
   const saveBlockIssue = useMemo(() => getMealItemsValidationIssue(rowItems), [rowItems]);
   const canSave = saveBlockIssue == null;
+  const quantityOptions = useMemo(
+    () => (labelContext ? getAvailableQuantityOptions(labelContext.presetSource) : []),
+    [labelContext],
+  );
+  const labelNotice =
+    labelContext?.plausibilityPassed === false
+      ? t('home.scan.confirmation.labelPlausibilityWarning')
+      : null;
 
   function updateRowItem(id: string, updater: (item: MealItemRowItem) => MealItemRowItem) {
     setRowItems((current) =>
@@ -105,6 +137,29 @@ export function MealConfirmationSheet({
       const next = new Map(current);
       next.delete(itemId);
       return next;
+    });
+  }
+
+  /** Presets retarget the label row (the first one); added ingredients keep theirs. */
+  function applyQuantityOption(option: QuantityOption) {
+    if (!labelContext) {
+      return;
+    }
+
+    setQuantityOption(option);
+    setRowItems((current) => {
+      const [first, ...rest] = current;
+      if (!first) {
+        return current;
+      }
+
+      const quantityGrams = getQuantityGramsForOption(
+        option,
+        labelContext.presetSource,
+        first.quantity,
+      );
+
+      return [changeRowItemQuantity(first, quantityGrams), ...rest];
     });
   }
 
@@ -137,12 +192,20 @@ export function MealConfirmationSheet({
             <Text style={styles.title}>{t('home.scan.confirmation.title')}</Text>
             <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
             <Text style={styles.totalLabel}>{t('home.scan.confirmation.totalKcal')}</Text>
-            {portionFactor !== 1 ? (
+            {!labelContext && portionFactor !== 1 ? (
               <Text style={styles.portionHint}>
                 {t('home.scan.portion.hint', { total: formatKcal(plateTotalKcal) })}
               </Text>
             ) : null}
-            <MealPortionFactorChips value={portionFactor} onChange={setPortionFactor} />
+            {labelContext ? (
+              <QuantityPresetPills
+                options={quantityOptions}
+                selected={quantityOption}
+                onSelect={applyQuantityOption}
+              />
+            ) : (
+              <MealPortionFactorChips value={portionFactor} onChange={setPortionFactor} />
+            )}
           </>
         }
         footer={
@@ -192,14 +255,16 @@ export function MealConfirmationSheet({
             item={item}
             onChangeKcal={(id, value) => updateRowItem(id, (row) => changeRowItemKcal(row, value))}
             onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
-            onChangeQuantity={(id, value) =>
-              updateRowItem(id, (row) => changeRowItemQuantity(row, value))
-            }
+            onChangeQuantity={(id, value) => {
+              setQuantityOption('custom');
+              updateRowItem(id, (row) => changeRowItemQuantity(row, value));
+            }}
             onChangeMacro={(id, key, value) =>
               updateRowItem(id, (row) => changeRowItemAbsoluteMacro(row, key, value))
             }
             onChangeUnit={(id, unit) => updateRowItem(id, (row) => changeRowItemUnit(row, unit))}
             onRemove={rowItems.length > 1 ? removeIngredient : undefined}
+            notice={item.kcalPer100gSource === 'label' ? labelNotice : null}
           />
         ))}
       </MealItemsSheetBody>

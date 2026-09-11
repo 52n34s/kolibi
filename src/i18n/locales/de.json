@@ -326,6 +326,7 @@
       "quantityLabel": "Menge",
       "kcalLabel": "kcal",
       "densityHint": "{{kcal}} kcal / 100 {{unit}}",
+      "labelDensityHint": "pro 100 {{unit}}: {{values}}",
       "pcsUnavailableTitle": "Stückgewicht unbekannt",
       "pcsUnavailableMessage": "Das Stückgewicht für dieses Produkt ist nicht bekannt.",
       "nutrientsToggle": "Nährwerte",
@@ -333,6 +334,7 @@
       "nutrientsAbbrevProtein": "P",
       "nutrientsAbbrevCarbs": "K",
       "nutrientsAbbrevFat": "F",
+      "nutrientsAbbrevFiber": "Bst",
       "proteinLabel": "Protein (g)",
       "carbsLabel": "Kohlenhydrate (g)",
       "fatLabel": "Fett (g)",
@@ -450,6 +452,7 @@
         "validationQuantityMustBePositive": "Die Menge muss größer als 0 sein.",
         "validationKcalMustBePositive": "Die Kalorien dürfen nicht negativ sein.",
         "validationPcsUnavailable": "Stück ist für dieses Produkt nicht verfügbar — wähle g oder ml.",
+        "labelPlausibilityWarning": "Werte bitte mit der Packung abgleichen",
         "save": "Mahlzeit speichern",
         "analyzing": "Mahlzeit wird analysiert...",
         "analyzeErrorTitle": "Analyse fehlgeschlagen",
@@ -722,7 +725,7 @@
       "macrosRecalculatedHint": "Deine Makroziele werden entsprechend angepasst.",
       "saveFailed": "Kalorienziel konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
-      "macroGoal": {
+    "macroGoal": {
       "sectionTitle": "Proteinziel",
       "screenTitle": "Proteinziel bearbeiten",
       "directEditSubtitle": "Gib dein tägliches Proteinziel in Gramm ein.",

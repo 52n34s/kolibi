@@ -37,7 +37,7 @@ import {
 import { isPartialNumericInput } from '@/lib/numeric-input';
 import type { UnitSystem } from '@/lib/unit-system';
 import { useOnboardingStore } from '@/stores/onboarding-store';
-import { formatKcal } from '@/utils/format';
+import { formatKcal, formatMacroGrams } from '@/utils/format';
 
 export type MealItemRowProps = {
   item: MealItemRowItem;
@@ -55,6 +55,8 @@ export type MealItemRowProps = {
   /** Parent-driven focus for the name field — see ManualMealEntrySheet's autofocus. */
   shouldFocusName?: boolean;
   onNameFocusHandled?: () => void;
+  /** Warning shown directly above the density line, e.g. a failed label check. */
+  notice?: string | null;
 };
 
 type StepperFieldProps = {
@@ -322,6 +324,33 @@ function MacroNumberField({ label, value, onChange }: MacroNumberFieldProps) {
   );
 }
 
+/**
+ * Label rows show the full transcribed column ("pro 100 g: 298 kcal · 7,6 P · …");
+ * values the label did not print are left out.
+ */
+function formatLabelDensityValues(
+  item: MealItemRowItem,
+  t: (key: string) => string,
+  language: string,
+): string {
+  const parts = [`${formatKcal(item.kcalPer100g ?? 0)} ${t('home.mealItemRow.kcalLabel')}`];
+  const macros = item.macrosPer100g;
+
+  const push = (value: number | null | undefined, abbrevKey: string) => {
+    if (value == null) {
+      return;
+    }
+    parts.push(`${formatMacroGrams(value, language)} ${t(abbrevKey)}`);
+  };
+
+  push(macros?.protein, 'home.mealItemRow.nutrientsAbbrevProtein');
+  push(macros?.carbs, 'home.mealItemRow.nutrientsAbbrevCarbs');
+  push(macros?.fat, 'home.mealItemRow.nutrientsAbbrevFat');
+  push(macros?.fiber, 'home.mealItemRow.nutrientsAbbrevFiber');
+
+  return parts.join(' · ');
+}
+
 function formatCollapsedNutrientsSummary(
   item: MealItemRowItem,
   t: (key: string) => string,
@@ -389,8 +418,9 @@ export function MealItemRow({
   remeasureTrigger = 0,
   shouldFocusName = false,
   onNameFocusHandled,
+  notice = null,
 }: MealItemRowProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const mealInputBarActions = useMealInputBarActions();
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
@@ -663,12 +693,19 @@ export function MealItemRow({
         </View>
       ) : null}
 
+      {notice ? <Text style={styles.densityNotice}>{notice}</Text> : null}
+
       {isLinkedItem(item) ? (
         <Text style={styles.densityHint}>
-          {t('home.mealItemRow.densityHint', {
-            kcal: formatKcal(item.kcalPer100g!),
-            unit: getDensityUnitLabel(item.unit),
-          })}
+          {item.kcalPer100gSource === 'label'
+            ? t('home.mealItemRow.labelDensityHint', {
+                unit: getDensityUnitLabel(item.unit),
+                values: formatLabelDensityValues(item, t, i18n.language),
+              })
+            : t('home.mealItemRow.densityHint', {
+                kcal: formatKcal(item.kcalPer100g!),
+                unit: getDensityUnitLabel(item.unit),
+              })}
         </Text>
       ) : null}
     </View>
@@ -794,6 +831,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     color: '#6B7280',
+    textAlign: 'center',
+  },
+  densityNotice: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#B45309',
     textAlign: 'center',
   },
   nutrientsToggle: {

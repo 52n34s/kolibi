@@ -1,6 +1,13 @@
-import type { BarcodeProduct } from '@/services/barcode/OpenFoodFactsService';
-
 export type QuantityOption = 'whole' | 'half' | 'serving' | 'custom';
+
+/**
+ * Just the two sizes the presets need. Structural on purpose: a barcode product
+ * satisfies it, and so does a transcribed nutrition label.
+ */
+export type QuantityPresetSource = {
+  quantityGrams: number | null;
+  servingSizeGrams: number | null;
+};
 
 export const MIN_GRAMS = 10;
 
@@ -14,7 +21,7 @@ export function hasPositiveGrams(value: number | null | undefined): value is num
 
 export function getQuantityGramsForOption(
   option: QuantityOption,
-  product: BarcodeProduct,
+  product: QuantityPresetSource,
   customGrams: number,
 ): number {
   switch (option) {
@@ -29,7 +36,7 @@ export function getQuantityGramsForOption(
   }
 }
 
-export function getDefaultOption(product: BarcodeProduct): QuantityOption {
+export function getDefaultOption(product: QuantityPresetSource): QuantityOption {
   if (hasPositiveGrams(product.quantityGrams)) {
     return 'whole';
   }
@@ -41,7 +48,7 @@ export function getDefaultOption(product: BarcodeProduct): QuantityOption {
   return 'custom';
 }
 
-export function getAvailableQuantityOptions(product: BarcodeProduct): QuantityOption[] {
+export function getAvailableQuantityOptions(product: QuantityPresetSource): QuantityOption[] {
   const options: QuantityOption[] = [];
 
   if (hasPositiveGrams(product.quantityGrams)) {
@@ -56,6 +63,6 @@ export function getAvailableQuantityOptions(product: BarcodeProduct): QuantityOp
   return options;
 }
 
-export function getDefaultCustomGrams(product: BarcodeProduct, defaultGrams: number): number {
+export function getDefaultCustomGrams(product: QuantityPresetSource, defaultGrams: number): number {
   return positiveOr(product.servingSizeGrams, positiveOr(product.quantityGrams, defaultGrams));
 }
