@@ -121,7 +121,61 @@ Example (German name, English canonical_name — always keep this split):
 }`;
 }
 
+function buildLabelUserPrompt(language: string): string {
+  return `You receive one or more photos. Before anything else, decide what they predominantly show.
+
+Set "image_type" to "label" when the photo predominantly shows a printed nutrition table (nutrition facts panel, Nährwerttabelle, tabla nutricional) that has a readable "per 100 g" or "per 100 ml" column.
+Set "image_type" to "meal" in every other case: a plate or bowl of food, loose ingredients, packaging photographed without a readable nutrition table, or a nutrition table that only lists per-serving values.
+
+=== When image_type is "label" ===
+
+Return a JSON object with this shape:
+{
+  "image_type": "label",
+  "label": {
+    "name": "Product name in the requested language",
+    "canonical_name": "snake_case_english_identifier",
+    "basis": "per_100g",
+    "kcal_per_100": 0,
+    "protein_per_100": null,
+    "carbs_per_100": null,
+    "fat_per_100": null,
+    "fiber_per_100": null,
+    "sugar_per_100": null,
+    "package_grams": null,
+    "serving_grams": null,
+    "confidence": "low"
+  }
+}
+
+Rules for the label case:
+- Transcribe the "per 100 g" / "per 100 ml" column literally, exactly as printed. Do not estimate, do not calculate, do not convert to a portion, and never fill in a value from what you know about the product.
+- Read only that column. Per-serving, per-piece and per-package columns must never end up in these fields.
+- Any value that is not printed or not legible is null. null means "not readable"; 0 means the label actually prints a zero.
+- "basis" is "per_100g" when the column header says 100 g and "per_100ml" when it says 100 ml. Match the printed header.
+- "kcal_per_100" is the kilocalorie value (kcal), not the kilojoule value (kJ). If the column prints only kJ and no kcal, set "image_type" to "meal" instead.
+- Every other *_per_100 value is grams per 100 g / 100 ml, exactly as printed.
+- "package_grams" is the net content of the whole package in grams (or ml), "serving_grams" the printed serving size in grams (or ml). Both are null when the photo does not show them.
+- Write "name" in language code "${language}" (de = German, en = English, es = Spanish) — the product name as it appears on the packaging.
+- Always write "canonical_name" as English snake_case (matching key for the foods database). Never translate canonical_name.
+- "confidence" ("low" | "medium" | "high") reflects how legible the table was.
+- Return the "label" object only. Do not return an "items" array for a label photo.
+- Any dietary or cuisine context appended below applies to meal photos only. Ignore it when transcribing a label.
+
+=== When image_type is "meal" ===
+
+Return a JSON object with "image_type": "meal" plus the "items" array described below, following these instructions exactly:
+
+${buildUserPrompt(language)}`;
+}
+
 const PROMPT_VERSION = 'v4-localized';
+const LABEL_PROMPT_VERSION = 'v5-label';
+const LABEL_FEATURE = 'label';
+
+function hasLabelFeature(features: string[] | undefined): boolean {
+  return features?.includes(LABEL_FEATURE) ?? false;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -193,6 +247,156 @@ const visionResponseSchema = z.object({
   items: z.array(visionFoodItemSchema).min(1).max(30),
 });
 
+/** Per-100 g/ml value copied off the label; null = not printed or not legible. */
+const labelPer100Schema = z.number().min(0).max(1000).nullable().default(null);
+const labelWeightSchema = z.number().min(0).max(100_000).nullable().default(null);
+
+const visionLabelSchema = z.object({
+  name: z.string().min(1),
+  canonical_name: z.string().min(1),
+  basis: z.enum(['per_100g', 'per_100ml']),
+  kcal_per_100: z.number().min(0).max(2000),
+  protein_per_100: labelPer100Schema,
+  carbs_per_100: labelPer100Schema,
+  fat_per_100: labelPer100Schema,
+  fiber_per_100: labelPer100Schema,
+  sugar_per_100: labelPer100Schema,
+  package_grams: labelWeightSchema,
+  serving_grams: labelWeightSchema,
+  confidence: visionConfidenceSchema,
+});
+
+/**
+ * Label-mode response. The model tags the photo via image_type; a missing tag
+ * means 'meal', so the pre-label meal shape still validates unchanged.
+ */
+const labelModeResponseSchema = z.preprocess((value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (record.image_type == null) {
+    return { ...record, image_type: 'meal' };
+  }
+
+  return record;
+}, z.discriminatedUnion('image_type', [
+  z.object({
+    image_type: z.literal('meal'),
+    items: z.array(visionFoodItemSchema).min(1).max(30),
+  }),
+  z.object({
+    image_type: z.literal('label'),
+    label: visionLabelSchema,
+  }),
+]));
+
+type VisionLabel = z.infer<typeof visionLabelSchema>;
+
+type LabelPlausibility = {
+  checked: boolean;
+  expected_kcal_eu: number | null;
+  expected_kcal_us: number | null;
+  /** null when checked is false. */
+  passed: boolean | null;
+};
+
+const PLAUSIBILITY_RELATIVE_TOLERANCE = 0.1;
+const PLAUSIBILITY_MIN_TOLERANCE_KCAL = 15;
+/** Pure fat tops out near 900 kcal/100 g; above this the transcription is wrong. */
+const MAX_PLAUSIBLE_KCAL_PER_100 = 950;
+/** No macro can exceed 100 g per 100 g / 100 ml. */
+const MAX_PLAUSIBLE_MACRO_PER_100 = 100;
+
+function roundKcal(value: number | null): number | null {
+  return value == null ? null : Math.round(value * 10) / 10;
+}
+
+/**
+ * Values the label cannot physically print. A hit means the column was misread
+ * (per-serving numbers, a shifted row, kJ in the kcal slot) — fail outright,
+ * the Atwater tolerance would let some of these through.
+ */
+function hasImpossibleLabelValues(label: VisionLabel): boolean {
+  if (label.kcal_per_100 > MAX_PLAUSIBLE_KCAL_PER_100) {
+    return true;
+  }
+
+  const perHundred = [
+    label.protein_per_100,
+    label.carbs_per_100,
+    label.fat_per_100,
+    label.fiber_per_100,
+    label.sugar_per_100,
+  ];
+  if (perHundred.some((value) => value != null && value > MAX_PLAUSIBLE_MACRO_PER_100)) {
+    return true;
+  }
+
+  // Sugar is a subset of carbohydrates, never more.
+  if (
+    label.sugar_per_100 != null &&
+    label.carbs_per_100 != null &&
+    label.sugar_per_100 > label.carbs_per_100
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Atwater cross-check against the printed kcal.
+ * EU counts fibre at 2 kcal/g, the US factors leave it out. A missing macro
+ * drops the formula that needs it; with no formula left, nothing is checked.
+ */
+function evaluateLabelPlausibility(label: VisionLabel): LabelPlausibility {
+  const protein = label.protein_per_100;
+  const carbs = label.carbs_per_100;
+  const fat = label.fat_per_100;
+  const fiber = label.fiber_per_100;
+
+  const us =
+    protein != null && carbs != null && fat != null
+      ? 4 * protein + 4 * carbs + 9 * fat
+      : null;
+  const eu = us != null && fiber != null ? us + 2 * fiber : null;
+
+  if (hasImpossibleLabelValues(label)) {
+    return {
+      checked: true,
+      expected_kcal_eu: roundKcal(eu),
+      expected_kcal_us: roundKcal(us),
+      passed: false,
+    };
+  }
+
+  if (us == null && eu == null) {
+    return {
+      checked: false,
+      expected_kcal_eu: null,
+      expected_kcal_us: null,
+      passed: null,
+    };
+  }
+
+  const tolerance = Math.max(
+    label.kcal_per_100 * PLAUSIBILITY_RELATIVE_TOLERANCE,
+    PLAUSIBILITY_MIN_TOLERANCE_KCAL,
+  );
+  const passed = [eu, us].some(
+    (expected) => expected != null && Math.abs(expected - label.kcal_per_100) <= tolerance,
+  );
+
+  return {
+    checked: true,
+    expected_kcal_eu: roundKcal(eu),
+    expected_kcal_us: roundKcal(us),
+    passed,
+  };
+}
+
 const requestSchema = z.object({
   images: z
     .array(
@@ -203,6 +407,8 @@ const requestSchema = z.object({
     )
     .min(1)
     .max(3),
+  /** Opt-in flags. Only 'label' is read today; absent = pre-label behaviour. */
+  features: z.array(z.string()).max(8).optional(),
   language: z
     .string()
     .optional()
@@ -364,11 +570,35 @@ const SCAN_LOG_ITEM_FIELDS = [
   'confidence',
 ] as const;
 
-type ScanLogRawResponse = {
-  items: Array<Record<string, unknown>>;
-};
+const SCAN_LOG_LABEL_FIELDS = [
+  'name',
+  'canonical_name',
+  'basis',
+  'kcal_per_100',
+  'protein_per_100',
+  'carbs_per_100',
+  'fat_per_100',
+  'fiber_per_100',
+  'sugar_per_100',
+  'package_grams',
+  'serving_grams',
+  'confidence',
+] as const;
 
-function sanitizeModelOutputForScanLog(parsed: unknown): ScanLogRawResponse | null {
+type ScanLogRawResponse =
+  | {
+      items: Array<Record<string, unknown>>;
+    }
+  | {
+      image_type: 'label';
+      label: Record<string, unknown>;
+      plausibility: LabelPlausibility | null;
+    };
+
+function sanitizeModelOutputForScanLog(
+  parsed: unknown,
+  plausibility: LabelPlausibility | null = null,
+): ScanLogRawResponse | null {
   let candidate: unknown = parsed;
 
   if (Array.isArray(parsed)) {
@@ -380,6 +610,26 @@ function sanitizeModelOutputForScanLog(parsed: unknown): ScanLogRawResponse | nu
   }
 
   const record = candidate as Record<string, unknown>;
+
+  // Label photos log the transcribed table plus the server-side kcal check.
+  const labelCandidate = record.label;
+  if (
+    record.image_type === 'label' &&
+    !!labelCandidate &&
+    typeof labelCandidate === 'object' &&
+    !Array.isArray(labelCandidate)
+  ) {
+    const labelRecord = labelCandidate as Record<string, unknown>;
+    const sanitizedLabel: Record<string, unknown> = {};
+    for (const field of SCAN_LOG_LABEL_FIELDS) {
+      if (field in labelRecord) {
+        sanitizedLabel[field] = labelRecord[field];
+      }
+    }
+
+    return { image_type: 'label', label: sanitizedLabel, plausibility };
+  }
+
   if (!Array.isArray(record.items)) {
     return null;
   }
@@ -428,6 +678,7 @@ async function writeScanLog(
   serviceClient: ReturnType<typeof createClient>,
   params: {
     userId: string;
+    promptVersion: string;
     status: ScanLogStatus;
     errorMessage: string | null;
     latencyMs: number;
@@ -442,7 +693,7 @@ async function writeScanLog(
     meal_id: null,
     provider: 'anthropic',
     model_version: MEAL_VISION_MODEL,
-    prompt_version: PROMPT_VERSION,
+    prompt_version: params.promptVersion,
     num_images: params.numImages,
     latency_ms: params.latencyMs,
     input_tokens: params.inputTokens,
@@ -704,11 +955,14 @@ serve(async (req) => {
 
   const images = parsedRequest.data.images;
   const language = parsedRequest.data.language;
+  const labelMode = hasLabelFeature(parsedRequest.data.features);
+  const promptVersion = labelMode ? LABEL_PROMPT_VERSION : PROMPT_VERSION;
   const imageValidation = validateImages(images);
   if (!imageValidation.ok) {
     console.error('Image validation rejected request:', imageValidation.reason);
     await writeScanLog(serviceClient, {
       userId: user.id,
+      promptVersion,
       status: 'image_rejected',
       errorMessage: imageValidation.reason,
       latencyMs: 0,
@@ -727,7 +981,9 @@ serve(async (req) => {
 
   try {
     const foodContextBlock = await loadFoodContextPromptBlock(serviceClient, user.id);
-    const userPromptBase = buildUserPrompt(language);
+    const userPromptBase = labelMode
+      ? buildLabelUserPrompt(language)
+      : buildUserPrompt(language);
     const userPromptText = foodContextBlock
       ? `${userPromptBase}\n\n${foodContextBlock}`
       : userPromptBase;
@@ -745,6 +1001,7 @@ serve(async (req) => {
       console.error(errorMessage);
       await writeScanLog(serviceClient, {
         userId: user.id,
+        promptVersion,
         status: 'invalid_json',
         errorMessage,
         latencyMs,
@@ -765,6 +1022,7 @@ serve(async (req) => {
       console.error('Failed to parse JSON from model output:', parseError);
       await writeScanLog(serviceClient, {
         userId: user.id,
+        promptVersion,
         status: 'invalid_json',
         errorMessage,
         latencyMs,
@@ -779,12 +1037,15 @@ serve(async (req) => {
 
     const rawResponse = sanitizeModelOutputForScanLog(parsedJson);
 
-    const validated = visionResponseSchema.safeParse(parsedJson);
+    const validated = labelMode
+      ? labelModeResponseSchema.safeParse(parsedJson)
+      : visionResponseSchema.safeParse(parsedJson);
     if (!validated.success) {
       const errorMessage = truncateScanLogMessage(validated.error.message) ?? 'Model output failed validation.';
       console.error('Model output failed validation:', validated.error);
       await writeScanLog(serviceClient, {
         userId: user.id,
+        promptVersion,
         status: 'invalid_json',
         errorMessage,
         latencyMs,
@@ -797,18 +1058,48 @@ serve(async (req) => {
       return jsonResponse({ error: 'INVALID_JSON', message: CLIENT_MESSAGES.INVALID_JSON }, 422);
     }
 
+    const validatedData = validated.data;
+
+    if ('label' in validatedData) {
+      const plausibility = evaluateLabelPlausibility(validatedData.label);
+
+      await writeScanLog(serviceClient, {
+        userId: user.id,
+        promptVersion,
+        status: 'success',
+        errorMessage: null,
+        latencyMs,
+        numImages: images.length,
+        inputTokens,
+        outputTokens,
+        rawResponse: sanitizeModelOutputForScanLog(validatedData, plausibility),
+      });
+
+      return jsonResponse(
+        { image_type: 'label', label: validatedData.label, plausibility },
+        200,
+      );
+    }
+
     await writeScanLog(serviceClient, {
       userId: user.id,
+      promptVersion,
       status: 'success',
       errorMessage: null,
       latencyMs,
       numImages: images.length,
       inputTokens,
       outputTokens,
-      rawResponse: sanitizeModelOutputForScanLog(validated.data),
+      rawResponse: sanitizeModelOutputForScanLog(validatedData),
     });
 
-    return jsonResponse({ items: validated.data.items }, 200);
+    // Without the label feature the payload stays exactly as it was.
+    return jsonResponse(
+      labelMode
+        ? { image_type: 'meal', items: validatedData.items }
+        : { items: validatedData.items },
+      200,
+    );
   } catch (error) {
     const latencyMs = Date.now() - startedAt;
     const scanStatus: ScanLogStatus =
@@ -822,6 +1113,7 @@ serve(async (req) => {
 
     await writeScanLog(serviceClient, {
       userId: user.id,
+      promptVersion,
       status: scanStatus,
       errorMessage,
       latencyMs,
