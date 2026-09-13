@@ -392,6 +392,15 @@
       "loading": "Mahlzeit wird geladen…",
       "loadError": "Die Mahlzeit konnte nicht geladen werden. Bitte erneut versuchen."
     },
+    "productLookup": {
+        "title": "Produkt nachschlagen",
+        "scanAnother": "Weiteres Produkt scannen",
+        "notFoundTitle": "Produkt nicht gefunden",
+        "notFoundMessage": "Dieser Barcode ist nicht in der Open-Food-Facts-Datenbank.",
+        "errorTitle": "Abfrage fehlgeschlagen",
+        "errorMessage": "Das Produkt konnte nicht geladen werden. Bitte erneut versuchen.",
+        "iconLabel": "Produkt nachschlagen"
+    },
     "scan": {
       "buttonLabel": "Mahlzeit scannen",
       "barcodeLabel": "Barcode",
@@ -491,6 +500,32 @@
         "saveError": "Die Mahlzeit konnte nicht gespeichert werden. Bitte erneut versuchen.",
         "fetchErrorTitle": "Abfrage fehlgeschlagen",
         "fetchError": "Das Produkt konnte nicht geladen werden. Bitte erneut versuchen.",
+        "product": {
+          "showIngredients": "Zutaten anzeigen",
+          "hideIngredients": "Zutaten ausblenden",
+          "ingredientsTitle": "Zutaten",
+          "statusVeganLabeled": "Als vegan gekennzeichnet",
+          "statusVeganInferred": "Vegan laut Zutatenliste",
+          "statusVegetarianOnly": "Vegetarisch, nicht vegan",
+          "statusNotVegetarian": "Nicht vegetarisch",
+          "statusUnclear": "Nicht eindeutig",
+          "source": "Laut Open Food Facts, abgerufen am {{date}}",
+          "sourceLink": "Zur Produktseite",
+          "disclaimer": "Angaben von Open Food Facts, ohne Gewähr. Keine Allergenauskunft — im Zweifel auf die Verpackung schauen."
+        },
+        "nutrition": {
+          "per100g": "Pro 100 g",
+          "energy": "Energie",
+          "fat": "Fett",
+          "saturatedFat": "davon gesättigte Fettsäuren",
+          "carbs": "Kohlenhydrate",
+          "sugar": "davon Zucker",
+          "fiber": "Ballaststoffe",
+          "protein": "Eiweiß",
+          "salt": "Salz",
+          "gramsValue": "{{value, number(minimumFractionDigits: 1; maximumFractionDigits: 1)}} g",
+          "gramsValueFine": "{{value, number(minimumFractionDigits: 2; maximumFractionDigits: 2)}} g"
+        },
         "quantity": {
           "wholePackage": "Ganze Packung",
           "halfPackage": "Halbe Packung",

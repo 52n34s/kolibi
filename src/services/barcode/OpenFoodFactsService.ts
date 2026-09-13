@@ -36,6 +36,8 @@ const nutrimentsSchema = z
     fiber_100g: z.coerce.number().finite().optional(),
     sugars_100g: z.coerce.number().finite().optional(),
     sodium_100g: z.coerce.number().finite().optional(),
+    salt_100g: z.coerce.number().finite().optional(),
+    'saturated-fat_100g': z.coerce.number().finite().optional(),
   })
   .passthrough();
 
@@ -44,6 +46,15 @@ const productSchema = z
     product_name: optionalOffString,
     brands: optionalOffString,
     quantity: optionalOffString,
+    image_front_small_url: optionalOffString,
+    image_front_url: optionalOffString,
+    image_url: optionalOffString,
+    labels_tags: z.array(z.string()).optional(),
+    ingredients_analysis_tags: z.array(z.string()).optional(),
+    ingredients_text: optionalOffString,
+    ingredients_text_de: optionalOffString,
+    ingredients_text_en: optionalOffString,
+    ingredients_text_es: optionalOffString,
     serving_size: optionalOffString,
     nutriments: nutrimentsSchema.optional(),
   })
@@ -68,6 +79,15 @@ export type BarcodeProduct = {
   fatPer100g: number | null;
   fiberPer100g: number | null;
   hasIncompleteMacros: boolean;
+  sugarPer100g: number | null;
+  saturatedFatPer100g: number | null;
+  saltPer100g: number | null;
+  imageUrl: string | null;
+  dietStatus: {
+    vegan: 'labeled' | 'inferred' | 'no' | 'unknown';
+    vegetarian: 'labeled' | 'inferred' | 'no' | 'unknown';
+  };
+  ingredientsText: string | null;
 };
 
 export class BarcodeProductNotFoundError extends Error {
@@ -416,7 +436,35 @@ function resolveBarcodeProductName(product: {
   return UNKNOWN_BARCODE_PRODUCT_NAME;
 }
 
-function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSchema>): BarcodeProduct {
+function resolveSaltPer100g(nutriments: z.infer<typeof nutrimentsSchema> | undefined): number | null {
+  if (nutriments?.salt_100g != null) {
+    return nutriments.salt_100g;
+  }
+
+  return nutriments?.sodium_100g != null
+    ? Math.round(nutriments.sodium_100g * 2.5 * 100) / 100
+    : null;
+}
+
+function resolveDietStatus(
+  labelsTags: string[] | undefined,
+  analysisTags: string[] | undefined,
+): BarcodeProduct['dietStatus'] {
+  function resolve(diet: 'vegan' | 'vegetarian'): BarcodeProduct['dietStatus']['vegan'] {
+    if (labelsTags?.includes(`en:${diet}`)) return 'labeled';
+    if (analysisTags?.includes(`en:${diet}`)) return 'inferred';
+    if (analysisTags?.includes(`en:non-${diet}`)) return 'no';
+    return 'unknown';
+  }
+
+  return { vegan: resolve('vegan'), vegetarian: resolve('vegetarian') };
+}
+
+function mapToBarcodeProduct(
+  barcode: string,
+  product: z.infer<typeof productSchema>,
+  languageCode?: string,
+): BarcodeProduct {
   const nutriments = product.nutriments;
   const kcalPer100g = resolveKcalPer100g(nutriments);
 
@@ -447,12 +495,24 @@ function mapToBarcodeProduct(barcode: string, product: z.infer<typeof productSch
     fatPer100g: optionalMacro(nutriments?.fat_100g),
     fiberPer100g: optionalMacro(nutriments?.fiber_100g),
     hasIncompleteMacros: proteinMissing || carbsMissing || fatMissing,
+    sugarPer100g: optionalMacro(nutriments?.sugars_100g),
+    saturatedFatPer100g: optionalMacro(nutriments?.['saturated-fat_100g']),
+    saltPer100g: resolveSaltPer100g(nutriments),
+    imageUrl: (product.image_front_small_url ?? product.image_front_url ?? product.image_url ?? null)
+      ?.replace(/^http:\/\//, 'https://') ?? null,
+    dietStatus: resolveDietStatus(product.labels_tags, product.ingredients_analysis_tags),
+    ingredientsText: ({
+      de: product.ingredients_text_de,
+      en: product.ingredients_text_en,
+      es: product.ingredients_text_es,
+    } as Record<string, string | undefined>)[languageCode?.toLowerCase().split(/[-_]/)[0] ?? '']
+      ?? product.ingredients_text ?? null,
   };
 }
 
 export async function fetchProductByBarcode(
   barcode: string,
-  options?: { signal?: AbortSignal },
+  options?: { signal?: AbortSignal; languageCode?: string },
 ): Promise<BarcodeProduct> {
   const normalizedBarcode = barcode.trim();
   if (!normalizedBarcode) {
@@ -496,7 +556,7 @@ export async function fetchProductByBarcode(
       throw new BarcodeProductNotFoundError(normalizedBarcode);
     }
 
-    return mapToBarcodeProduct(normalizedBarcode, payload.data.product);
+    return mapToBarcodeProduct(normalizedBarcode, payload.data.product, options?.languageCode);
   } catch (error) {
     if (options?.signal?.aborted) {
       throw new BarcodeLookupAbortedError();

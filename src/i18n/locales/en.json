@@ -392,6 +392,15 @@
       "loading": "Loading meal…",
       "loadError": "Could not load this meal. Please try again."
     },
+    "productLookup": {
+        "title": "Product lookup",
+        "scanAnother": "Scan another product",
+        "notFoundTitle": "Product not found",
+        "notFoundMessage": "This barcode is not in the Open Food Facts database.",
+        "errorTitle": "Lookup failed",
+        "errorMessage": "The product could not be loaded. Please try again.",
+        "iconLabel": "Product lookup"
+    },
     "scan": {
       "buttonLabel": "Scan meal",
       "barcodeLabel": "Barcode",
@@ -491,6 +500,32 @@
         "saveError": "Could not save your meal. Please try again.",
         "fetchErrorTitle": "Lookup failed",
         "fetchError": "The product could not be loaded. Please try again.",
+        "product": {
+          "showIngredients": "Show ingredients",
+          "hideIngredients": "Hide ingredients",
+          "ingredientsTitle": "Ingredients",
+          "statusVeganLabeled": "Labeled vegan",
+          "statusVeganInferred": "Vegan according to ingredients",
+          "statusVegetarianOnly": "Vegetarian, not vegan",
+          "statusNotVegetarian": "Not vegetarian",
+          "statusUnclear": "Unclear",
+          "source": "According to Open Food Facts, retrieved on {{date}}",
+          "sourceLink": "View product page",
+          "disclaimer": "Data from Open Food Facts, without warranty. Not allergen information — check the packaging if in doubt."
+        },
+        "nutrition": {
+          "per100g": "Per 100 g",
+          "energy": "Energy",
+          "fat": "Fat",
+          "saturatedFat": "of which saturates",
+          "carbs": "Carbohydrate",
+          "sugar": "of which sugars",
+          "fiber": "Fibre",
+          "protein": "Protein",
+          "salt": "Salt",
+          "gramsValue": "{{value, number(minimumFractionDigits: 1; maximumFractionDigits: 1)}} g",
+          "gramsValueFine": "{{value, number(minimumFractionDigits: 2; maximumFractionDigits: 2)}} g"
+        },
         "quantity": {
           "wholePackage": "Whole package",
           "halfPackage": "Half package",

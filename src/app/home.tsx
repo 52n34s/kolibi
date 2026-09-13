@@ -22,6 +22,7 @@ import { HistoryKoliButton } from '@/components/home/history-koli-button';
 import { ManualEntryButton } from '@/components/home/ManualEntryButton';
 import { ScanMealButton } from '@/components/home/ScanMealButton';
 import { BarcodeFlowModal, type BarcodeFlowState } from '@/components/scan/BarcodeFlowModal';
+import { ProductLookupModal, type ProductLookupState } from '@/components/scan/ProductLookupModal';
 import {
   createRowItemId,
   rowItemsToEditable,
@@ -44,7 +45,7 @@ import {
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
-import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
+import { getGlassPillStyle, GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import { TodayMealsSection } from '@/components/home/TodayMealsSection';
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
@@ -262,6 +263,7 @@ export default function HomeScreen() {
   const [pendingMealSource, setPendingMealSource] = useState<MealSource>(MEAL_SOURCE.PHOTO_CAMERA);
   const [isPickingGalleryPhotos, setIsPickingGalleryPhotos] = useState(false);
   const [barcodeFlow, setBarcodeFlow] = useState<BarcodeFlowState>({ kind: 'closed' });
+  const [productLookupFlow, setProductLookupFlow] = useState<ProductLookupState>({ kind: 'closed' });
   const [pendingBarcode, setPendingBarcode] = useState<string | null>(null);
   const pendingBarcodeRef = useRef<string | null>(null);
   const pendingPaywallRef = useRef(false);
@@ -269,6 +271,7 @@ export default function HomeScreen() {
   const [isSavingBarcodeMeal, setIsSavingBarcodeMeal] = useState(false);
   const [showBarcodeLookupSlow, setShowBarcodeLookupSlow] = useState(false);
   const barcodeLookupAbortRef = useRef<AbortController | null>(null);
+  const productLookupAbortRef = useRef<AbortController | null>(null);
   const [showManualEntrySheet, setShowManualEntrySheet] = useState(false);
   const [isSavingManualMeal, setIsSavingManualMeal] = useState(false);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
@@ -1144,6 +1147,36 @@ export default function HomeScreen() {
     setBarcodeFlow({ kind: 'closed' });
   }, []);
 
+  const closeProductLookup = useCallback(() => {
+    productLookupAbortRef.current?.abort();
+    productLookupAbortRef.current = null;
+    setProductLookupFlow({ kind: 'closed' });
+  }, []);
+
+  const lookupProduct = useCallback(async (barcode: string) => {
+    productLookupAbortRef.current?.abort();
+    const controller = new AbortController();
+    productLookupAbortRef.current = controller;
+    setProductLookupFlow({ kind: 'loading' });
+
+    try {
+      const product = await fetchProductByBarcode(barcode, {
+        signal: controller.signal,
+        languageCode: i18n.language,
+      });
+      setProductLookupFlow({ kind: 'result', product });
+    } catch (error) {
+      if (error instanceof BarcodeLookupAbortedError) return;
+      setProductLookupFlow({ kind: error instanceof BarcodeProductNotFoundError ? 'notFound' : 'lookupError' });
+    } finally {
+      if (productLookupAbortRef.current === controller) productLookupAbortRef.current = null;
+    }
+  }, [i18n.language]);
+
+  function openProductLookup() {
+    setProductLookupFlow({ kind: 'camera' });
+  }
+
   const lookupBarcodeProduct = useCallback(async (barcode: string) => {
     barcodeLookupAbortRef.current?.abort();
 
@@ -1388,7 +1421,12 @@ export default function HomeScreen() {
           </View>
         ) : null
       }>
-      <View className="absolute right-6 z-10" style={{ top: contentTopPadding }}>
+      <View className="absolute right-6 z-10 flex-row gap-2" style={{ top: contentTopPadding }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('home.productLookup.iconLabel')} onPress={openProductLookup}>
+          <View style={getGlassPillStyle(40)}>
+            <Ionicons name="search-outline" size={22} color="#4F46E5" />
+          </View>
+        </Pressable>
         <HistoryKoliButton accessibilityLabel={t('koli.title')} />
       </View>
       <View className="flex-1">
@@ -1620,6 +1658,13 @@ export default function HomeScreen() {
         onSaveItems={(items) => void handleBarcodeSave(items)}
         onRetryLookup={() => void handleBarcodeLookupRetry()}
         onTakePhotoInstead={handleBarcodeTakePhotoInstead}
+      />
+
+      <ProductLookupModal
+        state={productLookupFlow}
+        onClose={closeProductLookup}
+        onBarcodeScanned={(barcode) => void lookupProduct(barcode)}
+        onScanAnother={() => setProductLookupFlow({ kind: 'camera' })}
       />
 
       <ManualMealEntrySheet
