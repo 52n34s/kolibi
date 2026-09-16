@@ -501,6 +501,39 @@ export function cyclePauseStartDate(s: {
   return start;
 }
 
+/**
+ * Next due calendar day for an interval schedule (local dates).
+ * Returns today when today is a due day.
+ */
+export function nextIntervalIntakeDate(params: {
+  startDate: string;
+  intervalDays: number;
+  fromDate?: string;
+}): string | null {
+  const interval = Math.max(1, Math.floor(params.intervalDays));
+  const start = parseDateOnly(params.startDate);
+  const from = parseDateOnly(params.fromDate ?? localDateKey());
+  if (Number.isNaN(start.getTime()) || Number.isNaN(from.getTime())) {
+    return null;
+  }
+
+  if (from < start) {
+    return localDateKey(start);
+  }
+
+  const diffDays = Math.round(
+    (from.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  const rem = ((diffDays % interval) + interval) % interval;
+  if (rem === 0) {
+    return localDateKey(from);
+  }
+
+  const next = new Date(from);
+  next.setDate(next.getDate() + (interval - rem));
+  return localDateKey(next);
+}
+
 function describeWeekdays(weekdays: number[], t: Translate): string {
   const sorted = [...new Set(weekdays)].sort((a, b) => a - b);
   if (sorted.length === 1) {

@@ -408,12 +408,13 @@ export function SupplementRemindersSection({
                 key={reminder.id}
                 style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
                 <Pressable onPress={() => openEdit(reminder)} className="px-4 pt-3 pb-2">
-                  <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
-                    {reminder.label?.trim()
-                      ? reminder.label.trim()
-                      : t('supplements.reminders.untitled')}
-                  </Text>
-                  <Text className="mt-1 text-sm text-gray-500">
+                  {reminder.label?.trim() ? (
+                    <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
+                      {reminder.label.trim()}
+                    </Text>
+                  ) : null}
+                  <Text
+                    className={`text-sm text-gray-500 ${reminder.label?.trim() ? 'mt-1' : ''}`}>
                     {formatRemindAtLabel(reminder.remind_at)}
                     {names.length > 0 ? ` · ${names.join(', ')}` : ''}
                   </Text>

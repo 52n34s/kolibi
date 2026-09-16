@@ -22,6 +22,20 @@ export type HomeProgressRowItem = {
    * (e.g. training week).
    */
   weekDayDots?: boolean[];
+  /**
+   * Macro coverage: empty → "—"; partial → "~ N"; value (default) → "N/goal".
+   * null actual with value mode also shows "—" (unknown ≠ 0).
+   */
+  coverage?: 'empty' | 'partial' | 'value';
+  /** When set, replaces the numeric value text entirely (e.g. protein hit rate). */
+  valueOverride?: string;
+  /** Prefix the goal side, e.g. "mind." for fat/fiber floors. */
+  goalPrefix?: string;
+  /**
+   * Drop the bar and fixed value column; value text uses the remaining width
+   * (e.g. protein hit-rate copy that must not truncate).
+   */
+  valueFullWidth?: boolean;
 };
 
 type HomeProgressRowsProps = {
@@ -58,7 +72,8 @@ function WeekDayDots({ flags }: { flags: boolean[] }) {
 
 function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
   const decimals = item.decimals ?? 0;
-  const hasGoal = item.goal != null && item.goal > 0;
+  const coverage = item.coverage ?? 'value';
+  const hasGoal = item.goal != null && item.goal > 0 && coverage === 'value';
   const actual = item.actual;
   const progressPercent = hasGoal
     ? Math.min(100, Math.max(0, ((actual ?? 0) / item.goal!) * 100))
@@ -66,11 +81,19 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
   const useWeekDots = item.weekDayDots != null;
 
   let valueText: string;
-  if (hasGoal) {
-    const left = formatProgressAmount(actual ?? 0, decimals);
-    valueText = `${left}/${formatProgressAmount(item.goal!, decimals)}`;
-  } else if (actual == null) {
+  if (item.valueOverride != null) {
+    valueText = item.valueOverride;
+  } else if (coverage === 'empty' || actual == null) {
+    // Unknown macros must never render as "0/goal".
     valueText = '–';
+  } else if (coverage === 'partial') {
+    valueText = `~ ${formatProgressAmount(actual, decimals)}`;
+  } else if (hasGoal) {
+    const left = formatProgressAmount(actual, decimals);
+    const right = formatProgressAmount(item.goal!, decimals);
+    valueText = item.goalPrefix
+      ? `${item.goalPrefix} ${left}/${right}`
+      : `${left}/${right}`;
   } else {
     valueText = formatProgressAmount(actual, decimals);
   }
@@ -78,23 +101,34 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
     valueText = `${valueText}${item.valueUnit}`;
   }
 
+  const showBar =
+    !item.valueFullWidth && hasGoal && coverage === 'value' && actual != null;
+
   const row = (
     <View style={styles.row}>
       <Text style={styles.label} numberOfLines={1} ellipsizeMode="tail">
         {item.label}
       </Text>
-      <View style={styles.barSlot}>
-        {useWeekDots ? (
-          <WeekDayDots flags={item.weekDayDots!} />
-        ) : hasGoal ? (
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${progressPercent}%` }]} />
+      {item.valueFullWidth ? (
+        <Text style={styles.valueFullWidth} numberOfLines={1}>
+          {valueText}
+        </Text>
+      ) : (
+        <>
+          <View style={styles.barSlot}>
+            {useWeekDots ? (
+              <WeekDayDots flags={item.weekDayDots!} />
+            ) : showBar ? (
+              <View style={styles.track}>
+                <View style={[styles.fill, { width: `${progressPercent}%` }]} />
+              </View>
+            ) : null}
           </View>
-        ) : null}
-      </View>
-      <Text style={styles.value} numberOfLines={1}>
-        {valueText}
-      </Text>
+          <Text style={styles.value} numberOfLines={1}>
+            {valueText}
+          </Text>
+        </>
+      )}
     </View>
   );
 
@@ -212,6 +246,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#26234A',
     fontVariant: ['tabular-nums'],
+  },
+  valueFullWidth: {
+    flex: 1,
+    minWidth: 0,
+    textAlign: 'right',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#26234A',
   },
   footerHintWrap: {
     marginTop: 6,

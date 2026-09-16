@@ -118,6 +118,7 @@ export function useDaySummary(dateKey: string) {
     refetchInterval: isToday ? 5 * 60 * 1000 : false,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30_000),
+    // Past days: pass dateKey so HealthKit is queried for that local day (not today).
     queryFn: async () =>
       getSportEnergyDay({
         ageYears,
@@ -133,6 +134,7 @@ export function useDaySummary(dateKey: string) {
     refetchInterval: isToday ? 5 * 60 * 1000 : false,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30_000),
+    // Past days: same date-scoped HealthKit query as sport energy.
     queryFn: async () => getActiveEnergyBurned(isToday ? undefined : dateKey),
   });
 

@@ -609,13 +609,19 @@
       "namePlaceholder": "p. ej. Vitamina D",
       "doseLabel": "Dosis",
       "scheduleLabel": "Horario",
-      "intervalHint": "Intervalo en días y fecha de inicio",
+      "intervalHint": "Intervalo en días y desde cuándo",
       "startDate": "Fecha de inicio",
+      "sinceWhen": "¿Desde cuándo lo tomas?",
       "cycleToggle": "Ciclo con pausa",
       "cycleWeeksOn": "Semanas on",
       "cycleWeeksOff": "Semanas off",
       "cycleAnchor": "Inicio del ciclo",
+      "cycleStartedWhen": "¿Cuándo empezó el ciclo?",
       "cyclePausePreview": "Pausa desde {{date}}",
+      "cyclePausePreviewWithWeeks": "Pausa desde {{date}} · {{weeks}} semanas",
+      "nextIntakeToday": "Próxima toma: hoy",
+      "nextIntakeTomorrow": "Próxima toma: mañana",
+      "nextIntakeOn": "Próxima toma: {{date}}",
       "active": "Activo",
       "delete": "Eliminar",
       "deleteTitle": "¿Eliminar suplemento?",
@@ -638,7 +644,7 @@
         "createTitle": "Nuevo recordatorio",
         "editTitle": "Editar recordatorio",
         "label": "Nombre",
-        "labelPlaceholder": "p. ej. Mañana",
+        "labelPlaceholder": "Nombre (opcional)",
         "time": "Hora",
         "supplements": "Suplementos",
         "noSupplements": "Primero crea suplementos.",
@@ -664,17 +670,37 @@
     "errors": {
       "loadFailed": "No se pudo cargar el historial. Inténtalo de nuevo."
     },
+    "range": {
+      "days7": "7 días",
+      "days30": "30 días"
+    },
+    "summary": {
+      "sectionTitle": "Resumen",
+      "empty": "Aún no hay días registrados en este periodo.",
+      "calories": "Calorías",
+      "calorieGoalHint": "Ø de {{goal}}",
+      "protein": "Proteína",
+      "proteinHit": "alcanzado en {{hit}} de {{total}} días",
+      "carbs": "Carbohidratos",
+      "fat": "Grasa",
+      "fiber": "Fibra",
+      "minPrefix": "mín.",
+      "daysLogged": "{{logged}} de {{total}} días registrados"
+    },
     "weight": {
-      "sectionTitle": "Evolución del peso",
+      "sectionTitle": "Peso",
+      "trendLabel": "Peso de tendencia",
       "currentLabel": "Peso actual",
       "notLogged": "Sin registro",
-      "empty": "Sin datos de peso — actualiza tu peso en la pantalla de inicio.",
+      "empty": "Sin datos de peso en este periodo.",
       "targetLabel": "Meta",
+      "changeInRange": "{{delta}} en {{days}} días",
       "updateOnHome": "Actualizar peso en inicio"
     },
     "calories": {
-      "sectionTitle": "Últimos 7 días",
-      "empty": "Sin datos de calorías — escanea comidas para empezar."
+      "sectionTitle": "Calorías",
+      "empty": "Sin datos de calorías — escanea comidas para empezar.",
+      "tapHint": "Toca un día para ver detalles."
     },
     "day": {
       "sectionTitle": "Detalle del día",

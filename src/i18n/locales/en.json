@@ -609,13 +609,19 @@
       "namePlaceholder": "e.g. Vitamin D",
       "doseLabel": "Dose",
       "scheduleLabel": "Schedule",
-      "intervalHint": "Interval in days and start date",
+      "intervalHint": "Interval in days and since when",
       "startDate": "Start date",
+      "sinceWhen": "Since when have you been taking it?",
       "cycleToggle": "Cycle with break",
       "cycleWeeksOn": "Weeks on",
       "cycleWeeksOff": "Weeks off",
       "cycleAnchor": "Cycle start",
+      "cycleStartedWhen": "When did the cycle start?",
       "cyclePausePreview": "Break starts {{date}}",
+      "cyclePausePreviewWithWeeks": "Break starts {{date}} · {{weeks}} weeks",
+      "nextIntakeToday": "Next dose: today",
+      "nextIntakeTomorrow": "Next dose: tomorrow",
+      "nextIntakeOn": "Next dose: {{date}}",
       "active": "Active",
       "delete": "Delete",
       "deleteTitle": "Delete supplement?",
@@ -638,7 +644,7 @@
         "createTitle": "New reminder",
         "editTitle": "Edit reminder",
         "label": "Label",
-        "labelPlaceholder": "e.g. Morning",
+        "labelPlaceholder": "Label (optional)",
         "time": "Time",
         "supplements": "Supplements",
         "noSupplements": "Add supplements first.",
@@ -664,17 +670,37 @@
     "errors": {
       "loadFailed": "Could not load your history. Please try again."
     },
+    "range": {
+      "days7": "7 days",
+      "days30": "30 days"
+    },
+    "summary": {
+      "sectionTitle": "Summary",
+      "empty": "No logged days in this period yet.",
+      "calories": "Calories",
+      "calorieGoalHint": "avg of {{goal}}",
+      "protein": "Protein",
+      "proteinHit": "hit on {{hit}} of {{total}} days",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "fiber": "Fiber",
+      "minPrefix": "min.",
+      "daysLogged": "{{logged}} of {{total}} days logged"
+    },
     "weight": {
-      "sectionTitle": "Weight trend",
+      "sectionTitle": "Weight",
+      "trendLabel": "Trend weight",
       "currentLabel": "Current weight",
       "notLogged": "Not logged yet",
-      "empty": "No weight data yet — update your weight on the home screen.",
+      "empty": "No weight data in this period.",
       "targetLabel": "Target",
+      "changeInRange": "{{delta}} in {{days}} days",
       "updateOnHome": "Update weight on home"
     },
     "calories": {
-      "sectionTitle": "Last 7 days",
-      "empty": "No calorie data yet — scan meals to start tracking."
+      "sectionTitle": "Calories",
+      "empty": "No calorie data yet — scan meals to start tracking.",
+      "tapHint": "Tap a day for details."
     },
     "day": {
       "sectionTitle": "Day details",

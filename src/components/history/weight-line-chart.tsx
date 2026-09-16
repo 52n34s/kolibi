@@ -17,6 +17,8 @@ type WeightLineChartProps = {
   height?: number;
   targetWeightKg?: number | null;
   targetLabel?: string | null;
+  /** Format a kg delta for the edge marker, e.g. "+1,2 kg". */
+  formatDeltaKg?: (deltaKg: number) => string;
 };
 
 export function WeightLineChart({
@@ -25,22 +27,31 @@ export function WeightLineChart({
   height = 180,
   targetWeightKg = null,
   targetLabel = null,
+  formatDeltaKg,
 }: WeightLineChartProps) {
+  // Y-domain from data only — never stretch to the target line.
   const points = buildLineChartPoints({
     values,
     width,
     height,
     padding: CHART_PADDING,
-    targetWeightKg,
+    targetWeightKg: null,
   });
 
   if (points.length === 0) {
     return null;
   }
 
-  const yDomain = resolveLineChartYDomain({ values, targetWeightKg });
-  const showTargetLine = targetWeightKg != null && targetLabel != null;
-  const targetY = showTargetLine
+  const yDomain = resolveLineChartYDomain({ values, targetWeightKg: null, yPaddingKg: 1 });
+  const dataMin = yDomain.min;
+  const dataMax = yDomain.max;
+
+  const targetOutside =
+    targetWeightKg != null && (targetWeightKg < dataMin || targetWeightKg > dataMax);
+  const targetInside =
+    targetWeightKg != null && targetWeightKg >= dataMin && targetWeightKg <= dataMax;
+
+  const targetY = targetInside
     ? valueToChartY({
         value: targetWeightKg,
         min: yDomain.min,
@@ -50,9 +61,21 @@ export function WeightLineChart({
       })
     : null;
 
+  const edgeY =
+    targetOutside && targetWeightKg != null
+      ? targetWeightKg > dataMax
+        ? CHART_PADDING
+        : height - CHART_PADDING
+      : null;
+
+  const edgeDelta =
+    targetOutside && targetWeightKg != null
+      ? targetWeightKg - (targetWeightKg > dataMax ? dataMax : dataMin)
+      : null;
+
   return (
     <Svg width={width} height={height}>
-      {showTargetLine && targetY != null ? (
+      {targetInside && targetY != null ? (
         <>
           <Line
             x1={CHART_PADDING}
@@ -63,14 +86,43 @@ export function WeightLineChart({
             strokeWidth={1.5}
             strokeDasharray="6 4"
           />
+          {targetLabel ? (
+            <SvgText
+              x={width - CHART_PADDING}
+              y={targetY - 6}
+              fill={TARGET_LINE_COLOR}
+              fontSize={11}
+              fontWeight="600"
+              textAnchor="end">
+              {targetLabel}
+            </SvgText>
+          ) : null}
+        </>
+      ) : null}
+
+      {edgeY != null && edgeDelta != null ? (
+        <>
+          <Line
+            x1={CHART_PADDING}
+            y1={edgeY}
+            x2={width - CHART_PADDING}
+            y2={edgeY}
+            stroke={TARGET_LINE_COLOR}
+            strokeWidth={1.5}
+            strokeDasharray="4 4"
+          />
           <SvgText
             x={width - CHART_PADDING}
-            y={targetY - 6}
+            y={edgeY + (targetWeightKg! > dataMax ? 12 : -6)}
             fill={TARGET_LINE_COLOR}
             fontSize={11}
             fontWeight="600"
             textAnchor="end">
-            {targetLabel}
+            {targetLabel
+              ? `${targetLabel} (${formatDeltaKg ? formatDeltaKg(edgeDelta) : `${edgeDelta > 0 ? '+' : ''}${edgeDelta.toFixed(1)} kg`})`
+              : formatDeltaKg
+                ? formatDeltaKg(edgeDelta)
+                : `${edgeDelta > 0 ? '+' : ''}${edgeDelta.toFixed(1)} kg`}
           </SvgText>
         </>
       ) : null}

@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -19,7 +18,6 @@ import {
 } from '@/lib/supplements';
 import { useAuthStore } from '@/stores/auth-store';
 
-const HIDE_AFTER_COMPLETE_MS = 900;
 const CHIP_SCROLL_THRESHOLD = 3;
 
 const DUE_CHIP = {
@@ -58,38 +56,6 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
   });
 
   const dueItems = (data ?? []).filter((item) => item.is_due);
-  const allDueTaken = dueItems.length > 0 && dueItems.every((item) => item.taken);
-
-  /** Keep row visible briefly after the last chip is completed; hide immediately if already complete on load. */
-  const [holdVisible, setHoldVisible] = useState(false);
-  const hadIncompleteRef = useRef(false);
-
-  useEffect(() => {
-    if (dueItems.length === 0) {
-      hadIncompleteRef.current = false;
-      setHoldVisible(false);
-      return;
-    }
-
-    if (!allDueTaken) {
-      hadIncompleteRef.current = true;
-      setHoldVisible(false);
-      return;
-    }
-
-    if (!hadIncompleteRef.current) {
-      setHoldVisible(false);
-      return;
-    }
-
-    setHoldVisible(true);
-    const timer = setTimeout(() => {
-      setHoldVisible(false);
-      hadIncompleteRef.current = false;
-    }, HIDE_AFTER_COMPLETE_MS);
-
-    return () => clearTimeout(timer);
-  }, [allDueTaken, dueItems.length]);
 
   const toggleMutation = useMutation({
     mutationFn: async (item: SupplementForDay) => {
@@ -124,11 +90,8 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
     return null;
   }
 
+  // Only hide when nothing is due today (schedule/cycle/interval) or none exist.
   if (dueItems.length === 0) {
-    return null;
-  }
-
-  if (allDueTaken && !holdVisible) {
     return null;
   }
 

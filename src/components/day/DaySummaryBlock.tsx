@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
+import type { NutrientTileState } from '@/components/home/nutrient-tile';
 import {
   getOnboardingIdleCardStyle,
   getOnboardingSecondarySurfaceStyle,
@@ -12,6 +13,7 @@ import {
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
+import { useDayMeals } from '@/hooks/use-day-meals';
 import { useDaySummary } from '@/hooks/use-day-summary';
 import { useHasPremiumAccess } from '@/hooks/use-premium-access';
 import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
@@ -19,7 +21,11 @@ import {
   getCalorieGoalDisplay,
   getDynamicCalorieGoalDisplay,
 } from '@/lib/home';
-import { buildHomeNutrientTileEntries } from '@/lib/home-nutrients';
+import {
+  buildHomeNutrientTileEntries,
+  type NutrientKey,
+} from '@/lib/home-nutrients';
+import type { TodayMealItem } from '@/lib/meals';
 import { scaleMacrosForSportCalories } from '@/lib/sport-macro-scaling';
 import {
   buildWidgetSnapshot,
@@ -33,6 +39,41 @@ const CALORIE_OVER_GOAL_COLOR = '#D97706';
 
 /** Dev-only: set e.g. 2269 to preview over-goal layout in the simulator */
 const DEV_PREVIEW_CONSUMED_CALORIES = 0;
+
+const ITEM_MACRO_FIELD: Record<NutrientKey, keyof TodayMealItem> = {
+  protein: 'protein_g',
+  carbs: 'carbs_g',
+  fat: 'fat_g',
+  fiber: 'fiber_g',
+};
+
+function resolveDayNutrientCoverage(
+  items: TodayMealItem[],
+  key: NutrientKey,
+): NutrientTileState {
+  if (items.length === 0) {
+    return 'empty';
+  }
+
+  const field = ITEM_MACRO_FIELD[key];
+  let present = 0;
+
+  for (const item of items) {
+    if (item[field] != null) {
+      present += 1;
+    }
+  }
+
+  if (present === 0) {
+    return 'empty';
+  }
+
+  if (present === items.length) {
+    return 'value';
+  }
+
+  return 'partial';
+}
 
 type DaySummaryBlockProps = {
   date: string;
@@ -56,6 +97,8 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     sportEnergyDay,
     activeEnergyBurned,
   } = useDaySummary(date);
+
+  const { data: dayMeals } = useDayMeals(userId, date);
 
   const { hasAccess: hasPremiumAccessDb } = useHasPremiumAccess(userId);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
@@ -177,6 +220,14 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
       }
     }
 
+    const dayItems = (dayMeals ?? []).flatMap((meal) => meal.items);
+    const coverage: Record<NutrientKey, NutrientTileState> = {
+      protein: resolveDayNutrientCoverage(dayItems, 'protein'),
+      carbs: resolveDayNutrientCoverage(dayItems, 'carbs'),
+      fat: resolveDayNutrientCoverage(dayItems, 'fat'),
+      fiber: resolveDayNutrientCoverage(dayItems, 'fiber'),
+    };
+
     return buildHomeNutrientTileEntries({
       dietPreference,
       labels: {
@@ -186,14 +237,15 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
         fiber: t('home.nutrients.fiber'),
       },
       totals: {
-        protein: macros?.proteinG ?? null,
-        carbs: macros?.carbsG ?? null,
-        fat: macros?.fatG ?? null,
-        fiber: macros?.fiberG ?? null,
+        protein: coverage.protein === 'empty' ? null : (macros?.proteinG ?? null),
+        carbs: coverage.carbs === 'empty' ? null : (macros?.carbsG ?? null),
+        fat: coverage.fat === 'empty' ? null : (macros?.fatG ?? null),
+        fiber: coverage.fiber === 'empty' ? null : (macros?.fiberG ?? null),
       },
       unit: t('home.nutrients.unitGrams'),
     }).map((entry) => ({
       ...entry,
+      coverage: coverage[entry.key],
       goalValue:
         entry.key === 'protein'
           ? proteinGoal
@@ -212,6 +264,7 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     dailyCalorieGoal,
     consumption,
     dayGoal,
+    dayMeals,
     dietPreference,
     healthConnectedPreference,
     latestWeightKg,
@@ -227,6 +280,7 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
       actual: tile.value,
       goal: tile.goalValue ?? null,
       decimals: 0 as const,
+      coverage: tile.coverage,
       onPress: tile.onPress,
     }));
   }, [nutrientTiles]);

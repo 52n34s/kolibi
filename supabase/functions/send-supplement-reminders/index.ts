@@ -5,7 +5,7 @@ import { formatInTimeZone } from 'https://esm.sh/date-fns-tz@3.2.0';
 const FALLBACK_TIME_ZONE = 'Europe/Berlin';
 /**
  * Forward half-open window [remind_at, remind_at + WINDOW).
- * Must match the pg_cron interval (send-meal-reminders / this function: */30).
+ * Must match the pg_cron interval (send-meal-reminders / this function: alle 30 Minuten).
  * Never fires early; max lateness ≈ WINDOW_MINUTES − ε.
  */
 const WINDOW_MINUTES = 30;

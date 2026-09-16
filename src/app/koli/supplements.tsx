@@ -8,9 +8,11 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   Switch,
   Text,
   TextInput,
@@ -32,6 +34,7 @@ import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import {
   getNumberInputAccessoryProps,
 } from '@/components/ui/keyboard-accessory';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { formatAppDate } from '@/lib/onboarding';
 import {
@@ -42,6 +45,7 @@ import {
   DOSE_UNITS,
   fetchSupplements,
   formatDoseLabel,
+  nextIntervalIntakeDate,
   type DoseUnit,
   type ScheduleKind,
   type Supplement,
@@ -156,11 +160,13 @@ function draftToWriteInput(draft: EditorDraft): SupplementWriteInput | null {
 function openDatePicker(options: {
   value: Date;
   onChange: (date: Date) => void;
+  maximumDate?: Date;
 }) {
   if (Platform.OS === 'android') {
     DateTimePickerAndroid.open({
       value: options.value,
       mode: 'date',
+      maximumDate: options.maximumDate,
       onChange: (_event: DateTimePickerEvent, selected?: Date) => {
         if (selected) {
           options.onChange(selected);
@@ -191,6 +197,7 @@ function SupplementEditorSheet({
   onDelete,
 }: SupplementEditorSheetProps) {
   const { t, i18n } = useTranslation();
+  const keyboardHeight = useKeyboardHeight();
   const [draft, setDraft] = useState<EditorDraft>(emptyDraft);
   const [showIosStartPicker, setShowIosStartPicker] = useState(false);
   const [showIosCyclePicker, setShowIosCyclePicker] = useState(false);
@@ -209,6 +216,7 @@ function SupplementEditorSheet({
       return null;
     }
     const weeksOn = Number(draft.cycleWeeksOn);
+    const weeksOff = Number(draft.cycleWeeksOff);
     if (!Number.isFinite(weeksOn) || weeksOn < 1) {
       return null;
     }
@@ -219,14 +227,54 @@ function SupplementEditorSheet({
     if (pause == null) {
       return null;
     }
-    return t('supplements.editor.cyclePausePreview', {
-      date: pause.toLocaleDateString(i18n.language, {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }),
+    const dateLabel = pause.toLocaleDateString(i18n.language, {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
     });
-  }, [draft.cycleAnchorDate, draft.cycleEnabled, draft.cycleWeeksOn, i18n.language, t]);
+    if (Number.isFinite(weeksOff) && weeksOff >= 1) {
+      return t('supplements.editor.cyclePausePreviewWithWeeks', {
+        date: dateLabel,
+        weeks: Math.round(weeksOff),
+      });
+    }
+    return t('supplements.editor.cyclePausePreview', { date: dateLabel });
+  }, [
+    draft.cycleAnchorDate,
+    draft.cycleEnabled,
+    draft.cycleWeeksOff,
+    draft.cycleWeeksOn,
+    i18n.language,
+    t,
+  ]);
+
+  const intervalPreview = useMemo(() => {
+    if (draft.scheduleKind !== 'interval') {
+      return null;
+    }
+    const nextKey = nextIntervalIntakeDate({
+      startDate: draft.startDate,
+      intervalDays: draft.intervalDays,
+    });
+    if (nextKey == null) {
+      return null;
+    }
+    const today = localDateKey();
+    const tomorrowDate = new Date();
+    tomorrowDate.setHours(0, 0, 0, 0);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrow = localDateKey(tomorrowDate);
+
+    if (nextKey === today) {
+      return t('supplements.editor.nextIntakeToday');
+    }
+    if (nextKey === tomorrow) {
+      return t('supplements.editor.nextIntakeTomorrow');
+    }
+    return t('supplements.editor.nextIntakeOn', {
+      date: formatAppDate(parseDateOnly(nextKey), i18n.language),
+    });
+  }, [draft.intervalDays, draft.scheduleKind, draft.startDate, i18n.language, t]);
 
   const canSave = draftToWriteInput(draft) != null && !isSaving;
 
@@ -245,6 +293,7 @@ function SupplementEditorSheet({
     if (Platform.OS === 'android') {
       openDatePicker({
         value,
+        maximumDate: new Date(),
         onChange: (date) => setDraft((current) => ({ ...current, startDate: localDateKey(date) })),
       });
       return;
@@ -258,6 +307,7 @@ function SupplementEditorSheet({
     if (Platform.OS === 'android') {
       openDatePicker({
         value,
+        maximumDate: new Date(),
         onChange: (date) =>
           setDraft((current) => ({ ...current, cycleAnchorDate: localDateKey(date) })),
       });
@@ -269,15 +319,26 @@ function SupplementEditorSheet({
 
   return (
     <GlassBottomSheet visible={visible} onClose={onClose} maxHeightRatio={0.92} numberInputAccessory>
-      <View className="px-5 pb-6 pt-2">
-        <Text className="mb-4 text-xl font-bold text-gray-900">
-          {isNew ? t('supplements.editor.createTitle') : t('supplements.editor.editTitle')}
-        </Text>
+      <View style={sheetStyles.root}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+          style={sheetStyles.keyboardAvoid}>
+          <View style={sheetStyles.body} className="px-5 pt-2">
+            <Text className="mb-4 text-xl font-bold text-gray-900">
+              {isNew ? t('supplements.editor.createTitle') : t('supplements.editor.editTitle')}
+            </Text>
 
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={{ maxHeight: 520 }}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+              style={sheetStyles.list}
+              contentContainerStyle={[
+                sheetStyles.listContent,
+                keyboardHeight > 0 ? { paddingBottom: Math.max(24, keyboardHeight * 0.15) } : null,
+              ]}>
           <Text className="mb-1 text-sm font-medium text-gray-700">
             {t('supplements.editor.nameLabel')}
           </Text>
@@ -372,7 +433,9 @@ function SupplementEditorSheet({
               <Pressable
                 onPress={pickStartDate}
                 className="rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
-                <Text className="text-sm text-gray-500">{t('supplements.editor.startDate')}</Text>
+                <Text className="text-sm text-gray-500">
+                  {t('supplements.editor.sinceWhen')}
+                </Text>
                 <Text className="mt-1 text-base font-medium text-gray-900">
                   {formatAppDate(parseDateOnly(draft.startDate), i18n.language)}
                 </Text>
@@ -382,6 +445,39 @@ function SupplementEditorSheet({
                   value={parseDateOnly(draft.startDate)}
                   mode="date"
                   display="spinner"
+                  maximumDate={new Date()}
+                  onChange={(_event, selected) => {
+                    if (selected) {
+                      setDraft((current) => ({
+                        ...current,
+                        startDate: localDateKey(selected),
+                      }));
+                    }
+                  }}
+                />
+              ) : null}
+              {intervalPreview ? (
+                <Text className="mt-2 text-sm text-gray-500">{intervalPreview}</Text>
+              ) : null}
+            </View>
+          ) : (
+            <View className="mb-3">
+              <Pressable
+                onPress={pickStartDate}
+                className="rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
+                <Text className="text-sm text-gray-500">
+                  {t('supplements.editor.sinceWhen')}
+                </Text>
+                <Text className="mt-1 text-base font-medium text-gray-900">
+                  {formatAppDate(parseDateOnly(draft.startDate), i18n.language)}
+                </Text>
+              </Pressable>
+              {showIosStartPicker && Platform.OS === 'ios' ? (
+                <DateTimePicker
+                  value={parseDateOnly(draft.startDate)}
+                  mode="date"
+                  display="spinner"
+                  maximumDate={new Date()}
                   onChange={(_event, selected) => {
                     if (selected) {
                       setDraft((current) => ({
@@ -393,7 +489,7 @@ function SupplementEditorSheet({
                 />
               ) : null}
             </View>
-          ) : null}
+          )}
 
           {draft.scheduleKind === 'weekdays' ? (
             <View className="mb-3 flex-row justify-between">
@@ -466,7 +562,7 @@ function SupplementEditorSheet({
                 onPress={pickCycleAnchor}
                 className="rounded-xl border border-gray-200 bg-white/70 px-4 py-3">
                 <Text className="text-sm text-gray-500">
-                  {t('supplements.editor.cycleAnchor')}
+                  {t('supplements.editor.cycleStartedWhen')}
                 </Text>
                 <Text className="mt-1 text-base font-medium text-gray-900">
                   {formatAppDate(parseDateOnly(draft.cycleAnchorDate), i18n.language)}
@@ -477,6 +573,7 @@ function SupplementEditorSheet({
                   value={parseDateOnly(draft.cycleAnchorDate)}
                   mode="date"
                   display="spinner"
+                  maximumDate={new Date()}
                   onChange={(_event, selected) => {
                     if (selected) {
                       setDraft((current) => ({
@@ -517,29 +614,54 @@ function SupplementEditorSheet({
               </Text>
             </Pressable>
           ) : null}
-        </ScrollView>
+            </ScrollView>
 
-        <Pressable
-          disabled={!canSave}
-          onPress={() => {
-            const input = draftToWriteInput(draft);
-            if (input) {
-              onSave(input);
-            }
-          }}
-          className={`mt-2 h-12 items-center justify-center rounded-xl ${
-            canSave ? 'bg-[#4F46E5]' : 'bg-indigo-300'
-          }`}>
-          {isSaving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text className="text-base font-semibold text-white">{t('settings.common.save')}</Text>
-          )}
-        </Pressable>
+            <Pressable
+              disabled={!canSave}
+              onPress={() => {
+                const input = draftToWriteInput(draft);
+                if (input) {
+                  onSave(input);
+                }
+              }}
+              className={`mb-4 mt-2 h-12 items-center justify-center rounded-xl ${
+                canSave ? 'bg-[#4F46E5]' : 'bg-indigo-300'
+              }`}>
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text className="text-base font-semibold text-white">
+                  {t('settings.common.save')}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </GlassBottomSheet>
   );
 }
+
+const sheetStyles = StyleSheet.create({
+  root: {
+    flexShrink: 1,
+  },
+  keyboardAvoid: {
+    flexShrink: 1,
+  },
+  body: {
+    flexShrink: 1,
+  },
+  list: {
+    flexGrow: 0,
+    flexShrink: 1,
+    marginBottom: 4,
+  },
+  listContent: {
+    flexGrow: 1,
+    paddingBottom: 8,
+  },
+});
 
 export default function SupplementsScreen() {
   const { t } = useTranslation();
