@@ -552,6 +552,113 @@
       "goals": "Goals"
     }
   },
+  "dayDetail": {
+    "back": "Back"
+  },
+  "supplements": {
+    "sectionTitle": "Supplements",
+    "openRow": "Manage supplements",
+    "screenTitle": "Supplements",
+    "subtitle": "Intake only — no nutrient tracking.",
+    "add": "Add supplement",
+    "emptyTitle": "No supplements yet",
+    "emptySubtitle": "Add vitamin D, magnesium, and more, then log when you take them.",
+    "units": {
+      "capsule": "capsule",
+      "tablet": "tablet"
+    },
+    "schedule": {
+      "daily": "daily",
+      "intervalSegment": "every X days",
+      "weekdaysSegment": "on weekdays",
+      "everyNDays": "every {{count}} days",
+      "cycleJoin": " · ",
+      "cycleSuffix": "{{weeksOn}} weeks on, {{weeksOff}} weeks off",
+      "weekdayOnly": {
+        "1": "Mondays",
+        "2": "Tuesdays",
+        "3": "Wednesdays",
+        "4": "Thursdays",
+        "5": "Fridays",
+        "6": "Saturdays",
+        "7": "Sundays"
+      },
+      "weekdayShort": {
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat",
+        "7": "Sun"
+      },
+      "weekdayDot": {
+        "1": "M",
+        "2": "T",
+        "3": "W",
+        "4": "T",
+        "5": "F",
+        "6": "S",
+        "7": "S"
+      }
+    },
+    "editor": {
+      "createTitle": "New supplement",
+      "editTitle": "Edit supplement",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Vitamin D",
+      "doseLabel": "Dose",
+      "scheduleLabel": "Schedule",
+      "intervalHint": "Interval in days and start date",
+      "startDate": "Start date",
+      "cycleToggle": "Cycle with break",
+      "cycleWeeksOn": "Weeks on",
+      "cycleWeeksOff": "Weeks off",
+      "cycleAnchor": "Cycle start",
+      "cyclePausePreview": "Break starts {{date}}",
+      "active": "Active",
+      "delete": "Delete",
+      "deleteTitle": "Delete supplement?",
+      "deleteMessage": "This removes the supplement and all logged intakes."
+    },
+    "errors": {
+      "loadFailed": "Could not load supplements.",
+      "saveFailed": "Could not save. Please try again.",
+      "deleteFailed": "Could not delete. Please try again."
+    },
+    "reminders": {
+      "sectionTitle": "Reminders",
+      "sectionSubtitle": "Up to three times — only for due supplements you have not logged yet.",
+      "add": "Add reminder",
+      "maxHint": "Maximum of three reminders. Edit or delete an existing one.",
+      "empty": "No reminders yet.",
+      "untitled": "Reminder",
+      "enabled": "On",
+      "editor": {
+        "createTitle": "New reminder",
+        "editTitle": "Edit reminder",
+        "label": "Label",
+        "labelPlaceholder": "e.g. Morning",
+        "time": "Time",
+        "supplements": "Supplements",
+        "noSupplements": "Add supplements first.",
+        "delete": "Delete",
+        "deleteTitle": "Delete reminder?",
+        "deleteMessage": "This reminder will be removed."
+      },
+      "errors": {
+        "loadFailed": "Could not load reminders.",
+        "saveFailed": "Could not save. Please try again.",
+        "deleteFailed": "Could not delete. Please try again.",
+        "maxReached": "You can have at most three reminders.",
+        "needSupplements": "Select at least one supplement."
+      }
+    },
+    "homeChip": {
+      "dueA11y": "Take {{name}}",
+      "takenA11y": "Undo {{name}} intake"
+    }
+  },
   "history": {
     "title": "History",
     "errors": {

@@ -41,13 +41,14 @@ import { ScanParseErrorSheet } from '@/components/scan/ScanParseErrorSheet';
 import { ScanRateLimitSheet } from '@/components/scan/ScanRateLimitSheet';
 import {
   getOnboardingIdleCardStyle,
-  getOnboardingSecondarySurfaceStyle,
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
-import { getGlassPillStyle, GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
+import { getGlassPillStyle } from '@/components/ui/glass-styles';
+import { DayMealList } from '@/components/day/DayMealList';
+import { DaySummaryBlock } from '@/components/day/DaySummaryBlock';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
-import { TodayMealsSection } from '@/components/home/TodayMealsSection';
+import { HomeSupplementChips } from '@/components/home/HomeSupplementChips';
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
 import {
   WeightProgressCard,
@@ -56,35 +57,17 @@ import {
 import { WeightInputSheet } from '@/components/home/weight-update-sheet';
 import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
-import { useTodayMeals } from '@/hooks/use-today-meals';
-import { useHasPremiumAccess, useTrialStatus } from '@/hooks/use-premium-access';
+import { useTrialStatus } from '@/hooks/use-premium-access';
 import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
-import { useActiveEnergyBurnedToday } from '@/hooks/use-active-energy-burned';
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
-import { useSportEnergyDayToday } from '@/hooks/use-sport-energy-day';
-import { formatKcal } from '@/utils/format';
-import { localDateKey, parseDateOnly } from '@/lib/day-window';
+import { localDateKey } from '@/lib/day-window';
 import {
   getTimeOfDay,
-  getCalorieGoalDisplay,
-  getDynamicCalorieGoalDisplay,
   resolveDisplayName,
 } from '@/lib/home';
-import { buildHomeNutrientTileEntries } from '@/lib/home-nutrients';
 import { countDistinctTrainingDays, weekDotFlags } from '@/lib/training-sessions';
-import { calculateAge } from '@/lib/onboarding';
-import { scaleMacrosForSportCalories } from '@/lib/sport-macro-scaling';
-import { MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY } from '@/lib/macros-goals-editor-math';
-import {
-  getUserPreferenceOrDefault,
-} from '@/lib/user-preferences';
-import {
-  buildWidgetSnapshot,
-  widgetSnapshotComparableJson,
-  writeWidgetSnapshot,
-} from '@/lib/widget-snapshot';
 import { kgToLbs } from '@/lib/units';
 import {
   formatWeightForDisplay,
@@ -136,11 +119,6 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 
-/** Dev-only: set e.g. 2269 to preview over-goal layout in the simulator */
-const DEV_PREVIEW_CONSUMED_CALORIES = 0;
-
-const CALORIE_GOAL_ACCENT = '#4F46E5';
-const CALORIE_OVER_GOAL_COLOR = '#D97706';
 const MAX_WEIGHT_KG = 699.9;
 const SIGNUP_ROUTE = '/(auth)/login' as Href;
 
@@ -178,32 +156,7 @@ export default function HomeScreen() {
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const { data, isLoading, isError, error } = useHomeDashboard();
-  const { data: todayMeals, isLoading: isTodayMealsLoading } = useTodayMeals();
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
-  const { data: adaptMacrosToTraining = true } = useQuery({
-    queryKey: ['macros-adapt-to-training', userId],
-    queryFn: () =>
-      getUserPreferenceOrDefault(userId!, MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY, true),
-    enabled: Boolean(userId),
-  });
-  const { data: activeEnergyBurnedToday } = useActiveEnergyBurnedToday(
-    healthConnectedPreference === true,
-  );
-  const ageYears = useMemo(() => {
-    const birthDate = data?.profile?.birth_date;
-    if (birthDate == null || birthDate === '') {
-      return null;
-    }
-    try {
-      return calculateAge(parseDateOnly(birthDate));
-    } catch {
-      return null;
-    }
-  }, [data?.profile?.birth_date]);
-  const { data: sportEnergyDay } = useSportEnergyDayToday(
-    healthConnectedPreference === true && adaptMacrosToTraining === true,
-    ageYears,
-  );
   const movementGoalType = data?.profile?.movement_goal_type ?? null;
   const movementGoalValue = data?.profile?.movement_goal_value ?? null;
   const movementGoalPeriod = data?.profile?.movement_goal_period ?? null;
@@ -223,10 +176,8 @@ export default function HomeScreen() {
     period: movementGoalPeriod,
   });
   const { data: trainingSessionsWeek = [] } = useTrainingSessionsWeek(hasTrainingGoal);
-  const { hasAccess: hasPremiumAccessDb } = useHasPremiumAccess(userId);
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
-  const lastWidgetSnapshotJsonRef = useRef<string | null>(null);
   const { data: scanAllowance } = useQuery({
     queryKey: userId ? scanAllowanceQueryKey(userId) : ['scan-allowance'],
     enabled: !!userId,
@@ -484,174 +435,6 @@ export default function HomeScreen() {
       : t(greetingKey);
   }, [displayName, t]);
 
-  const hasCalorieGoalSource = data?.profile?.calorie_goal_source != null;
-  const dailyCalorieGoal = data?.latestCalorieGoal?.daily_calorie_goal ?? null;
-  const hasCalorieGoal = hasCalorieGoalSource && dailyCalorieGoal != null;
-  const consumedCaloriesToday = __DEV__
-    ? DEV_PREVIEW_CONSUMED_CALORIES || (data?.consumedCaloriesToday ?? 0)
-    : (data?.consumedCaloriesToday ?? 0);
-
-  const burnedForDynamicGoal =
-    sportEnergyDay?.totalActiveKcal ?? activeEnergyBurnedToday ?? null;
-
-  const calorieGoalDisplay = useMemo(() => {
-    if (!hasCalorieGoal || dailyCalorieGoal == null) {
-      return null;
-    }
-
-    if (
-      healthConnectedPreference &&
-      adaptMacrosToTraining &&
-      burnedForDynamicGoal != null
-    ) {
-      return getDynamicCalorieGoalDisplay(
-        dailyCalorieGoal,
-        consumedCaloriesToday,
-        burnedForDynamicGoal,
-      );
-    }
-
-    return getCalorieGoalDisplay(dailyCalorieGoal, consumedCaloriesToday);
-  }, [
-    adaptMacrosToTraining,
-    burnedForDynamicGoal,
-    consumedCaloriesToday,
-    dailyCalorieGoal,
-    hasCalorieGoal,
-    healthConnectedPreference,
-  ]);
-
-  const calorieBarWidthPercent = useMemo(() => {
-    if (calorieGoalDisplay == null) {
-      return 0;
-    }
-
-    if (calorieGoalDisplay.isOverGoal) {
-      return 100;
-    }
-
-    const goal =
-      calorieGoalDisplay.mode === 'dynamic'
-        ? calorieGoalDisplay.dailyGoal + (calorieGoalDisplay.activeEnergyBurned ?? 0)
-        : calorieGoalDisplay.dailyGoal;
-
-    if (goal <= 0) {
-      return 0;
-    }
-
-    return Math.min(100, Math.max(0, (calorieGoalDisplay.consumedToday / goal) * 100));
-  }, [calorieGoalDisplay]);
-
-  const openMacroGoalsEditor = useCallback(() => {
-    if (data?.latestWeight?.weight_kg == null) {
-      router.push({ pathname: '/onboarding', params: { mode: 'review' } } as Href);
-      return;
-    }
-
-    router.push('/koli/macro-goals' as Href);
-  }, [data?.latestWeight?.weight_kg]);
-
-  const nutrientTiles = useMemo(() => {
-    const macros = data?.consumedMacrosToday;
-    const goal = data?.latestCalorieGoal;
-    const basisKcal = dailyCalorieGoal;
-    const baseProteinG = goal?.protein_g ?? null;
-    const baseFatG = goal?.fat_g ?? null;
-    const baseCarbsG = goal?.carbs_g ?? null;
-
-    let proteinGoal = baseProteinG;
-    let fatGoal = baseFatG;
-    let carbsGoal = baseCarbsG;
-
-    if (
-      adaptMacrosToTraining &&
-      basisKcal != null &&
-      baseProteinG != null &&
-      baseFatG != null &&
-      baseCarbsG != null
-    ) {
-      const scaled =
-        sportEnergyDay != null
-          ? scaleMacrosForSportCalories({
-              basisKcal,
-              segments: sportEnergyDay.segments,
-              proteinG: baseProteinG,
-              fatBasisG: baseFatG,
-              carbsBasisG: baseCarbsG,
-              weightKg: data?.latestWeight?.weight_kg ?? null,
-            })
-          : scaleMacrosForSportCalories({
-              basisKcal,
-              sportKcal:
-                healthConnectedPreference === true && activeEnergyBurnedToday != null
-                  ? activeEnergyBurnedToday
-                  : 0,
-              proteinG: baseProteinG,
-              fatBasisG: baseFatG,
-              carbsBasisG: baseCarbsG,
-              weightKg: data?.latestWeight?.weight_kg ?? null,
-            });
-      if (scaled.ok) {
-        proteinGoal = scaled.proteinG;
-        fatGoal = scaled.fatG;
-        carbsGoal = scaled.carbsG;
-      }
-    }
-
-    return buildHomeNutrientTileEntries({
-      dietPreference: data?.profile?.diet_preference,
-      labels: {
-        protein: t('home.nutrients.protein'),
-        carbs: t('home.nutrients.carbs'),
-        fat: t('home.nutrients.fat'),
-        fiber: t('home.nutrients.fiber'),
-      },
-      totals: {
-        protein: macros?.proteinG ?? null,
-        carbs: macros?.carbsG ?? null,
-        fat: macros?.fatG ?? null,
-        fiber: macros?.fiberG ?? null,
-      },
-      unit: t('home.nutrients.unitGrams'),
-    }).map((entry) => ({
-      ...entry,
-      goalValue:
-        entry.key === 'protein'
-          ? proteinGoal
-          : entry.key === 'carbs'
-            ? carbsGoal
-            : entry.key === 'fat'
-              ? fatGoal
-              : entry.key === 'fiber'
-                ? (goal?.fiber_g ?? null)
-                : null,
-      onPress: openMacroGoalsEditor,
-    }));
-  }, [
-    activeEnergyBurnedToday,
-    adaptMacrosToTraining,
-    dailyCalorieGoal,
-    data?.consumedMacrosToday,
-    data?.latestCalorieGoal,
-    data?.latestWeight?.weight_kg,
-    data?.profile?.diet_preference,
-    healthConnectedPreference,
-    openMacroGoalsEditor,
-    sportEnergyDay,
-    t,
-  ]);
-
-  const calorieMacroRows = useMemo((): HomeProgressRowItem[] => {
-    return nutrientTiles.map((tile) => ({
-      key: tile.key,
-      label: tile.label,
-      actual: tile.value,
-      goal: tile.goalValue ?? null,
-      decimals: 0 as const,
-      onPress: tile.onPress,
-    }));
-  }, [nutrientTiles]);
-
   const activityRows = useMemo((): HomeProgressRowItem[] => {
     const rows: HomeProgressRowItem[] = [];
 
@@ -713,64 +496,6 @@ export default function HomeScreen() {
     movementActual,
     movementGoalType,
     movementGoalValue,
-    t,
-  ]);
-
-  const isPremiumForWidget = isPremiumEntitlementActive || hasPremiumAccessDb;
-
-  useEffect(() => {
-    if (calorieGoalDisplay == null) {
-      return;
-    }
-
-    const unit = t('home.nutrients.unitGrams');
-    const goalFormatted = formatKcal(calorieGoalDisplay.dailyGoalContextValue);
-    const burned = calorieGoalDisplay.activeEnergyBurned ?? 0;
-    const burnedFormatted = formatKcal(burned);
-    const totalFormatted = formatKcal(calorieGoalDisplay.dailyGoal + burned);
-    const snapshot = buildWidgetSnapshot({
-      dateKey: localDateKey(),
-      remainingValue: formatKcal(calorieGoalDisplay.mainValue),
-      isOverGoal: calorieGoalDisplay.isOverGoal,
-      labelRemaining: t(
-        calorieGoalDisplay.mode === 'dynamic'
-          ? 'home.calorieGoal.dynamicLabel'
-          : 'home.calorieGoal.label',
-      ),
-      labelFooter:
-        calorieGoalDisplay.mode === 'dynamic'
-          ? t('home.calorieGoal.dynamicDailyGoalReference', {
-              total: totalFormatted,
-              burned: burnedFormatted,
-            })
-          : t('home.calorieGoal.dailyGoalReference', {
-              goal: goalFormatted,
-            }),
-      labelFooterCompact:
-        calorieGoalDisplay.mode === 'dynamic'
-          ? `${totalFormatted} (+${burnedFormatted})`
-          : goalFormatted,
-      macros: nutrientTiles.map((tile) => ({
-        label: tile.label,
-        value:
-          tile.value == null ? '–' : `${Math.round(tile.value)}${unit}`,
-      })),
-      premium: isPremiumForWidget,
-      progress: calorieBarWidthPercent / 100,
-    });
-
-    const comparable = widgetSnapshotComparableJson(snapshot);
-    if (comparable === lastWidgetSnapshotJsonRef.current) {
-      return;
-    }
-
-    lastWidgetSnapshotJsonRef.current = comparable;
-    writeWidgetSnapshot(snapshot);
-  }, [
-    calorieBarWidthPercent,
-    calorieGoalDisplay,
-    isPremiumForWidget,
-    nutrientTiles,
     t,
   ]);
 
@@ -884,8 +609,8 @@ export default function HomeScreen() {
     }
   }
 
-  function openCalorieGoalSettings() {
-    router.push('/koli/calorie-goal' as Href);
+  function handleTodayMealPress(meal: TodayMeal) {
+    setEditingMealId(meal.id);
   }
 
   async function handleScanPress() {
@@ -1107,6 +832,8 @@ export default function HomeScreen() {
       void touchUserActivity(userId);
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-consumption', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       handleMealConfirmationClose();
       Sentry.captureMessage('push: ensurePushOnMealSave reached', {
@@ -1270,6 +997,8 @@ export default function HomeScreen() {
 
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-consumption', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       closeBarcodeFlow();
       Sentry.captureMessage('push: ensurePushOnMealSave reached', {
@@ -1307,6 +1036,8 @@ export default function HomeScreen() {
       void touchUserActivity(userId);
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-consumption', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       setShowManualEntrySheet(false);
       Sentry.captureMessage('push: ensurePushOnMealSave reached', {
@@ -1320,10 +1051,6 @@ export default function HomeScreen() {
     } finally {
       setIsSavingManualMeal(false);
     }
-  }
-
-  function handleTodayMealPress(meal: TodayMeal) {
-    setEditingMealId(meal.id);
   }
 
   function handleMealEditClose() {
@@ -1359,6 +1086,8 @@ export default function HomeScreen() {
       void touchUserActivity(userId);
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-consumption', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       setEditingMealId(null);
     } catch (saveError) {
@@ -1380,6 +1109,8 @@ export default function HomeScreen() {
       await deleteMeal({ mealId, userId });
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['today-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-meals', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['day-consumption', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       setEditingMealId(null);
     } catch (deleteError) {
@@ -1472,65 +1203,7 @@ export default function HomeScreen() {
 
             {homeTab === 'today' ? (
               <>
-                {calorieGoalDisplay ? (
-                  <View
-                    style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-                    <View className="px-5 py-6">
-                      <Text
-                        style={[
-                          styles.calorieHeroValue,
-                          {
-                            color: calorieGoalDisplay.isOverGoal
-                              ? CALORIE_OVER_GOAL_COLOR
-                              : CALORIE_GOAL_ACCENT,
-                            textAlign: 'center',
-                          },
-                        ]}>
-                        {formatKcal(calorieGoalDisplay.mainValue)}
-                      </Text>
-                      {calorieGoalDisplay.showOverLabel ? (
-                        <Text className="mt-1 text-center text-base font-medium text-amber-700">
-                          {t('home.calorieGoal.overGoal')}
-                        </Text>
-                      ) : null}
-                      <Text
-                        className={`text-center text-sm text-gray-500 ${calorieGoalDisplay.showOverLabel ? 'mt-1' : 'mt-2'}`}>
-                        {calorieGoalDisplay.mode === 'dynamic'
-                          ? t('home.calorieGoal.dynamicDailyGoalReference', {
-                              total: formatKcal(
-                                calorieGoalDisplay.dailyGoal +
-                                  (calorieGoalDisplay.activeEnergyBurned ?? 0),
-                              ),
-                              burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
-                            })
-                          : t('home.calorieGoal.dailyGoalReference', {
-                              goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
-                            })}
-                      </Text>
-                      <View className="mt-5">
-                        <HomeProgressRows rows={calorieMacroRows} />
-                      </View>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={getOnboardingSecondarySurfaceStyle()}>
-                    <Pressable
-                      onPress={openCalorieGoalSettings}
-                      style={({ pressed }) => [
-                        pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
-                      ]}>
-                      <View className="flex-row items-center px-4 py-3">
-                        <Text className="flex-1 text-sm text-gray-500">
-                          {t('home.calorieGoal.emptyPrefix')}
-                          <Text className="font-medium text-[#4F46E5]">
-                            {t('home.calorieGoal.emptyAction')}
-                          </Text>
-                        </Text>
-                        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-                      </View>
-                    </Pressable>
-                  </View>
-                )}
+                <DaySummaryBlock date={localDateKey()} />
 
                 {activityRows.length > 0 ? (
                   <View
@@ -1554,11 +1227,13 @@ export default function HomeScreen() {
                     onPress={openCurrentWeightSheet}
                   />
                 </View>
+
+                <HomeSupplementChips />
               </>
             ) : (
-              <TodayMealsSection
-                meals={todayMeals}
-                isLoading={isTodayMealsLoading}
+              <DayMealList
+                date={localDateKey()}
+                editable
                 onMealPress={handleTodayMealPress}
               />
             )}
@@ -1711,11 +1386,3 @@ export default function HomeScreen() {
     </HomeLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  calorieHeroValue: {
-    fontSize: 48,
-    fontWeight: '700',
-    lineHeight: 52,
-  },
-});

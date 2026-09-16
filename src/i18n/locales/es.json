@@ -552,6 +552,113 @@
       "goals": "Objetivos"
     }
   },
+  "dayDetail": {
+    "back": "Atrás"
+  },
+  "supplements": {
+    "sectionTitle": "Suplementos",
+    "openRow": "Gestionar suplementos",
+    "screenTitle": "Suplementos",
+    "subtitle": "Solo la toma — sin nutrientes.",
+    "add": "Añadir suplemento",
+    "emptyTitle": "Aún no hay suplementos",
+    "emptySubtitle": "Añade vitamina D, magnesio y más, y registra cuando los tomes.",
+    "units": {
+      "capsule": "cápsula",
+      "tablet": "comprimido"
+    },
+    "schedule": {
+      "daily": "diario",
+      "intervalSegment": "cada X días",
+      "weekdaysSegment": "entre semana",
+      "everyNDays": "cada {{count}} días",
+      "cycleJoin": " · ",
+      "cycleSuffix": "{{weeksOn}} semanas activas, {{weeksOff}} semanas de pausa",
+      "weekdayOnly": {
+        "1": "los lunes",
+        "2": "los martes",
+        "3": "los miércoles",
+        "4": "los jueves",
+        "5": "los viernes",
+        "6": "los sábados",
+        "7": "los domingos"
+      },
+      "weekdayShort": {
+        "1": "lun",
+        "2": "mar",
+        "3": "mié",
+        "4": "jue",
+        "5": "vie",
+        "6": "sáb",
+        "7": "dom"
+      },
+      "weekdayDot": {
+        "1": "L",
+        "2": "M",
+        "3": "X",
+        "4": "J",
+        "5": "V",
+        "6": "S",
+        "7": "D"
+      }
+    },
+    "editor": {
+      "createTitle": "Nuevo suplemento",
+      "editTitle": "Editar suplemento",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "p. ej. Vitamina D",
+      "doseLabel": "Dosis",
+      "scheduleLabel": "Horario",
+      "intervalHint": "Intervalo en días y fecha de inicio",
+      "startDate": "Fecha de inicio",
+      "cycleToggle": "Ciclo con pausa",
+      "cycleWeeksOn": "Semanas on",
+      "cycleWeeksOff": "Semanas off",
+      "cycleAnchor": "Inicio del ciclo",
+      "cyclePausePreview": "Pausa desde {{date}}",
+      "active": "Activo",
+      "delete": "Eliminar",
+      "deleteTitle": "¿Eliminar suplemento?",
+      "deleteMessage": "Se eliminará el suplemento y todos los registros de toma."
+    },
+    "errors": {
+      "loadFailed": "No se pudieron cargar los suplementos.",
+      "saveFailed": "No se pudo guardar. Inténtalo de nuevo.",
+      "deleteFailed": "No se pudo eliminar. Inténtalo de nuevo."
+    },
+    "reminders": {
+      "sectionTitle": "Recordatorios",
+      "sectionSubtitle": "Hasta tres horarios — solo para suplementos pendientes y aún no registrados.",
+      "add": "Añadir recordatorio",
+      "maxHint": "Máximo tres recordatorios. Edita o elimina uno existente.",
+      "empty": "Aún no hay recordatorios.",
+      "untitled": "Recordatorio",
+      "enabled": "Activo",
+      "editor": {
+        "createTitle": "Nuevo recordatorio",
+        "editTitle": "Editar recordatorio",
+        "label": "Nombre",
+        "labelPlaceholder": "p. ej. Mañana",
+        "time": "Hora",
+        "supplements": "Suplementos",
+        "noSupplements": "Primero crea suplementos.",
+        "delete": "Eliminar",
+        "deleteTitle": "¿Eliminar recordatorio?",
+        "deleteMessage": "Se eliminará este recordatorio."
+      },
+      "errors": {
+        "loadFailed": "No se pudieron cargar los recordatorios.",
+        "saveFailed": "No se pudo guardar. Inténtalo de nuevo.",
+        "deleteFailed": "No se pudo eliminar. Inténtalo de nuevo.",
+        "maxReached": "Máximo tres recordatorios por usuario.",
+        "needSupplements": "Selecciona al menos un suplemento."
+      }
+    },
+    "homeChip": {
+      "dueA11y": "Tomar {{name}}",
+      "takenA11y": "Deshacer toma de {{name}}"
+    }
+  },
   "history": {
     "title": "Historial",
     "errors": {

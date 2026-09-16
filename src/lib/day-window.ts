@@ -70,6 +70,18 @@ export function isDayEditable(dateKey: string, now: Date = new Date()): boolean 
   return dateKey === todayKey || dateKey === localDateKey(yesterday);
 }
 
+/** Shift a local date key by whole calendar days. */
+export function shiftLocalDateKey(dateKey: string, dayDelta: number): string {
+  const date = parseDateOnly(dateKey);
+  date.setDate(date.getDate() + dayDelta);
+  return localDateKey(date);
+}
+
+/** True when dateKey is after today's local calendar day. */
+export function isLocalDateKeyInFuture(dateKey: string, now: Date = new Date()): boolean {
+  return dateKey > localDateKey(now);
+}
+
 /**
  * Timestamp for inserting a meal on a history day.
  * Today → now; past editable day → local noon of that day.

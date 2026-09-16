@@ -518,6 +518,13 @@ export function ProfilePanel() {
           </View>
         </SettingsSection>
 
+        <SettingsSection title={t('supplements.sectionTitle')}>
+          <SettingsRow
+            label={t('supplements.openRow')}
+            onPress={() => router.push('/koli/supplements' as Href)}
+          />
+        </SettingsSection>
+
         <NotificationsSettingsSection userId={userId} />
 
         <SettingsSection title={t('settings.onboardingReview.sectionTitle')}>

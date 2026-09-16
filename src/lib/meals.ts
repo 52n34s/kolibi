@@ -273,8 +273,11 @@ export type TodayConsumption = TodayConsumedMacros & {
   kcal: number;
 };
 
-export async function fetchTodayConsumedCalories(userId: string): Promise<TodayConsumption> {
-  const { startISO, endISO } = localDayWindow();
+export async function fetchConsumedForLocalDate(
+  userId: string,
+  dateKey: string,
+): Promise<TodayConsumption> {
+  const { startISO, endISO } = localDayWindow(parseDateOnly(dateKey));
 
   const { data, error } = await supabase
     .from('meals')
@@ -328,6 +331,10 @@ export async function fetchTodayConsumedCalories(userId: string): Promise<TodayC
     fatG: macroOrEmpty(fatG),
     fiberG: macroOrEmpty(fiberG),
   };
+}
+
+export async function fetchTodayConsumedCalories(userId: string): Promise<TodayConsumption> {
+  return fetchConsumedForLocalDate(userId, localDateKey());
 }
 
 export type TodayMealItem = {

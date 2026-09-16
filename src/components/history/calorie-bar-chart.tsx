@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
@@ -8,9 +8,15 @@ type CalorieBarChartProps = {
   values: number[];
   width: number;
   height?: number;
+  onBarPress?: (index: number) => void;
 };
 
-export function CalorieBarChart({ values, width, height = 180 }: CalorieBarChartProps) {
+export function CalorieBarChart({
+  values,
+  width,
+  height = 180,
+  onBarPress,
+}: CalorieBarChartProps) {
   const barHeights = buildBarChartHeights(values, height - 24);
   const barCount = values.length;
   const gap = 8;
@@ -38,6 +44,36 @@ export function CalorieBarChart({ values, width, height = 180 }: CalorieBarChart
           );
         })}
       </Svg>
+      {onBarPress ? (
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width,
+            height,
+            flexDirection: 'row',
+          }}>
+          {values.map((_, index) => {
+            const x = gap + index * (barWidth + gap);
+            return (
+              <Pressable
+                key={`calorie-bar-hit-${index}`}
+                accessibilityRole="button"
+                onPress={() => onBarPress(index)}
+                style={{
+                  position: 'absolute',
+                  left: x,
+                  top: 0,
+                  width: barWidth,
+                  height,
+                }}
+              />
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }

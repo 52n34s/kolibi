@@ -552,6 +552,113 @@
       "goals": "Ziele"
     }
   },
+  "dayDetail": {
+    "back": "Zurück"
+  },
+  "supplements": {
+    "sectionTitle": "Supplemente",
+    "openRow": "Supplemente verwalten",
+    "screenTitle": "Supplemente",
+    "subtitle": "Nur die Einnahme — ohne Nährwerte.",
+    "add": "Supplement hinzufügen",
+    "emptyTitle": "Noch keine Supplemente",
+    "emptySubtitle": "Lege Vitamin D, Magnesium und Co. an und erfasse die Einnahme.",
+    "units": {
+      "capsule": "Kapsel",
+      "tablet": "Tablette"
+    },
+    "schedule": {
+      "daily": "täglich",
+      "intervalSegment": "alle X Tage",
+      "weekdaysSegment": "an Wochentagen",
+      "everyNDays": "alle {{count}} Tage",
+      "cycleJoin": " · ",
+      "cycleSuffix": "{{weeksOn}} Wochen an, {{weeksOff}} Wochen Pause",
+      "weekdayOnly": {
+        "1": "montags",
+        "2": "dienstags",
+        "3": "mittwochs",
+        "4": "donnerstags",
+        "5": "freitags",
+        "6": "samstags",
+        "7": "sonntags"
+      },
+      "weekdayShort": {
+        "1": "Mo",
+        "2": "Di",
+        "3": "Mi",
+        "4": "Do",
+        "5": "Fr",
+        "6": "Sa",
+        "7": "So"
+      },
+      "weekdayDot": {
+        "1": "Mo",
+        "2": "Di",
+        "3": "Mi",
+        "4": "Do",
+        "5": "Fr",
+        "6": "Sa",
+        "7": "So"
+      }
+    },
+    "editor": {
+      "createTitle": "Neues Supplement",
+      "editTitle": "Supplement bearbeiten",
+      "nameLabel": "Name",
+      "namePlaceholder": "z. B. Vitamin D",
+      "doseLabel": "Dosis",
+      "scheduleLabel": "Zeitplan",
+      "intervalHint": "Abstand in Tagen und Startdatum",
+      "startDate": "Startdatum",
+      "cycleToggle": "Kur mit Pause",
+      "cycleWeeksOn": "Wochen an",
+      "cycleWeeksOff": "Wochen Pause",
+      "cycleAnchor": "Start der Kur",
+      "cyclePausePreview": "Pause ab {{date}}",
+      "active": "Aktiv",
+      "delete": "Löschen",
+      "deleteTitle": "Supplement löschen?",
+      "deleteMessage": "Das Supplement und alle Einnahmen werden entfernt."
+    },
+    "errors": {
+      "loadFailed": "Supplemente konnten nicht geladen werden.",
+      "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+      "deleteFailed": "Löschen fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "reminders": {
+      "sectionTitle": "Erinnerungen",
+      "sectionSubtitle": "Bis zu drei Zeiten — nur für fällige und noch nicht eingetragene Supplemente.",
+      "add": "Erinnerung hinzufügen",
+      "maxHint": "Maximal drei Erinnerungen. Bearbeite oder lösche eine bestehende.",
+      "empty": "Noch keine Erinnerungen.",
+      "untitled": "Erinnerung",
+      "enabled": "Aktiv",
+      "editor": {
+        "createTitle": "Neue Erinnerung",
+        "editTitle": "Erinnerung bearbeiten",
+        "label": "Bezeichnung",
+        "labelPlaceholder": "z. B. Morgens",
+        "time": "Uhrzeit",
+        "supplements": "Supplemente",
+        "noSupplements": "Lege zuerst Supplemente an.",
+        "delete": "Löschen",
+        "deleteTitle": "Erinnerung löschen?",
+        "deleteMessage": "Diese Erinnerung wird entfernt."
+      },
+      "errors": {
+        "loadFailed": "Erinnerungen konnten nicht geladen werden.",
+        "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+        "deleteFailed": "Löschen fehlgeschlagen. Bitte erneut versuchen.",
+        "maxReached": "Maximal drei Erinnerungen pro Nutzer.",
+        "needSupplements": "Wähle mindestens ein Supplement aus."
+      }
+    },
+    "homeChip": {
+      "dueA11y": "{{name}} einnehmen",
+      "takenA11y": "{{name}} Einnahme rückgängig"
+    }
+  },
   "history": {
     "title": "Verlauf",
     "errors": {

@@ -42,8 +42,9 @@ import '../global.css';
 import '@/i18n';
 
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider, router } from 'expo-router';
 import { Stack } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
@@ -74,9 +75,33 @@ import { useTouchUserActivity } from '@/hooks/use-touch-user-activity';
 
 SplashScreen.preventAutoHideAsync();
 
+function navigateFromPushData(data: unknown) {
+  if (!data || typeof data !== 'object') {
+    return;
+  }
+  const url = 'url' in data ? (data as { url?: unknown }).url : undefined;
+  if (typeof url === 'string' && url === '/home') {
+    router.replace('/home');
+  }
+}
+
 function AppLifecycle({ userId }: { userId: string | null }) {
   useAppDayRollover(userId);
   useTouchUserActivity(userId);
+
+  useEffect(() => {
+    const response = Notifications.getLastNotificationResponse();
+    if (response) {
+      navigateFromPushData(response.notification.request.content.data);
+    }
+
+    const subscription = Notifications.addNotificationResponseReceivedListener((event) => {
+      navigateFromPushData(event.notification.request.content.data);
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   return null;
 }
 

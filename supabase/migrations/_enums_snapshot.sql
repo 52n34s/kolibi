@@ -78,3 +78,13 @@ CREATE TYPE public.movement_goal_period AS ENUM (
   'day',
   'week'
 );
+
+-- ---------------------------------------------------------------------------
+-- schedule_kind
+-- From 0010_supplements.sql (public.supplements.schedule_kind).
+-- ---------------------------------------------------------------------------
+CREATE TYPE public.schedule_kind AS ENUM (
+  'daily',
+  'interval',
+  'weekdays'
+);
