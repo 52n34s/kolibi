@@ -674,6 +674,12 @@
       "days7": "7 días",
       "days30": "30 días"
     },
+    "supplements": {
+      "sectionTitle": "Suplementos",
+      "quote": "{{taken}}/{{due}}",
+      "openA11y": "Gestionar suplementos",
+      "emptyCta": "Registrar suplementos"
+    },
     "summary": {
       "sectionTitle": "Resumen",
       "empty": "Aún no hay días registrados en este periodo.",
@@ -887,7 +893,7 @@
       "value": "{{calories}} kcal",
       "notSet": "No establecido",
       "missingProfile": "Faltan datos del perfil.",
-      "completeOnboardingFirst": "Completa primero tus datos en la revisión del onboarding.",
+      "completeOnboardingFirst": "Completa primero tus datos en «Ajustar datos y objetivo».",
       "validationTitle": "Objetivo calórico no válido",
       "validationOutOfRange": "Introduce un valor entre {{min}} y {{max}} kcal. Mínimo {{min}} kcal.",
       "macrosRecalculatedHint": "Tus objetivos de macros se ajustarán en consecuencia.",
@@ -990,8 +996,8 @@
       "saveFailed": "No se pudo guardar el peso objetivo. Inténtalo de nuevo."
     },
     "onboardingReview": {
-      "sectionTitle": "Datos del perfil",
-      "action": "Revisar mis datos",
+      "action": "Ajustar datos y objetivo",
+      "hint": "Peso, actividad y tipo de objetivo — tu objetivo calórico se recalculará.",
       "save": "Guardar cambios"
     },
     "subscription": {

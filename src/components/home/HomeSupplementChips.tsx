@@ -26,10 +26,11 @@ const DUE_CHIP = {
   textColor: '#4F46E5',
 } as const;
 
+/** Same chip chrome as due — only muted glass + secondary gray. */
 const DONE_CHIP = {
-  backgroundColor: 'rgba(156, 163, 175, 0.14)',
-  borderColor: 'rgba(156, 163, 175, 0.35)',
-  textColor: '#9CA3AF',
+  backgroundColor: 'rgba(255, 255, 255, 0.45)',
+  borderColor: 'rgba(156, 163, 175, 0.55)',
+  textColor: '#6B7280',
 } as const;
 
 function supplementsDayQueryKey(userId: string, date: string) {
@@ -150,7 +151,8 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
 
 const styles = StyleSheet.create({
   row: {
-    marginTop: 14,
+    // Same top gap as home blocks (weight uses mt-6 → 24).
+    marginTop: 24,
   },
   rowContent: {
     flexDirection: 'row',

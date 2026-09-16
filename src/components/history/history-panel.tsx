@@ -20,6 +20,7 @@ import {
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
+import { SupplementHistorySection } from '@/components/supplements/SupplementHistorySection';
 import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
 import { useHistory } from '@/hooks/use-history';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
@@ -482,6 +483,10 @@ export function HistoryPanel() {
           )}
         </View>
       </View>
+
+      {userId ? (
+        <SupplementHistorySection userId={userId} rangeDays={rangeDays} />
+      ) : null}
     </ScrollView>
   );
 }

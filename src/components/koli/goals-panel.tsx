@@ -166,6 +166,16 @@ export function GoalsPanel() {
           onPress={() => router.push('/koli/target-weight' as Href)}
         />
       </SettingsSection>
+
+      <SettingsSection>
+        <SettingsRow
+          label={t('settings.onboardingReview.action')}
+          subtitle={t('settings.onboardingReview.hint')}
+          onPress={() =>
+            router.push({ pathname: '/onboarding', params: { mode: 'review' } } as Href)
+          }
+        />
+      </SettingsSection>
     </ScrollView>
   );
 }

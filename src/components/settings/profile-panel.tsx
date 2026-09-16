@@ -527,15 +527,6 @@ export function ProfilePanel() {
 
         <NotificationsSettingsSection userId={userId} />
 
-        <SettingsSection title={t('settings.onboardingReview.sectionTitle')}>
-          <SettingsRow
-            label={t('settings.onboardingReview.action')}
-            onPress={() =>
-              router.push({ pathname: '/onboarding', params: { mode: 'review' } } as Href)
-            }
-          />
-        </SettingsSection>
-
         {showPasswordSection ? (
           <SettingsSection title={t('settings.password.sectionTitle')}>
             <SettingsRow

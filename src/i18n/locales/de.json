@@ -674,6 +674,12 @@
       "days7": "7 Tage",
       "days30": "30 Tage"
     },
+    "supplements": {
+      "sectionTitle": "Supplemente",
+      "quote": "{{taken}}/{{due}}",
+      "openA11y": "Supplemente verwalten",
+      "emptyCta": "Supplemente erfassen"
+    },
     "summary": {
       "sectionTitle": "Zusammenfassung",
       "empty": "Noch keine erfassten Tage in diesem Zeitraum.",
@@ -887,7 +893,7 @@
       "value": "{{calories}} kcal",
       "notSet": "Nicht gesetzt",
       "missingProfile": "Profildaten fehlen.",
-      "completeOnboardingFirst": "Bitte vervollständige zuerst deine Angaben über „Meine Angaben überprüfen“.",
+      "completeOnboardingFirst": "Bitte vervollständige zuerst deine Angaben über „Angaben und Ziel anpassen“.",
       "validationTitle": "Ungültiges Kalorienziel",
       "validationOutOfRange": "Bitte gib einen Wert zwischen {{min}} und {{max}} kcal ein. Mindestens {{min}} kcal.",
       "macrosRecalculatedHint": "Deine Makroziele werden entsprechend angepasst.",
@@ -990,8 +996,8 @@
       "saveFailed": "Zielgewicht konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
     "onboardingReview": {
-      "sectionTitle": "Profilangaben",
-      "action": "Meine Angaben überprüfen",
+      "action": "Angaben und Ziel anpassen",
+      "hint": "Gewicht, Aktivität und Zieltyp — dein Kalorienziel wird neu berechnet.",
       "save": "Änderungen speichern"
     },
     "subscription": {

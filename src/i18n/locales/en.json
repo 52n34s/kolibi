@@ -674,6 +674,12 @@
       "days7": "7 days",
       "days30": "30 days"
     },
+    "supplements": {
+      "sectionTitle": "Supplements",
+      "quote": "{{taken}}/{{due}}",
+      "openA11y": "Manage supplements",
+      "emptyCta": "Add supplements"
+    },
     "summary": {
       "sectionTitle": "Summary",
       "empty": "No logged days in this period yet.",
@@ -887,7 +893,7 @@
       "value": "{{calories}} kcal",
       "notSet": "Not set",
       "missingProfile": "Profile data is missing.",
-      "completeOnboardingFirst": "Please complete your profile in onboarding review first.",
+      "completeOnboardingFirst": "Please complete your profile via “Adjust details and goal” first.",
       "validationTitle": "Invalid calorie goal",
       "validationOutOfRange": "Please enter a value between {{min}} and {{max}} kcal. Minimum {{min}} kcal.",
       "macrosRecalculatedHint": "Your macro goals will be adjusted accordingly.",
@@ -990,8 +996,8 @@
       "saveFailed": "Could not save your target weight. Please try again."
     },
     "onboardingReview": {
-      "sectionTitle": "Profile data",
-      "action": "Review my details",
+      "action": "Adjust details and goal",
+      "hint": "Weight, activity, and goal type — your calorie goal will be recalculated.",
       "save": "Save changes"
     },
     "subscription": {

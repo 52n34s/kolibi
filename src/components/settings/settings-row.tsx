@@ -7,6 +7,7 @@ import { SETTINGS_GLASS_DIVIDER_CLASS, GLASS_SURFACE_PRESSED } from '@/component
 type SettingsRowProps = {
   label: string;
   value?: string;
+  subtitle?: string;
   onPress?: () => void;
   destructive?: boolean;
   dimmed?: boolean;
@@ -18,6 +19,7 @@ type SettingsRowProps = {
 export function SettingsRow({
   label,
   value,
+  subtitle,
   onPress,
   destructive = false,
   dimmed = false,
@@ -33,12 +35,17 @@ export function SettingsRow({
 
   const content = (
     <View
-      className={`flex-row items-center px-4 py-3.5 ${!isLast ? `border-b ${SETTINGS_GLASS_DIVIDER_CLASS}` : ''}`}>
-      <Text className={`flex-1 text-base ${labelClass}`}>{label}</Text>
-      {value ? <Text className="mr-2 text-sm text-gray-500">{value}</Text> : null}
-      {accessory}
-      {showChevron && onPress ? (
-        <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+      className={`px-4 py-3.5 ${!isLast ? `border-b ${SETTINGS_GLASS_DIVIDER_CLASS}` : ''}`}>
+      <View className="flex-row items-center">
+        <Text className={`flex-1 text-base ${labelClass}`}>{label}</Text>
+        {value ? <Text className="mr-2 text-sm text-gray-500">{value}</Text> : null}
+        {accessory}
+        {showChevron && onPress ? (
+          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+        ) : null}
+      </View>
+      {subtitle ? (
+        <Text className="mt-1 pr-6 text-sm text-gray-500">{subtitle}</Text>
       ) : null}
     </View>
   );
