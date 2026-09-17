@@ -173,6 +173,8 @@
       "lose_weightHint": "Balanced approach",
       "gain_weight": "Gain Weight",
       "gain_weightHint": "Steady, controlled gain",
+      "build_muscle": "Build muscle",
+      "build_muscleHint": "Muscle-focused macros",
       "faster_weight_loss": "Faster Weight Loss",
       "faster_weight_lossHint": "Ambitious approach",
       "faster_weight_lossWarning": "A faster deficit can be harder to sustain. Consider consulting a professional if unsure.",
@@ -188,6 +190,7 @@
       "dailyGoal": "Your daily goal: {{calories}} kcal",
       "caloriesLabel": "Daily calories (kcal)",
       "tdee": "Estimated maintenance: {{calories}} kcal",
+      "tdeeHealth": "Estimated maintenance: {{calories}} kcal — your actual movement is added on top each day",
       "minimumApplied": "Your calculated target would be {{calculated}} kcal. For safety, we set a minimum of {{minimum}} kcal.",
       "farFromTdeeWarning": "This target differs significantly from your estimated needs and may be unhealthy long term."
     }
@@ -574,6 +577,9 @@
     "title": "Koli",
     "segments": {
       "goals": "Goals"
+    },
+    "goals": {
+      "planHint": "Your plan — today's targets adjust with your movement."
     }
   },
   "dayDetail": {
@@ -680,7 +686,6 @@
         "loadFailed": "Could not load reminders.",
         "saveFailed": "Could not save. Please try again.",
         "deleteFailed": "Could not delete. Please try again.",
-        "maxReached": "You can have at most three reminders.",
         "needSupplements": "Select at least one supplement."
       }
     },

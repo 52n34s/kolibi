@@ -1,0 +1,3 @@
+# Disable JWT verification — the function authenticates via
+# Authorization Bearer matching SUPPORT_TO_ERDI_SECRET or SUPABASE_SERVICE_ROLE_KEY.
+verify_jwt = false

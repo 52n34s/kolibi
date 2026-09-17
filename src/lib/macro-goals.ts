@@ -1,4 +1,5 @@
 import {
+  FAT_G_PER_KG_FLOOR,
   fiberGForBasisKcal,
   proteinDietMultiplier,
   resolveProteinPerKgBase,
@@ -96,7 +97,7 @@ export function computeMacroGoals(input: MacroGoalsInput): MacroGoalsResult {
 
   const proteinG = Math.round(proteinPerKg * proteinRefKg);
   const fatFromCalories = (0.25 * input.dailyCalorieGoal) / 9;
-  const fatFloor = 0.7 * proteinRefKg;
+  const fatFloor = FAT_G_PER_KG_FLOOR * proteinRefKg;
   const fatG = Math.round(Math.max(fatFromCalories, fatFloor));
   const fiberG = fiberGForBasisKcal(input.dailyCalorieGoal);
   const carbsRaw = (input.dailyCalorieGoal - proteinG * 4 - fatG * 9) / 4;
@@ -148,7 +149,7 @@ export function suggestInitialTargetWeightKg(params: {
       factor = 1.05;
       break;
     default:
-      // maintain, custom, null, unknown → unchanged
+      // maintain, build_muscle, endurance, custom, null, unknown → unchanged
       factor = 1;
       break;
   }

@@ -23,8 +23,11 @@ export const OBSERVED_MIN_WEIGHT_SPAN_DAYS = 14;
 export const OBSERVED_READY_MIN_ELIGIBLE_DAYS = 21;
 /** Rough: show value, no suggestion. Below this → insufficient. */
 export const OBSERVED_ROUGH_MIN_ELIGIBLE_DAYS = 18;
-/** Reject estimates outside this band of the BMR×activity TDEE. */
-export const OBSERVED_PLAUSIBILITY_LOW = 0.55;
+/**
+ * Upper reject bound against the BMR×activity TDEE. The lower bound is the BMR
+ * itself: a measured expenditure below resting metabolism is not physiology,
+ * it is a gap in the intake or weight data.
+ */
 export const OBSERVED_PLAUSIBILITY_HIGH = 1.75;
 /** Minimum |observed − current maintenance| to offer a target update. */
 export const OBSERVED_SUGGESTION_MIN_DELTA_KCAL = 100;
@@ -51,8 +54,10 @@ export type ObservedWeightInput = {
 export type ObservedEnergyInput = {
   meals: ObservedMealInput[];
   weights: ObservedWeightInput[];
-  /** BMR × activity-factor (or equivalent) maintenance for plausibility. */
+  /** BMR × activity-factor (or equivalent) maintenance — upper plausibility bound. */
   estimatedMaintenanceKcal: number;
+  /** Resting metabolism — lower plausibility bound. */
+  bmrKcal: number;
   /** Anchor day; window is the 28 local days before this (today excluded). */
   today?: Date;
 };
@@ -296,9 +301,11 @@ export function computeObservedEnergy(input: ObservedEnergyInput): ObservedEnerg
   const observedKcal = Math.round(observedRaw);
 
   const estimate = input.estimatedMaintenanceKcal;
+  const bmr = input.bmrKcal;
   if (
     !(estimate > 0) ||
-    observedKcal < estimate * OBSERVED_PLAUSIBILITY_LOW ||
+    !(bmr > 0) ||
+    observedKcal < bmr ||
     observedKcal > estimate * OBSERVED_PLAUSIBILITY_HIGH
   ) {
     return { status: 'insufficient', eligibleDays, reason: 'plausibility' };

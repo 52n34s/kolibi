@@ -1,3 +1,4 @@
+import { fetchRecentActiveEnergy } from '@/lib/daily-health-stats';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { upsertDailyCalorieGoal } from '@/lib/calorie-goals';
 import {
@@ -33,6 +34,12 @@ export async function recalculateCalorieGoalForHealthKitChange(
   }
 
   const calorieSource = resolveCalorieSource(healthConnected);
+  const recentActiveEnergy = healthConnected
+    ? await fetchRecentActiveEnergy(userId).catch((error) => {
+        console.error('[CalorieGoal] recent active energy lookup failed:', error);
+        return null;
+      })
+    : null;
 
   const { dailyCalorieGoal, maintenanceCalories } = calculateDailyCalorieGoal({
     biologicalSex: profile.biological_sex ?? 'prefer_not_to_say',
@@ -42,6 +49,7 @@ export async function recalculateCalorieGoalForHealthKitChange(
     activityLevel: profile.activity_level,
     calorieSource,
     goalType: goalType as Exclude<GoalType, 'custom'>,
+    recentActiveEnergy,
   });
 
   await upsertDailyCalorieGoal({

@@ -15,6 +15,8 @@ import {
 } from './observed-energy.ts';
 
 const TODAY = new Date(2026, 8, 17); // 17 Sep 2026 local
+/** Resting metabolism behind the 2400 kcal TDEE fixture (factor ~1.37). */
+const BMR_KCAL = 1750;
 
 function dateKeyOffset(daysBeforeToday: number): string {
   const d = new Date(TODAY);
@@ -79,6 +81,7 @@ describe('computeObservedEnergy', () => {
       meals: buildEligibleMeals(17),
       weights: buildWeights(8, 80, 79),
       estimatedMaintenanceKcal: 2400,
+      bmrKcal: BMR_KCAL,
       today: TODAY,
     });
     assert.equal(result.status, 'insufficient');
@@ -93,6 +96,7 @@ describe('computeObservedEnergy', () => {
       meals: buildEligibleMeals(OBSERVED_ROUGH_MIN_ELIGIBLE_DAYS),
       weights: buildWeights(14, 80, 79),
       estimatedMaintenanceKcal: 2400,
+      bmrKcal: BMR_KCAL,
       today: TODAY,
     });
     assert.equal(result.status, 'rough');
@@ -108,6 +112,7 @@ describe('computeObservedEnergy', () => {
       meals: buildEligibleMeals(OBSERVED_READY_MIN_ELIGIBLE_DAYS),
       weights: buildWeights(14, 80, 79),
       estimatedMaintenanceKcal: 2400,
+      bmrKcal: BMR_KCAL,
       today: TODAY,
     });
     assert.equal(result.status, 'ready');
@@ -132,6 +137,7 @@ describe('computeObservedEnergy', () => {
       meals,
       weights: buildWeights(14, 80, 79),
       estimatedMaintenanceKcal: 2400,
+      bmrKcal: BMR_KCAL,
       today: TODAY,
     });
     assert.equal(result.status, 'insufficient');
@@ -150,6 +156,7 @@ describe('computeObservedEnergy', () => {
       meals,
       weights: buildWeights(14, 80, 79),
       estimatedMaintenanceKcal: 2400,
+      bmrKcal: BMR_KCAL,
       today: TODAY,
     });
     assert.equal(result.status, 'insufficient');
@@ -160,6 +167,24 @@ describe('computeObservedEnergy', () => {
       meals: buildEligibleMeals(25, 900),
       weights: buildWeights(14, 80, 80),
       estimatedMaintenanceKcal: 2400,
+      bmrKcal: BMR_KCAL,
+      today: TODAY,
+    });
+    assert.equal(result.status, 'insufficient');
+    if (result.status === 'insufficient') {
+      assert.equal(result.reason, 'plausibility');
+    }
+  });
+
+  it('rejects a measured expenditure below resting metabolism', () => {
+    // 1500 sits above the old 0.55 × TDEE band (1320) and below the BMR, so the
+    // band used to wave it through. Eating your way to sub-BMR expenditure is a
+    // data gap, not physiology.
+    const result = computeObservedEnergy({
+      meals: buildEligibleMeals(25, 1500),
+      weights: buildWeights(14, 80, 80),
+      estimatedMaintenanceKcal: 2400,
+      bmrKcal: BMR_KCAL,
       today: TODAY,
     });
     assert.equal(result.status, 'insufficient');
@@ -173,6 +198,7 @@ describe('computeObservedEnergy', () => {
       meals: buildEligibleMeals(25),
       weights: buildWeights(2, 80, 79),
       estimatedMaintenanceKcal: 2400,
+      bmrKcal: BMR_KCAL,
       today: TODAY,
     });
     assert.equal(result.status, 'insufficient');

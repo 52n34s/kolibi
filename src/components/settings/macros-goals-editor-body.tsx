@@ -450,7 +450,7 @@ export function MacrosGoalsEditorBody({
         carbsG: Math.round(carbsG),
         fiberG: fiberG == null ? recommended.ballaststoffe.wert : Math.round(fiberG),
         proteinRefKg: recommended.proteinBezugsgewichtKg,
-        goalType: mapEmpfehlungsZielToProfileGoal(ziel),
+        goalType: mapEmpfehlungsZielToProfileGoal(ziel, profileData?.goal_type),
         macroGoalSource:
           carbsUnlocked || hasManualEdits || !macrosMatchRecommended
             ? 'custom'
@@ -541,7 +541,7 @@ export function MacrosGoalsEditorBody({
       calorieSource: resolveCalorieSource(healthConnectedPreference === true),
     });
     const direction = resolveGoalDirectionFromCalories({
-      goalType: mapEmpfehlungsZielToProfileGoal(ziel),
+      goalType: mapEmpfehlungsZielToProfileGoal(ziel, profileData?.goal_type),
       dailyCalorieGoal: kcalSum,
       maintenanceCalories: maintenance,
     });

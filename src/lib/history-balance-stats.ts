@@ -1,4 +1,5 @@
 import type { HistorySummaryStats } from '@/lib/history';
+import { FAT_G_PER_KG_FLOOR } from '@/lib/macro-rules';
 
 export type BalanceNutrient = 'protein' | 'fiber' | 'fat';
 
@@ -31,7 +32,6 @@ export type BalanceStats = {
   allOk: boolean;
 };
 
-const FAT_FLOOR_G_PER_KG = 0.7;
 const BALANCE_TOLERANCE = 0.05;
 const PROTEIN_DISTRIBUTION_G_PER_KG = 0.3;
 const PROTEIN_DISTRIBUTION_ROUND_TO_G = 5;
@@ -271,7 +271,7 @@ export function computeBalanceStats(
   const fatHasData = summary.fatAvg != null;
   const fatFloorG =
     referenceWeightKg != null && referenceWeightKg > 0
-      ? referenceWeightKg * FAT_FLOOR_G_PER_KG
+      ? referenceWeightKg * FAT_G_PER_KG_FLOOR
       : null;
   const fatDeltaG =
     fatHasData && summary.fatGoalAvg != null ? summary.fatAvg! - summary.fatGoalAvg : null;
@@ -407,7 +407,7 @@ export function computeBalanceSummaryHeadline(params: {
 
   const fatFloorG =
     referenceWeightKg != null && referenceWeightKg > 0
-      ? referenceWeightKg * FAT_FLOOR_G_PER_KG
+      ? referenceWeightKg * FAT_G_PER_KG_FLOOR
       : null;
   if (summary.fatAvg != null && fatFloorG != null && isOutsideLowerTolerance(summary.fatAvg, fatFloorG)) {
     pushGap('fat', summary.fatAvg, fatFloorG, 'under');

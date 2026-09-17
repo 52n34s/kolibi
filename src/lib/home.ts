@@ -2,6 +2,7 @@ import { fetchTodayConsumedCalories, type TodayConsumedMacros } from '@/lib/meal
 import type { MovementGoalPeriod, MovementGoalType } from '@/lib/profile';
 import {
   CalorieSource,
+  resolveDailyGoalFloor,
   resolveEffectiveDailyCalorieGoal,
 } from '@/lib/calorie-goal-math';
 import { supabase } from '@/lib/supabase';
@@ -257,19 +258,21 @@ export type CalorieGoalDisplay = {
 export function getCalorieGoalDisplay(
   dailyGoal: number,
   consumedToday: number,
+  bmr?: number | null,
 ): CalorieGoalDisplay {
-  const remaining = dailyGoal - consumedToday;
+  const flooredGoal = Math.max(dailyGoal, resolveDailyGoalFloor(bmr));
+  const remaining = flooredGoal - consumedToday;
   const isOverGoal = remaining < 0;
   const overAmount = isOverGoal ? Math.abs(remaining) : 0;
 
   return {
-    dailyGoal,
+    dailyGoal: flooredGoal,
     consumedToday,
     remaining,
     isOverGoal,
     overAmount,
     mainValue: isOverGoal ? overAmount : remaining,
-    dailyGoalContextValue: dailyGoal,
+    dailyGoalContextValue: flooredGoal,
     showOverLabel: isOverGoal,
     mode: 'static',
   };
@@ -279,19 +282,24 @@ export function getDynamicCalorieGoalDisplay(
   dailyGoal: number,
   consumedToday: number,
   activeEnergyBurned: number,
+  bmr?: number | null,
 ): CalorieGoalDisplay {
-  const adjustedDailyGoal = resolveEffectiveDailyCalorieGoal({
+  const activeEnergy = Math.max(0, activeEnergyBurned);
+  const effectiveDailyGoal = resolveEffectiveDailyCalorieGoal({
     calorieSource: CalorieSource.HEALTH,
     baseDailyGoal: dailyGoal,
-    activeEnergyBurnedKcal: activeEnergyBurned,
+    activeEnergyBurnedKcal: activeEnergy,
+    bmr,
   });
-  const display = getCalorieGoalDisplay(adjustedDailyGoal, consumedToday);
+  const display = getCalorieGoalDisplay(effectiveDailyGoal, consumedToday);
 
   return {
     ...display,
-    dailyGoal,
-    dailyGoalContextValue: dailyGoal,
+    // The floor may have lifted the target — keep base + active energy equal to
+    // what is shown, because the UI renders that sum.
+    dailyGoal: effectiveDailyGoal - activeEnergy,
+    dailyGoalContextValue: effectiveDailyGoal - activeEnergy,
     mode: 'dynamic',
-    activeEnergyBurned,
+    activeEnergyBurned: activeEnergy,
   };
 }

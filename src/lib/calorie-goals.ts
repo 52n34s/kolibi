@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react-native';
 
 import { localDateKey } from '@/lib/day-window';
 import { computeMacroGoals, isMacroGoalPlausible } from '@/lib/macro-goals';
-import { fiberGForBasisKcal } from '@/lib/macro-rules';
+import { FAT_G_PER_KG_FLOOR, fiberGForBasisKcal } from '@/lib/macro-rules';
 import { supabase } from '@/lib/supabase';
 
 type ExistingMacroRow = {
@@ -40,7 +40,7 @@ export function recalculateFatCarbsFiber(params: {
   proteinRefKg: number;
 }): { fatG: number; carbsG: number; fiberG: number } {
   const fatFromCalories = (0.25 * params.dailyCalorieGoal) / 9;
-  const fatFloor = 0.7 * params.proteinRefKg;
+  const fatFloor = FAT_G_PER_KG_FLOOR * params.proteinRefKg;
   const fatG = Math.round(Math.max(fatFromCalories, fatFloor));
   const fiberG = fiberGForBasisKcal(params.dailyCalorieGoal);
   const carbsG = Math.round(

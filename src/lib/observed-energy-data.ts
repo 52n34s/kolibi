@@ -1,6 +1,8 @@
 import { localDateKey, localDayWindow, parseDateOnly } from '@/lib/day-window';
 import {
   applyGoalAdjustment,
+  calculateAge,
+  calculateBmr,
   calculateMaintenanceCalories,
   CalorieSource,
   HARD_MINIMUM_DAILY_CALORIES,
@@ -85,7 +87,7 @@ export async function fetchObservedEnergyEstimate(params: {
     loggedAt: String(row.logged_at),
   }));
 
-  // Plausibility always against activity-factor TDEE (BMR-based estimate).
+  // Upper plausibility bound against activity-factor TDEE, lower bound the BMR.
   const estimatedMaintenanceKcal = calculateMaintenanceCalories({
     biologicalSex: params.biologicalSex,
     birthDate: params.birthDate,
@@ -95,11 +97,20 @@ export async function fetchObservedEnergyEstimate(params: {
     calorieSource: CalorieSource.ACTIVITY_FACTOR,
     today,
   });
+  const bmrKcal = Math.round(
+    calculateBmr({
+      biologicalSex: params.biologicalSex,
+      weightKg: params.weightKg,
+      heightCm: params.heightCm,
+      age: calculateAge(params.birthDate, today),
+    }),
+  );
 
   const result = computeObservedEnergy({
     meals,
     weights,
     estimatedMaintenanceKcal,
+    bmrKcal,
     today,
   });
 

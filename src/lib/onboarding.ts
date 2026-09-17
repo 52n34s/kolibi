@@ -12,9 +12,11 @@ import {
   calculateTdee as calculateTdeeMath,
   calculateUncappedDailyCalorieAdjustment as calculateUncappedDailyCalorieAdjustmentMath,
   resolveCalorieSource,
+  resolveExpectedMaintenanceKcal as resolveExpectedMaintenanceKcalMath,
   type ActivityLevel as ActivityLevelMath,
   type BiologicalSex as BiologicalSexMath,
   type GoalType as GoalTypeMath,
+  type RecentActiveEnergy,
 } from '@/lib/calorie-goal-math';
 import { upsertDailyCalorieGoal } from '@/lib/calorie-goals';
 import { localDateKey } from '@/lib/day-window';
@@ -47,6 +49,8 @@ export const GOAL_WEIGHT_CHANGE_PERCENT_RANGES = {
 
 export type CalorieGoalCalculation = {
   maintenanceCalories: number;
+  /** What an average day is expected to burn — the cap reference and the label. */
+  expectedMaintenanceKcal: number;
   uncappedDailyCalorieAdjustment: number;
   dailyCalorieAdjustment: number;
   rawCalories: number;
@@ -126,6 +130,8 @@ function calculatePredefinedGoalCalories(params: {
   weightKg: number;
   maintenanceCalories: number;
   goalType: Exclude<GoalType, 'custom'>;
+  /** Cap reference — the expected day, not the base being adjusted. */
+  expectedMaintenanceKcal?: number;
 }): {
   uncappedDailyCalorieAdjustment: number;
   dailyCalorieAdjustment: number;
@@ -140,7 +146,7 @@ function calculatePredefinedGoalCalories(params: {
   );
   const { adjustment: dailyCalorieAdjustment, wasCapped } = capDailyCalorieAdjustment(
     uncappedDailyCalorieAdjustment,
-    maintenanceCalories,
+    params.expectedMaintenanceKcal ?? maintenanceCalories,
   );
   const direction = getGoalCalorieDirection(goalType);
 
@@ -207,6 +213,31 @@ export function calculateMaintenanceCalories(params: {
   return calculateMaintenanceCaloriesMath(params);
 }
 
+/** BMR + mean active energy under HEALTH, else the stored maintenance. */
+export function resolveExpectedMaintenance(params: {
+  biologicalSex: BiologicalSex;
+  birthDate: Date;
+  heightCm: number;
+  weightKg: number;
+  activityLevel: ActivityLevel;
+  calorieSource: CalorieSource;
+  maintenanceCalories: number;
+  recentActiveEnergy?: RecentActiveEnergy | null;
+}): number {
+  return resolveExpectedMaintenanceKcalMath({
+    calorieSource: params.calorieSource,
+    bmr: calculateBmr({
+      biologicalSex: params.biologicalSex,
+      weightKg: params.weightKg,
+      heightCm: params.heightCm,
+      age: calculateAge(params.birthDate),
+    }),
+    activityLevel: params.activityLevel,
+    maintenanceCalories: params.maintenanceCalories,
+    recentActiveEnergy: params.recentActiveEnergy,
+  });
+}
+
 function calculateRawDailyCalorieGoal(params: {
   biologicalSex: BiologicalSex;
   birthDate: Date;
@@ -216,6 +247,7 @@ function calculateRawDailyCalorieGoal(params: {
   calorieSource: CalorieSource;
   goalType: GoalType;
   customCalorieGoal?: number | null;
+  recentActiveEnergy?: RecentActiveEnergy | null;
 }): { rawCalories: number; maintenanceCalories: number } {
   const maintenanceCalories = calculateMaintenanceCalories(params);
 
@@ -231,6 +263,10 @@ function calculateRawDailyCalorieGoal(params: {
       weightKg: params.weightKg,
       maintenanceCalories,
       goalType: params.goalType,
+      expectedMaintenanceKcal: resolveExpectedMaintenance({
+        ...params,
+        maintenanceCalories,
+      }),
     }).rawCalories,
     maintenanceCalories,
   };
@@ -245,6 +281,7 @@ export function calculateDailyCalorieGoal(params: {
   calorieSource: CalorieSource;
   goalType: GoalType;
   customCalorieGoal?: number | null;
+  recentActiveEnergy?: RecentActiveEnergy | null;
 }): { dailyCalorieGoal: number; maintenanceCalories: number } {
   const { rawCalories, maintenanceCalories } = calculateRawDailyCalorieGoal(params);
   return {
@@ -262,8 +299,13 @@ export function calculateDailyCalorieGoalDetails(params: {
   calorieSource: CalorieSource;
   goalType: GoalType;
   customCalorieGoal?: number | null;
+  recentActiveEnergy?: RecentActiveEnergy | null;
 }): CalorieGoalCalculation {
   const maintenanceCalories = calculateMaintenanceCalories(params);
+  const expectedMaintenanceKcal = resolveExpectedMaintenance({
+    ...params,
+    maintenanceCalories,
+  });
   const minimumCalories = getMinimumDailyCalories(params.biologicalSex);
 
   if (params.goalType === 'custom') {
@@ -272,6 +314,7 @@ export function calculateDailyCalorieGoalDetails(params: {
 
     return {
       maintenanceCalories,
+      expectedMaintenanceKcal,
       uncappedDailyCalorieAdjustment: 0,
       dailyCalorieAdjustment: 0,
       rawCalories,
@@ -286,11 +329,13 @@ export function calculateDailyCalorieGoalDetails(params: {
     weightKg: params.weightKg,
     maintenanceCalories,
     goalType: params.goalType,
+    expectedMaintenanceKcal,
   });
   const dailyCalories = Math.max(predefined.rawCalories, minimumCalories);
 
   return {
     maintenanceCalories,
+    expectedMaintenanceKcal,
     uncappedDailyCalorieAdjustment: predefined.uncappedDailyCalorieAdjustment,
     dailyCalorieAdjustment: predefined.dailyCalorieAdjustment,
     rawCalories: predefined.rawCalories,

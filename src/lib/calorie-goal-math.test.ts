@@ -8,6 +8,7 @@ import {
   calculateDailyCalorieGoalForSource,
   calculateMaintenanceCalories,
   resolveCalorieSource,
+  resolveDailyGoalFloor,
   resolveEffectiveDailyCalorieGoal,
   type ActivityLevel,
 } from './calorie-goal-math.ts';
@@ -37,6 +38,7 @@ const BMR = calculateBmr({
   age: AGE,
 });
 const ROUNDED_BMR = Math.round(BMR);
+const GOAL_FLOOR = resolveDailyGoalFloor(BMR);
 
 describe('resolveCalorieSource', () => {
   it('maps health connected to CalorieSource.HEALTH', () => {
@@ -77,7 +79,6 @@ describe('calculateDailyCalorieGoalForSource — 4 levels × health on/off', () 
       assert.equal(withZeroEnergy.effectiveDailyGoal, withZeroEnergy.baseDailyGoal);
       // Active energy must not change the effective goal in ACTIVITY_FACTOR mode.
       assert.equal(withFakeEnergy.effectiveDailyGoal, withZeroEnergy.effectiveDailyGoal);
-      assert.equal(withFakeEnergy.effectiveDailyGoal, withFakeEnergy.baseDailyGoal);
     });
 
     it(`HEALTH + ${activityLevel}: ignores activity factor; zero AE ⇒ BMR − deficit`, () => {
@@ -99,9 +100,10 @@ describe('calculateDailyCalorieGoalForSource — 4 levels × health on/off', () 
           calorieSource: CalorieSource.HEALTH,
         }),
       );
-      // Day without captured activity: effective goal is exactly base (BMR − deficit).
-      assert.equal(result.effectiveDailyGoal, result.baseDailyGoal);
+      // Base keeps the deficit so the active-energy add-on has room, but a day
+      // without captured activity never collapses below the floor.
       assert.ok(result.baseDailyGoal <= ROUNDED_BMR);
+      assert.equal(result.effectiveDailyGoal, Math.max(result.baseDailyGoal, GOAL_FLOOR));
     });
 
     it(`HEALTH + ${activityLevel}: adds active energy on top of BMR-based base`, () => {
@@ -114,7 +116,10 @@ describe('calculateDailyCalorieGoalForSource — 4 levels × health on/off', () 
       });
 
       assert.equal(result.maintenanceCalories, ROUNDED_BMR);
-      assert.equal(result.effectiveDailyGoal, result.baseDailyGoal + activeEnergy);
+      assert.equal(
+        result.effectiveDailyGoal,
+        Math.max(result.baseDailyGoal + activeEnergy, GOAL_FLOOR),
+      );
     });
   }
 
@@ -133,9 +138,12 @@ describe('calculateDailyCalorieGoalForSource — 4 levels × health on/off', () 
         activeEnergyBurnedKcal: 500,
       });
 
-      // Health path: maintenance is BMR, energy is added after.
+      // Health path: maintenance is BMR, energy is added after, floored at BMR.
       assert.equal(health.maintenanceCalories, ROUNDED_BMR);
-      assert.equal(health.effectiveDailyGoal, health.baseDailyGoal + 500);
+      assert.equal(
+        health.effectiveDailyGoal,
+        Math.max(health.baseDailyGoal + 500, GOAL_FLOOR),
+      );
 
       // Factor path: maintenance uses multiplier; energy is ignored.
       assert.equal(
@@ -206,5 +214,133 @@ describe('calculateMaintenanceCalories OBSERVED', () => {
       }),
       2340,
     );
+  });
+});
+
+const DEFICIT_GOAL_TYPES = [
+  'lose_weight',
+  'faster_weight_loss',
+  'maintain',
+  'gain_weight',
+  'build_muscle',
+  'endurance',
+] as const;
+
+describe('resting metabolism floor', () => {
+  for (const calorieSource of [
+    CalorieSource.HEALTH,
+    CalorieSource.ACTIVITY_FACTOR,
+    CalorieSource.OBSERVED,
+  ]) {
+    for (const goalType of DEFICIT_GOAL_TYPES) {
+      it(`${calorieSource} + ${goalType}: effective goal never drops below BMR`, () => {
+        const result = calculateDailyCalorieGoalForSource({
+          ...PROFILE,
+          goalType,
+          activityLevel: 'mostly_sitting',
+          calorieSource,
+          // Deliberately low so an unfloored result would land under the BMR.
+          observedMaintenanceKcal: 1200,
+          activeEnergyBurnedKcal: 0,
+        });
+
+        assert.ok(
+          result.effectiveDailyGoal >= GOAL_FLOOR,
+          `${result.effectiveDailyGoal} < ${GOAL_FLOOR}`,
+        );
+      });
+    }
+  }
+
+  it('floors the display goal, not the stored base', () => {
+    const result = calculateDailyCalorieGoalForSource({
+      ...PROFILE,
+      goalType: 'faster_weight_loss',
+      activityLevel: 'mostly_sitting',
+      calorieSource: CalorieSource.HEALTH,
+      activeEnergyBurnedKcal: 0,
+    });
+
+    // The base keeps the deficit so the active-energy add-on still has room.
+    assert.ok(result.baseDailyGoal < GOAL_FLOOR);
+    assert.equal(result.effectiveDailyGoal, GOAL_FLOOR);
+  });
+});
+
+describe('deficit cap reference', () => {
+  it('HEALTH caps against BMR + mean active energy, not against the BMR', () => {
+    const recentActiveEnergy = { avgKcal: 600, days: 14 };
+    const withActiveEnergy = calculateDailyCalorieGoalForSource({
+      ...PROFILE,
+      goalType: 'faster_weight_loss',
+      activityLevel: 'mostly_sitting',
+      calorieSource: CalorieSource.HEALTH,
+      recentActiveEnergy,
+    });
+
+    assert.equal(withActiveEnergy.expectedMaintenanceKcal, ROUNDED_BMR + 600);
+
+    // Cap is a quarter of the expected day; the base still comes off the BMR.
+    const expectedCap = (ROUNDED_BMR + 600) * 0.25;
+    assert.equal(
+      withActiveEnergy.baseDailyGoal,
+      Math.round(withActiveEnergy.maintenanceCalories - expectedCap),
+    );
+  });
+
+  it('falls back to the activity factor below seven days of Health data', () => {
+    const thin = calculateDailyCalorieGoalForSource({
+      ...PROFILE,
+      goalType: 'faster_weight_loss',
+      activityLevel: 'mostly_sitting',
+      calorieSource: CalorieSource.HEALTH,
+      recentActiveEnergy: { avgKcal: 600, days: 6 },
+    });
+
+    assert.equal(
+      thin.expectedMaintenanceKcal,
+      Math.round(BMR * ACTIVITY_FACTORS.mostly_sitting),
+    );
+  });
+});
+
+describe('floor leaves ordinary deficits alone', () => {
+  it('sedentary + lose_weight keeps its deficit — the floor must not bind', () => {
+    const result = calculateDailyCalorieGoalForSource({
+      ...PROFILE,
+      goalType: 'lose_weight',
+      activityLevel: 'mostly_sitting',
+      calorieSource: CalorieSource.ACTIVITY_FACTOR,
+      activeEnergyBurnedKcal: 0,
+    });
+
+    assert.ok(result.baseDailyGoal < ROUNDED_BMR, 'deficit should dip under the BMR');
+    assert.ok(result.baseDailyGoal > GOAL_FLOOR, 'but stay above the floor');
+    assert.equal(result.effectiveDailyGoal, result.baseDailyGoal);
+  });
+
+  it('sedentary + faster_weight_loss stays above the floor too', () => {
+    const result = calculateDailyCalorieGoalForSource({
+      ...PROFILE,
+      goalType: 'faster_weight_loss',
+      activityLevel: 'mostly_sitting',
+      calorieSource: CalorieSource.ACTIVITY_FACTOR,
+      activeEnergyBurnedKcal: 0,
+    });
+
+    assert.equal(result.effectiveDailyGoal, result.baseDailyGoal);
+  });
+
+  it('catches the BMR-based collapse: a HEALTH day without movement', () => {
+    const result = calculateDailyCalorieGoalForSource({
+      ...PROFILE,
+      goalType: 'faster_weight_loss',
+      activityLevel: 'mostly_sitting',
+      calorieSource: CalorieSource.HEALTH,
+      activeEnergyBurnedKcal: 0,
+    });
+
+    assert.ok(result.baseDailyGoal < GOAL_FLOOR);
+    assert.equal(result.effectiveDailyGoal, GOAL_FLOOR);
   });
 });

@@ -53,6 +53,7 @@ import {
   isCalorieGoalFarFromTdee,
   isValidDailyCalorieGoalInput,
   MAXIMUM_DAILY_CALORIES,
+  CalorieSource,
   resolveCalorieSource,
   skipOnboarding,
 } from '@/lib/onboarding';
@@ -62,6 +63,7 @@ import {
   type DietPreferenceValue,
 } from '@/components/settings/food-context-controls';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
+import { useRecentActiveEnergy } from '@/hooks/use-recent-active-energy';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
@@ -82,6 +84,7 @@ const GOAL_TYPES_BY_ORDER = {
   maintain: true,
   lose_weight: true,
   gain_weight: true,
+  build_muscle: true,
   faster_weight_loss: true,
   endurance: true,
   custom: true,
@@ -122,6 +125,10 @@ export default function OnboardingScreen() {
   const userId = session?.user?.id;
   const isSessionReady = authInitialized && Boolean(userId);
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
+  const { data: recentActiveEnergy } = useRecentActiveEnergy(
+    userId,
+    healthConnectedPreference === true,
+  );
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [step, setStep] = useState(0);
   const [dietPreference, setDietPreference] = useState<DietPreferenceValue>(null);
@@ -279,6 +286,7 @@ export default function OnboardingScreen() {
       calorieSource,
       goalType,
       customCalorieGoal: goalType === 'custom' ? parsedCustomCalories : null,
+      recentActiveEnergy,
     });
   }, [
     activityLevel,
@@ -289,6 +297,7 @@ export default function OnboardingScreen() {
     parsedCustomCalories,
     parsedHeight,
     parsedWeight,
+    recentActiveEnergy,
   ]);
 
   const onboardingWeightEtaInput = useMemo((): WeightGoalEtaInput | null => {
@@ -787,7 +796,13 @@ export default function OnboardingScreen() {
             </Text>
             {maintenanceCalories !== null && (
               <Text className="mb-4 text-sm text-gray-500">
-                {t('onboarding.summary.tdee', { calories: formatKcal(maintenanceCalories) })}
+                {calorieSource === CalorieSource.HEALTH && calorieGoalCalculation != null
+                  ? t('onboarding.summary.tdeeHealth', {
+                      calories: formatKcal(calorieGoalCalculation.expectedMaintenanceKcal),
+                    })
+                  : t('onboarding.summary.tdee', {
+                      calories: formatKcal(maintenanceCalories),
+                    })}
               </Text>
             )}
             {onboardingWeightEtaInput ? (

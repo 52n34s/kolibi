@@ -8,6 +8,8 @@ import {
   MacroEmpfehlungsZiel,
   MacroErnaehrungsform,
   computeEmpfohleneMakros,
+  mapEmpfehlungsZielToProfileGoal,
+  mapProfileGoalToEmpfehlungsZiel,
   resolveProteinBezugsgewicht,
   type EmpfohleneMakrosInput,
 } from './macro-recommendations.ts';
@@ -248,5 +250,38 @@ describe('derivation examples', () => {
     assert.equal(result.protein.details.zielFloorAngewendet, true);
     assert.equal(result.protein.herleitung, '1,8 g pro kg BMI-20-Gewicht');
     assert.equal(result.protein.wert, Math.round(1.8 * 64.8));
+  });
+});
+
+describe('goal type ↔ ziel mapping', () => {
+  it('reads build_muscle as the muscle ziel', () => {
+    // The target-weight forecast suppresses its ETA off this mapping, so a miss
+    // here silently promises a date the muscle profile cannot hold.
+    assert.equal(
+      mapProfileGoalToEmpfehlungsZiel('build_muscle'),
+      MacroEmpfehlungsZiel.MUSKELAUFBAU,
+    );
+  });
+
+  it('keeps the goal a user already has when it means the same ziel', () => {
+    assert.equal(
+      mapEmpfehlungsZielToProfileGoal(MacroEmpfehlungsZiel.MUSKELAUFBAU, 'build_muscle'),
+      'build_muscle',
+    );
+    assert.equal(
+      mapEmpfehlungsZielToProfileGoal(MacroEmpfehlungsZiel.ABNEHMEN, 'faster_weight_loss'),
+      'faster_weight_loss',
+    );
+  });
+
+  it('switches the goal when the ziel no longer matches it', () => {
+    assert.equal(
+      mapEmpfehlungsZielToProfileGoal(MacroEmpfehlungsZiel.HALTEN, 'build_muscle'),
+      'maintain',
+    );
+    assert.equal(
+      mapEmpfehlungsZielToProfileGoal(MacroEmpfehlungsZiel.MUSKELAUFBAU, 'maintain'),
+      'gain_weight',
+    );
   });
 });

@@ -5,6 +5,7 @@ import {
   ONBOARDING_SECONDARY_SURFACE,
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE } from '@/components/ui/glass-styles';
+import { TEXT_SECONDARY } from '@/constants/brand';
 
 const segmentRadius = ONBOARDING_SECONDARY_SURFACE.borderRadius - 4;
 
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
   labelCompact: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#9CA3AF',
+    color: TEXT_SECONDARY,
   },
   labelActive: {
     fontSize: 12,

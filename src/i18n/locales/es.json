@@ -173,6 +173,8 @@
       "lose_weightHint": "Enfoque equilibrado",
       "gain_weight": "Ganar peso",
       "gain_weightHint": "Aumento gradual y controlado",
+      "build_muscle": "Ganar músculo",
+      "build_muscleHint": "Macros para ganar músculo",
       "faster_weight_loss": "Pérdida de peso más rápida",
       "faster_weight_lossHint": "Enfoque ambicioso",
       "faster_weight_lossWarning": "Un déficit más rápido puede ser más difícil de mantener. Consulta a un profesional si tienes dudas.",
@@ -188,6 +190,7 @@
       "dailyGoal": "Tu objetivo diario: {{calories}} kcal",
       "caloriesLabel": "Calorías diarias (kcal)",
       "tdee": "Mantenimiento estimado: {{calories}} kcal",
+      "tdeeHealth": "Mantenimiento estimado: {{calories}} kcal — tu movimiento real se suma cada día",
       "minimumApplied": "Tu objetivo calculado sería de {{calculated}} kcal. Por seguridad, establecemos un mínimo de {{minimum}} kcal.",
       "farFromTdeeWarning": "Este objetivo se desvía mucho de tus necesidades estimadas y podría ser poco saludable a largo plazo."
     }
@@ -574,6 +577,9 @@
     "title": "Koli",
     "segments": {
       "goals": "Objetivos"
+    },
+    "goals": {
+      "planHint": "Tu plan: los valores diarios se ajustan a tu movimiento."
     }
   },
   "dayDetail": {
@@ -680,7 +686,6 @@
         "loadFailed": "No se pudieron cargar los recordatorios.",
         "saveFailed": "No se pudo guardar. Inténtalo de nuevo.",
         "deleteFailed": "No se pudo eliminar. Inténtalo de nuevo.",
-        "maxReached": "Máximo tres recordatorios por usuario.",
         "needSupplements": "Selecciona al menos un suplemento."
       }
     },

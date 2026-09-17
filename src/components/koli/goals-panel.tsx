@@ -116,9 +116,10 @@ export function GoalsPanel() {
       className="flex-1 px-6"
       contentContainerStyle={{ paddingBottom: 40 }}
       keyboardShouldPersistTaps="handled">
-      <Text className="mb-3 text-lg font-semibold text-gray-900">
+      <Text className="mb-1 text-lg font-semibold text-gray-900">
         {t('koli.segments.goals')}
       </Text>
+      <Text className="mb-3 text-sm text-gray-500">{t('koli.goals.planHint')}</Text>
 
       <SettingsSection>
         <SettingsRow

@@ -37,6 +37,16 @@ export const SPORT_KCAL_MACRO_SPLIT = {
 /** Soft upper bound for carbohydrate goals; overflow is moved into fat. */
 export const MAX_CARBS_G_PER_KG_BODY_WEIGHT = 10;
 
+/**
+ * Soft lower bound, the mirror of the cap above: below this the remainder stops
+ * absorbing so a low-calorie day is not turned into a low-carb day.
+ *
+ * Both ends sit on body mass, because carbohydrate guidelines are written per kg
+ * body mass — fuelling scales with the mass that does the work. Protein and fat
+ * use the leaner reference mass instead; see macro-rules.
+ */
+export const MIN_CARBS_G_PER_KG_BODY_WEIGHT = 2;
+
 export const MACRO_KCAL_TOLERANCE = 2;
 
 /** Ignore workouts shorter than this (avoids noisy HR spikes). */

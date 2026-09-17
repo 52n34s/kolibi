@@ -173,6 +173,8 @@
       "lose_weightHint": "Ausgewogener Ansatz",
       "gain_weight": "Zunehmen",
       "gain_weightHint": "Moderater Aufbau",
+      "build_muscle": "Muskelaufbau",
+      "build_muscleHint": "Makros für Muskelaufbau",
       "faster_weight_loss": "Schnelleres Abnehmen",
       "faster_weight_lossHint": "Ambitionierter Ansatz",
       "faster_weight_lossWarning": "Ein schnelleres Defizit kann schwerer durchzuhalten sein. Sprich bei Unsicherheit mit einer Fachperson.",
@@ -188,6 +190,7 @@
       "dailyGoal": "Dein Tagesziel: {{calories}} kcal",
       "caloriesLabel": "Tägliche Kalorien (kcal)",
       "tdee": "Geschätzter Erhaltungsbedarf: {{calories}} kcal",
+      "tdeeHealth": "Geschätzter Erhaltungsbedarf: {{calories}} kcal — deine tatsächliche Bewegung kommt täglich dazu",
       "minimumApplied": "Dein berechnetes Ziel läge bei {{calculated}} kcal. Aus Sicherheitsgründen setzen wir mindestens {{minimum}} kcal an.",
       "farFromTdeeWarning": "Dieses Ziel weicht stark von deinem geschätzten Bedarf ab und könnte auf Dauer ungesund sein."
     }
@@ -574,6 +577,9 @@
     "title": "Koli",
     "segments": {
       "goals": "Ziele"
+    },
+    "goals": {
+      "planHint": "Dein Plan — die Tageswerte passen sich deiner Bewegung an."
     }
   },
   "dayDetail": {
@@ -680,7 +686,6 @@
         "loadFailed": "Erinnerungen konnten nicht geladen werden.",
         "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
         "deleteFailed": "Löschen fehlgeschlagen. Bitte erneut versuchen.",
-        "maxReached": "Maximal drei Erinnerungen pro Nutzer.",
         "needSupplements": "Wähle mindestens ein Supplement aus."
       }
     },

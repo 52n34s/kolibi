@@ -124,6 +124,8 @@ export function SupplementRemindersSection({
   const [isNew, setIsNew] = useState(false);
   const [draft, setDraft] = useState<ReminderDraft>(() => emptyReminderDraft(supplements));
   const [showIosTimePicker, setShowIosTimePicker] = useState(false);
+  /** Covers the async gap before saveMutation takes over the pending state. */
+  const [isPreparingSave, setIsPreparingSave] = useState(false);
 
   const { data: reminders = [], isLoading, isError } = useQuery({
     queryKey: remindersQueryKey,
@@ -231,15 +233,17 @@ export function SupplementRemindersSection({
       setEditing(null);
       setShowIosTimePicker(false);
     },
-    onError: (error) => {
-      console.error('[SupplementReminders] save failed:', error);
+    onError: async (error) => {
+      // At the limit the add button is already disabled and the hint below it
+      // explains why — an alert on top of that says nothing new.
       if (error instanceof SupplementReminderLimitError) {
-        Alert.alert(
-          t('settings.errors.title'),
-          t('supplements.reminders.errors.maxReached'),
-        );
+        await invalidateReminders();
+        setEditorOpen(false);
+        setEditing(null);
+        setShowIosTimePicker(false);
         return;
       }
+      console.error('[SupplementReminders] save failed:', error);
       Alert.alert(t('settings.errors.title'), t('supplements.reminders.errors.saveFailed'));
     },
   });
@@ -283,10 +287,6 @@ export function SupplementRemindersSection({
 
   function openCreate() {
     if (reminders.length >= MAX_SUPPLEMENT_REMINDERS) {
-      Alert.alert(
-        t('settings.errors.title'),
-        t('supplements.reminders.errors.maxReached'),
-      );
       return;
     }
 
@@ -344,27 +344,39 @@ export function SupplementRemindersSection({
       return;
     }
 
-    let isEnabled = draft.isEnabled;
-    if (isEnabled) {
-      const allowed = await ensureCanEnablePush();
-      if (!allowed) {
-        isEnabled = false;
-        setDraft((current) => ({ ...current, isEnabled: false }));
-        if (!isNew && editing) {
-          // Keep editor open so the user sees the switch flipped off.
-        } else if (isNew) {
-          // Still allow saving as disabled after a denial? Prefer abort create when they wanted on.
-          // If permission denied while enabling for new, save as disabled so the reminder exists.
+    // Push registration below is a network round trip, and saveMutation.isPending
+    // only turns true after it. Without this the button stays live the whole time
+    // and a second tap inserts a second reminder.
+    if (isPreparingSave) {
+      return;
+    }
+    setIsPreparingSave(true);
+
+    try {
+      let isEnabled = draft.isEnabled;
+      if (isEnabled) {
+        const allowed = await ensureCanEnablePush();
+        if (!allowed) {
+          isEnabled = false;
+          setDraft((current) => ({ ...current, isEnabled: false }));
+          if (!isNew && editing) {
+            // Keep editor open so the user sees the switch flipped off.
+          } else if (isNew) {
+            // Still allow saving as disabled after a denial? Prefer abort create when they wanted on.
+            // If permission denied while enabling for new, save as disabled so the reminder exists.
+          }
         }
       }
-    }
 
-    saveMutation.mutate({
-      label: draft.label.trim() ? draft.label.trim() : null,
-      remind_at: draft.remindAt,
-      is_enabled: isEnabled,
-      supplement_ids: draft.supplementIds,
-    });
+      saveMutation.mutate({
+        label: draft.label.trim() ? draft.label.trim() : null,
+        remind_at: draft.remindAt,
+        is_enabled: isEnabled,
+        supplement_ids: draft.supplementIds,
+      });
+    } finally {
+      setIsPreparingSave(false);
+    }
   }
 
   const atLimit = reminders.length >= MAX_SUPPLEMENT_REMINDERS;
@@ -586,10 +598,10 @@ export function SupplementRemindersSection({
               </Text>
             </Pressable>
             <Pressable
-              disabled={saveMutation.isPending || deleteMutation.isPending}
+              disabled={isPreparingSave || saveMutation.isPending || deleteMutation.isPending}
               onPress={() => void handleSave()}
               className="h-12 flex-1 items-center justify-center rounded-xl bg-[#4F46E5]">
-              {saveMutation.isPending || deleteMutation.isPending ? (
+              {isPreparingSave || saveMutation.isPending || deleteMutation.isPending ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text className="text-base font-semibold text-white">

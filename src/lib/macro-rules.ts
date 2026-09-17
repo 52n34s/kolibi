@@ -121,6 +121,7 @@ export const PROTEIN_G_PER_KG_BY_GOAL = {
   faster_weight_loss: 1.8,
   maintain: 1.6,
   gain_weight: 1.8,
+  build_muscle: 1.8,
   endurance: 1.5,
   /** Editor / Empfohlenungs-Ziele (same numbers). */
   ABNEHMEN: 1.8,
@@ -220,6 +221,9 @@ export const FIBER_G_PER_1000_KCAL = 14;
 export const FIBER_ROUND_TO_G = 5;
 /** DGE-oriented floor — low calorie goals must not push fiber below 30 g. */
 export const FIBER_MIN_G = 30;
+
+/** Fat must not fall below this per kg reference mass, whatever the calories do. */
+export const FAT_G_PER_KG_FLOOR = 0.7;
 
 function roundToNearest(value: number, step: number): number {
   return Math.round(value / step) * step;

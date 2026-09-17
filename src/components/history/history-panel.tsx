@@ -426,7 +426,8 @@ export function HistoryPanel() {
       balanceData &&
       (profile?.goal_type === 'lose_weight' ||
         profile?.goal_type === 'faster_weight_loss' ||
-        profile?.goal_type === 'gain_weight')
+        profile?.goal_type === 'gain_weight' ||
+        profile?.goal_type === 'build_muscle')
         ? computeProteinDistributionStats(balanceData.meals, referenceWeightKg)
         : null,
     [balanceData, profile?.goal_type, referenceWeightKg],

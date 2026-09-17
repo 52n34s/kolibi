@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ONBOARDING_CARD_COLORS } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE } from '@/components/ui/glass-styles';
+import { TEXT_SECONDARY } from '@/constants/brand';
 
 const PILL_RADIUS = 999;
 
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: TEXT_SECONDARY,
   },
   labelCompact: {
     fontSize: 12,

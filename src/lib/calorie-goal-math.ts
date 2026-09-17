@@ -20,6 +20,7 @@ export type GoalType =
   | 'maintain'
   | 'lose_weight'
   | 'gain_weight'
+  | 'build_muscle'
   | 'faster_weight_loss'
   | 'endurance'
   | 'custom';
@@ -41,6 +42,8 @@ export const GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK = {
   lose_weight: 0.5,
   faster_weight_loss: 0.75,
   gain_weight: 0.375,
+  /** Recomposition: muscle macros at maintenance, so no planned weight change. */
+  build_muscle: 0,
   endurance: 0,
 } as const satisfies Record<Exclude<GoalType, 'custom'>, number>;
 
@@ -131,6 +134,67 @@ export function calculateMaintenanceCalories(params: {
   }
 }
 
+/** Window for the active-energy mean behind expected maintenance. */
+export const EXPECTED_MAINTENANCE_AE_WINDOW_DAYS = 14;
+/** Below this many days with Health data the activity factor stands in. */
+export const EXPECTED_MAINTENANCE_AE_MIN_DAYS = 7;
+
+export type RecentActiveEnergy = {
+  /** Mean active energy per day across the window. */
+  avgKcal: number;
+  /** Days with Health data inside the window. */
+  days: number;
+};
+
+/**
+ * What the user burns on an average day — the reference the deficit cap is
+ * measured against.
+ *
+ * HEALTH stores BMR as maintenance because active energy only joins at display
+ * time. Capping the deficit against that would size it off resting metabolism
+ * and bind far too early, so the expected day is reconstructed here instead.
+ */
+export function resolveExpectedMaintenanceKcal(params: {
+  calorieSource: CalorieSource;
+  bmr: number;
+  activityLevel: ActivityLevel;
+  maintenanceCalories: number;
+  recentActiveEnergy?: RecentActiveEnergy | null;
+}): number {
+  if (params.calorieSource !== CalorieSource.HEALTH) {
+    return params.maintenanceCalories;
+  }
+
+  const recent = params.recentActiveEnergy;
+  if (
+    recent != null &&
+    recent.days >= EXPECTED_MAINTENANCE_AE_MIN_DAYS &&
+    recent.avgKcal > 0
+  ) {
+    return Math.round(params.bmr + recent.avgKcal);
+  }
+
+  return Math.round(calculateTdee(params.bmr, params.activityLevel));
+}
+
+/**
+ * A moderate deficit below resting metabolism is normal for a sedentary day —
+ * an activity-factor deficit lands at 0.9 × BMR and must stay untouched. This
+ * only catches the collapse: a target built off the BMR with no activity in it.
+ */
+export const DAILY_GOAL_FLOOR_BMR_FRACTION = 0.85;
+
+/** Lower bound for a displayed target. */
+export function resolveDailyGoalFloor(bmr?: number | null): number {
+  if (bmr == null || !(bmr > 0)) {
+    return HARD_MINIMUM_DAILY_CALORIES;
+  }
+  return Math.max(
+    Math.round(bmr * DAILY_GOAL_FLOOR_BMR_FRACTION),
+    HARD_MINIMUM_DAILY_CALORIES,
+  );
+}
+
 export function calculateUncappedDailyCalorieAdjustment(
   weightKg: number,
   percentPerWeek: number,
@@ -167,12 +231,14 @@ export function applyGoalAdjustment(params: {
   weightKg: number;
   maintenanceCalories: number;
   goalType: Exclude<GoalType, 'custom'>;
+  /** Cap reference — the expected day, not the base being adjusted. */
+  expectedMaintenanceKcal?: number;
 }): number {
   const percentPerWeek = GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK[params.goalType];
   const uncapped = calculateUncappedDailyCalorieAdjustment(params.weightKg, percentPerWeek);
   const dailyCalorieAdjustment = capDailyCalorieAdjustment(
     uncapped,
-    params.maintenanceCalories,
+    params.expectedMaintenanceKcal ?? params.maintenanceCalories,
   );
   const direction = getGoalCalorieDirection(params.goalType);
 
@@ -194,24 +260,32 @@ export function resolveEffectiveDailyCalorieGoal(params: {
   calorieSource: CalorieSource;
   baseDailyGoal: number;
   activeEnergyBurnedKcal: number;
+  /** Applies the resting-metabolism floor. Omit only where BMR is unknown. */
+  bmr?: number | null;
 }): number {
-  switch (params.calorieSource) {
-    case CalorieSource.HEALTH:
-      return params.baseDailyGoal + Math.max(0, params.activeEnergyBurnedKcal);
-    case CalorieSource.ACTIVITY_FACTOR:
-    case CalorieSource.OBSERVED:
-      return params.baseDailyGoal;
-    default: {
-      const _exhaustive: never = params.calorieSource;
-      return _exhaustive;
+  const withActiveEnergy = (): number => {
+    switch (params.calorieSource) {
+      case CalorieSource.HEALTH:
+        return params.baseDailyGoal + Math.max(0, params.activeEnergyBurnedKcal);
+      case CalorieSource.ACTIVITY_FACTOR:
+      case CalorieSource.OBSERVED:
+        return params.baseDailyGoal;
+      default: {
+        const _exhaustive: never = params.calorieSource;
+        return _exhaustive;
+      }
     }
-  }
+  };
+
+  return Math.max(withActiveEnergy(), resolveDailyGoalFloor(params.bmr));
 }
 
 export type DailyCalorieGoalBreakdown = {
   calorieSource: CalorieSource;
   bmr: number;
   maintenanceCalories: number;
+  /** Cap reference — BMR + mean active energy under HEALTH. */
+  expectedMaintenanceKcal: number;
   baseDailyGoal: number;
   activeEnergyBurnedKcal: number;
   effectiveDailyGoal: number;
@@ -231,6 +305,7 @@ export function calculateDailyCalorieGoalForSource(params: {
   goalType: Exclude<GoalType, 'custom'>;
   activeEnergyBurnedKcal?: number;
   observedMaintenanceKcal?: number;
+  recentActiveEnergy?: RecentActiveEnergy | null;
   today?: Date;
 }): DailyCalorieGoalBreakdown {
   const age = calculateAge(params.birthDate, params.today);
@@ -242,10 +317,18 @@ export function calculateDailyCalorieGoalForSource(params: {
   });
 
   const maintenanceCalories = calculateMaintenanceCalories(params);
+  const expectedMaintenanceKcal = resolveExpectedMaintenanceKcal({
+    calorieSource: params.calorieSource,
+    bmr,
+    activityLevel: params.activityLevel,
+    maintenanceCalories,
+    recentActiveEnergy: params.recentActiveEnergy,
+  });
   const adjusted = applyGoalAdjustment({
     weightKg: params.weightKg,
     maintenanceCalories,
     goalType: params.goalType,
+    expectedMaintenanceKcal,
   });
   const baseDailyGoal = Math.max(adjusted, HARD_MINIMUM_DAILY_CALORIES);
   const activeEnergyBurnedKcal = Math.max(0, params.activeEnergyBurnedKcal ?? 0);
@@ -253,12 +336,14 @@ export function calculateDailyCalorieGoalForSource(params: {
     calorieSource: params.calorieSource,
     baseDailyGoal,
     activeEnergyBurnedKcal,
+    bmr,
   });
 
   return {
     calorieSource: params.calorieSource,
     bmr: Math.round(bmr),
     maintenanceCalories,
+    expectedMaintenanceKcal,
     baseDailyGoal,
     activeEnergyBurnedKcal,
     effectiveDailyGoal,

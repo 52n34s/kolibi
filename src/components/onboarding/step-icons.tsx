@@ -79,6 +79,7 @@ export function GoalOptionIcon({
     maintain: 'speedometer-outline',
     lose_weight: 'trending-down-outline',
     gain_weight: 'trending-up-outline',
+    build_muscle: 'barbell-outline',
     faster_weight_loss: 'arrow-down-circle-outline',
     endurance: 'fitness-outline',
     custom: 'create-outline',

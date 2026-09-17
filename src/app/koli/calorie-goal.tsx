@@ -20,13 +20,16 @@ import { SettingsBackButton } from '@/components/settings/settings-back-button';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
+import { useRecentActiveEnergy } from '@/hooks/use-recent-active-energy';
 import {
   calculateMaintenanceCalories,
+  CalorieSource,
   HARD_MINIMUM_DAILY_CALORIES,
   isCalorieGoalFarFromTdee,
   isValidDailyCalorieGoalInput,
   MAXIMUM_DAILY_CALORIES,
   resolveCalorieSource,
+  resolveExpectedMaintenance,
   type BiologicalSex,
 } from '@/lib/onboarding';
 import { logCalorieGoalSaveError } from '@/lib/calorie-goals';
@@ -43,6 +46,10 @@ export default function CalorieGoalSettingsScreen() {
   const userId = session?.user?.id;
   const { data, isLoading, isError, error } = useProfileSettings(userId);
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
+  const { data: recentActiveEnergy } = useRecentActiveEnergy(
+    userId,
+    healthConnectedPreference === true,
+  );
 
   const [dailyCalorieGoal, setDailyCalorieGoal] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -91,6 +98,29 @@ export default function CalorieGoalSettingsScreen() {
       calorieSource,
     });
   }, [calorieSource, effectiveSex, profile]);
+
+  const expectedMaintenanceKcal = useMemo(() => {
+    if (
+      maintenanceCalories == null ||
+      !profile?.birth_date ||
+      profile.height_cm == null ||
+      profile.latest_weight_kg == null ||
+      !profile.activity_level
+    ) {
+      return null;
+    }
+
+    return resolveExpectedMaintenance({
+      biologicalSex: effectiveSex,
+      birthDate: parseDateOnly(profile.birth_date),
+      heightCm: profile.height_cm,
+      weightKg: profile.latest_weight_kg,
+      activityLevel: profile.activity_level,
+      calorieSource,
+      maintenanceCalories,
+      recentActiveEnergy,
+    });
+  }, [calorieSource, effectiveSex, maintenanceCalories, profile, recentActiveEnergy]);
 
   const showFarFromTdeeWarning = isCalorieGoalFarFromTdee(
     parsedDailyCalories,
@@ -173,7 +203,13 @@ export default function CalorieGoalSettingsScreen() {
 
             {maintenanceCalories != null ? (
               <Text className="mb-4 text-sm text-gray-500">
-                {t('onboarding.summary.tdee', { calories: formatKcal(maintenanceCalories) })}
+                {calorieSource === CalorieSource.HEALTH && expectedMaintenanceKcal != null
+                  ? t('onboarding.summary.tdeeHealth', {
+                      calories: formatKcal(expectedMaintenanceKcal),
+                    })
+                  : t('onboarding.summary.tdee', {
+                      calories: formatKcal(maintenanceCalories),
+                    })}
               </Text>
             ) : null}
 

@@ -13,6 +13,10 @@ import {
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
+import { calculateAge, calculateBmr } from '@/lib/calorie-goal-math';
+import { balanceMacroGoalsToCalories } from '@/lib/macro-display-balance';
+import { resolveProteinRefKg } from '@/lib/macro-rules';
+import { parseDateOnly } from '@/lib/day-window';
 import { useDayMeals } from '@/hooks/use-day-meals';
 import { useDaySummary } from '@/hooks/use-day-summary';
 import { useObservedEnergy } from '@/hooks/use-observed-energy';
@@ -124,6 +128,38 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     ? DEV_PREVIEW_CONSUMED_CALORIES || (consumption?.kcal ?? 0)
     : (consumption?.kcal ?? 0);
 
+  const profileBmr = useMemo(() => {
+    if (
+      !profile?.birth_date ||
+      profile.height_cm == null ||
+      (profile.latest_weight_kg ?? latestWeightKg) == null
+    ) {
+      return null;
+    }
+
+    return Math.round(
+      calculateBmr({
+        biologicalSex: profile.biological_sex ?? 'prefer_not_to_say',
+        weightKg: (profile.latest_weight_kg ?? latestWeightKg)!,
+        heightCm: profile.height_cm,
+        age: calculateAge(parseDateOnly(profile.birth_date)),
+      }),
+    );
+  }, [latestWeightKg, profile]);
+
+  const macroRefWeightKg = useMemo(() => {
+    const weightKg = profile?.latest_weight_kg ?? latestWeightKg;
+    if (weightKg == null) {
+      return null;
+    }
+
+    return resolveProteinRefKg({
+      weightKg,
+      heightCm: profile?.height_cm ?? null,
+      targetWeightKg: profile?.target_weight_kg ?? null,
+    });
+  }, [latestWeightKg, profile]);
+
   const burnedForDynamicGoal =
     sportEnergyDay?.totalActiveKcal ?? activeEnergyBurned ?? null;
 
@@ -142,10 +178,11 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
         dailyCalorieGoal,
         consumedCalories,
         burnedForDynamicGoal,
+        profileBmr,
       );
     }
 
-    return getCalorieGoalDisplay(dailyCalorieGoal, consumedCalories);
+    return getCalorieGoalDisplay(dailyCalorieGoal, consumedCalories, profileBmr);
   }, [
     adaptMacrosToTraining,
     burnedForDynamicGoal,
@@ -154,6 +191,7 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     hasCalorieGoal,
     healthConnectedPreference,
     observedReady,
+    profileBmr,
   ]);
 
   const calorieBarWidthPercent = useMemo(() => {
@@ -237,6 +275,31 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
       }
     }
 
+    // The floor can lift the shown calories above base + movement. Re-balance so
+    // the bars still add up to the number the user reads above them.
+    if (
+      calorieGoalDisplay != null &&
+      proteinGoal != null &&
+      fatGoal != null &&
+      carbsGoal != null
+    ) {
+      const shownKcal =
+        calorieGoalDisplay.mode === 'dynamic'
+          ? calorieGoalDisplay.dailyGoal + (calorieGoalDisplay.activeEnergyBurned ?? 0)
+          : calorieGoalDisplay.dailyGoal;
+      const balanced = balanceMacroGoalsToCalories({
+        targetKcal: shownKcal,
+        proteinG: proteinGoal,
+        fatG: fatGoal,
+        carbsG: carbsGoal,
+        bodyWeightKg: profile?.latest_weight_kg ?? latestWeightKg,
+        refWeightKg: macroRefWeightKg,
+      });
+      proteinGoal = balanced.proteinG;
+      fatGoal = balanced.fatG;
+      carbsGoal = balanced.carbsG;
+    }
+
     const dayItems = (dayMeals ?? []).flatMap((meal) => meal.items);
     // undefined = still loading; [] = confirmed empty day → show 0, not "—".
     const mealsResolved = dayMeals != null;
@@ -287,6 +350,10 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
             : entry.key === 'fat'
               ? fatGoal
               : entry.key === 'fiber'
+                // Deliberately unbalanced: fiber carries no energy, so it is not
+                // part of the protein/fat/carb sum. Its own target does track
+                // calories (max(30 g, 14 g per 1000 kcal)), so above ~2143 kcal
+                // it lags a floored or movement-raised number. Left as-is.
                 ? (goal?.fiberG ?? null)
                 : null,
       onPress: openMacroGoalsEditor,
@@ -294,6 +361,7 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
   }, [
     activeEnergyBurned,
     adaptMacrosToTraining,
+    calorieGoalDisplay,
     dailyCalorieGoal,
     consumption,
     dayGoal,
@@ -301,6 +369,7 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     dietPreference,
     healthConnectedPreference,
     latestWeightKg,
+    macroRefWeightKg,
     openMacroGoalsEditor,
     sportEnergyDay,
     t,
