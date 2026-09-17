@@ -117,6 +117,15 @@ export function feetInchesToCm(feet: number, inches: number): number {
   return Math.round(totalInches * CM_PER_INCH);
 }
 
+/** Waist circumference: one decimal inch for display. */
+export function cmToInches(cm: number): number {
+  return Math.round((cm / CM_PER_INCH) * 10) / 10;
+}
+
+export function inchesToCm(inches: number): number {
+  return Math.round(inches * CM_PER_INCH * 10) / 10;
+}
+
 export function kgToLbs(kg: number): number {
   return Math.round(kg * LBS_PER_KG * 10) / 10;
 }

@@ -40,7 +40,7 @@ function makeLabel(overrides: Partial<VisionLabel> = {}): VisionLabel {
 }
 
 describe('labelToEditableItem', () => {
-  it('carries the printed density over and starts at the package size', () => {
+  it('carries the printed density over and starts at the serving size', () => {
     const item = labelToEditableItem(makeLabel(), 'row-1');
 
     assert.equal(item.id, 'row-1');
@@ -51,12 +51,12 @@ describe('labelToEditableItem', () => {
     assert.equal(item.kcalPer100g, 372);
     assert.equal(item.kcalPer100gSource, 'label');
     assert.equal(item.displayUnit, 'g');
-    assert.equal(item.quantityGrams, 500);
+    assert.equal(item.quantityGrams, 40);
     assert.equal(item.quantityCount, null);
-    // 372 kcal/100 g × 500 g
-    assert.equal(item.kcal, 1860);
-    assert.equal(item.baselineGrams, 500);
-    assert.equal(item.baselineKcal, 1860);
+    // 372 kcal/100 g × 40 g
+    assert.equal(item.kcal, 149);
+    assert.equal(item.baselineGrams, 40);
+    assert.equal(item.baselineKcal, 149);
     assert.equal(item.quantitySource, 'ai');
     assert.equal(item.confidence, 'high');
   });
@@ -70,8 +70,8 @@ describe('labelToEditableItem', () => {
       fat: 7,
       fiber: 10,
     });
-    assert.equal(item.proteinG, 67.5);
-    assert.equal(item.fiberG, 50);
+    assert.equal(item.proteinG, 5.4);
+    assert.equal(item.fiberG, 4);
   });
 
   it('keeps unreadable macros null instead of coercing them to 0', () => {
@@ -101,7 +101,14 @@ describe('labelToEditableItem', () => {
     );
 
     assert.equal(item.displayUnit, 'ml');
-    assert.equal(item.quantityGrams, 1000);
+    assert.equal(item.quantityGrams, 200);
+  });
+
+  it('falls back to the package size when no serving was printed', () => {
+    const item = labelToEditableItem(makeLabel({ serving_grams: null }), 'row-1');
+
+    assert.equal(item.quantityGrams, 500);
+    assert.equal(item.kcal, 1860);
   });
 
   it('falls back to the serving size when no package size was printed', () => {
@@ -139,7 +146,10 @@ describe('labelToEditableItem', () => {
 describe('changeRowItemKcal source coupling', () => {
   function rowFrom(source: MealItemRowItem['kcalPer100gSource']): MealItemRowItem {
     return {
-      ...editableToRowItem(labelToEditableItem(makeLabel({ package_grams: 100 }), 'row-1')),
+      // Package only — keeps the historic 100 g start so kcal↔density math stays stable.
+      ...editableToRowItem(
+        labelToEditableItem(makeLabel({ package_grams: 100, serving_grams: null }), 'row-1'),
+      ),
       kcalPer100gSource: source,
     };
   }
@@ -192,7 +202,8 @@ describe('buildFoodAdjustmentRow', () => {
 
   function correctedItem(overrides: Partial<EditableMealItem> = {}): EditableMealItem {
     return {
-      ...labelToEditableItem(makeLabel(), 'row-1'),
+      // Package-only start so baseline stays 500 g (AI estimate vs user correction).
+      ...labelToEditableItem(makeLabel({ serving_grams: null }), 'row-1'),
       // The user corrected 500 g down to 400 g.
       quantityGrams: 400,
       quantitySource: 'user',
@@ -243,29 +254,35 @@ describe('quantity presets accept any structural source', () => {
   const label: QuantityPresetSource = { quantityGrams: 500, servingSizeGrams: 40 };
   const servingOnly: QuantityPresetSource = { quantityGrams: null, servingSizeGrams: 40 };
   const nothing: QuantityPresetSource = { quantityGrams: null, servingSizeGrams: null };
+  const multipack: QuantityPresetSource = { quantityGrams: 250, servingSizeGrams: 25 };
+  const nonsenseServing: QuantityPresetSource = { quantityGrams: 100, servingSizeGrams: 250 };
 
   it('offers package options only when a package size is known', () => {
-    assert.deepEqual(getAvailableQuantityOptions(label), [
+    assert.deepEqual(getAvailableQuantityOptions(label), ['whole', 'half', 'serving']);
+    assert.deepEqual(getAvailableQuantityOptions(servingOnly), ['serving']);
+    assert.deepEqual(getAvailableQuantityOptions(nothing), []);
+    assert.deepEqual(getAvailableQuantityOptions(multipack), [
       'whole',
       'half',
       'serving',
-      'custom',
+      'piece',
     ]);
-    assert.deepEqual(getAvailableQuantityOptions(servingOnly), ['serving', 'custom']);
-    assert.deepEqual(getAvailableQuantityOptions(nothing), ['custom']);
+    assert.deepEqual(getAvailableQuantityOptions(nonsenseServing), ['whole', 'half']);
   });
 
-  it('defaults to package, then serving, then custom', () => {
-    assert.equal(getDefaultOption(label), 'whole');
+  it('defaults to serving, then package, then null', () => {
+    assert.equal(getDefaultOption(label), 'serving');
     assert.equal(getDefaultOption(servingOnly), 'serving');
-    assert.equal(getDefaultOption(nothing), 'custom');
+    assert.equal(getDefaultOption({ quantityGrams: 500, servingSizeGrams: null }), 'whole');
+    assert.equal(getDefaultOption(nothing), null);
+    assert.equal(getDefaultOption(nonsenseServing), 'whole');
   });
 
   it('resolves each option to grams', () => {
     assert.equal(getQuantityGramsForOption('whole', label, 100), 500);
     assert.equal(getQuantityGramsForOption('half', label, 100), 250);
     assert.equal(getQuantityGramsForOption('serving', label, 100), 40);
-    assert.equal(getQuantityGramsForOption('custom', label, 100), 100);
+    assert.equal(getQuantityGramsForOption('piece', multipack, 100), 25);
     // No package size: 'whole' falls back to the custom amount.
     assert.equal(getQuantityGramsForOption('whole', servingOnly, 100), 100);
   });

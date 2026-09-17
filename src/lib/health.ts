@@ -1,13 +1,19 @@
 import {
   isHealthDataAvailable,
+  queryQuantitySamples,
   queryStatisticsForQuantity,
   queryWorkoutSamples,
   requestAuthorization,
+  saveQuantitySample,
   WorkoutActivityType,
 } from '@kingstinct/react-native-healthkit';
 import * as Sentry from '@sentry/react-native';
 import { Platform } from 'react-native';
 
+import {
+  normalizeHealthKitBodyFatPct,
+  upsertBodyFatLog,
+} from '@/lib/body-fat-logs';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 import {
   listRecentLocalDateKeys,
@@ -36,12 +42,19 @@ import {
 export const HEALTH_READ_TYPES_V2_KEY = 'health_read_types_v2';
 /** One-time reauth after adding heart rate for sport-intensity macros. */
 export const HEALTH_READ_TYPES_V3_KEY = 'health_read_types_v3';
+/** One-time reauth after adding waist circumference read/write access. */
+export const HEALTH_READ_TYPES_V4_KEY = 'health_read_types_v4';
+/** One-time reauth after adding body fat % and lean body mass read access. */
+export const HEALTH_READ_TYPES_V5_KEY = 'health_read_types_v5';
 
 const ACTIVE_ENERGY_TYPE = 'HKQuantityTypeIdentifierActiveEnergyBurned' as const;
 const HEART_RATE_TYPE = 'HKQuantityTypeIdentifierHeartRate' as const;
 const STEP_COUNT_TYPE = 'HKQuantityTypeIdentifierStepCount' as const;
 const DISTANCE_WALKING_RUNNING_TYPE =
   'HKQuantityTypeIdentifierDistanceWalkingRunning' as const;
+const WAIST_CIRCUMFERENCE_TYPE = 'HKQuantityTypeIdentifierWaistCircumference' as const;
+const BODY_FAT_PERCENTAGE_TYPE = 'HKQuantityTypeIdentifierBodyFatPercentage' as const;
+const LEAN_BODY_MASS_TYPE = 'HKQuantityTypeIdentifierLeanBodyMass' as const;
 const WORKOUT_TYPE = 'HKWorkoutTypeIdentifier' as const;
 
 const TRAINING_ACTIVITY_HK_TYPES: Record<
@@ -64,8 +77,14 @@ const HEALTH_READ_TYPES = [
   HEART_RATE_TYPE,
   STEP_COUNT_TYPE,
   DISTANCE_WALKING_RUNNING_TYPE,
+  WAIST_CIRCUMFERENCE_TYPE,
+  BODY_FAT_PERCENTAGE_TYPE,
+  LEAN_BODY_MASS_TYPE,
   WORKOUT_TYPE,
 ] as const;
+
+/** Types Kolibi writes after a manual measurement. */
+const HEALTH_WRITE_TYPES = [WAIST_CIRCUMFERENCE_TYPE] as const;
 
 /** HKError.errorAuthorizationNotDetermined — expected before the user grants Health access. */
 const HK_ERROR_AUTHORIZATION_NOT_DETERMINED = 5;
@@ -145,7 +164,10 @@ export async function requestHealthPermissions(): Promise<void> {
   }
 
   try {
-    await requestAuthorization({ toRead: [...HEALTH_READ_TYPES] });
+    await requestAuthorization({
+      toRead: [...HEALTH_READ_TYPES],
+      toShare: [...HEALTH_WRITE_TYPES],
+    });
   } catch (error) {
     console.error('[Health] permission request failed:', error);
   }
@@ -203,6 +225,76 @@ export async function maybeUpgradeHealthReadTypesV3(userId: string): Promise<voi
   } catch (error) {
     console.error('[Health] read-types v3 upgrade failed:', error);
   }
+}
+
+/**
+ * Once per device after waist circumference was added as a HealthKit read/write type.
+ */
+export async function maybeUpgradeHealthReadTypesV4(userId: string): Promise<void> {
+  if (Platform.OS !== 'ios') {
+    return;
+  }
+
+  const secureStore = createChunkedSecureStoreAdapter();
+  try {
+    const alreadyDone = await secureStore.getItem(HEALTH_READ_TYPES_V4_KEY);
+    if (alreadyDone != null) {
+      return;
+    }
+
+    const connected = await getUserPreference(userId, HEALTH_CONNECTED_PREFERENCE_KEY);
+    if (connected) {
+      await requestHealthPermissions();
+    }
+
+    await secureStore.setItem(HEALTH_READ_TYPES_V4_KEY, '1');
+  } catch (error) {
+    console.error('[Health] read-types v4 upgrade failed:', error);
+  }
+}
+
+/**
+ * Once per device after body fat % / lean body mass were added as HealthKit read types.
+ */
+export async function maybeUpgradeHealthReadTypesV5(userId: string): Promise<void> {
+  if (Platform.OS !== 'ios') {
+    return;
+  }
+
+  const secureStore = createChunkedSecureStoreAdapter();
+  try {
+    const alreadyDone = await secureStore.getItem(HEALTH_READ_TYPES_V5_KEY);
+    if (alreadyDone != null) {
+      return;
+    }
+
+    const connected = await getUserPreference(userId, HEALTH_CONNECTED_PREFERENCE_KEY);
+    if (connected) {
+      await requestHealthPermissions();
+    }
+
+    await secureStore.setItem(HEALTH_READ_TYPES_V5_KEY, '1');
+  } catch (error) {
+    console.error('[Health] read-types v5 upgrade failed:', error);
+  }
+}
+
+/** Saves a Kolibi waist measurement to Apple Health in meters. */
+export async function saveWaistCircumferenceToHealth(
+  waistCm: number,
+  measuredAt: Date = new Date(),
+): Promise<void> {
+  if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
+    return;
+  }
+
+  await saveQuantitySample(
+    WAIST_CIRCUMFERENCE_TYPE,
+    'm',
+    waistCm / 100,
+    measuredAt,
+    measuredAt,
+  );
 }
 
 /**
@@ -617,6 +709,114 @@ export async function hasMatchingTrainingWorkoutOnDate(
   }
 }
 
+const BODY_FAT_SYNC_LOOKBACK_DAYS = 90;
+
+/**
+ * Imports body-fat % samples from HealthKit, keeping one bioimpedance source.
+ * Anchor: latest stored healthkit `source_bundle`, else the newest sample's source.
+ */
+export async function syncBodyFatFromHealth(userId: string): Promise<void> {
+  if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
+    return;
+  }
+
+  try {
+    const since = new Date();
+    since.setHours(0, 0, 0, 0);
+    since.setDate(since.getDate() - (BODY_FAT_SYNC_LOOKBACK_DAYS - 1));
+
+    const samples = await queryQuantitySamples(BODY_FAT_PERCENTAGE_TYPE, {
+      limit: 0,
+      ascending: false,
+      unit: '%',
+      filter: {
+        date: {
+          startDate: since,
+          endDate: new Date(),
+        },
+      },
+    });
+
+    if (samples.length === 0) {
+      return;
+    }
+
+    const sinceKey = localDateKey(since);
+    const { data: existingRows, error: existingError } = await supabase
+      .from('body_fat_logs')
+      .select('logged_on, source, source_bundle')
+      .eq('user_id', userId)
+      .gte('logged_on', sinceKey)
+      .order('logged_on', { ascending: false });
+
+    if (existingError) {
+      throw existingError;
+    }
+
+    const manualDays = new Set(
+      (existingRows ?? [])
+        .filter((row) => row.source === 'manual')
+        .map((row) => String(row.logged_on)),
+    );
+
+    const preferredBundleFromStore = (existingRows ?? []).find(
+      (row) => row.source === 'healthkit' && row.source_bundle,
+    )?.source_bundle;
+    const preferredBundle =
+      (typeof preferredBundleFromStore === 'string' && preferredBundleFromStore.length > 0
+        ? preferredBundleFromStore
+        : null) ??
+      (samples[0]?.sourceRevision?.source?.bundleIdentifier ?? null);
+
+    if (preferredBundle == null || preferredBundle.length === 0) {
+      return;
+    }
+
+    /** One sample per local day (newest wins; samples are newest-first). */
+    const byDay = new Map<
+      string,
+      { bodyFatPct: number; loggedAt: Date; sourceBundle: string }
+    >();
+
+    for (const sample of samples) {
+      const bundle = sample.sourceRevision?.source?.bundleIdentifier;
+      if (bundle !== preferredBundle) {
+        continue;
+      }
+      const bodyFatPct = normalizeHealthKitBodyFatPct(sample.quantity);
+      if (bodyFatPct == null) {
+        continue;
+      }
+      const loggedAt = sample.endDate ?? sample.startDate;
+      const dayKey = localDateKey(loggedAt);
+      if (byDay.has(dayKey)) {
+        continue;
+      }
+      byDay.set(dayKey, { bodyFatPct, loggedAt, sourceBundle: preferredBundle });
+    }
+
+    for (const [loggedOn, entry] of Array.from(byDay.entries())) {
+      if (manualDays.has(loggedOn)) {
+        continue;
+      }
+      await upsertBodyFatLog({
+        userId,
+        bodyFatPct: entry.bodyFatPct,
+        loggedOn,
+        source: 'healthkit',
+        sourceBundle: entry.sourceBundle,
+      });
+    }
+  } catch (error) {
+    if (isHealthAuthorizationNotDetermined(error)) {
+      console.warn('[Health] body-fat sync: authorization notDetermined');
+      return;
+    }
+    Sentry.captureException(error, { tags: { flow: 'health-body-fat-sync' } });
+    console.error('[Health] body-fat sync failed:', error);
+  }
+}
+
 /**
  * Pulls HealthKit active energy for recent local days into daily_health_stats.
  * Fire-and-forget at app start when health_connected is true.
@@ -629,6 +829,8 @@ export async function syncHealthStatsForRecentDays(
   if (!connected) {
     return;
   }
+
+  void syncBodyFatFromHealth(userId);
 
   const dateKeys = listRecentLocalDateKeys(days);
   const todayKey = localDateKey();

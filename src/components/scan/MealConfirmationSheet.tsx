@@ -78,7 +78,7 @@ export function MealConfirmationSheet({
   const [editableById, setEditableById] = useState<Map<string, EditableMealItem>>(new Map());
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState(false);
   const [portionFactor, setPortionFactor] = useState(1);
-  const [quantityOption, setQuantityOption] = useState<QuantityOption>('custom');
+  const [quantityOption, setQuantityOption] = useState<QuantityOption | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -86,9 +86,7 @@ export function MealConfirmationSheet({
       setEditableById(new Map(items.map((item) => [item.id, item])));
       setShouldScrollToEnd(false);
       setPortionFactor(1);
-      setQuantityOption(
-        labelContext ? getDefaultOption(labelContext.presetSource) : 'custom',
-      );
+      setQuantityOption(labelContext ? getDefaultOption(labelContext.presetSource) : null);
     }
   }, [items, labelContext, visible]);
 
@@ -201,6 +199,7 @@ export function MealConfirmationSheet({
               <QuantityPresetPills
                 options={quantityOptions}
                 selected={quantityOption}
+                product={labelContext.presetSource}
                 onSelect={applyQuantityOption}
               />
             ) : (
@@ -256,7 +255,7 @@ export function MealConfirmationSheet({
             onChangeKcal={(id, value) => updateRowItem(id, (row) => changeRowItemKcal(row, value))}
             onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
             onChangeQuantity={(id, value) => {
-              setQuantityOption('custom');
+              setQuantityOption(null);
               updateRowItem(id, (row) => changeRowItemQuantity(row, value));
             }}
             onChangeMacro={(id, key, value) =>

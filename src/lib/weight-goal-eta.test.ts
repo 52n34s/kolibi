@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import {
   WEIGHT_ETA_MAX_DAYS,
+  computeWeeklyTrendWeightChangePercent,
   computeWeightGoalEta,
   fuzzyMonthPart,
   linearSlopeKgPerDay,
@@ -160,6 +161,20 @@ describe('computeWeightGoalEta — trend smoothing', () => {
     const smoothSlope = linearSlopeKgPerDay(smoothed)!;
     // Smoothed slope should stay closer to the underlying −0.05 kg/day.
     assert.ok(Math.abs(smoothSlope - -0.05) < Math.abs(rawSlope - -0.05));
+  });
+});
+
+describe('computeWeeklyTrendWeightChangePercent', () => {
+  it('uses the moving-average Theil–Sen trend as a percentage of current weight', () => {
+    const today = day(0);
+    const logs = [];
+    for (let i = 20; i >= 0; i -= 1) {
+      logs.push(log(80 - (20 - i) * 0.1, -i));
+    }
+
+    const trend = computeWeeklyTrendWeightChangePercent(logs, today);
+    assert.ok(trend != null);
+    assert.ok(trend.weeklyChangePercent < -0.8 && trend.weeklyChangePercent > -1.0);
   });
 });
 

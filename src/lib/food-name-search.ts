@@ -57,6 +57,7 @@ export function mapFoodRowToSearchProduct(
     servingSizeGrams: null,
     servingSizeLabel: null,
     category: row.category,
+    novaGroup: null,
   };
 }
 

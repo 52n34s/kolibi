@@ -27,8 +27,12 @@ export type HomeProgressRowItem = {
    * null actual with value mode also shows "—" (unknown ≠ 0).
    */
   coverage?: 'empty' | 'partial' | 'value';
-  /** When set, replaces the numeric value text entirely (e.g. protein hit rate). */
+  /**
+   * When set, replaces the numeric value text entirely (e.g. protein hit rate).
+   */
   valueOverride?: string;
+  /** Value color: secondary for very-rough balance accuracy. */
+  valueTone?: 'default' | 'secondary';
   /** Prefix the goal side, e.g. "mind." for fat/fiber floors. */
   goalPrefix?: string;
   /**
@@ -110,7 +114,12 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
         {item.label}
       </Text>
       {item.valueFullWidth ? (
-        <Text style={styles.valueFullWidth} numberOfLines={1}>
+        <Text
+          style={[
+            styles.valueFullWidth,
+            item.valueTone === 'secondary' ? styles.valueSecondary : null,
+          ]}
+          numberOfLines={1}>
           {valueText}
         </Text>
       ) : (
@@ -124,7 +133,9 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
               </View>
             ) : null}
           </View>
-          <Text style={styles.value} numberOfLines={1}>
+          <Text
+            style={[styles.value, item.valueTone === 'secondary' ? styles.valueSecondary : null]}
+            numberOfLines={1}>
             {valueText}
           </Text>
         </>
@@ -254,6 +265,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#26234A',
+  },
+  valueSecondary: {
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
   },
   footerHintWrap: {
     marginTop: 6,

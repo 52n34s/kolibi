@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import { BarcodeCameraView } from '@/components/scan/BarcodeCameraView';
+import { barcodeProductMetaHints } from '@/components/scan/barcode-product-meta-hints';
 import {
   getAvailableQuantityOptions,
   getDefaultCustomGrams,
@@ -79,18 +80,22 @@ function BarcodeQuantityContent({
   onSave: (items: MealItemRowItem[]) => void;
 }) {
   const { t } = useTranslation();
-  const [selectedOption, setSelectedOption] = useState<QuantityOption>('custom');
+  const [selectedOption, setSelectedOption] = useState<QuantityOption | null>(null);
   const [rowItems, setRowItems] = useState<MealItemRowItem[]>([]);
 
   useEffect(() => {
     const option = getDefaultOption(product);
     const customGrams = getDefaultCustomGrams(product, DEFAULT_CUSTOM_GRAMS);
-    const quantityGrams = getQuantityGramsForOption(option, product, customGrams);
+    const quantityGrams =
+      option != null
+        ? getQuantityGramsForOption(option, product, customGrams)
+        : customGrams;
     setSelectedOption(option);
     setRowItems([createRowItemFromBarcode(product, quantityGrams, foodId)]);
   }, [product, foodId]);
 
   const availableOptions = useMemo(() => getAvailableQuantityOptions(product), [product]);
+  const productMetaHints = useMemo(() => barcodeProductMetaHints(product, t), [product, t]);
   const totalKcal = useMemo(() => sumRowItemsKcal(rowItems), [rowItems]);
   const saveBlockIssue = useMemo(() => getMealItemsValidationIssue(rowItems), [rowItems]);
   const canSave = saveBlockIssue == null;
@@ -131,7 +136,7 @@ function BarcodeQuantityContent({
   }
 
   function handleRowQuantityChange(id: string, value: number) {
-    setSelectedOption('custom');
+    setSelectedOption(null);
     updateRowItem(id, (row) => changeRowItemQuantity(row, value));
   }
 
@@ -157,6 +162,7 @@ function BarcodeQuantityContent({
           <QuantityPresetPills
             options={availableOptions}
             selected={selectedOption}
+            product={product}
             onSelect={applyPresetOption}
           />
         </>
@@ -201,11 +207,12 @@ function BarcodeQuantityContent({
           </Pressable>
         </>
       }>
-      {rowItems.map((item) => (
+      {rowItems.map((item, index) => (
         <MealItemRow
           key={item.id}
           invalid={!isRowItemValid(item)}
           item={item}
+          metaHints={index === 0 ? productMetaHints : undefined}
           onChangeKcal={(id, value) => updateRowItem(id, (row) => changeRowItemKcal(row, value))}
           onChangeName={(id, name) => updateRowItem(id, (row) => changeRowItemName(row, name))}
           onChangeQuantity={handleRowQuantityChange}
@@ -213,7 +220,7 @@ function BarcodeQuantityContent({
             updateRowItem(id, (row) => changeRowItemAbsoluteMacro(row, key, value))
           }
           onChangeUnit={(id, unit) => {
-            setSelectedOption('custom');
+            setSelectedOption(null);
             updateRowItem(id, (row) => changeRowItemUnit(row, unit));
           }}
           onRemove={rowItems.length > 1 ? (id) => setRowItems((c) => c.filter((r) => r.id !== id)) : undefined}

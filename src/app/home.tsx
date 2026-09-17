@@ -47,6 +47,7 @@ import {
 import { getGlassPillStyle } from '@/components/ui/glass-styles';
 import { DayMealList } from '@/components/day/DayMealList';
 import { DaySummaryBlock } from '@/components/day/DaySummaryBlock';
+import { HistoryPanel } from '@/components/history/history-panel';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import { HomeSupplementChips } from '@/components/home/HomeSupplementChips';
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
@@ -62,18 +63,30 @@ import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
-import { localDateKey } from '@/lib/day-window';
+import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import {
   getTimeOfDay,
   resolveDisplayName,
 } from '@/lib/home';
 import { countDistinctTrainingDays, weekDotFlags } from '@/lib/training-sessions';
-import { kgToLbs } from '@/lib/units';
+import { cmToInches, kgToLbs } from '@/lib/units';
 import {
+  fetchWeightKgForDay,
   formatWeightForDisplay,
   parseWeightInputToKg,
-  upsertTodayWeightLog,
+  upsertWeightLog,
 } from '@/lib/weight-logs';
+import {
+  fetchWaistCmForDay,
+  parseWaistInputToCm,
+  upsertWaistLog,
+} from '@/lib/waist-logs';
+import {
+  fetchBodyFatPctForDay,
+  parseBodyFatInputToPct,
+  upsertBodyFatLog,
+} from '@/lib/body-fat-logs';
+import { saveWaistCircumferenceToHealth } from '@/lib/health';
 import {
   saveScannedMeal,
   deleteMeal,
@@ -122,7 +135,8 @@ import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 const MAX_WEIGHT_KG = 699.9;
 const SIGNUP_ROUTE = '/(auth)/login' as Href;
 
-type HomeTab = 'today' | 'meals';
+type HomeTab = 'today' | 'meals' | 'history';
+const HOME_TABS: HomeTab[] = ['today', 'meals', 'history'];
 type WeightSheetKind = 'current' | null;
 
 function navigateToSignup() {
@@ -197,6 +211,8 @@ export default function HomeScreen() {
   const [homeTab, setHomeTab] = useState<HomeTab>('today');
   const [weightSheet, setWeightSheet] = useState<WeightSheetKind>(null);
   const [weightDraft, setWeightDraft] = useState('');
+  const [waistDraft, setWaistDraft] = useState('');
+  const [bodyFatDraft, setBodyFatDraft] = useState('');
   const [isSavingWeight, setIsSavingWeight] = useState(false);
   const [showScanOptions, setShowScanOptions] = useState(false);
   const [showCameraFlow, setShowCameraFlow] = useState(false);
@@ -233,6 +249,8 @@ export default function HomeScreen() {
     setHomeTab(tab);
   }, []);
 
+  const homeTabIndex = HOME_TABS.indexOf(homeTab);
+
   const homeTabSwipeGesture = useMemo(
     () =>
       Gesture.Pan()
@@ -242,18 +260,18 @@ export default function HomeScreen() {
           'worklet';
           const distance = 56;
           const flick = 450;
-          const toMeals =
+          const swipeLeft =
             event.translationX < -distance || event.velocityX < -flick;
-          const toToday =
+          const swipeRight =
             event.translationX > distance || event.velocityX > flick;
 
-          if (toMeals) {
-            runOnJS(switchHomeTab)('meals');
-          } else if (toToday) {
-            runOnJS(switchHomeTab)('today');
+          if (swipeLeft && homeTabIndex < HOME_TABS.length - 1) {
+            runOnJS(switchHomeTab)(HOME_TABS[homeTabIndex + 1]!);
+          } else if (swipeRight && homeTabIndex > 0) {
+            runOnJS(switchHomeTab)(HOME_TABS[homeTabIndex - 1]!);
           }
         }),
-    [switchHomeTab],
+    [homeTabIndex, switchHomeTab],
   );
 
   const secureStore = useMemo(() => createChunkedSecureStoreAdapter(), []);
@@ -572,34 +590,143 @@ export default function HomeScreen() {
     return unitSystem === 'imperial' ? String(kgToLbs(weightKg)) : String(weightKg);
   }
 
+  function waistCmToDraft(waistCm: number | null): string {
+    if (waistCm == null) {
+      return '';
+    }
+
+    return unitSystem === 'imperial' ? String(cmToInches(waistCm)) : String(waistCm);
+  }
+
+  function bodyFatPctToDraft(bodyFatPct: number | null): string {
+    if (bodyFatPct == null) {
+      return '';
+    }
+
+    return String(bodyFatPct);
+  }
+
+  const loadWeightSheetDraftsForDay = useCallback(
+    async (loggedOn: string) => {
+      if (!userId) {
+        setWeightDraft('');
+        setWaistDraft('');
+        setBodyFatDraft('');
+        return;
+      }
+
+      try {
+        const [weightKg, waistCm, bodyFatPct] = await Promise.all([
+          fetchWeightKgForDay(userId, loggedOn),
+          fetchWaistCmForDay(userId, loggedOn),
+          fetchBodyFatPctForDay(userId, loggedOn),
+        ]);
+        setWeightDraft(weightKgToDraft(weightKg));
+        setWaistDraft(waistCmToDraft(waistCm));
+        setBodyFatDraft(bodyFatPctToDraft(bodyFatPct));
+      } catch (loadError) {
+        console.error('[Home] weight sheet day load failed:', loadError);
+        setWeightDraft('');
+        setWaistDraft('');
+        setBodyFatDraft('');
+      }
+    },
+    [unitSystem, userId],
+  );
+
   function openCurrentWeightSheet() {
-    setWeightDraft(weightKgToDraft(latestWeightKg));
+    setWeightDraft('');
+    setWaistDraft('');
+    setBodyFatDraft('');
     setWeightSheet('current');
   }
 
   function closeWeightSheet() {
+    setWaistDraft('');
+    setBodyFatDraft('');
+    setWeightDraft('');
     setWeightSheet(null);
   }
 
-  async function saveCurrentWeight() {
+  async function saveCurrentWeight(loggedOn: string) {
     if (!userId) {
       return;
     }
 
-    const weightKg = parseWeightInputToKg({ value: weightDraft, unitSystem });
-    if (weightKg == null || weightKg >= MAX_WEIGHT_KG) {
+    const hasWeightInput = weightDraft.trim().length > 0;
+    const hasWaistInput = waistDraft.trim().length > 0;
+    const hasBodyFatInput = bodyFatDraft.trim().length > 0;
+
+    if (!hasWeightInput && !hasWaistInput && !hasBodyFatInput) {
       Alert.alert(t('settings.errors.title'), t('home.weight.invalid'));
+      return;
+    }
+
+    const weightKg = hasWeightInput
+      ? parseWeightInputToKg({ value: weightDraft, unitSystem })
+      : null;
+    if (hasWeightInput && (weightKg == null || !(weightKg > 0) || weightKg >= MAX_WEIGHT_KG)) {
+      Alert.alert(t('settings.errors.title'), t('home.weight.invalid'));
+      return;
+    }
+
+    const waistCm = hasWaistInput
+      ? parseWaistInputToCm({ value: waistDraft, unitSystem })
+      : null;
+    if (hasWaistInput && (waistCm == null || !(waistCm > 0))) {
+      Alert.alert(
+        t('settings.errors.title'),
+        t(
+          unitSystem === 'imperial'
+            ? 'home.weight.waistInvalidIn'
+            : 'home.weight.waistInvalid',
+        ),
+      );
+      return;
+    }
+
+    const bodyFatPct = hasBodyFatInput ? parseBodyFatInputToPct(bodyFatDraft) : null;
+    if (hasBodyFatInput && (bodyFatPct == null || !(bodyFatPct > 0))) {
+      Alert.alert(t('settings.errors.title'), t('home.weight.bodyFatInvalid'));
       return;
     }
 
     setIsSavingWeight(true);
 
     try {
-      await upsertTodayWeightLog({ userId, weightKg });
+      if (weightKg != null) {
+        await upsertWeightLog({
+          userId,
+          weightKg,
+          loggedOn,
+          source: 'manual',
+        });
+      }
+      if (waistCm != null) {
+        await upsertWaistLog({ userId, waistCm, loggedOn });
+        if (healthConnectedPreference) {
+          try {
+            const measuredAt = parseDateOnly(loggedOn);
+            measuredAt.setHours(12, 0, 0, 0);
+            await saveWaistCircumferenceToHealth(waistCm, measuredAt);
+          } catch (healthError) {
+            console.error('[Home] waist HealthKit save failed:', healthError);
+          }
+        }
+      }
+      if (bodyFatPct != null) {
+        await upsertBodyFatLog({
+          userId,
+          bodyFatPct,
+          loggedOn,
+          source: 'manual',
+        });
+      }
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['macro-goal-editor', userId] });
       await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
       await queryClient.invalidateQueries({ queryKey: ['history', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['latest-body-fat', userId] });
       closeWeightSheet();
     } catch (saveError) {
       console.error('[Home] weight save failed:', saveError);
@@ -1162,82 +1289,91 @@ export default function HomeScreen() {
       </View>
       <View className="flex-1">
         <GestureDetector gesture={homeTabSwipeGesture}>
-          <ScrollView
-            className="flex-1 px-6"
-            contentContainerStyle={{ paddingTop: contentTopPadding, paddingBottom: 120 }}
-            showsVerticalScrollIndicator={false}>
-            <Text className="mb-4 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
+          <View className="flex-1">
+            <View className="px-6" style={{ paddingTop: contentTopPadding }}>
+              <Text className="mb-4 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
 
-            {isAnonymousUser ? (
-              <Pressable className="mb-2" onPress={() => navigateToSignIn()}>
-                <Text className="text-gray-500" style={{ fontSize: 11 }}>
-                  {t('home.returningUser.prompt')}
-                </Text>
-              </Pressable>
-            ) : null}
-
-            {isInTrial ? (
-              trialDaysLeft === 0 ? (
-                <Pressable className="mb-2" onPress={() => openPaywall({ withValuePitch: false })}>
+              {isAnonymousUser ? (
+                <Pressable className="mb-2" onPress={() => navigateToSignIn()}>
                   <Text className="text-gray-500" style={{ fontSize: 11 }}>
-                    {t('home.trial.endsToday')}
+                    {t('home.returningUser.prompt')}
                   </Text>
                 </Pressable>
-              ) : (
-                <Text className="mb-2 text-gray-500" style={{ fontSize: 11 }}>
-                  {t('home.trial.daysLeft', { count: trialDaysLeft })}
-                </Text>
-              )
-            ) : null}
+              ) : null}
 
-            <View className="mb-5">
-              <PillSegmentSwitcher
-                value={homeTab}
-                onChange={setHomeTab}
-                segments={[
-                  { id: 'today', label: t('home.tabs.today') },
-                  { id: 'meals', label: t('home.tabs.meals') },
-                ]}
-              />
+              {isInTrial ? (
+                trialDaysLeft === 0 ? (
+                  <Pressable className="mb-2" onPress={() => openPaywall({ withValuePitch: false })}>
+                    <Text className="text-gray-500" style={{ fontSize: 11 }}>
+                      {t('home.trial.endsToday')}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Text className="mb-2 text-gray-500" style={{ fontSize: 11 }}>
+                    {t('home.trial.daysLeft', { count: trialDaysLeft })}
+                  </Text>
+                )
+              ) : null}
+
+              <View className="mb-5">
+                <PillSegmentSwitcher
+                  value={homeTab}
+                  onChange={setHomeTab}
+                  segments={[
+                    { id: 'today', label: t('home.tabs.today') },
+                    { id: 'meals', label: t('home.tabs.meals') },
+                    { id: 'history', label: t('home.tabs.history') },
+                  ]}
+                />
+              </View>
             </View>
 
-            {homeTab === 'today' ? (
-              <>
-                <DaySummaryBlock date={localDateKey()} />
-
-                {activityRows.length > 0 ? (
-                  <View
-                    className="mt-4"
-                    style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-                    <View className="px-5 py-4">
-                      <HomeProgressRows rows={activityRows} />
-                    </View>
-                  </View>
-                ) : null}
-
-                <View className="mt-6">
-                  <WeightProgressCard
-                    currentValue={weightLabel}
-                    startLabel={t('home.weight.startTitle')}
-                    startValue={startWeightLabel}
-                    targetLabel={t('home.weight.targetTitle')}
-                    targetValue={targetWeightLabel}
-                    progressPercent={weightProgressPercent}
-                    accessibilityLabel={t('home.weight.label')}
-                    onPress={openCurrentWeightSheet}
-                  />
-                </View>
-
-                <HomeSupplementChips />
-              </>
+            {homeTab === 'history' ? (
+              <HistoryPanel />
             ) : (
-              <DayMealList
-                date={localDateKey()}
-                editable
-                onMealPress={handleTodayMealPress}
-              />
+              <ScrollView
+                className="flex-1 px-6"
+                contentContainerStyle={{ paddingBottom: 120 }}
+                showsVerticalScrollIndicator={false}>
+                {homeTab === 'today' ? (
+                  <>
+                    <DaySummaryBlock date={localDateKey()} />
+
+                    {activityRows.length > 0 ? (
+                      <View
+                        className="mt-4"
+                        style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+                        <View className="px-5 py-4">
+                          <HomeProgressRows rows={activityRows} />
+                        </View>
+                      </View>
+                    ) : null}
+
+                    <View className="mt-6">
+                      <WeightProgressCard
+                        currentValue={weightLabel}
+                        startLabel={t('home.weight.startTitle')}
+                        startValue={startWeightLabel}
+                        targetLabel={t('home.weight.targetTitle')}
+                        targetValue={targetWeightLabel}
+                        progressPercent={weightProgressPercent}
+                        accessibilityLabel={t('home.weight.label')}
+                        onPress={openCurrentWeightSheet}
+                      />
+                    </View>
+
+                    <HomeSupplementChips />
+                  </>
+                ) : (
+                  <DayMealList
+                    date={localDateKey()}
+                    editable
+                    onMealPress={handleTodayMealPress}
+                  />
+                )}
+              </ScrollView>
             )}
-          </ScrollView>
+          </View>
         </GestureDetector>
 
         <View className="absolute bottom-8 left-0 right-0 items-center px-6">
@@ -1371,10 +1507,17 @@ export default function HomeScreen() {
         }
         unitSystem={unitSystem}
         value={weightDraft}
+        waistValue={waistDraft}
+        bodyFatValue={bodyFatDraft}
         isSaving={isSavingWeight}
         onChange={setWeightDraft}
+        onWaistChange={setWaistDraft}
+        onBodyFatChange={setBodyFatDraft}
         onClose={closeWeightSheet}
-        onSave={() => void saveCurrentWeight()}
+        onLoggedDateChange={(loggedOn) => {
+          void loadWeightSheetDraftsForDay(loggedOn);
+        }}
+        onSave={(loggedOn) => void saveCurrentWeight(loggedOn)}
       />
 
       <PaywallSheet

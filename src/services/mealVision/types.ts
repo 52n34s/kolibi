@@ -417,7 +417,7 @@ export function labelQuantityPresetSource(label: VisionLabel): QuantityPresetSou
 
 /**
  * One editable item from a transcribed nutrition label.
- * The start amount follows the barcode flow's default (package, then serving);
+ * The start amount follows the barcode flow's default (serving, then package);
  * when the label printed neither, the amount stays empty and the sheet's own
  * validation turns it into a required field.
  */
@@ -425,7 +425,7 @@ export function labelToEditableItem(label: VisionLabel, id: string): EditableMea
   const presetSource = labelQuantityPresetSource(label);
   const option = getDefaultOption(presetSource);
   const quantityGrams =
-    option === 'custom' ? 0 : getQuantityGramsForOption(option, presetSource, 0);
+    option != null ? getQuantityGramsForOption(option, presetSource, 0) : 0;
 
   const macrosPer100g: MacrosPer100g = {
     protein: optionalMacro(label.protein_per_100),

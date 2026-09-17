@@ -15,7 +15,9 @@ import {
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { useDayMeals } from '@/hooks/use-day-meals';
 import { useDaySummary } from '@/hooks/use-day-summary';
+import { useObservedEnergy } from '@/hooks/use-observed-energy';
 import { useHasPremiumAccess } from '@/hooks/use-premium-access';
+import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
 import {
   getCalorieGoalDisplay,
@@ -51,8 +53,9 @@ function resolveDayNutrientCoverage(
   items: TodayMealItem[],
   key: NutrientKey,
 ): NutrientTileState {
+  // No meals today → known zero, not unknown.
   if (items.length === 0) {
-    return 'empty';
+    return 'value';
   }
 
   const field = ITEM_MACRO_FIELD[key];
@@ -99,6 +102,18 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
   } = useDaySummary(date);
 
   const { data: dayMeals } = useDayMeals(userId, date);
+  const { data: profileSettings } = useProfileSettings(userId);
+  const profile = profileSettings?.profile;
+  const { data: observedEnergy } = useObservedEnergy({
+    userId,
+    biologicalSex: profile?.biological_sex,
+    birthDate: profile?.birth_date,
+    heightCm: profile?.height_cm,
+    weightKg: profile?.latest_weight_kg ?? latestWeightKg,
+    activityLevel: profile?.activity_level,
+    healthConnected: healthConnectedPreference === true,
+  });
+  const observedReady = observedEnergy?.status === 'ready';
 
   const { hasAccess: hasPremiumAccessDb } = useHasPremiumAccess(userId);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
@@ -120,7 +135,8 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     if (
       healthConnectedPreference &&
       adaptMacrosToTraining &&
-      burnedForDynamicGoal != null
+      burnedForDynamicGoal != null &&
+      !observedReady
     ) {
       return getDynamicCalorieGoalDisplay(
         dailyCalorieGoal,
@@ -137,6 +153,7 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     dailyCalorieGoal,
     hasCalorieGoal,
     healthConnectedPreference,
+    observedReady,
   ]);
 
   const calorieBarWidthPercent = useMemo(() => {
@@ -221,11 +238,27 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     }
 
     const dayItems = (dayMeals ?? []).flatMap((meal) => meal.items);
+    // undefined = still loading; [] = confirmed empty day → show 0, not "—".
+    const mealsResolved = dayMeals != null;
+    const hasMeals = (dayMeals ?? []).length > 0;
     const coverage: Record<NutrientKey, NutrientTileState> = {
       protein: resolveDayNutrientCoverage(dayItems, 'protein'),
       carbs: resolveDayNutrientCoverage(dayItems, 'carbs'),
       fat: resolveDayNutrientCoverage(dayItems, 'fat'),
       fiber: resolveDayNutrientCoverage(dayItems, 'fiber'),
+    };
+
+    const resolvedTotal = (
+      key: NutrientKey,
+      macroValue: number | null | undefined,
+    ): number | null => {
+      if (coverage[key] === 'empty') {
+        return null;
+      }
+      if (macroValue != null) {
+        return macroValue;
+      }
+      return mealsResolved && !hasMeals ? 0 : null;
     };
 
     return buildHomeNutrientTileEntries({
@@ -237,10 +270,10 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
         fiber: t('home.nutrients.fiber'),
       },
       totals: {
-        protein: coverage.protein === 'empty' ? null : (macros?.proteinG ?? null),
-        carbs: coverage.carbs === 'empty' ? null : (macros?.carbsG ?? null),
-        fat: coverage.fat === 'empty' ? null : (macros?.fatG ?? null),
-        fiber: coverage.fiber === 'empty' ? null : (macros?.fiberG ?? null),
+        protein: resolvedTotal('protein', macros?.proteinG),
+        carbs: resolvedTotal('carbs', macros?.carbsG),
+        fat: resolvedTotal('fat', macros?.fatG),
+        fiber: resolvedTotal('fiber', macros?.fiberG),
       },
       unit: t('home.nutrients.unitGrams'),
     }).map((entry) => ({

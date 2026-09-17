@@ -18,7 +18,7 @@
     "haveAccount": "Already have an account?",
     "signup": {
       "freeBadge": "3 days free · no card required",
-      "convertBadge": "Unlock history and goals now",
+      "convertBadge": "Unlock progress and goals now",
       "withEmail": "Sign up with email",
       "emailTitle": "Sign up with email",
       "emailBack": "Back",
@@ -134,6 +134,7 @@
     },
     "units": {
       "cm": "cm",
+      "in": "in",
       "ftIn": "ft, in",
       "kg": "kg",
       "lbs": "lbs"
@@ -175,6 +176,8 @@
       "faster_weight_loss": "Faster Weight Loss",
       "faster_weight_lossHint": "Ambitious approach",
       "faster_weight_lossWarning": "A faster deficit can be harder to sustain. Consider consulting a professional if unsure.",
+      "endurance": "Endurance",
+      "enduranceHint": "Macros for endurance training",
       "custom": "Custom Target",
       "customHint": "Set your own calorie target",
       "customPlaceholder": "Daily calories (kcal)"
@@ -200,7 +203,8 @@
     },
     "tabs": {
       "today": "Today",
-      "meals": "Meals"
+      "meals": "Meals",
+      "history": "Progress"
     },
     "calorieGoal": {
       "label": "Remaining today",
@@ -301,6 +305,18 @@
       "updateTargetDescription": "Your goal weight for tracking progress.",
       "placeholderKg": "Weight in kg",
       "placeholderLbs": "Weight in lbs",
+      "dateLabel": "Date",
+      "datePickerTitle": "Select date",
+      "saveForDate": "Save for {{date}}",
+      "waistLabel": "Waist (optional)",
+      "waistPlaceholder": "Waist circumference in cm",
+      "waistPlaceholderIn": "Waist circumference in inches",
+      "waistHint": "At navel height, in the morning, breathing out normally.",
+      "waistInvalid": "Enter a waist circumference between 30 and 250 cm.",
+      "waistInvalidIn": "Enter a waist circumference between 12 and 98 in.",
+      "bodyFatLabel": "Body fat (optional)",
+      "bodyFatPlaceholder": "Body fat percentage",
+      "bodyFatInvalid": "Enter a body fat percentage between 3 and 70%.",
       "invalid": "Please enter a valid weight.",
       "saveFailed": "Could not save your weight. Please try again."
     },
@@ -504,11 +520,17 @@
           "showIngredients": "Show ingredients",
           "hideIngredients": "Hide ingredients",
           "ingredientsTitle": "Ingredients",
-          "statusVeganLabeled": "Labeled vegan",
-          "statusVeganInferred": "Vegan according to ingredients",
-          "statusVegetarianOnly": "Vegetarian, not vegan",
-          "statusNotVegetarian": "Not vegetarian",
-          "statusUnclear": "Unclear",
+          "veganHint": {
+            "vegan": "Vegan according to Open Food Facts",
+            "maybeVegan": "Vegan status unclear according to Open Food Facts",
+            "nonVegan": "Contains animal ingredients according to Open Food Facts"
+          },
+          "nova": {
+            "1": "Minimally processed (NOVA 1)",
+            "2": "Culinary ingredient (NOVA 2)",
+            "3": "Processed (NOVA 3)",
+            "4": "Highly processed (NOVA 4)"
+          },
           "source": "According to Open Food Facts, retrieved on {{date}}",
           "sourceLink": "View product page",
           "disclaimer": "Data from Open Food Facts, without warranty. Not allergen information — check the packaging if in doubt."
@@ -530,6 +552,8 @@
           "wholePackage": "Whole package",
           "halfPackage": "Half package",
           "oneServing": "One serving",
+          "oneServingWithAmount": "One serving · {{grams}} g",
+          "onePiece": "1 piece",
           "customAmount": "Other amount",
           "gramsValue": "{{value}} g"
         }
@@ -666,13 +690,89 @@
     }
   },
   "history": {
-    "title": "History",
+    "title": "Progress",
     "errors": {
-      "loadFailed": "Could not load your history. Please try again."
+      "loadFailed": "Could not load your progress. Please try again."
     },
     "range": {
       "days7": "7 days",
       "days30": "30 days"
+    },
+    "balance": {
+      "title": "Last 7 days",
+      "protein": {
+        "below": "{{amount}} g/day below target",
+        "above": "✓ above target"
+      },
+      "fiber": {
+        "below": "{{amount}} g/day below target"
+      },
+      "fat": {
+        "belowFloor": "below floor",
+        "above": "{{amount}} g/day above target"
+      },
+      "carbs": {
+        "above": "{{amount}} g/day above target"
+      },
+      "supplements": {
+        "progress": "— {{taken}} of {{due}} due days",
+        "complete": "✓"
+      },
+      "proteinDistribution": {
+        "label": "Protein distributed",
+        "value": "avg {{hits}} of {{meals}} meals ≥ {{threshold}} g",
+        "valueOnTarget": "✓ avg {{hits}} of {{meals}} meals ≥ {{threshold}} g"
+      },
+      "weightRate": {
+        "loss": "Weight loss",
+        "gain": "Weight gain",
+        "value": "{{actual}} %/wk · planned {{planned}} %",
+        "valueOnPlan": "✓ {{actual}} %/wk · planned {{planned}} %"
+      },
+      "targetDateDeviation": {
+        "label": "Target date",
+        "later": "At your average for the last 7 days, your target date is about {{weeks}} weeks later.",
+        "earlier": "At your average for the last 7 days, your target date is about {{weeks}} weeks earlier."
+      },
+      "allOk": "Your numbers were within your targets.",
+      "topFoods": "Most of it came from: {{foods}}",
+      "summary": {
+        "onTrack": "You're on track this week.",
+        "smallUnder": "You're on track — about {{amount}} g more {{nutrient}} a day would round it off.",
+        "smallOver": "You're on track — about {{amount}} g less {{nutrient}} a day would round it off.",
+        "largeUnder": {
+          "protein": "Protein is where there's the most room this week — about {{amount}} g a day below your target.",
+          "fiber": "Fiber is where there's the most room this week — about {{amount}} g a day below your target.",
+          "fat": "Fat is where there's the most room this week — about {{amount}} g a day below your target.",
+          "carbs": "Carbs are where there's the most room this week — about {{amount}} g a day below your target."
+        },
+        "largeOver": {
+          "protein": "Protein is where there's the most room this week — about {{amount}} g a day above your target.",
+          "fiber": "Fiber is where there's the most room this week — about {{amount}} g a day above your target.",
+          "fat": "Fat is where there's the most room this week — about {{amount}} g a day above your target.",
+          "carbs": "Carbs are where there's the most room this week — about {{amount}} g a day above your target."
+        },
+        "nutrient": {
+          "protein": "protein",
+          "fiber": "fiber",
+          "fat": "fat",
+          "carbs": "carbs"
+        }
+      },
+      "accuracyHint": {
+        "weighIns": "Based on {{count}} weigh-ins. Weigh in ~3× a week for a reliable trend.",
+        "trackedDays": "Based on {{count}} tracked days. Track more days for a clearer picture."
+      },
+      "bodyFat": {
+        "change": "Body fat  {{delta}} in {{days}} days · {{current}} now",
+        "composition": "Of your {{weightDelta}}, about {{fatMass}} was fat."
+      },
+      "disclaimer": "Based on your entries and your own targets."
+    },
+    "observed": {
+      "prompt": "Your measured expenditure over the last 28 days is {{observed}} kcal, not {{estimated}}. Update your target?",
+      "info": "Your measured expenditure over the last 28 days is {{observed}} kcal.",
+      "applyFailed": "Could not update your calorie target. Please try again."
     },
     "supplements": {
       "sectionTitle": "Supplements",
@@ -698,9 +798,13 @@
       "trendLabel": "Trend weight",
       "currentLabel": "Current weight",
       "notLogged": "Not logged yet",
-      "empty": "No weight data in this period.",
+      "empty": "No weight logged yet.",
+      "latestDated": "{{weight}} · {{date}}",
+      "trendNeedsMeasurements": "Kolibi needs about 3 weigh-ins a week for a reliable trend.",
       "targetLabel": "Target",
       "changeInRange": "{{delta}} in {{days}} days",
+      "waistLabel": "Waist",
+      "waistChangeInRange": "{{delta}} in {{days}} days",
       "updateOnHome": "Update weight on home"
     },
     "calories": {
@@ -987,6 +1091,12 @@
       "sectionTitle": "Target weight",
       "screenTitle": "Edit target weight",
       "directEditSubtitle": "Your goal weight for tracking progress.",
+      "forecastUnavailable": "No reliable date can be calculated for this period.",
+      "forecastMuscleBuilding": "When building muscle at the same time, weight alone is not a reliable measure — muscle replaces some of the fat lost. A date cannot be derived from it.",
+      "forecastHint": "Estimate based on your entries and your current calorie goal. Your needs decrease with your weight, so progress slows toward the end.",
+      "bodyFatImplied": "At {{weight}} that would be around {{pct}} body fat, if you keep your current lean mass.",
+      "bodyFatImpliedMuscle": "At {{weight}} that would be around {{keepLean}} body fat if you keep your current lean mass, or about {{withMuscle}} if you also gain {{leanGain}} of lean mass.",
+      "bodyFatBelowSustainable": "That's below what's typically sustainable long term.",
       "progressStartLabel": "Progress counts from",
       "progressStartHint": "Optional. Empty = oldest weight entry. The first time you set it, the picker starts on today.",
       "progressStartEmpty": "Not set",

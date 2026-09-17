@@ -77,13 +77,17 @@ const ACTIVITY_LEVELS: ActivityLevel[] = [
   'very_active',
 ];
 
-const GOAL_TYPES: GoalType[] = [
-  'maintain',
-  'lose_weight',
-  'gain_weight',
-  'faster_weight_loss',
-  'custom',
-];
+/** Record keeps this onboarding list exhaustive when GoalType grows. */
+const GOAL_TYPES_BY_ORDER = {
+  maintain: true,
+  lose_weight: true,
+  gain_weight: true,
+  faster_weight_loss: true,
+  endurance: true,
+  custom: true,
+} as const satisfies Record<GoalType, true>;
+
+const GOAL_TYPES = Object.keys(GOAL_TYPES_BY_ORDER) as GoalType[];
 
 function getGoalHint(goal: GoalType, t: (key: string) => string): string {
   return t(`onboarding.goal.${goal}Hint`);

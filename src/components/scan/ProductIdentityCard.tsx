@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { barcodeProductMetaHints } from '@/components/scan/barcode-product-meta-hints';
 import { TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
 import type { BarcodeProduct } from '@/services/barcode/OpenFoodFactsService';
 
@@ -10,24 +11,10 @@ type ProductIdentityCardProps = {
   product: BarcodeProduct;
 };
 
-function resolveStatus({ vegan, vegetarian }: BarcodeProduct['dietStatus']) {
-  if (vegan === 'labeled') return 'statusVeganLabeled';
-  if (vegan === 'inferred') return 'statusVeganInferred';
-  if (vegan === 'no' && (vegetarian === 'labeled' || vegetarian === 'inferred')) {
-    return 'statusVegetarianOnly';
-  }
-  if (vegetarian === 'no') return 'statusNotVegetarian';
-  return 'statusUnclear';
-}
-
 export function ProductIdentityCard({ product }: ProductIdentityCardProps) {
   const { t, i18n } = useTranslation();
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
-  const status = resolveStatus(product.dietStatus);
-  const icon = status === 'statusUnclear' ? 'remove'
-    : status === 'statusNotVegetarian' ? 'close' : 'checkmark';
-  const iconColor = icon === 'remove' ? TEXT_TERTIARY
-    : icon === 'close' ? '#DC2626' : '#16A34A';
+  const metaHints = barcodeProductMetaHints(product, t);
   const subtitle = [product.brand, product.quantityLabel].filter((value) => value != null).join(' · ');
   const date = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? i18n.language).format(new Date());
 
@@ -40,12 +27,12 @@ export function ProductIdentityCard({ product }: ProductIdentityCardProps) {
         <View style={styles.identityText}>
           <Text style={styles.name}>{product.productName}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          {metaHints.map((hint) => (
+            <Text key={hint} style={styles.metaHint}>
+              {hint}
+            </Text>
+          ))}
         </View>
-      </View>
-
-      <View style={styles.statusRow}>
-        <Ionicons name={icon} size={18} color={iconColor} />
-        <Text style={styles.status}>{t(`home.scan.barcode.product.${status}`)}</Text>
       </View>
 
       {product.ingredientsText != null ? (
@@ -107,8 +94,7 @@ const styles = StyleSheet.create({
   identityText: { flex: 1, gap: 4 },
   name: { fontSize: 15, fontWeight: '600', color: '#111827' },
   subtitle: { fontSize: 13, color: TEXT_SECONDARY },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  status: { flex: 1, fontSize: 14, color: '#111827' },
+  metaHint: { fontSize: 12, color: TEXT_SECONDARY },
   ingredients: { gap: 6 },
   ingredientsToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
   ingredientsLabel: { flex: 1, fontSize: 13, color: TEXT_SECONDARY },

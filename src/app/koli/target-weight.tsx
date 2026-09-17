@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import {
@@ -25,11 +25,28 @@ import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
+import { useHistory } from '@/hooks/use-history';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
-import { formatAppDate } from '@/lib/onboarding';
-import { kgToLbs } from '@/lib/units';
 import {
+  fetchLatestBodyFatLog,
+  formatBodyFatPct,
+  impliedBodyFatAtTarget,
+  sustainableBodyFatFloorPct,
+} from '@/lib/body-fat-logs';
+import { countWeighDaysInLastMonth } from '@/lib/history';
+import {
+  MacroEmpfehlungsZiel,
+  mapProfileGoalToEmpfehlungsZiel,
+} from '@/lib/macro-recommendations';
+import { formatAppDate } from '@/lib/onboarding';
+import { resolveCalorieSource } from '@/lib/calorie-goal-math';
+import { calculateTargetWeightForecast } from '@/lib/target-weight-forecast';
+import { kgToLbs } from '@/lib/units';
+import { fuzzyEtaParts, localizedMonthName } from '@/lib/weight-goal-eta';
+import {
+  formatWeightForDisplay,
   parseWeightInputToKg,
   updateTargetWeightKg,
 } from '@/lib/weight-logs';
@@ -39,6 +56,7 @@ import { useOnboardingStore } from '@/stores/onboarding-store';
 const GOALS_HREF = { pathname: '/koli', params: { segment: 'goals' } } as Href;
 const MAX_WEIGHT_KG = 699.9;
 const PROGRESS_START_MIN_DATE = new Date(2000, 0, 1);
+const MUSCLE_BUILDING_EXTRA_LEAN_KG = 2;
 
 export default function TargetWeightSettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -49,6 +67,13 @@ export default function TargetWeightSettingsScreen() {
   const userId = session?.user?.id;
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const { data, isLoading, isError, error } = useProfileSettings(userId);
+  const { data: historyData } = useHistory(userId, 30);
+  const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
+  const { data: latestBodyFat } = useQuery({
+    queryKey: ['latest-body-fat', userId],
+    queryFn: () => fetchLatestBodyFatLog(userId!),
+    enabled: Boolean(userId),
+  });
 
   const [weightDraft, setWeightDraft] = useState('');
   const [progressStartDate, setProgressStartDate] = useState<Date | null>(null);
@@ -64,6 +89,124 @@ export default function TargetWeightSettingsScreen() {
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
+
+  const draftTargetWeightKg = useMemo(
+    () => parseWeightInputToKg({ value: weightDraft, unitSystem }),
+    [unitSystem, weightDraft],
+  );
+  const weighDaysLast30 = useMemo(
+    () => (historyData ? countWeighDaysInLastMonth(historyData.weightLogs) : null),
+    [historyData],
+  );
+  const targetForecast = useMemo(() => {
+    const profile = data?.profile;
+    return calculateTargetWeightForecast({
+      currentWeightKg: profile?.latest_weight_kg ?? null,
+      targetWeightKg: draftTargetWeightKg,
+      dailyCalorieGoal: profile?.daily_calorie_goal ?? null,
+      biologicalSex: profile?.biological_sex ?? 'prefer_not_to_say',
+      birthDate: profile?.birth_date ? parseDateOnly(profile.birth_date) : null,
+      heightCm: profile?.height_cm ?? null,
+      activityLevel: profile?.activity_level ?? null,
+      calorieSource: resolveCalorieSource(healthConnectedPreference === true),
+      goalType: profile?.goal_type ?? null,
+      macroGoalProfile:
+        mapProfileGoalToEmpfehlungsZiel(profile?.goal_type) ===
+        MacroEmpfehlungsZiel.MUSKELAUFBAU
+          ? 'muscle'
+          : null,
+      weighDaysLast30,
+      today,
+    });
+  }, [data?.profile, draftTargetWeightKg, healthConnectedPreference, today, weighDaysLast30]);
+  const targetForecastText = useMemo(() => {
+    if (targetForecast.status === 'muscle_building') {
+      return t('settings.targetWeight.forecastMuscleBuilding');
+    }
+    if (targetForecast.status === 'unavailable') {
+      return t('settings.targetWeight.forecastUnavailable');
+    }
+
+    const { part, monthDate, year } = fuzzyEtaParts(targetForecast.etaDate);
+    return t('weightGoalEta.fuzzy', {
+      part: t(`weightGoalEta.${part}`),
+      month: localizedMonthName(monthDate, i18n.language),
+      year,
+    });
+  }, [i18n.language, t, targetForecast]);
+
+  const bodyFatImplication = useMemo(() => {
+    const currentWeightKg = data?.profile?.latest_weight_kg ?? null;
+    const currentBodyFatPct = latestBodyFat?.body_fat_pct ?? null;
+    if (
+      currentWeightKg == null ||
+      currentBodyFatPct == null ||
+      draftTargetWeightKg == null ||
+      !(draftTargetWeightKg > 0)
+    ) {
+      return null;
+    }
+
+    const keepLean = impliedBodyFatAtTarget({
+      currentWeightKg,
+      currentBodyFatPct,
+      targetWeightKg: draftTargetWeightKg,
+    });
+    if (keepLean == null) {
+      return null;
+    }
+
+    const isMuscleBuilding =
+      mapProfileGoalToEmpfehlungsZiel(data?.profile?.goal_type) ===
+      MacroEmpfehlungsZiel.MUSKELAUFBAU;
+    const withMuscleGain = isMuscleBuilding
+      ? impliedBodyFatAtTarget({
+          currentWeightKg,
+          currentBodyFatPct,
+          targetWeightKg: draftTargetWeightKg,
+          extraLeanMassKg: MUSCLE_BUILDING_EXTRA_LEAN_KG,
+        })
+      : null;
+
+    const sex = data?.profile?.biological_sex;
+    const floor = sustainableBodyFatFloorPct(sex);
+    const belowSustainable =
+      keepLean < floor || (withMuscleGain != null && withMuscleGain < floor);
+
+    const targetFormatted =
+      unitSystem === 'imperial'
+        ? `${kgToLbs(draftTargetWeightKg).toLocaleString(i18n.language, {
+            maximumFractionDigits: 1,
+          })} ${t('onboarding.units.lbs')}`
+        : `${draftTargetWeightKg.toLocaleString(i18n.language, {
+            maximumFractionDigits: 1,
+          })} ${t('onboarding.units.kg')}`;
+
+    const leanGainFormatted = formatWeightForDisplay({
+      weightKg: MUSCLE_BUILDING_EXTRA_LEAN_KG,
+      unitSystem,
+      kgLabel: t('onboarding.units.kg'),
+      lbsLabel: t('onboarding.units.lbs'),
+    });
+
+    return {
+      keepLean,
+      withMuscleGain,
+      isMuscleBuilding,
+      belowSustainable,
+      targetFormatted,
+      leanGainFormatted,
+    };
+  }, [
+    data?.profile?.biological_sex,
+    data?.profile?.goal_type,
+    data?.profile?.latest_weight_kg,
+    draftTargetWeightKg,
+    i18n.language,
+    latestBodyFat?.body_fat_pct,
+    t,
+    unitSystem,
+  ]);
 
   useEffect(() => {
     if (!data || initialized) {
@@ -191,6 +334,49 @@ export default function TargetWeightSettingsScreen() {
               value={weightDraft}
               onChangeText={setWeightDraft}
             />
+
+            {bodyFatImplication ? (
+              <View className="mt-3">
+                <Text className="text-sm leading-5 text-gray-600">
+                  {bodyFatImplication.isMuscleBuilding &&
+                  bodyFatImplication.withMuscleGain != null
+                    ? t('settings.targetWeight.bodyFatImpliedMuscle', {
+                        weight: bodyFatImplication.targetFormatted,
+                        keepLean: formatBodyFatPct(
+                          bodyFatImplication.keepLean,
+                          i18n.language,
+                        ),
+                        withMuscle: formatBodyFatPct(
+                          bodyFatImplication.withMuscleGain,
+                          i18n.language,
+                        ),
+                        leanGain: bodyFatImplication.leanGainFormatted,
+                      })
+                    : t('settings.targetWeight.bodyFatImplied', {
+                        weight: bodyFatImplication.targetFormatted,
+                        pct: formatBodyFatPct(
+                          bodyFatImplication.keepLean,
+                          i18n.language,
+                        ),
+                      })}
+                  {' •'}
+                </Text>
+                {bodyFatImplication.belowSustainable ? (
+                  <Text className="mt-1 text-sm leading-5 text-gray-400">
+                    {t('settings.targetWeight.bodyFatBelowSustainable')}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+
+            <View className="mt-4 rounded-xl bg-gray-50 px-4 py-3">
+              <Text className="text-base font-semibold text-gray-900">{targetForecastText}</Text>
+              {targetForecast.status === 'ok' ? (
+                <Text className="mt-1 text-sm leading-5 text-gray-500">
+                  {t('settings.targetWeight.forecastHint')}
+                </Text>
+              ) : null}
+            </View>
 
             <Text className="mb-2 mt-6 text-sm font-medium text-gray-700">
               {t('settings.targetWeight.progressStartLabel')}

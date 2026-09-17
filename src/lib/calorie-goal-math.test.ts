@@ -46,6 +46,11 @@ describe('resolveCalorieSource', () => {
   it('maps health disconnected to CalorieSource.ACTIVITY_FACTOR', () => {
     assert.equal(resolveCalorieSource(false), CalorieSource.ACTIVITY_FACTOR);
   });
+
+  it('prefers OBSERVED when ready', () => {
+    assert.equal(resolveCalorieSource(true, { observedReady: true }), CalorieSource.OBSERVED);
+    assert.equal(resolveCalorieSource(false, { observedReady: true }), CalorieSource.OBSERVED);
+  });
 });
 
 describe('calculateDailyCalorieGoalForSource — 4 levels × health on/off', () => {
@@ -175,6 +180,31 @@ describe('resolveEffectiveDailyCalorieGoal', () => {
         activeEnergyBurnedKcal: 300,
       }),
       2200,
+    );
+  });
+
+  it('OBSERVED ignores active energy', () => {
+    assert.equal(
+      resolveEffectiveDailyCalorieGoal({
+        calorieSource: CalorieSource.OBSERVED,
+        baseDailyGoal: 2000,
+        activeEnergyBurnedKcal: 400,
+      }),
+      2000,
+    );
+  });
+});
+
+describe('calculateMaintenanceCalories OBSERVED', () => {
+  it('returns the measured maintenance', () => {
+    assert.equal(
+      calculateMaintenanceCalories({
+        ...PROFILE,
+        activityLevel: 'active',
+        calorieSource: CalorieSource.OBSERVED,
+        observedMaintenanceKcal: 2340,
+      }),
+      2340,
     );
   });
 });

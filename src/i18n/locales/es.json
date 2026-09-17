@@ -18,7 +18,7 @@
     "haveAccount": "¿Ya tienes una cuenta?",
     "signup": {
       "freeBadge": "3 días gratis · sin tarjeta",
-      "convertBadge": "Desbloquea historial y objetivos",
+      "convertBadge": "Desbloquea progreso y objetivos",
       "withEmail": "Registrarse con correo",
       "emailTitle": "Registrarse con correo",
       "emailBack": "Atrás",
@@ -134,6 +134,7 @@
     },
     "units": {
       "cm": "cm",
+      "in": "in",
       "ftIn": "ft, in",
       "kg": "kg",
       "lbs": "lbs"
@@ -175,6 +176,8 @@
       "faster_weight_loss": "Pérdida de peso más rápida",
       "faster_weight_lossHint": "Enfoque ambicioso",
       "faster_weight_lossWarning": "Un déficit más rápido puede ser más difícil de mantener. Consulta a un profesional si tienes dudas.",
+      "endurance": "Resistencia",
+      "enduranceHint": "Macros para entrenamiento de resistencia",
       "custom": "Objetivo personalizado",
       "customHint": "Define tu propio objetivo calórico",
       "customPlaceholder": "Calorías diarias (kcal)"
@@ -200,7 +203,8 @@
     },
     "tabs": {
       "today": "Hoy",
-      "meals": "Comidas"
+      "meals": "Comidas",
+      "history": "Progreso"
     },
     "calorieGoal": {
       "label": "Restantes hoy",
@@ -301,6 +305,18 @@
       "updateTargetDescription": "Tu peso meta para seguir el progreso.",
       "placeholderKg": "Peso en kg",
       "placeholderLbs": "Peso en lbs",
+      "dateLabel": "Fecha",
+      "datePickerTitle": "Seleccionar fecha",
+      "saveForDate": "Guardar para {{date}}",
+      "waistLabel": "Cintura (opcional)",
+      "waistPlaceholder": "Contorno de cintura en cm",
+      "waistPlaceholderIn": "Contorno de cintura en pulgadas",
+      "waistHint": "A la altura del ombligo, por la mañana, espirando con normalidad.",
+      "waistInvalid": "Introduce un contorno de cintura entre 30 y 250 cm.",
+      "waistInvalidIn": "Introduce un contorno de cintura entre 12 y 98 in.",
+      "bodyFatLabel": "Grasa corporal (opcional)",
+      "bodyFatPlaceholder": "Porcentaje de grasa corporal",
+      "bodyFatInvalid": "Introduce un porcentaje de grasa entre 3 y 70 %.",
       "invalid": "Introduce un peso válido.",
       "saveFailed": "No se pudo guardar el peso. Inténtalo de nuevo."
     },
@@ -504,11 +520,17 @@
           "showIngredients": "Mostrar ingredientes",
           "hideIngredients": "Ocultar ingredientes",
           "ingredientsTitle": "Ingredientes",
-          "statusVeganLabeled": "Etiquetado como vegano",
-          "statusVeganInferred": "Vegano según los ingredientes",
-          "statusVegetarianOnly": "Vegetariano, no vegano",
-          "statusNotVegetarian": "No vegetariano",
-          "statusUnclear": "No concluyente",
+          "veganHint": {
+            "vegan": "Vegano según Open Food Facts",
+            "maybeVegan": "Estado vegano poco claro según Open Food Facts",
+            "nonVegan": "Contiene ingredientes de origen animal según Open Food Facts"
+          },
+          "nova": {
+            "1": "Poco procesado (NOVA 1)",
+            "2": "Ingrediente culinario (NOVA 2)",
+            "3": "Procesado (NOVA 3)",
+            "4": "Altamente procesado (NOVA 4)"
+          },
           "source": "Según Open Food Facts, consultado el {{date}}",
           "sourceLink": "Ver página del producto",
           "disclaimer": "Datos de Open Food Facts, sin garantía. No es información sobre alérgenos — en caso de duda, consulta el envase."
@@ -530,6 +552,8 @@
           "wholePackage": "Paquete completo",
           "halfPackage": "Medio paquete",
           "oneServing": "Una ración",
+          "oneServingWithAmount": "Una ración · {{grams}} g",
+          "onePiece": "1 unidad",
           "customAmount": "Otra cantidad",
           "gramsValue": "{{value}} g"
         }
@@ -666,13 +690,89 @@
     }
   },
   "history": {
-    "title": "Historial",
+    "title": "Progreso",
     "errors": {
-      "loadFailed": "No se pudo cargar el historial. Inténtalo de nuevo."
+      "loadFailed": "No se pudo cargar el progreso. Inténtalo de nuevo."
     },
     "range": {
       "days7": "7 días",
       "days30": "30 días"
+    },
+    "balance": {
+      "title": "Últimos 7 días",
+      "protein": {
+        "below": "{{amount}} g/día bajo objetivo",
+        "above": "✓ sobre objetivo"
+      },
+      "fiber": {
+        "below": "{{amount}} g/día bajo objetivo"
+      },
+      "fat": {
+        "belowFloor": "bajo el mínimo",
+        "above": "{{amount}} g/día sobre objetivo"
+      },
+      "carbs": {
+        "above": "{{amount}} g/día sobre objetivo"
+      },
+      "supplements": {
+        "progress": "— {{taken}} de {{due}} días pendientes",
+        "complete": "✓"
+      },
+      "proteinDistribution": {
+        "label": "Proteína distribuida",
+        "value": "media {{hits}} de {{meals}} comidas ≥ {{threshold}} g",
+        "valueOnTarget": "✓ media {{hits}} de {{meals}} comidas ≥ {{threshold}} g"
+      },
+      "weightRate": {
+        "loss": "Pérdida de peso",
+        "gain": "Aumento de peso",
+        "value": "{{actual}} %/sem. · previsto {{planned}} %",
+        "valueOnPlan": "✓ {{actual}} %/sem. · previsto {{planned}} %"
+      },
+      "targetDateDeviation": {
+        "label": "Fecha objetivo",
+        "later": "Con tu media de los últimos 7 días, tu fecha objetivo queda unas {{weeks}} semanas más tarde.",
+        "earlier": "Con tu media de los últimos 7 días, tu fecha objetivo queda unas {{weeks}} semanas antes."
+      },
+      "allOk": "Tus valores se mantuvieron dentro de tus objetivos.",
+      "topFoods": "La mayor parte vino de: {{foods}}",
+      "summary": {
+        "onTrack": "Vas bien esta semana.",
+        "smallUnder": "Vas bien — unos {{amount}} g más de {{nutrient}} al día lo redondearían.",
+        "smallOver": "Vas bien — unos {{amount}} g menos de {{nutrient}} al día lo redondearían.",
+        "largeUnder": {
+          "protein": "La proteína es donde más margen hay esta semana — unos {{amount}} g al día por debajo de tu objetivo.",
+          "fiber": "La fibra es donde más margen hay esta semana — unos {{amount}} g al día por debajo de tu objetivo.",
+          "fat": "La grasa es donde más margen hay esta semana — unos {{amount}} g al día por debajo de tu objetivo.",
+          "carbs": "Los carbohidratos son donde más margen hay esta semana — unos {{amount}} g al día por debajo de tu objetivo."
+        },
+        "largeOver": {
+          "protein": "La proteína es donde más margen hay esta semana — unos {{amount}} g al día por encima de tu objetivo.",
+          "fiber": "La fibra es donde más margen hay esta semana — unos {{amount}} g al día por encima de tu objetivo.",
+          "fat": "La grasa es donde más margen hay esta semana — unos {{amount}} g al día por encima de tu objetivo.",
+          "carbs": "Los carbohidratos son donde más margen hay esta semana — unos {{amount}} g al día por encima de tu objetivo."
+        },
+        "nutrient": {
+          "protein": "proteína",
+          "fiber": "fibra",
+          "fat": "grasa",
+          "carbs": "carbohidratos"
+        }
+      },
+      "accuracyHint": {
+        "weighIns": "Basado en {{count}} pesajes. Pésate ~3× por semana para una tendencia fiable.",
+        "trackedDays": "Basado en {{count}} días registrados. Más días dan una imagen más clara."
+      },
+      "bodyFat": {
+        "change": "Grasa corporal  {{delta}} en {{days}} días · ahora {{current}}",
+        "composition": "De tus {{weightDelta}}, unos {{fatMass}} fueron grasa."
+      },
+      "disclaimer": "Basado en tus registros y tus propios objetivos."
+    },
+    "observed": {
+      "prompt": "Tu gasto medido de los últimos 28 días es {{observed}} kcal, no {{estimated}}. ¿Actualizar tu objetivo?",
+      "info": "Tu gasto medido de los últimos 28 días es {{observed}} kcal.",
+      "applyFailed": "No se pudo actualizar tu objetivo de calorías. Inténtalo de nuevo."
     },
     "supplements": {
       "sectionTitle": "Suplementos",
@@ -698,9 +798,13 @@
       "trendLabel": "Peso de tendencia",
       "currentLabel": "Peso actual",
       "notLogged": "Sin registro",
-      "empty": "Sin datos de peso en este periodo.",
+      "empty": "Aún no hay peso registrado.",
+      "latestDated": "{{weight}} · {{date}}",
+      "trendNeedsMeasurements": "Kolibi necesita unos 3 pesajes por semana para una tendencia fiable.",
       "targetLabel": "Meta",
       "changeInRange": "{{delta}} en {{days}} días",
+      "waistLabel": "Cintura",
+      "waistChangeInRange": "{{delta}} en {{days}} días",
       "updateOnHome": "Actualizar peso en inicio"
     },
     "calories": {
@@ -987,6 +1091,12 @@
       "sectionTitle": "Peso objetivo",
       "screenTitle": "Editar peso objetivo",
       "directEditSubtitle": "Tu peso meta para seguir el progreso.",
+      "forecastUnavailable": "No se puede calcular una fecha fiable para este periodo.",
+      "forecastMuscleBuilding": "Al ganar músculo al mismo tiempo, el peso por sí solo no es una medida fiable: el músculo sustituye parte de la grasa perdida. No se puede derivar una fecha a partir de ello.",
+      "forecastHint": "Estimación basada en tus registros y en tu objetivo actual de calorías. Tus necesidades bajan con el peso, por lo que el progreso se ralentiza hacia el final.",
+      "bodyFatImplied": "Con {{weight}} eso serían alrededor de {{pct}} de grasa corporal, si mantienes tu masa magra actual.",
+      "bodyFatImpliedMuscle": "Con {{weight}} eso serían alrededor de {{keepLean}} de grasa corporal si mantienes tu masa magra actual, o unos {{withMuscle}} si además ganas {{leanGain}} de masa magra.",
+      "bodyFatBelowSustainable": "Eso está por debajo de lo que suele ser sostenible a largo plazo.",
       "progressStartLabel": "El progreso cuenta desde",
       "progressStartHint": "Opcional. Vacío = el peso más antiguo. Al fijarlo por primera vez, el selector empieza en hoy.",
       "progressStartEmpty": "No establecido",

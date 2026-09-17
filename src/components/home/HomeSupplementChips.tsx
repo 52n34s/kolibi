@@ -16,20 +16,23 @@ import {
   removeIntake,
   type SupplementForDay,
 } from '@/lib/supplements';
+import { GLASS_BORDER, GLASS_BORDER_TOP } from '@/constants/brand';
 import { useAuthStore } from '@/stores/auth-store';
 
 const CHIP_SCROLL_THRESHOLD = 3;
 
+/** Light glass chrome — same shape both states; done only mutes color. */
 const DUE_CHIP = {
-  backgroundColor: 'rgba(79, 70, 229, 0.12)',
-  borderColor: '#4F46E5',
+  backgroundColor: 'rgba(255, 255, 255, 0.52)',
+  borderColor: GLASS_BORDER,
+  borderTopColor: GLASS_BORDER_TOP,
   textColor: '#4F46E5',
 } as const;
 
-/** Same chip chrome as due — only muted glass + secondary gray. */
 const DONE_CHIP = {
-  backgroundColor: 'rgba(255, 255, 255, 0.45)',
-  borderColor: 'rgba(156, 163, 175, 0.55)',
+  backgroundColor: 'rgba(255, 255, 255, 0.38)',
+  borderColor: 'rgba(156, 163, 175, 0.45)',
+  borderTopColor: 'rgba(255, 255, 255, 0.7)',
   textColor: '#6B7280',
 } as const;
 
@@ -120,6 +123,7 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
           {
             backgroundColor: palette.backgroundColor,
             borderColor: palette.borderColor,
+            borderTopColor: palette.borderTopColor,
             opacity: pressed ? 0.85 : 1,
           },
         ]}>
@@ -161,7 +165,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chip: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,

@@ -57,6 +57,8 @@ export type MealItemRowProps = {
   onNameFocusHandled?: () => void;
   /** Warning shown directly above the density line, e.g. a failed label check. */
   notice?: string | null;
+  /** Small grey lines under the product name (barcode OFF hints). */
+  metaHints?: string[];
 };
 
 type StepperFieldProps = {
@@ -419,6 +421,7 @@ export function MealItemRow({
   shouldFocusName = false,
   onNameFocusHandled,
   notice = null,
+  metaHints,
 }: MealItemRowProps) {
   const { t, i18n } = useTranslation();
   const mealInputBarActions = useMealInputBarActions();
@@ -612,6 +615,16 @@ export function MealItemRow({
         </View>
       </View>
 
+      {metaHints != null && metaHints.length > 0 ? (
+        <View style={styles.metaHints}>
+          {metaHints.map((hint) => (
+            <Text key={hint} style={styles.metaHint}>
+              {hint}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+
       <View style={styles.steppersRow}>
         <StepperField
           allowDecimals={allowDecimalQuantity}
@@ -739,6 +752,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
+  },
+  metaHints: {
+    gap: 2,
+    marginTop: -2,
+    marginBottom: 2,
+  },
+  metaHint: {
+    fontSize: 12,
+    color: '#6B7280',
   },
   nameInputWrap: {
     flex: 1,

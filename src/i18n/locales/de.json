@@ -18,7 +18,7 @@
     "haveAccount": "Schon ein Konto?",
     "signup": {
       "freeBadge": "3 Tage kostenlos · keine Karte nötig",
-      "convertBadge": "Jetzt Verlauf und Ziele freischalten",
+      "convertBadge": "Jetzt Fortschritt und Ziele freischalten",
       "withEmail": "Mit E-Mail registrieren",
       "emailTitle": "Mit E-Mail registrieren",
       "emailBack": "Zurück",
@@ -134,6 +134,7 @@
     },
     "units": {
       "cm": "cm",
+      "in": "in",
       "ftIn": "ft, in",
       "kg": "kg",
       "lbs": "lbs"
@@ -175,6 +176,8 @@
       "faster_weight_loss": "Schnelleres Abnehmen",
       "faster_weight_lossHint": "Ambitionierter Ansatz",
       "faster_weight_lossWarning": "Ein schnelleres Defizit kann schwerer durchzuhalten sein. Sprich bei Unsicherheit mit einer Fachperson.",
+      "endurance": "Ausdauerleistung",
+      "enduranceHint": "Makros für Ausdauertraining",
       "custom": "Eigenes Ziel",
       "customHint": "Eigenes Kalorienziel festlegen",
       "customPlaceholder": "Tägliche Kalorien (kcal)"
@@ -200,7 +203,8 @@
     },
     "tabs": {
       "today": "Heute",
-      "meals": "Mahlzeiten"
+      "meals": "Mahlzeiten",
+      "history": "Fortschritt"
     },
     "calorieGoal": {
       "label": "Heute übrig",
@@ -301,6 +305,18 @@
       "updateTargetDescription": "Dein Zielgewicht für den Fortschritt.",
       "placeholderKg": "Gewicht in kg",
       "placeholderLbs": "Gewicht in lbs",
+      "dateLabel": "Datum",
+      "datePickerTitle": "Datum auswählen",
+      "saveForDate": "Für {{date}} speichern",
+      "waistLabel": "Taille (optional)",
+      "waistPlaceholder": "Taillenumfang in cm",
+      "waistPlaceholderIn": "Taillenumfang in Zoll",
+      "waistHint": "Auf Nabelhöhe, morgens, normal ausatmen.",
+      "waistInvalid": "Bitte gib einen Taillenumfang zwischen 30 und 250 cm ein.",
+      "waistInvalidIn": "Bitte gib einen Taillenumfang zwischen 12 und 98 in ein.",
+      "bodyFatLabel": "Körperfett (optional)",
+      "bodyFatPlaceholder": "Körperfettanteil in %",
+      "bodyFatInvalid": "Bitte gib einen Körperfettanteil zwischen 3 und 70 % ein.",
       "invalid": "Bitte gib ein gültiges Gewicht ein.",
       "saveFailed": "Gewicht konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
@@ -504,11 +520,17 @@
           "showIngredients": "Zutaten anzeigen",
           "hideIngredients": "Zutaten ausblenden",
           "ingredientsTitle": "Zutaten",
-          "statusVeganLabeled": "Als vegan gekennzeichnet",
-          "statusVeganInferred": "Vegan laut Zutatenliste",
-          "statusVegetarianOnly": "Vegetarisch, nicht vegan",
-          "statusNotVegetarian": "Nicht vegetarisch",
-          "statusUnclear": "Nicht eindeutig",
+          "veganHint": {
+            "vegan": "Vegan laut Open Food Facts",
+            "maybeVegan": "Vegan-Status unklar laut Open Food Facts",
+            "nonVegan": "Enthält tierische Zutaten laut Open Food Facts"
+          },
+          "nova": {
+            "1": "Kaum verarbeitet (NOVA 1)",
+            "2": "Küchenzutat (NOVA 2)",
+            "3": "Verarbeitet (NOVA 3)",
+            "4": "Hochverarbeitet (NOVA 4)"
+          },
           "source": "Laut Open Food Facts, abgerufen am {{date}}",
           "sourceLink": "Zur Produktseite",
           "disclaimer": "Angaben von Open Food Facts, ohne Gewähr. Keine Allergenauskunft — im Zweifel auf die Verpackung schauen."
@@ -530,6 +552,8 @@
           "wholePackage": "Ganze Packung",
           "halfPackage": "Halbe Packung",
           "oneServing": "Eine Portion",
+          "oneServingWithAmount": "Eine Portion · {{grams}} g",
+          "onePiece": "1 Stück",
           "customAmount": "Andere Menge",
           "gramsValue": "{{value}} g"
         }
@@ -666,13 +690,89 @@
     }
   },
   "history": {
-    "title": "Verlauf",
+    "title": "Fortschritt",
     "errors": {
-      "loadFailed": "Verlauf konnte nicht geladen werden. Bitte erneut versuchen."
+      "loadFailed": "Fortschritt konnte nicht geladen werden. Bitte erneut versuchen."
     },
     "range": {
       "days7": "7 Tage",
       "days30": "30 Tage"
+    },
+    "balance": {
+      "title": "Letzte 7 Tage",
+      "protein": {
+        "below": "{{amount}} g/Tag unter Ziel",
+        "above": "✓ über Ziel"
+      },
+      "fiber": {
+        "below": "{{amount}} g/Tag unter Ziel"
+      },
+      "fat": {
+        "belowFloor": "unter Untergrenze",
+        "above": "{{amount}} g/Tag über Ziel"
+      },
+      "carbs": {
+        "above": "{{amount}} g/Tag über Ziel"
+      },
+      "supplements": {
+        "progress": "— {{taken}} von {{due}} fälligen Tagen",
+        "complete": "✓"
+      },
+      "proteinDistribution": {
+        "label": "Protein verteilt",
+        "value": "Ø {{hits}} von {{meals}} Mahlzeiten ≥ {{threshold}} g",
+        "valueOnTarget": "✓ Ø {{hits}} von {{meals}} Mahlzeiten ≥ {{threshold}} g"
+      },
+      "weightRate": {
+        "loss": "Abnahme",
+        "gain": "Zunahme",
+        "value": "{{actual}} %/Wo. · geplant {{planned}} %",
+        "valueOnPlan": "✓ {{actual}} %/Wo. · geplant {{planned}} %"
+      },
+      "targetDateDeviation": {
+        "label": "Zieldatum",
+        "later": "Bei deinem Schnitt der letzten 7 Tage liegt dein Zieldatum etwa {{weeks}} Wochen später.",
+        "earlier": "Bei deinem Schnitt der letzten 7 Tage liegt dein Zieldatum etwa {{weeks}} Wochen früher."
+      },
+      "allOk": "Deine Werte lagen im Rahmen deiner Ziele.",
+      "topFoods": "Am meisten davon hattest du bei: {{foods}}",
+      "summary": {
+        "onTrack": "Du bist diese Woche auf Kurs.",
+        "smallUnder": "Du bist auf Kurs — etwa {{amount}} g mehr {{nutrient}} pro Tag würden es abrunden.",
+        "smallOver": "Du bist auf Kurs — etwa {{amount}} g weniger {{nutrient}} pro Tag würden es abrunden.",
+        "largeUnder": {
+          "protein": "Beim Protein ist diese Woche am meisten Luft — etwa {{amount}} g pro Tag unter deinem Ziel.",
+          "fiber": "Bei den Ballaststoffen ist diese Woche am meisten Luft — etwa {{amount}} g pro Tag unter deinem Ziel.",
+          "fat": "Beim Fett ist diese Woche am meisten Luft — etwa {{amount}} g pro Tag unter deinem Ziel.",
+          "carbs": "Bei den Kohlenhydraten ist diese Woche am meisten Luft — etwa {{amount}} g pro Tag unter deinem Ziel."
+        },
+        "largeOver": {
+          "protein": "Beim Protein ist diese Woche am meisten Luft — etwa {{amount}} g pro Tag über deinem Ziel.",
+          "fiber": "Bei den Ballaststoffen ist diese Woche am meisten Luft — etwa {{amount}} g pro Tag über deinem Ziel.",
+          "fat": "Beim Fett ist diese Woche am meisten Luft — etwa {{amount}} g pro Tag über deinem Ziel.",
+          "carbs": "Bei den Kohlenhydraten ist diese Woche am meisten Luft — etwa {{amount}} g pro Tag über deinem Ziel."
+        },
+        "nutrient": {
+          "protein": "Protein",
+          "fiber": "Ballaststoffe",
+          "fat": "Fett",
+          "carbs": "Kohlenhydrate"
+        }
+      },
+      "accuracyHint": {
+        "weighIns": "Basiert auf {{count}} Wiegetagen. Wieg dich ~3× pro Woche für einen zuverlässigen Trend.",
+        "trackedDays": "Basiert auf {{count}} erfassten Tagen. Mehr Tage machen das Bild klarer."
+      },
+      "bodyFat": {
+        "change": "Körperfett  {{delta}} in {{days}} Tagen · jetzt {{current}}",
+        "composition": "Von deinen {{weightDelta}} waren etwa {{fatMass}} Fett."
+      },
+      "disclaimer": "Basiert auf deinen Einträgen und deinen eigenen Zielen."
+    },
+    "observed": {
+      "prompt": "Dein gemessener Verbrauch der letzten 28 Tage ist {{observed}} kcal, nicht {{estimated}}. Ziel anpassen?",
+      "info": "Dein gemessener Verbrauch der letzten 28 Tage ist {{observed}} kcal.",
+      "applyFailed": "Kalorienziel konnte nicht aktualisiert werden. Bitte erneut versuchen."
     },
     "supplements": {
       "sectionTitle": "Supplemente",
@@ -698,9 +798,13 @@
       "trendLabel": "Trendgewicht",
       "currentLabel": "Aktuelles Gewicht",
       "notLogged": "Noch nicht erfasst",
-      "empty": "Noch keine Gewichtsdaten in diesem Zeitraum.",
+      "empty": "Noch kein Gewicht erfasst.",
+      "latestDated": "{{weight}} · {{date}}",
+      "trendNeedsMeasurements": "Kolibi braucht etwa 3 Wiegevorgänge pro Woche für einen verlässlichen Trend.",
       "targetLabel": "Ziel",
       "changeInRange": "{{delta}} in {{days}} Tagen",
+      "waistLabel": "Taille",
+      "waistChangeInRange": "{{delta}} in {{days}} Tagen",
       "updateOnHome": "Gewicht auf Startseite aktualisieren"
     },
     "calories": {
@@ -987,6 +1091,12 @@
       "sectionTitle": "Zielgewicht",
       "screenTitle": "Zielgewicht bearbeiten",
       "directEditSubtitle": "Dein Zielgewicht für den Fortschritt.",
+      "forecastUnavailable": "Für diesen Zeitraum lässt sich kein belastbares Datum berechnen.",
+      "forecastMuscleBuilding": "Bei gleichzeitigem Muskelaufbau ist das Gewicht allein kein verlässlicher Maßstab — Muskeln ersetzen einen Teil des verlorenen Fetts. Ein Datum lässt sich daraus nicht ableiten.",
+      "forecastHint": "Schätzung auf Basis deiner Einträge und deines aktuellen Kalorienziels. Der Bedarf sinkt mit dem Gewicht, deshalb wird der Fortschritt zum Ende hin langsamer.",
+      "bodyFatImplied": "Bei {{weight}} wären das etwa {{pct}} Körperfett, wenn du deine fettfreie Masse behältst.",
+      "bodyFatImpliedMuscle": "Bei {{weight}} wären das etwa {{keepLean}} Körperfett, wenn du deine fettfreie Masse behältst, oder etwa {{withMuscle}}, wenn du zusätzlich {{leanGain}} fettfreie Masse aufbaust.",
+      "bodyFatBelowSustainable": "Das liegt unter dem, was langfristig typischerweise nachhaltig ist.",
       "progressStartLabel": "Fortschritt zählt ab",
       "progressStartHint": "Optional. Leer = ältester Gewichtseintrag. Beim ersten Setzen startet die Auswahl bei heute.",
       "progressStartEmpty": "Nicht gesetzt",

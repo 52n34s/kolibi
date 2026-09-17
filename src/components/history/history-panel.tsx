@@ -4,12 +4,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
+import { Swipeable } from 'react-native-gesture-handler';
 
 import { CalorieBarChart } from '@/components/history/calorie-bar-chart';
 import { WeightLineChart } from '@/components/history/weight-line-chart';
@@ -23,26 +26,73 @@ import {
 import { SupplementHistorySection } from '@/components/supplements/SupplementHistorySection';
 import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
 import { useHistory } from '@/hooks/use-history';
+import {
+  useBalanceSupplementHistory,
+  useTopContributingFoods,
+} from '@/hooks/use-history-balance';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
+import { useObservedEnergy } from '@/hooks/use-observed-energy';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
+import { applyObservedMaintenanceToCalorieGoal } from '@/lib/observed-energy-data';
+import {
+  getObservedPromptDismissedUntil,
+  setObservedPromptDismissedUntil,
+} from '@/lib/observed-energy-prompt-storage';
+import {
+  observedPromptDismissedUntil,
+  shouldOfferObservedGoalUpdate,
+} from '@/lib/observed-energy';
+import type { GoalType } from '@/lib/calorie-goal-math';
 import {
   buildHistorySummaryStats,
   countWeighDaysInLastMonth,
   filterWeightLogsInRange,
+  getLatestWeightKg,
+  getLatestWaistCm,
   getTrendWeightKg,
+  waistChangeInRange,
+  weighSpanDaysInLastMonth,
   weightChangeInRange,
   type HistoryRangeDays,
 } from '@/lib/history';
 import {
+  computeBodyFatChangeSummary,
+  formatBodyFatDeltaPp,
+  formatBodyFatPct,
+} from '@/lib/body-fat-logs';
+import {
+  accuracyFromProteinDistributionDays,
+  accuracyFromTrackedDays,
+  accuracyFromWeighIns,
+  computeBalanceStats,
+  computeBalanceSummaryHeadline,
+  computeProteinDistributionStats,
+  formatBalanceAccuracyValue,
+  pickBalanceAccuracyHint,
+} from '@/lib/history-balance';
+import {
+  MacroEmpfehlungsZiel,
+  mapProfileGoalToEmpfehlungsZiel,
+} from '@/lib/macro-recommendations';
+import { resolveProteinRefKg } from '@/lib/macro-rules';
+import {
+  calculateTargetWeightForecast,
+  type TargetWeightForecastInput,
+} from '@/lib/target-weight-forecast';
+import {
   calculateMaintenanceCalories,
+  GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK,
+  KCAL_PER_KG_BODY_WEIGHT,
   resolveCalorieSource,
 } from '@/lib/onboarding';
 import {
+  computeWeeklyTrendWeightChangePercent,
   resolveGoalDirectionFromCalories,
   type WeightGoalEtaInput,
 } from '@/lib/weight-goal-eta';
 import { formatWeightForDisplay } from '@/lib/weight-logs';
+import { formatWaistDeltaForDisplay, formatWaistForDisplay } from '@/lib/waist-logs';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
@@ -57,17 +107,76 @@ function formatDayNumber(dateKey: string): string {
   return String(parseDateOnly(dateKey).getDate());
 }
 
+function formatPercent(value: number, locale: string): string {
+  return value.toLocaleString(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+function formatDecimal(value: number, locale: string, minimumFractionDigits = 0): string {
+  return value.toLocaleString(locale, {
+    minimumFractionDigits,
+    maximumFractionDigits: 1,
+  });
+}
+
+const CALORIE_DIRECTION_DEAD_ZONE = 0.03;
+
+function deriveRateFromCalorieTarget(params: {
+  dailyCalorieGoal: number | null;
+  maintenanceCalories: number | null;
+  currentWeightKg: number;
+}): { direction: 'loss' | 'gain'; plannedPercent: number } | null {
+  if (
+    params.dailyCalorieGoal == null ||
+    params.maintenanceCalories == null ||
+    !(params.maintenanceCalories > 0)
+  ) {
+    return null;
+  }
+
+  const relativeDifference =
+    (params.maintenanceCalories - params.dailyCalorieGoal) / params.maintenanceCalories;
+  if (Math.abs(relativeDifference) <= CALORIE_DIRECTION_DEAD_ZONE) {
+    return null;
+  }
+
+  return {
+    direction: relativeDifference > 0 ? 'loss' : 'gain',
+    plannedPercent:
+      (Math.abs(params.maintenanceCalories - params.dailyCalorieGoal) * 7 * 100) /
+      (KCAL_PER_KG_BODY_WEIGHT * params.currentWeightKg),
+  };
+}
+
 export function HistoryPanel() {
   const { t, i18n } = useTranslation();
   const { width: windowWidth } = useWindowDimensions();
+  const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [rangeDays, setRangeDays] = useState<HistoryRangeDays>(7);
+  const [observedDismissedUntil, setObservedDismissedUntilState] = useState<string | null>(
+    () => getObservedPromptDismissedUntil(),
+  );
+  const [isApplyingObserved, setIsApplyingObserved] = useState(false);
   const { data, isLoading, isError, error } = useHistory(userId, rangeDays);
+  const { data: balanceData } = useHistory(userId, 7);
   const { data: profileSettings } = useProfileSettings(userId);
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
+  const profile = profileSettings?.profile;
+  const { data: observedEnergy } = useObservedEnergy({
+    userId,
+    biologicalSex: profile?.biological_sex,
+    birthDate: profile?.birth_date,
+    heightCm: profile?.height_cm,
+    weightKg: profile?.latest_weight_kg,
+    activityLevel: profile?.activity_level,
+    healthConnected: healthConnectedPreference === true,
+  });
 
   const chartWidth = windowWidth - 48;
   const todayKey = localDateKey();
@@ -79,6 +188,10 @@ export function HistoryPanel() {
   const summary = useMemo(
     () => (data ? buildHistorySummaryStats(data.days, todayKey) : null),
     [data, todayKey],
+  );
+  const balanceSummary = useMemo(
+    () => (balanceData ? buildHistorySummaryStats(balanceData.days, todayKey) : null),
+    [balanceData, todayKey],
   );
 
   const summaryRows = useMemo((): HomeProgressRowItem[] => {
@@ -153,22 +266,58 @@ export function HistoryPanel() {
     );
   }, [data]);
 
-  const trendWeightKg = useMemo(
-    () => getTrendWeightKg(weightLogsInRange),
-    [weightLogsInRange],
-  );
-
-  const trendWeightLabel = useMemo(() => {
-    if (trendWeightKg == null) {
+  const latestWeightLog = useMemo(() => {
+    const logs = data?.weightLogs ?? [];
+    if (logs.length === 0) {
       return null;
     }
-    return formatWeightForDisplay({
+    return logs[logs.length - 1]!;
+  }, [data?.weightLogs]);
+
+  const latestWeightInRange = useMemo(() => {
+    if (latestWeightLog == null || !data?.days.length) {
+      return false;
+    }
+    const key = localDateKey(new Date(latestWeightLog.logged_at));
+    return key >= data.days[0]!.date && key <= data.days[data.days.length - 1]!.date;
+  }, [data?.days, latestWeightLog]);
+
+  const trendWeightKg = useMemo(() => {
+    const inRange = getTrendWeightKg(weightLogsInRange);
+    if (inRange != null) {
+      return inRange;
+    }
+    return latestWeightLog?.weight_kg ?? null;
+  }, [latestWeightLog, weightLogsInRange]);
+
+  const trendWeightLabel = useMemo(() => {
+    if (trendWeightKg == null || latestWeightLog == null) {
+      return null;
+    }
+    const weight = formatWeightForDisplay({
       weightKg: trendWeightKg,
       unitSystem,
       kgLabel: t('onboarding.units.kg'),
       lbsLabel: t('onboarding.units.lbs'),
     });
-  }, [t, trendWeightKg, unitSystem]);
+    if (latestWeightInRange && weightLogsInRange.length > 0) {
+      return weight;
+    }
+    const loggedAt = new Date(latestWeightLog.logged_at);
+    const date = loggedAt.toLocaleDateString(i18n.language, {
+      day: 'numeric',
+      month: 'short',
+    });
+    return t('history.weight.latestDated', { weight, date });
+  }, [
+    i18n.language,
+    latestWeightInRange,
+    latestWeightLog,
+    t,
+    trendWeightKg,
+    unitSystem,
+    weightLogsInRange.length,
+  ]);
 
   const weightChange = useMemo(() => {
     if (!data?.days.length) {
@@ -204,12 +353,747 @@ export function HistoryPanel() {
     [weightLogsInRange],
   );
 
+  const latestWaistCm = useMemo(
+    () => getLatestWaistCm(data?.waistLogs ?? []),
+    [data?.waistLogs],
+  );
+  const waistUnitLabels = useMemo(
+    () => ({
+      cmLabel: t('onboarding.units.cm'),
+      inLabel: t('onboarding.units.in'),
+    }),
+    [t],
+  );
+  const waistLabel = useMemo(
+    () =>
+      latestWaistCm == null
+        ? null
+        : formatWaistForDisplay({
+            waistCm: latestWaistCm,
+            unitSystem,
+            locale: i18n.language,
+            ...waistUnitLabels,
+          }),
+    [i18n.language, latestWaistCm, unitSystem, waistUnitLabels],
+  );
+  const waistChangeLabel = useMemo(() => {
+    if (!data?.days.length) {
+      return null;
+    }
+    const deltaCm = waistChangeInRange(
+      data.waistLogs,
+      data.days[0]!.date,
+      data.days[data.days.length - 1]!.date,
+    );
+    const delta =
+      deltaCm == null
+        ? null
+        : formatWaistDeltaForDisplay({
+            deltaCm,
+            unitSystem,
+            locale: i18n.language,
+            ...waistUnitLabels,
+          });
+    return delta == null
+      ? null
+      : t('history.weight.waistChangeInRange', { delta, days: rangeDays });
+  }, [data, i18n.language, rangeDays, t, unitSystem, waistUnitLabels]);
+
   const targetWeightKg = data?.targetWeightKg ?? null;
+
+  const balanceTargetWeightKg = balanceData?.targetWeightKg ?? null;
+  const balanceCurrentWeightKg = balanceData
+    ? getLatestWeightKg(balanceData.weightLogs)
+    : null;
+
+  const referenceWeightKg = useMemo(() => {
+    if (balanceCurrentWeightKg == null) {
+      return null;
+    }
+    return resolveProteinRefKg({
+      weightKg: balanceCurrentWeightKg,
+      heightCm: profileSettings?.profile?.height_cm ?? null,
+      targetWeightKg: balanceTargetWeightKg,
+    });
+  }, [balanceCurrentWeightKg, balanceTargetWeightKg, profileSettings?.profile?.height_cm]);
+
+  const balanceStats = useMemo(
+    () => (balanceSummary ? computeBalanceStats(balanceSummary, referenceWeightKg) : null),
+    [balanceSummary, referenceWeightKg],
+  );
+  const proteinDistribution = useMemo(
+    () =>
+      balanceData &&
+      (profile?.goal_type === 'lose_weight' ||
+        profile?.goal_type === 'faster_weight_loss' ||
+        profile?.goal_type === 'gain_weight')
+        ? computeProteinDistributionStats(balanceData.meals, referenceWeightKg)
+        : null,
+    [balanceData, profile?.goal_type, referenceWeightKg],
+  );
+
+  const { data: balanceSupplementHistory } = useBalanceSupplementHistory(userId, todayKey);
+
+  const { data: topContributingFoods } = useTopContributingFoods(
+    userId,
+    balanceStats?.deviatingNutrient ?? null,
+    i18n.language,
+  );
 
   const weighDaysLastMonth = useMemo(
     () => (data ? countWeighDaysInLastMonth(data.weightLogs) : 0),
     [data],
   );
+  const weighSpanLastMonth = useMemo(
+    () => (data ? weighSpanDaysInLastMonth(data.weightLogs) : 0),
+    [data],
+  );
+  const weighAccuracy = useMemo(
+    () =>
+      accuracyFromWeighIns({
+        weighDayCount: weighDaysLastMonth,
+        spanDays: weighSpanLastMonth,
+      }),
+    [weighDaysLastMonth, weighSpanLastMonth],
+  );
+  const macroAccuracy = useMemo(
+    () => accuracyFromTrackedDays(balanceSummary?.loggedDays ?? 0),
+    [balanceSummary?.loggedDays],
+  );
+
+  const dailyCalorieGoal = profile?.daily_calorie_goal ?? null;
+  const weeklyWeightTrend = useMemo(
+    () =>
+      data?.weightLogs.length
+        ? computeWeeklyTrendWeightChangePercent(
+            data.weightLogs.map((entry) => ({
+              weightKg: entry.weight_kg,
+              loggedAt: entry.logged_at,
+            })),
+          )
+        : null,
+    [data?.weightLogs],
+  );
+  const maintenanceCalories = useMemo(() => {
+    const currentWeightKg = weeklyWeightTrend?.currentWeightKg ?? trendWeightKg;
+    if (
+      !profile?.birth_date ||
+      !profile.activity_level ||
+      !profile.height_cm ||
+      currentWeightKg == null
+    ) {
+      return null;
+    }
+
+    try {
+      const observedReady = observedEnergy?.status === 'ready';
+      return calculateMaintenanceCalories({
+        biologicalSex: profile.biological_sex ?? 'prefer_not_to_say',
+        birthDate: parseDateOnly(profile.birth_date),
+        heightCm: profile.height_cm,
+        weightKg: currentWeightKg,
+        activityLevel: profile.activity_level,
+        calorieSource: resolveCalorieSource(healthConnectedPreference === true, {
+          observedReady,
+        }),
+        observedMaintenanceKcal:
+          observedReady && observedEnergy.status === 'ready'
+            ? observedEnergy.observedKcal
+            : undefined,
+      });
+    } catch {
+      return null;
+    }
+  }, [
+    healthConnectedPreference,
+    observedEnergy,
+    profile,
+    trendWeightKg,
+    weeklyWeightTrend?.currentWeightKg,
+  ]);
+
+  const estimatedMaintenanceKcal = useMemo(() => {
+    const currentWeightKg = weeklyWeightTrend?.currentWeightKg ?? trendWeightKg;
+    if (
+      !profile?.birth_date ||
+      !profile.activity_level ||
+      !profile.height_cm ||
+      currentWeightKg == null
+    ) {
+      return null;
+    }
+    try {
+      // Compare against the BMR-based source still in force (not OBSERVED).
+      return calculateMaintenanceCalories({
+        biologicalSex: profile.biological_sex ?? 'prefer_not_to_say',
+        birthDate: parseDateOnly(profile.birth_date),
+        heightCm: profile.height_cm,
+        weightKg: currentWeightKg,
+        activityLevel: profile.activity_level,
+        calorieSource: resolveCalorieSource(healthConnectedPreference === true),
+      });
+    } catch {
+      return null;
+    }
+  }, [
+    healthConnectedPreference,
+    profile,
+    trendWeightKg,
+    weeklyWeightTrend?.currentWeightKg,
+  ]);
+
+  const showObservedUpdatePrompt = useMemo(() => {
+    if (
+      observedEnergy == null ||
+      observedEnergy.status === 'insufficient' ||
+      estimatedMaintenanceKcal == null
+    ) {
+      return false;
+    }
+    return shouldOfferObservedGoalUpdate({
+      status: observedEnergy.status,
+      observedKcal: observedEnergy.observedKcal,
+      currentMaintenanceKcal: estimatedMaintenanceKcal,
+      calorieGoalSource: profile?.calorie_goal_source,
+      dismissedUntil: observedDismissedUntil,
+    });
+  }, [estimatedMaintenanceKcal, observedDismissedUntil, observedEnergy, profile?.calorie_goal_source]);
+
+  const showObservedInfoLine = useMemo(() => {
+    if (observedEnergy == null || observedEnergy.status === 'insufficient') {
+      return false;
+    }
+    // Info without CTA: rough, or custom source, or dismissed / small delta.
+    return !showObservedUpdatePrompt;
+  }, [observedEnergy, showObservedUpdatePrompt]);
+
+  function dismissObservedPrompt() {
+    const until = observedPromptDismissedUntil();
+    setObservedPromptDismissedUntil(until);
+    setObservedDismissedUntilState(until);
+  }
+
+  async function acceptObservedPrompt() {
+    if (
+      !userId ||
+      observedEnergy == null ||
+      observedEnergy.status !== 'ready' ||
+      profile?.latest_weight_kg == null ||
+      !profile.goal_type ||
+      profile.goal_type === 'custom'
+    ) {
+      return;
+    }
+
+    setIsApplyingObserved(true);
+    try {
+      await applyObservedMaintenanceToCalorieGoal({
+        userId,
+        observedKcal: observedEnergy.observedKcal,
+        weightKg: profile.latest_weight_kg,
+        goalType: profile.goal_type as Exclude<GoalType, 'custom'>,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['macro-goal-editor', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['history', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['observed-energy', userId] });
+      dismissObservedPrompt();
+    } catch (applyError) {
+      console.error('[History] observed goal apply failed:', applyError);
+      Alert.alert(t('settings.errors.title'), t('history.observed.applyFailed'));
+    } finally {
+      setIsApplyingObserved(false);
+    }
+  }
+
+  const balanceTargetForecastInput = useMemo((): TargetWeightForecastInput => {
+    return {
+      currentWeightKg: balanceCurrentWeightKg,
+      targetWeightKg: balanceTargetWeightKg,
+      dailyCalorieGoal,
+      biologicalSex: profile?.biological_sex ?? 'prefer_not_to_say',
+      birthDate: profile?.birth_date ? parseDateOnly(profile.birth_date) : null,
+      heightCm: profile?.height_cm ?? null,
+      activityLevel: profile?.activity_level ?? null,
+      calorieSource: resolveCalorieSource(healthConnectedPreference === true, {
+        observedReady: observedEnergy?.status === 'ready',
+      }),
+      observedMaintenanceKcal:
+        observedEnergy?.status === 'ready' ? observedEnergy.observedKcal : undefined,
+      goalType: profile?.goal_type ?? null,
+      macroGoalProfile:
+        mapProfileGoalToEmpfehlungsZiel(profile?.goal_type) ===
+        MacroEmpfehlungsZiel.MUSKELAUFBAU
+          ? 'muscle'
+          : null,
+      weighDaysLast30: weighDaysLastMonth,
+    };
+  }, [
+    balanceCurrentWeightKg,
+    balanceTargetWeightKg,
+    dailyCalorieGoal,
+    healthConnectedPreference,
+    observedEnergy,
+    profile,
+    weighDaysLastMonth,
+  ]);
+  const balanceTargetForecast = useMemo(
+    () => calculateTargetWeightForecast(balanceTargetForecastInput),
+    [balanceTargetForecastInput],
+  );
+
+  const balanceWeightRate = useMemo(() => {
+    if (profile?.goal_type == null || profile.goal_type === 'maintain') {
+      return null;
+    }
+
+    let direction: 'loss' | 'gain' | null = null;
+    let plannedPercent: number | null = null;
+    switch (profile.goal_type) {
+      case 'lose_weight':
+      case 'faster_weight_loss':
+      case 'gain_weight':
+        direction = profile.goal_type === 'gain_weight' ? 'gain' : 'loss';
+        plannedPercent = GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK[profile.goal_type];
+        break;
+      case 'endurance': {
+        if (!weeklyWeightTrend) {
+          return null;
+        }
+        const derived = deriveRateFromCalorieTarget({
+          dailyCalorieGoal,
+          maintenanceCalories,
+          currentWeightKg: weeklyWeightTrend.currentWeightKg,
+        });
+        if (derived == null) {
+          return null;
+        }
+        direction = derived.direction;
+        plannedPercent = derived.plannedPercent;
+        break;
+      }
+      default:
+        return null;
+    }
+
+    if (
+      weighAccuracy === 'unavailable' ||
+      !weeklyWeightTrend ||
+      plannedPercent == null ||
+      !(plannedPercent > 0) ||
+      direction == null
+    ) {
+      return null;
+    }
+
+    const actualPercent =
+      weeklyWeightTrend.weeklyChangePercent * (direction === 'loss' ? -1 : 1);
+    return {
+      direction,
+      actualPercent,
+      plannedPercent,
+      onPlan:
+        actualPercent >= plannedPercent * 0.7 && actualPercent <= plannedPercent * 1.3,
+      accuracy: weighAccuracy,
+    };
+  }, [
+    dailyCalorieGoal,
+    maintenanceCalories,
+    profile?.goal_type,
+    weighAccuracy,
+    weeklyWeightTrend,
+  ]);
+
+  const targetDateDeviation = useMemo(() => {
+    if (
+      balanceTargetForecast.status !== 'ok' ||
+      !balanceSummary ||
+      balanceSummary.loggedDays < 5 ||
+      balanceSummary.calorieAvg == null ||
+      balanceSummary.calorieGoalAvg == null ||
+      !(balanceSummary.calorieGoalAvg > 0) ||
+      Math.abs(balanceSummary.calorieAvg - balanceSummary.calorieGoalAvg) /
+        balanceSummary.calorieGoalAvg <=
+        0.1
+    ) {
+      return null;
+    }
+
+    const actualForecast = calculateTargetWeightForecast({
+      ...balanceTargetForecastInput,
+      dailyCalorieGoal: balanceSummary.calorieAvg,
+    });
+    if (actualForecast.status !== 'ok') {
+      return null;
+    }
+
+    const differenceWeeks = actualForecast.weeks - balanceTargetForecast.weeks;
+    if (differenceWeeks === 0) {
+      return null;
+    }
+
+    return {
+      direction: differenceWeeks > 0 ? 'later' : 'earlier',
+      weeks: Math.max(1, Math.round(Math.abs(differenceWeeks))),
+    };
+  }, [balanceSummary, balanceTargetForecast, balanceTargetForecastInput]);
+
+  const balanceRows = useMemo((): HomeProgressRowItem[] => {
+    if (!balanceStats) {
+      return [];
+    }
+
+    const withMacroAccuracy = (raw: string) => formatBalanceAccuracyValue(raw, macroAccuracy);
+
+    const proteinRaw =
+      macroAccuracy === 'unavailable' || !balanceStats.proteinHasData
+        ? '—'
+        : !balanceStats.proteinOk
+          ? t('history.balance.protein.below', {
+              amount: Math.round(Math.abs(balanceStats.proteinDeltaG ?? 0)),
+            })
+          : balanceStats.proteinAboveGoal
+            ? t('history.balance.protein.above')
+            : '✓';
+    const proteinFormatted = withMacroAccuracy(proteinRaw);
+
+    const fiberRaw =
+      macroAccuracy === 'unavailable' || !balanceStats.fiberHasData
+        ? '—'
+        : balanceStats.fiberOk
+          ? '✓'
+          : t('history.balance.fiber.below', {
+              amount: Math.round(Math.abs(balanceStats.fiberDeltaG ?? 0)),
+            });
+    const fiberFormatted = withMacroAccuracy(fiberRaw);
+
+    const fatRaw =
+      macroAccuracy === 'unavailable' || !balanceStats.fatHasData
+        ? '—'
+        : balanceStats.fatBelowFloor
+          ? t('history.balance.fat.belowFloor')
+          : balanceStats.fatOverGoal
+            ? t('history.balance.fat.above', {
+                amount: Math.round(balanceStats.fatDeltaG ?? 0),
+              })
+            : '✓';
+    const fatFormatted = withMacroAccuracy(fatRaw);
+
+    const carbsRaw =
+      macroAccuracy === 'unavailable' || !balanceStats.carbsHasData
+        ? '—'
+        : balanceStats.carbsOk
+          ? '✓'
+          : t('history.balance.carbs.above', {
+              amount: Math.round(balanceStats.carbsDeltaG ?? 0),
+            });
+    const carbsFormatted = withMacroAccuracy(carbsRaw);
+
+    const supplementRows = (balanceSupplementHistory ?? [])
+      .map((supplement, index) => {
+        const dueDays = supplement.days.filter((day) => day.is_due);
+        if (dueDays.length === 0) {
+          return null;
+        }
+        const takenDays = dueDays.filter((day) => day.taken).length;
+        const fullyTaken = takenDays === dueDays.length;
+        return {
+          key: `balance-supplement-${supplement.supplement_id}`,
+          label: supplement.name,
+          actual: null,
+          goal: null,
+          dividerAbove: index === 0,
+          valueFullWidth: true,
+          valueOverride: fullyTaken
+            ? t('history.balance.supplements.complete')
+            : t('history.balance.supplements.progress', {
+                taken: takenDays,
+                due: dueDays.length,
+              }),
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row != null)
+      .map((row, index) => (index === 0 ? { ...row, dividerAbove: true } : { ...row, dividerAbove: false }));
+
+    const proteinDistAccuracy = accuracyFromProteinDistributionDays(
+      proteinDistribution?.trackedDays ?? 0,
+    );
+    const proteinDistributionRow: HomeProgressRowItem[] = proteinDistribution
+      ? [
+          (() => {
+            const raw =
+              proteinDistAccuracy === 'unavailable'
+                ? '—'
+                : t(
+                    proteinDistribution.averageMealsAtThreshold >= 3
+                      ? 'history.balance.proteinDistribution.valueOnTarget'
+                      : 'history.balance.proteinDistribution.value',
+                    {
+                      hits: formatDecimal(
+                        proteinDistribution.averageMealsAtThreshold,
+                        i18n.language,
+                        1,
+                      ),
+                      meals: formatDecimal(
+                        proteinDistribution.averageMealCount,
+                        i18n.language,
+                      ),
+                      threshold: proteinDistribution.thresholdG,
+                    },
+                  );
+            const formatted = formatBalanceAccuracyValue(raw, proteinDistAccuracy);
+            return {
+              key: 'balance-protein-distribution',
+              label: t('history.balance.proteinDistribution.label'),
+              actual: null,
+              goal: null,
+              valueFullWidth: true,
+              valueOverride: formatted.text,
+              valueTone: formatted.tone,
+            };
+          })(),
+        ]
+      : [];
+
+    const weightRateRow: HomeProgressRowItem[] = balanceWeightRate
+      ? [
+          (() => {
+            const labelKey =
+              balanceWeightRate.direction === 'gain'
+                ? 'gain'
+                : 'loss';
+            const raw = t(
+              balanceWeightRate.onPlan
+                ? 'history.balance.weightRate.valueOnPlan'
+                : 'history.balance.weightRate.value',
+              {
+                actual: formatPercent(balanceWeightRate.actualPercent, i18n.language),
+                planned: formatPercent(balanceWeightRate.plannedPercent, i18n.language),
+              },
+            );
+            const formatted = formatBalanceAccuracyValue(raw, balanceWeightRate.accuracy);
+            return {
+              key: 'balance-weight-rate',
+              label: t(`history.balance.weightRate.${labelKey}`),
+              actual: null,
+              goal: null,
+              valueFullWidth: true,
+              valueOverride: formatted.text,
+              valueTone: formatted.tone,
+            };
+          })(),
+        ]
+      : [];
+
+    const targetDateDeviationRow: HomeProgressRowItem[] = targetDateDeviation
+      ? [
+          {
+            key: 'balance-target-date-deviation',
+            label: t('history.balance.targetDateDeviation.label'),
+            actual: null,
+            goal: null,
+            valueFullWidth: true,
+            valueOverride: t(
+              `history.balance.targetDateDeviation.${targetDateDeviation.direction}`,
+              { weeks: targetDateDeviation.weeks },
+            ),
+          },
+        ]
+      : [];
+
+    const macroRows: HomeProgressRowItem[] = [
+      {
+        key: 'balance-protein',
+        label: t('history.summary.protein'),
+        actual: null,
+        goal: null,
+        valueFullWidth: true,
+        valueOverride: proteinFormatted.text,
+        valueTone: proteinFormatted.tone,
+      },
+      {
+        key: 'balance-fiber',
+        label: t('history.summary.fiber'),
+        actual: null,
+        goal: null,
+        valueFullWidth: true,
+        valueOverride: fiberFormatted.text,
+        valueTone: fiberFormatted.tone,
+      },
+      {
+        key: 'balance-fat',
+        label: t('history.summary.fat'),
+        actual: null,
+        goal: null,
+        valueFullWidth: true,
+        valueOverride: fatFormatted.text,
+        valueTone: fatFormatted.tone,
+      },
+      {
+        key: 'balance-carbs',
+        label: t('history.summary.carbs'),
+        actual: null,
+        goal: null,
+        valueFullWidth: true,
+        valueOverride: carbsFormatted.text,
+        valueTone: carbsFormatted.tone,
+      },
+    ].filter((row) => row.valueOverride !== '—' && row.valueOverride !== '–');
+
+    return [
+      ...macroRows,
+      ...supplementRows,
+      ...proteinDistributionRow,
+      ...weightRateRow,
+      ...targetDateDeviationRow,
+    ];
+  }, [
+    balanceStats,
+    balanceSupplementHistory,
+    balanceWeightRate,
+    i18n.language,
+    macroAccuracy,
+    proteinDistribution,
+    t,
+    targetDateDeviation,
+  ]);
+
+  // Show when a calorie goal exists and at least two rows have content — goal_type
+  // is not required (rate / protein-distribution already omit themselves without it).
+  const showBalanceCard =
+    profile?.daily_calorie_goal != null &&
+    balanceSummary != null &&
+    balanceSummary.loggedDays >= 2 &&
+    balanceRows.length >= 2;
+
+  const balanceAccuracyHint = useMemo(() => {
+    const hint = pickBalanceAccuracyHint({
+      weighIns: balanceWeightRate
+        ? { accuracy: balanceWeightRate.accuracy, count: weighDaysLastMonth }
+        : null,
+      trackedDays: {
+        accuracy: macroAccuracy,
+        count: balanceSummary?.loggedDays ?? 0,
+      },
+      proteinDistribution: proteinDistribution
+        ? {
+            accuracy: accuracyFromProteinDistributionDays(proteinDistribution.trackedDays),
+            count: proteinDistribution.trackedDays,
+          }
+        : null,
+    });
+    if (!hint) {
+      return null;
+    }
+    if (hint.kind === 'weigh_ins') {
+      return t('history.balance.accuracyHint.weighIns', { count: hint.count });
+    }
+    return t('history.balance.accuracyHint.trackedDays', { count: hint.count });
+  }, [
+    balanceSummary?.loggedDays,
+    balanceWeightRate,
+    macroAccuracy,
+    proteinDistribution,
+    t,
+    weighDaysLastMonth,
+  ]);
+
+  const topFoodsLine = useMemo(() => {
+    if (!balanceStats?.deviatingNutrient || !topContributingFoods?.length) {
+      return null;
+    }
+    return t('history.balance.topFoods', {
+      foods: topContributingFoods.map((food) => food.name).join(' · '),
+    });
+  }, [balanceStats?.deviatingNutrient, t, topContributingFoods]);
+
+  const balanceTipLine = balanceAccuracyHint
+    ? balanceAccuracyHint
+    : balanceStats?.allOk
+      ? t('history.balance.allOk')
+      : topFoodsLine;
+
+  const balanceSummaryHeadline = useMemo(() => {
+    if (!showBalanceCard || !balanceSummary) {
+      return null;
+    }
+    const headline = computeBalanceSummaryHeadline({
+      summary: balanceSummary,
+      referenceWeightKg,
+      macroAccuracy,
+    });
+    if (headline == null) {
+      return null;
+    }
+    if (headline.kind === 'on_track') {
+      return t('history.balance.summary.onTrack');
+    }
+    const nutrient = t(`history.balance.summary.nutrient.${headline.nutrient}`);
+    if (headline.kind === 'small') {
+      return t(
+        headline.direction === 'under'
+          ? 'history.balance.summary.smallUnder'
+          : 'history.balance.summary.smallOver',
+        { amount: headline.amountG, nutrient },
+      );
+    }
+    return t(
+      headline.direction === 'under'
+        ? `history.balance.summary.largeUnder.${headline.nutrient}`
+        : `history.balance.summary.largeOver.${headline.nutrient}`,
+      { amount: headline.amountG },
+    );
+  }, [balanceSummary, macroAccuracy, referenceWeightKg, showBalanceCard, t]);
+
+  const bodyFatChangeLines = useMemo(() => {
+    if (!data?.bodyFatLogs?.length) {
+      return null;
+    }
+    const summary = computeBodyFatChangeSummary({
+      bodyFatLogs: data.bodyFatLogs,
+      weightLogs: data.weightLogs,
+    });
+    if (summary == null) {
+      return null;
+    }
+
+    const changeLine = formatBalanceAccuracyValue(
+      t('history.balance.bodyFat.change', {
+        delta: formatBodyFatDeltaPp(summary.deltaPp, i18n.language),
+        days: summary.spanDays,
+        current: formatBodyFatPct(summary.currentPct, i18n.language),
+      }),
+      'rough',
+    );
+
+    let compositionLine: { text: string; tone: 'default' | 'secondary' } | null = null;
+    if (summary.weightDeltaKg != null && summary.fatMassDeltaKg != null) {
+      const weightAbs = Math.abs(summary.weightDeltaKg);
+      const weightFormatted = formatWeightForDisplay({
+        weightKg: weightAbs,
+        unitSystem,
+        kgLabel: t('onboarding.units.kg'),
+        lbsLabel: t('onboarding.units.lbs'),
+      });
+      const signedWeight = `${summary.weightDeltaKg > 0 ? '+' : summary.weightDeltaKg < 0 ? '−' : ''}${weightFormatted}`;
+      const fatFormatted = formatWeightForDisplay({
+        weightKg: Math.abs(summary.fatMassDeltaKg),
+        unitSystem,
+        kgLabel: t('onboarding.units.kg'),
+        lbsLabel: t('onboarding.units.lbs'),
+      });
+      compositionLine = formatBalanceAccuracyValue(
+        t('history.balance.bodyFat.composition', {
+          weightDelta: signedWeight,
+          fatMass: fatFormatted,
+        }),
+        'rough',
+      );
+    }
+
+    return { changeLine, compositionLine };
+  }, [data?.bodyFatLogs, data?.weightLogs, i18n.language, t, unitSystem]);
 
   const historyWeightEtaInput = useMemo((): WeightGoalEtaInput | null => {
     if (weighDaysLastMonth < 8) {
@@ -217,30 +1101,6 @@ export function HistoryPanel() {
     }
     if (targetWeightKg == null || !(targetWeightKg > 0) || !data?.weightLogs?.length) {
       return null;
-    }
-
-    const profile = profileSettings?.profile;
-    let maintenanceCalories: number | null = null;
-    const dailyCalorieGoal = profileSettings?.profile?.daily_calorie_goal ?? null;
-
-    if (
-      profile?.birth_date &&
-      profile.activity_level &&
-      profile.height_cm &&
-      trendWeightKg != null
-    ) {
-      try {
-        maintenanceCalories = calculateMaintenanceCalories({
-          biologicalSex: profile.biological_sex ?? 'prefer_not_to_say',
-          birthDate: parseDateOnly(profile.birth_date),
-          heightCm: profile.height_cm,
-          weightKg: trendWeightKg,
-          activityLevel: profile.activity_level,
-          calorieSource: resolveCalorieSource(healthConnectedPreference === true),
-        });
-      } catch {
-        maintenanceCalories = null;
-      }
     }
 
     const direction =
@@ -273,8 +1133,9 @@ export function HistoryPanel() {
     };
   }, [
     data?.weightLogs,
-    healthConnectedPreference,
-    profileSettings?.profile,
+    dailyCalorieGoal,
+    maintenanceCalories,
+    profile?.goal_type,
     targetWeightKg,
     trendWeightKg,
     weighDaysLastMonth,
@@ -306,7 +1167,8 @@ export function HistoryPanel() {
     [data?.days],
   );
 
-  const hasWeightData = weightValues.length > 0;
+  const hasWeightData = latestWeightLog != null;
+  const hasWeightChartData = weightValues.length > 0;
   const hasCalorieData = calorieValues.some((value) => value > 0);
 
   function openDayDetail(index: number) {
@@ -338,7 +1200,7 @@ export function HistoryPanel() {
   return (
     <ScrollView
       className="flex-1 px-6"
-      contentContainerStyle={{ paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}>
       <View className="mb-5">
         <PillSegmentSwitcher
@@ -351,6 +1213,81 @@ export function HistoryPanel() {
           ]}
         />
       </View>
+
+      {showObservedUpdatePrompt &&
+      observedEnergy &&
+      observedEnergy.status === 'ready' &&
+      estimatedMaintenanceKcal != null ? (
+        <ObservedExpenditurePrompt
+          observedKcal={observedEnergy.observedKcal}
+          estimatedKcal={estimatedMaintenanceKcal}
+          isApplying={isApplyingObserved}
+          onAccept={() => void acceptObservedPrompt()}
+          onDismiss={dismissObservedPrompt}
+        />
+      ) : showObservedInfoLine &&
+        observedEnergy &&
+        observedEnergy.status !== 'insufficient' ? (
+        <Text className="mb-6 text-sm leading-5 text-gray-500">
+          {t('history.observed.info', {
+            observed: formatKcal(observedEnergy.observedKcal),
+          })}
+        </Text>
+      ) : null}
+
+      {showBalanceCard ? (
+        <>
+          {balanceSummaryHeadline ? (
+            <View
+              style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
+              className="mb-8">
+              <View className="px-5 py-5">
+                <Text className="text-base font-medium leading-6 text-gray-900">
+                  {balanceSummaryHeadline}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+          <Text className="mb-3 text-lg font-semibold text-gray-900">
+            {t('history.balance.title')}
+          </Text>
+          <View
+            style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
+            className="mb-8">
+            <View className="px-5 py-5">
+              <HomeProgressRows rows={balanceRows} />
+              {bodyFatChangeLines ? (
+                <View className="mt-4 gap-1">
+                  <Text
+                    className={`text-sm ${
+                      bodyFatChangeLines.changeLine.tone === 'secondary'
+                        ? 'text-gray-400'
+                        : 'text-gray-600'
+                    }`}>
+                    {bodyFatChangeLines.changeLine.text}
+                  </Text>
+                  {bodyFatChangeLines.compositionLine ? (
+                    <Text
+                      className={`text-sm ${
+                        bodyFatChangeLines.compositionLine.tone === 'secondary'
+                          ? 'text-gray-400'
+                          : 'text-gray-600'
+                      }`}>
+                      {bodyFatChangeLines.compositionLine.text}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
+              {balanceTipLine ? (
+                <Text className="mt-4 text-sm text-gray-500">{balanceTipLine}</Text>
+              ) : null}
+              <Text className="mt-4 text-xs text-gray-400">
+                {t('history.balance.disclaimer')}
+              </Text>
+            </View>
+          </View>
+        </>
+      ) : null}
 
       <Text className="mb-3 text-lg font-semibold text-gray-900">
         {t('history.summary.sectionTitle')}
@@ -444,11 +1381,16 @@ export function HistoryPanel() {
         <View className="px-4 py-5">
           {hasWeightData && trendWeightLabel != null ? (
             <>
-              <Text className="text-sm text-gray-500">{t('history.weight.trendLabel')}</Text>
+              <Text className="text-sm text-gray-500">
+                {hasWeightChartData
+                  ? t('history.weight.trendLabel')
+                  : t('history.weight.currentLabel')}
+              </Text>
               <Text className="mt-1 text-2xl font-bold text-[#4F46E5]">{trendWeightLabel}</Text>
               {weightChangeLabel ? (
                 <Text className="mt-1 text-sm text-gray-500">{weightChangeLabel}</Text>
               ) : null}
+              {hasWeightChartData ? (
               <View className="mt-4">
                 <WeightLineChart
                   values={weightValues}
@@ -466,12 +1408,17 @@ export function HistoryPanel() {
                     return `${deltaKg > 0 ? '+' : deltaKg < 0 ? '−' : ''}${formatted}`;
                   }}
                 />
-                {historyWeightEtaInput ? (
+                {weighDaysLastMonth < 8 ? (
+                  <Text className="mt-4 px-1 text-sm text-gray-500">
+                    {t('history.weight.trendNeedsMeasurements')}
+                  </Text>
+                ) : historyWeightEtaInput ? (
                   <View className="mt-4 px-1">
                     <WeightGoalEtaMessage input={historyWeightEtaInput} />
                   </View>
                 ) : null}
               </View>
+              ) : null}
             </>
           ) : (
             <View className="items-center py-6">
@@ -481,6 +1428,20 @@ export function HistoryPanel() {
               </Text>
             </View>
           )}
+          {waistLabel != null ? (
+            <View
+              className={hasWeightData ? 'mt-6 border-t border-gray-200 pt-4' : 'mt-4'}>
+              <View className="flex-row items-start justify-between gap-4">
+                <Text className="text-sm text-gray-500">{t('history.weight.waistLabel')}</Text>
+                <View className="items-end">
+                  <Text className="text-base font-semibold text-gray-900">{waistLabel}</Text>
+                  {waistChangeLabel ? (
+                    <Text className="mt-1 text-sm text-gray-500">{waistChangeLabel}</Text>
+                  ) : null}
+                </View>
+              </View>
+            </View>
+          ) : null}
         </View>
       </View>
 
@@ -488,5 +1449,52 @@ export function HistoryPanel() {
         <SupplementHistorySection userId={userId} rangeDays={rangeDays} />
       ) : null}
     </ScrollView>
+  );
+}
+
+function ObservedExpenditurePrompt(props: {
+  observedKcal: number;
+  estimatedKcal: number;
+  isApplying: boolean;
+  onAccept: () => void;
+  onDismiss: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const observed = Math.round(props.observedKcal).toLocaleString(i18n.language);
+  const estimated = Math.round(props.estimatedKcal).toLocaleString(i18n.language);
+
+  return (
+    <Swipeable
+      overshootFriction={8}
+      onSwipeableOpen={props.onDismiss}
+      renderRightActions={() => <View className="w-4" />}
+      renderLeftActions={() => <View className="w-4" />}>
+      <Pressable
+        accessibilityRole="button"
+        disabled={props.isApplying}
+        onPress={props.onAccept}
+        style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
+        className="mb-6">
+        <View className="flex-row items-start gap-3 px-4 py-4">
+          <View className="min-w-0 flex-1">
+            <Text className="text-[15px] font-medium leading-5 text-gray-900">
+              {t('history.observed.prompt', { observed, estimated })}
+            </Text>
+          </View>
+          {props.isApplying ? (
+            <ActivityIndicator color={ONBOARDING_ACCENT} />
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('settings.common.cancel')}
+              hitSlop={12}
+              onPress={props.onDismiss}
+              className="pt-0.5">
+              <Ionicons name="close" size={20} color="#9CA3AF" />
+            </Pressable>
+          )}
+        </View>
+      </Pressable>
+    </Swipeable>
   );
 }

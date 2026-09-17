@@ -202,6 +202,7 @@ export function calculateMaintenanceCalories(params: {
   weightKg: number;
   activityLevel: ActivityLevel;
   calorieSource: CalorieSource;
+  observedMaintenanceKcal?: number;
 }): number {
   return calculateMaintenanceCaloriesMath(params);
 }

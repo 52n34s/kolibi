@@ -1,38 +1,60 @@
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { QuantityOption } from '@/components/scan/barcode-quantity-utils';
+import type { QuantityOption, QuantityPresetSource } from '@/components/scan/barcode-quantity-utils';
+import { resolveValidServingGrams } from '@/components/scan/barcode-quantity-utils';
 import {
   ONBOARDING_ACCENT,
   ONBOARDING_CARD_COLORS,
   ONBOARDING_SECONDARY_SURFACE,
 } from '@/components/onboarding/onboarding-styles';
 
-const OPTION_LABEL_KEYS: Record<QuantityOption, string> = {
-  whole: 'home.scan.barcode.quantity.wholePackage',
-  half: 'home.scan.barcode.quantity.halfPackage',
-  serving: 'home.scan.barcode.quantity.oneServing',
-  custom: 'home.scan.barcode.quantity.customAmount',
-};
-
 type QuantityPresetPillsProps = {
   options: QuantityOption[];
-  selected: QuantityOption;
+  selected: QuantityOption | null;
+  product: QuantityPresetSource;
   onSelect: (option: QuantityOption) => void;
 };
 
-/** Package / serving / custom presets — shared by the barcode and label flows. */
+function optionLabel(
+  option: QuantityOption,
+  product: QuantityPresetSource,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  switch (option) {
+    case 'whole':
+      return t('home.scan.barcode.quantity.wholePackage');
+    case 'half':
+      return t('home.scan.barcode.quantity.halfPackage');
+    case 'serving': {
+      const grams = resolveValidServingGrams(product.servingSizeGrams, product.quantityGrams);
+      if (grams == null) {
+        return t('home.scan.barcode.quantity.oneServing');
+      }
+      return t('home.scan.barcode.quantity.oneServingWithAmount', { grams });
+    }
+    case 'piece':
+      return t('home.scan.barcode.quantity.onePiece');
+  }
+}
+
+/** Package / serving / piece presets — shared by the barcode and label flows. */
 export function QuantityPresetPills({
   options,
   selected,
+  product,
   onSelect,
 }: QuantityPresetPillsProps) {
   const { t } = useTranslation();
 
+  if (options.length === 0) {
+    return null;
+  }
+
   return (
     <View style={styles.pillWrap}>
       {options.map((option) => {
-        const label = t(OPTION_LABEL_KEYS[option]);
+        const label = optionLabel(option, product, t);
         const isActive = selected === option;
 
         return (

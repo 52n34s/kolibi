@@ -1,4 +1,4 @@
-import { localDateKey } from '@/lib/day-window';
+import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { refreshMacrosKeepingCalorieGoal } from '@/lib/calorie-goals';
 import { supabase } from '@/lib/supabase';
 import type { UnitSystem } from '@/lib/unit-system';
@@ -58,19 +58,31 @@ export async function maybeSeedTargetWeightKg(params: {
   });
 }
 
-export async function upsertTodayWeightLog(params: {
+function loggedAtForDay(loggedOn: string): string {
+  const loggedAt = parseDateOnly(loggedOn);
+  // Keep historical measurements in their own local day when sorted by logged_at.
+  loggedAt.setHours(12, 0, 0, 0);
+  return loggedAt.toISOString();
+}
+
+export async function upsertWeightLog(params: {
   userId: string;
   weightKg: number;
+  loggedOn: string;
   source?: string;
 }) {
-  const now = new Date().toISOString();
-  const loggedOn = localDateKey();
+  if (!(params.weightKg > 0)) {
+    return;
+  }
+
+  const loggedOn = params.loggedOn;
+  const loggedAt = loggedAtForDay(loggedOn);
 
   const { data: updatedRows, error: updateError } = await supabase
     .from('weight_logs')
     .update({
       weight_kg: params.weightKg,
-      logged_at: now,
+      logged_at: loggedAt,
       source: params.source ?? 'manual',
     })
     .eq('user_id', params.userId)
@@ -90,7 +102,7 @@ export async function upsertTodayWeightLog(params: {
   const { error: insertError } = await supabase.from('weight_logs').insert({
     user_id: params.userId,
     weight_kg: params.weightKg,
-    logged_at: now,
+    logged_at: loggedAt,
     logged_on: loggedOn,
     source: params.source ?? 'manual',
   });
@@ -101,6 +113,35 @@ export async function upsertTodayWeightLog(params: {
 
   await maybeSeedTargetWeightKg({ userId: params.userId, weightKg: params.weightKg });
   await refreshMacrosKeepingCalorieGoal(params.userId);
+}
+
+export async function fetchWeightKgForDay(
+  userId: string,
+  loggedOn: string,
+): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('weight_logs')
+    .select('weight_kg')
+    .eq('user_id', userId)
+    .eq('logged_on', loggedOn)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+  if (data?.weight_kg == null) {
+    return null;
+  }
+  const weightKg = Number(data.weight_kg);
+  return Number.isFinite(weightKg) && weightKg > 0 ? weightKg : null;
+}
+
+export async function upsertTodayWeightLog(params: {
+  userId: string;
+  weightKg: number;
+  source?: string;
+}) {
+  return upsertWeightLog({ ...params, loggedOn: localDateKey() });
 }
 
 export function formatWeightForDisplay(params: {

@@ -57,6 +57,8 @@ const productSchema = z
     ingredients_text_es: optionalOffString,
     serving_size: optionalOffString,
     nutriments: nutrimentsSchema.optional(),
+    // Soft-parse: bad OFF values must not fail the whole product.
+    nova_group: z.any().optional(),
   })
   .passthrough();
 
@@ -64,6 +66,9 @@ const openFoodFactsResponseSchema = z.object({
   status: z.coerce.number(),
   product: productSchema.optional(),
 });
+
+export type VeganAnalysisHint = 'vegan' | 'maybe_vegan' | 'non_vegan';
+export type NovaGroup = 1 | 2 | 3 | 4;
 
 export type BarcodeProduct = {
   barcode: string;
@@ -87,6 +92,9 @@ export type BarcodeProduct = {
     vegan: 'labeled' | 'inferred' | 'no' | 'unknown';
     vegetarian: 'labeled' | 'inferred' | 'no' | 'unknown';
   };
+  /** From ingredients_analysis_tags only — null when OFF has no vegan analysis tag. */
+  veganAnalysisHint: VeganAnalysisHint | null;
+  novaGroup: NovaGroup | null;
   ingredientsText: string | null;
 };
 
@@ -147,6 +155,7 @@ export type FoodSearchProduct = {
   servingSizeGrams: number | null;
   servingSizeLabel: string | null;
   category: string | null;
+  novaGroup: NovaGroup | null;
 };
 
 export function barcodeProductToFoodSearchProduct(product: BarcodeProduct): FoodSearchProduct {
@@ -165,6 +174,7 @@ export function barcodeProductToFoodSearchProduct(product: BarcodeProduct): Food
     servingSizeGrams: product.servingSizeGrams,
     servingSizeLabel: product.servingSizeLabel,
     category: null,
+    novaGroup: product.novaGroup,
   };
 }
 
@@ -183,6 +193,7 @@ const searchProductSchema = z
     serving_size: z.string().trim().optional(),
     categories: z.string().trim().optional(),
     nutriments: nutrimentsSchema.optional(),
+    nova_group: z.any().optional(),
   })
   .passthrough();
 
@@ -314,6 +325,7 @@ function mapToFoodSearchProduct(product: z.infer<typeof searchProductSchema>): F
     servingSizeGrams,
     servingSizeLabel,
     category: resolveCategoryLabel(product.categories),
+    novaGroup: resolveNovaGroup(product.nova_group),
   };
 }
 
@@ -460,6 +472,38 @@ function resolveDietStatus(
   return { vegan: resolve('vegan'), vegetarian: resolve('vegetarian') };
 }
 
+/** Analysis-tag vegan hint for UI — no line when OFF has no vegan analysis tag. */
+export function resolveVeganAnalysisHint(
+  analysisTags: string[] | undefined,
+): VeganAnalysisHint | null {
+  if (!analysisTags?.length) {
+    return null;
+  }
+  if (analysisTags.includes('en:non-vegan')) {
+    return 'non_vegan';
+  }
+  if (analysisTags.includes('en:maybe-vegan')) {
+    return 'maybe_vegan';
+  }
+  if (analysisTags.includes('en:vegan')) {
+    return 'vegan';
+  }
+  return null;
+}
+
+export function resolveNovaGroup(value: unknown): NovaGroup | null {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number(value.trim())
+        : NaN;
+  if (parsed === 1 || parsed === 2 || parsed === 3 || parsed === 4) {
+    return parsed;
+  }
+  return null;
+}
+
 function mapToBarcodeProduct(
   barcode: string,
   product: z.infer<typeof productSchema>,
@@ -501,6 +545,8 @@ function mapToBarcodeProduct(
     imageUrl: (product.image_front_small_url ?? product.image_front_url ?? product.image_url ?? null)
       ?.replace(/^http:\/\//, 'https://') ?? null,
     dietStatus: resolveDietStatus(product.labels_tags, product.ingredients_analysis_tags),
+    veganAnalysisHint: resolveVeganAnalysisHint(product.ingredients_analysis_tags),
+    novaGroup: resolveNovaGroup(product.nova_group),
     ingredientsText: ({
       de: product.ingredients_text_de,
       en: product.ingredients_text_en,

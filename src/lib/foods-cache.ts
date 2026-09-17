@@ -29,6 +29,7 @@ type FoodInsertRow = {
   is_countable?: boolean;
   grams_per_unit?: number;
   unit_label?: string;
+  nova_group?: number;
 };
 
 function normalizeFoodName(name: string): string {
@@ -96,6 +97,10 @@ function buildFoodInsertRow(product: FoodSearchProduct, createdBy: string): Food
     row.unit_label = product.servingSizeLabel ?? 'serving';
   }
 
+  if (product.novaGroup != null) {
+    row.nova_group = product.novaGroup;
+  }
+
   return row;
 }
 
@@ -142,6 +147,16 @@ export async function resolveFoodIdForOffProduct(
 
     const existingId = await lookupFoodIdBySourceRef(product.offId, createdBy);
     if (existingId) {
+      if (product.novaGroup != null) {
+        const { error: updateError } = await supabase
+          .from('foods')
+          .update({ nova_group: product.novaGroup })
+          .eq('id', existingId)
+          .is('nova_group', null);
+        if (updateError) {
+          console.error('[FoodsCache] nova_group backfill failed:', updateError);
+        }
+      }
       return existingId;
     }
 

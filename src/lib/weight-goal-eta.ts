@@ -216,6 +216,34 @@ export function theilSenSlopeKgPerDay(points: Point[]): number | null {
   return (slopes[mid - 1]! + slopes[mid]!) / 2;
 }
 
+/**
+ * Actual weekly change from the same trailing-7-day-MA / Theil–Sen trend used
+ * for the weight-goal ETA. Positive values indicate gain, negative loss.
+ */
+export function computeWeeklyTrendWeightChangePercent(
+  logs: WeightEtaLog[],
+  today: Date = new Date(),
+): { weeklyChangePercent: number; currentWeightKg: number } | null {
+  const points = normalizeLogs(logs, startOfLocalDay(today));
+  const smoothed = trailingMovingAverage(points);
+  const slopeKgPerDay = theilSenSlopeKgPerDay(smoothed);
+  const currentWeightKg = smoothed[smoothed.length - 1]?.weightKg ?? null;
+
+  if (
+    slopeKgPerDay == null ||
+    currentWeightKg == null ||
+    !(currentWeightKg > 0) ||
+    !Number.isFinite(slopeKgPerDay)
+  ) {
+    return null;
+  }
+
+  return {
+    weeklyChangePercent: (slopeKgPerDay * 7 * 100) / currentWeightKg,
+    currentWeightKg,
+  };
+}
+
 function spanDays(points: Point[]): number {
   if (points.length < 2) {
     return 0;

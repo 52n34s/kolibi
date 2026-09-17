@@ -1,10 +1,13 @@
 /**
- * Exclusive calorie-goal sources: activity multiplier OR HealthKit active energy — never both.
+ * Exclusive calorie-goal sources: observed expenditure, HealthKit active energy,
+ * or activity multiplier — never combine observed/activity with Health AE.
  * Const object (not TS `enum`) so Node strip-types / unit tests can import this module.
  */
 export const CalorieSource = {
   HEALTH: 'health',
   ACTIVITY_FACTOR: 'activity_factor',
+  /** Measured maintenance from intake + weight change; no active-energy add-on. */
+  OBSERVED: 'observed',
 } as const;
 
 export type CalorieSource = (typeof CalorieSource)[keyof typeof CalorieSource];
@@ -41,7 +44,13 @@ export const GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK = {
   endurance: 0,
 } as const satisfies Record<Exclude<GoalType, 'custom'>, number>;
 
-export function resolveCalorieSource(healthConnected: boolean): CalorieSource {
+export function resolveCalorieSource(
+  healthConnected: boolean,
+  options?: { observedReady?: boolean },
+): CalorieSource {
+  if (options?.observedReady) {
+    return CalorieSource.OBSERVED;
+  }
   return healthConnected ? CalorieSource.HEALTH : CalorieSource.ACTIVITY_FACTOR;
 }
 
@@ -83,6 +92,7 @@ export function calculateTdee(bmr: number, activityLevel: ActivityLevel): number
 
 /**
  * Maintenance calories for the stored base goal.
+ * OBSERVED → measured expenditure (required via observedMaintenanceKcal).
  * HEALTH → pure BMR (active energy is added later at display time).
  * ACTIVITY_FACTOR → BMR × onboarding activity multiplier.
  */
@@ -93,8 +103,14 @@ export function calculateMaintenanceCalories(params: {
   weightKg: number;
   activityLevel: ActivityLevel;
   calorieSource: CalorieSource;
+  /** Required when calorieSource is OBSERVED. */
+  observedMaintenanceKcal?: number;
   today?: Date;
 }): number {
+  if (params.calorieSource === CalorieSource.OBSERVED) {
+    return Math.round(params.observedMaintenanceKcal ?? 0);
+  }
+
   const age = calculateAge(params.birthDate, params.today);
   const bmr = calculateBmr({
     biologicalSex: params.biologicalSex,
@@ -171,7 +187,8 @@ export function applyGoalAdjustment(params: {
 
 /**
  * Applies active energy only for CalorieSource.HEALTH.
- * ACTIVITY_FACTOR ignores activeEnergyBurnedKcal even if > 0 (guards against double-counting).
+ * ACTIVITY_FACTOR and OBSERVED ignore activeEnergyBurnedKcal (no double-counting;
+ * observed already embeds real-world activity).
  */
 export function resolveEffectiveDailyCalorieGoal(params: {
   calorieSource: CalorieSource;
@@ -182,6 +199,7 @@ export function resolveEffectiveDailyCalorieGoal(params: {
     case CalorieSource.HEALTH:
       return params.baseDailyGoal + Math.max(0, params.activeEnergyBurnedKcal);
     case CalorieSource.ACTIVITY_FACTOR:
+    case CalorieSource.OBSERVED:
       return params.baseDailyGoal;
     default: {
       const _exhaustive: never = params.calorieSource;
@@ -212,6 +230,7 @@ export function calculateDailyCalorieGoalForSource(params: {
   calorieSource: CalorieSource;
   goalType: Exclude<GoalType, 'custom'>;
   activeEnergyBurnedKcal?: number;
+  observedMaintenanceKcal?: number;
   today?: Date;
 }): DailyCalorieGoalBreakdown {
   const age = calculateAge(params.birthDate, params.today);

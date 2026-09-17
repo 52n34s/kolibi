@@ -1,5 +1,6 @@
 import { fetchCalorieGoalForDate, type CalorieGoalForDate } from '@/lib/calorie-goals';
 import { localDateKey, localDayWindow, parseDateOnly } from '@/lib/day-window';
+import type { BodyFatLogEntry } from '@/lib/body-fat-logs';
 import { MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY } from '@/lib/macros-goals-editor-math';
 import { scaleMacrosForSportCalories } from '@/lib/sport-macro-scaling';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +11,13 @@ export type WeightLogEntry = {
   weight_kg: number;
   logged_at: string;
 };
+
+export type WaistLogEntry = {
+  waist_cm: number;
+  logged_at: string;
+};
+
+export type { BodyFatLogEntry };
 
 export type DailyCalorieTotal = {
   date: string;
@@ -40,10 +48,23 @@ export type HistoryDayRow = {
   activeEnergyKcal: number | null;
 };
 
+/** Individual meal macros retained for period-level analyses. */
+export type HistoryMealEntry = {
+  date: string;
+  totalCalories: number;
+  proteinG: number | null;
+};
+
 export type HistoryData = {
   weightLogs: WeightLogEntry[];
+  /** Waist logs in the selected history range. */
+  waistLogs: WaistLogEntry[];
+  /** Body-fat logs over the weight lookback (for balance statements). */
+  bodyFatLogs: BodyFatLogEntry[];
   /** Full lookback for charts / ETA (includes today). */
   days: HistoryDayRow[];
+  /** Meals in the selected history range. */
+  meals: HistoryMealEntry[];
   targetWeightKg: number | null;
   adaptMacrosToTraining: boolean;
 };
@@ -100,9 +121,15 @@ export async function fetchHistoryData(
   const dateKeys = buildDateKeys(rangeDays);
   const sinceMeals = localDayWindow(parseDateOnly(dateKeys[0]!)).startISO;
   const sinceWeight = getLookbackDate(WEIGHT_LOOKBACK_DAYS);
+  const bodyFatSince = new Date();
+  bodyFatSince.setHours(0, 0, 0, 0);
+  bodyFatSince.setDate(bodyFatSince.getDate() - WEIGHT_LOOKBACK_DAYS);
+  const sinceBodyFatOn = localDateKey(bodyFatSince);
 
   const [
     weightResult,
+    waistResult,
+    bodyFatResult,
     profileResult,
     mealsResult,
     healthResult,
@@ -113,6 +140,19 @@ export async function fetchHistoryData(
       .select('weight_kg, logged_at')
       .eq('user_id', userId)
       .gte('logged_at', sinceWeight)
+      .order('logged_at', { ascending: true }),
+    supabase
+      .from('waist_logs')
+      .select('waist_cm, logged_at')
+      .eq('user_id', userId)
+      .gte('logged_on', dateKeys[0]!)
+      .lte('logged_on', dateKeys[dateKeys.length - 1]!)
+      .order('logged_at', { ascending: true }),
+    supabase
+      .from('body_fat_logs')
+      .select('body_fat_pct, logged_at, logged_on, source, source_bundle')
+      .eq('user_id', userId)
+      .gte('logged_on', sinceBodyFatOn)
       .order('logged_at', { ascending: true }),
     supabase.from('profiles').select('target_weight_kg').eq('id', userId).maybeSingle(),
     supabase
@@ -133,6 +173,12 @@ export async function fetchHistoryData(
   if (weightResult.error) {
     throw weightResult.error;
   }
+  if (waistResult.error) {
+    throw waistResult.error;
+  }
+  if (bodyFatResult.error) {
+    throw bodyFatResult.error;
+  }
   if (profileResult.error) {
     throw profileResult.error;
   }
@@ -148,12 +194,20 @@ export async function fetchHistoryData(
     string,
     { protein: number; carbs: number; fat: number; fiber: number }
   >();
+  const meals: HistoryMealEntry[] = [];
 
   for (const row of mealsResult.data ?? []) {
     const dateKey = localDateKey(new Date(row.eaten_at));
+    const totalCalories = Number(row.total_kcal ?? 0);
+    meals.push({
+      date: dateKey,
+      totalCalories,
+      // Legacy meal rows coalesced missing macros to 0 — treat as unknown.
+      proteinG: macroOrEmpty(totalCalories, Number(row.total_protein_g ?? 0)),
+    });
     caloriesByDate.set(
       dateKey,
-      (caloriesByDate.get(dateKey) ?? 0) + Number(row.total_kcal ?? 0),
+      (caloriesByDate.get(dateKey) ?? 0) + totalCalories,
     );
     const macros = macrosByDate.get(dateKey) ?? {
       protein: 0,
@@ -179,6 +233,17 @@ export async function fetchHistoryData(
   const weightLogs: WeightLogEntry[] = (weightResult.data ?? []).map((row) => ({
     weight_kg: Number(row.weight_kg),
     logged_at: String(row.logged_at),
+  }));
+  const waistLogs: WaistLogEntry[] = (waistResult.data ?? []).map((row) => ({
+    waist_cm: Number(row.waist_cm),
+    logged_at: String(row.logged_at),
+  }));
+  const bodyFatLogs: BodyFatLogEntry[] = (bodyFatResult.data ?? []).map((row) => ({
+    body_fat_pct: Number(row.body_fat_pct),
+    logged_at: String(row.logged_at),
+    logged_on: row.logged_on == null ? undefined : String(row.logged_on),
+    source: row.source === 'healthkit' ? 'healthkit' : 'manual',
+    source_bundle: row.source_bundle == null ? null : String(row.source_bundle),
   }));
   const latestWeightKg =
     weightLogs.length > 0 ? weightLogs[weightLogs.length - 1]!.weight_kg : null;
@@ -263,7 +328,10 @@ export async function fetchHistoryData(
 
   return {
     weightLogs,
+    waistLogs,
+    bodyFatLogs,
     days,
+    meals,
     targetWeightKg:
       profileResult.data?.target_weight_kg == null
         ? null
@@ -300,6 +368,13 @@ export function getLatestWeightKg(weightLogs: WeightLogEntry[]): number | null {
     return null;
   }
   return weightLogs[weightLogs.length - 1]?.weight_kg ?? null;
+}
+
+export function getLatestWaistCm(waistLogs: WaistLogEntry[]): number | null {
+  if (waistLogs.length === 0) {
+    return null;
+  }
+  return waistLogs[waistLogs.length - 1]?.waist_cm ?? null;
 }
 
 /** Trailing 7-day mean of the most recent weigh-in in `weightLogs`.
@@ -364,9 +439,35 @@ export function countWeighDaysInLastMonth(
   return days.size;
 }
 
+/** Inclusive calendar-day span between first and last weigh-in in the last 30 days. */
+export function weighSpanDaysInLastMonth(
+  weightLogs: WeightLogEntry[],
+  today: Date = new Date(),
+): number {
+  const cutoff = new Date(today);
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - 30);
+  const dayKeys: string[] = [];
+  for (const log of weightLogs) {
+    const at = new Date(log.logged_at);
+    if (at >= cutoff) {
+      dayKeys.push(localDateKey(at));
+    }
+  }
+  if (dayKeys.length === 0) {
+    return 0;
+  }
+  dayKeys.sort();
+  const first = parseDateOnly(dayKeys[0]!);
+  const last = parseDateOnly(dayKeys[dayKeys.length - 1]!);
+  return Math.round((last.getTime() - first.getTime()) / (24 * 60 * 60 * 1000));
+}
+
 export type HistorySummaryStats = {
   calorieAvg: number | null;
   calorieGoalAvg: number | null;
+  proteinAvg: number | null;
+  proteinGoalAvg: number | null;
   proteinHitDays: number;
   proteinTrackedDays: number;
   carbsAvg: number | null;
@@ -417,6 +518,16 @@ export function buildHistorySummaryStats(
     calorieGoalAvg: avg(
       logged
         .map((day) => day.scaledGoal?.calorieGoal ?? day.goal?.dailyCalorieGoal ?? null)
+        .filter((value): value is number => value != null),
+    ),
+    proteinAvg: avg(
+      logged
+        .map((day) => day.macros.proteinG)
+        .filter((value): value is number => value != null),
+    ),
+    proteinGoalAvg: avg(
+      logged
+        .map((day) => day.scaledGoal?.proteinG ?? day.goal?.proteinG ?? null)
         .filter((value): value is number => value != null),
     ),
     proteinHitDays,
@@ -480,6 +591,21 @@ export function weightChangeInRange(
     deltaKg: last.weight_kg - first.weight_kg,
     spanDays,
   };
+}
+
+export function waistChangeInRange(
+  waistLogs: WaistLogEntry[],
+  rangeStartKey: string,
+  rangeEndKey: string,
+): number | null {
+  const inRange = waistLogs.filter((log) => {
+    const key = localDateKey(new Date(log.logged_at));
+    return key >= rangeStartKey && key <= rangeEndKey;
+  });
+  if (inRange.length < 2) {
+    return null;
+  }
+  return inRange[inRange.length - 1]!.waist_cm - inRange[0]!.waist_cm;
 }
 
 export { WEIGHT_ETA_MA_WINDOW_DAYS };

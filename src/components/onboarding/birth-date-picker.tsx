@@ -14,6 +14,7 @@ type BirthDatePickerProps = {
   value: Date;
   minimumDate: Date;
   maximumDate: Date;
+  title?: string;
   onChange: (date: Date) => void;
   onClose: () => void;
 };
@@ -41,6 +42,7 @@ export function BirthDatePickerModal({
   value,
   minimumDate,
   maximumDate,
+  title,
   onChange,
   onClose,
 }: BirthDatePickerProps) {
@@ -64,7 +66,7 @@ export function BirthDatePickerModal({
 
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={styles.header}>
-            <Text style={styles.title}>{t('onboarding.birthDate.selectDate')}</Text>
+            <Text style={styles.title}>{title ?? t('onboarding.birthDate.selectDate')}</Text>
             <Pressable hitSlop={8} onPress={onClose}>
               <Text style={styles.done}>{t('onboarding.birthDate.done')}</Text>
             </Pressable>

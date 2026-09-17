@@ -17,6 +17,7 @@ import {
   getDefaultOption,
   getQuantityGramsForOption,
   MIN_GRAMS,
+  resolveValidServingGrams,
   type QuantityOption,
 } from '@/components/scan/barcode-quantity-utils';
 import {
@@ -50,7 +51,7 @@ export function BarcodeQuantitySheet({
   onSave,
 }: BarcodeQuantitySheetProps) {
   const { t } = useTranslation();
-  const [selectedOption, setSelectedOption] = useState<QuantityOption>('custom');
+  const [selectedOption, setSelectedOption] = useState<QuantityOption | null>(null);
   const [customGrams, setCustomGrams] = useState(DEFAULT_CUSTOM_GRAMS);
 
   useEffect(() => {
@@ -73,6 +74,10 @@ export function BarcodeQuantitySheet({
       return 0;
     }
 
+    if (selectedOption == null) {
+      return customGrams;
+    }
+
     return getQuantityGramsForOption(selectedOption, product, customGrams);
   }, [customGrams, product, selectedOption]);
 
@@ -85,7 +90,7 @@ export function BarcodeQuantitySheet({
   }, [product, quantityGrams]);
 
   function adjustCustomGrams(direction: 1 | -1) {
-    setSelectedOption('custom');
+    setSelectedOption(null);
     setCustomGrams((current) => Math.max(MIN_GRAMS, current + direction * GRAM_STEP));
   }
 
@@ -105,12 +110,23 @@ export function BarcodeQuantitySheet({
     return null;
   }
 
-  const optionLabels: Record<QuantityOption, string> = {
-    whole: t('home.scan.barcode.quantity.wholePackage'),
-    half: t('home.scan.barcode.quantity.halfPackage'),
-    serving: t('home.scan.barcode.quantity.oneServing'),
-    custom: t('home.scan.barcode.quantity.customAmount'),
-  };
+  function optionLabel(option: QuantityOption): string {
+    switch (option) {
+      case 'whole':
+        return t('home.scan.barcode.quantity.wholePackage');
+      case 'half':
+        return t('home.scan.barcode.quantity.halfPackage');
+      case 'serving': {
+        const grams = resolveValidServingGrams(product.servingSizeGrams, product.quantityGrams);
+        if (grams == null) {
+          return t('home.scan.barcode.quantity.oneServing');
+        }
+        return t('home.scan.barcode.quantity.oneServingWithAmount', { grams });
+      }
+      case 'piece':
+        return t('home.scan.barcode.quantity.onePiece');
+    }
+  }
 
   return (
     <GlassBottomSheet visible={visible} onClose={onClose}>
@@ -121,24 +137,23 @@ export function BarcodeQuantitySheet({
 
       <View style={styles.pillWrap}>
         {availableOptions.map((option) => {
+          const label = optionLabel(option);
           const isActive = selectedOption === option;
 
           return (
             <Pressable
               key={option}
               accessibilityRole="button"
-              accessibilityLabel={optionLabels[option]}
+              accessibilityLabel={label}
               style={[styles.pill, isActive && styles.pillActive]}
               onPress={() => handleOptionPress(option)}>
-              <Text style={[styles.pillLabel, isActive && styles.pillLabelActive]}>
-                {optionLabels[option]}
-              </Text>
+              <Text style={[styles.pillLabel, isActive && styles.pillLabelActive]}>{label}</Text>
             </Pressable>
           );
         })}
       </View>
 
-      {selectedOption === 'custom' ? (
+      {selectedOption == null ? (
         <View style={styles.customRow}>
           <Text style={styles.customLabel}>
             {t('home.scan.barcode.quantity.gramsValue', { value: customGrams })}
