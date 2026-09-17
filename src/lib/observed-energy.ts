@@ -8,7 +8,7 @@
 import {
   trailingMovingAverage,
   WEIGHT_ETA_MA_WINDOW_DAYS,
-} from './weight-goal-eta.ts';
+} from './weight-goal-eta';
 
 /** Matches calorie-goal-math.KCAL_PER_KG_BODY_WEIGHT (inlined for Node strip-types tests). */
 const KCAL_PER_KG_BODY_WEIGHT = 7700;

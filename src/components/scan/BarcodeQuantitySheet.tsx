@@ -110,6 +110,9 @@ export function BarcodeQuantitySheet({
     return null;
   }
 
+  // Nested helpers close over this local so tsc keeps the non-null narrowing.
+  const activeProduct = product;
+
   function optionLabel(option: QuantityOption): string {
     switch (option) {
       case 'whole':
@@ -117,7 +120,10 @@ export function BarcodeQuantitySheet({
       case 'half':
         return t('home.scan.barcode.quantity.halfPackage');
       case 'serving': {
-        const grams = resolveValidServingGrams(product.servingSizeGrams, product.quantityGrams);
+        const grams = resolveValidServingGrams(
+          activeProduct.servingSizeGrams,
+          activeProduct.quantityGrams,
+        );
         if (grams == null) {
           return t('home.scan.barcode.quantity.oneServing');
         }
@@ -130,7 +136,7 @@ export function BarcodeQuantitySheet({
 
   return (
     <GlassBottomSheet visible={visible} onClose={onClose}>
-      <Text style={styles.productName}>{product.productName}</Text>
+      <Text style={styles.productName}>{activeProduct.productName}</Text>
 
       <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
       <Text style={styles.totalLabel}>{t('home.scan.confirmation.totalKcal')}</Text>
