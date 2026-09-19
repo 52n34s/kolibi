@@ -735,6 +735,7 @@ export function MacrosGoalsEditorBody({
                     delta: Math.abs(kcalDelta),
                   })}
           </Text>
+          <Text className="mt-1.5 text-sm text-gray-500">{t('koli.goals.planHint')}</Text>
           {macrosWeightEtaInput ? (
             <View className="mt-1.5">
               <WeightGoalEtaMessage input={macrosWeightEtaInput} />

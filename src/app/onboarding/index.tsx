@@ -55,7 +55,10 @@ import {
   MAXIMUM_DAILY_CALORIES,
   CalorieSource,
   resolveCalorieSource,
+  resolveReviewCaloriePrefill,
+  shouldRecalculateOnboardingDailyGoal,
   skipOnboarding,
+  summaryManuallyEditedAfterGoalTypeChange,
 } from '@/lib/onboarding';
 import { fetchProfileSettings } from '@/lib/profile';
 import {
@@ -191,17 +194,17 @@ export default function OnboardingScreen() {
           setGoalType(profile.goal_type);
         }
 
-        if (profile.calorie_goal_source === 'custom') {
-          setSummaryManuallyEdited(true);
+        const caloriePrefill = resolveReviewCaloriePrefill({
+          calorie_goal_source: profile.calorie_goal_source,
+          daily_calorie_goal: profile.daily_calorie_goal,
+          goal_type: profile.goal_type,
+        });
+        setSummaryManuallyEdited(caloriePrefill.summaryManuallyEdited);
+        if (caloriePrefill.dailyCalorieGoal != null) {
+          setDailyCalorieGoal(caloriePrefill.dailyCalorieGoal);
         }
-
-        if (profile.daily_calorie_goal != null) {
-          const calories = String(profile.daily_calorie_goal);
-          setDailyCalorieGoal(calories);
-
-          if (profile.goal_type === 'custom') {
-            setCustomCalorieGoal(calories);
-          }
+        if (caloriePrefill.customCalorieGoal != null) {
+          setCustomCalorieGoal(caloriePrefill.customCalorieGoal);
         }
       } catch {
       } finally {
@@ -384,12 +387,18 @@ export default function OnboardingScreen() {
   }, [step]);
 
   useEffect(() => {
+    // Recalculate whenever inputs change — not only while step 7 is visible —
+    // so a goal-type change on step 6 updates the summary before the user opens it.
+    // Skip when the user typed a custom target on step 7 (or chose goal type custom).
     if (
-      step !== 7 ||
-      summaryManuallyEdited ||
+      !shouldRecalculateOnboardingDailyGoal({
+        summaryManuallyEdited,
+        goalType,
+      }) ||
       !birthDate ||
       !activityLevel ||
-      !goalType
+      !parsedHeight ||
+      !parsedWeight
     ) {
       return;
     }
@@ -403,8 +412,9 @@ export default function OnboardingScreen() {
           weightKg: parsedWeight,
           activityLevel,
           calorieSource,
-          goalType,
-          customCalorieGoal: goalType === 'custom' ? parsedCustomCalories : null,
+          goalType: goalType!,
+          customCalorieGoal: null,
+          recentActiveEnergy,
         }).dailyCalorieGoal,
       ),
     );
@@ -414,10 +424,9 @@ export default function OnboardingScreen() {
     calorieSource,
     effectiveSex,
     goalType,
-    parsedCustomCalories,
     parsedHeight,
     parsedWeight,
-    step,
+    recentActiveEnergy,
     summaryManuallyEdited,
   ]);
 
@@ -740,9 +749,10 @@ export default function OnboardingScreen() {
                       }
 
                       setGoalType(goal);
-                      // Recalculate summary unless choosing custom (user-supplied target).
-                      if (goal !== 'custom') {
-                        setSummaryManuallyEdited(false);
+                      // A goal-type change invalidates a typed/custom summary target.
+                      const nextFlag = summaryManuallyEditedAfterGoalTypeChange(goal);
+                      if (nextFlag !== null) {
+                        setSummaryManuallyEdited(nextFlag);
                       }
                     }}
                   />

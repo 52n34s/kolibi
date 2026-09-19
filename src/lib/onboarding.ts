@@ -94,6 +94,15 @@ export function isCalorieGoalFarFromTdee(
   return calories < lowerBound || calories > upperBound;
 }
 
+export {
+  applyOnboardingGoalTypeChange,
+  resolveReviewCaloriePrefill,
+  shouldRecalculateOnboardingDailyGoal,
+  summaryManuallyEditedAfterGoalTypeChange,
+  type ReviewCaloriePrefill,
+  type ReviewCalorieProfileSeed,
+} from '@/lib/onboarding-review-calorie';
+
 export function calculateUncappedDailyCalorieAdjustment(
   weightKg: number,
   percentPerWeek: number,

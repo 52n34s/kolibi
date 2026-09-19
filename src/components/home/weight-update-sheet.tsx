@@ -47,7 +47,7 @@ export type WeightInputSheetProps = {
   onBodyFatChange: (value: string) => void;
   onClose: () => void;
   onSave: (loggedOn: string) => void;
-  /** Fired when the sheet opens (today) and whenever the user picks another day. */
+  /** Fired only when the user picks another day. */
   onLoggedDateChange?: (loggedOn: string) => void;
 };
 
@@ -94,19 +94,21 @@ export function WeightInputSheet({
         }),
       });
 
+  // Prefill on open lives in the parent. Calling it from here re-ran the effect
+  // on every unstable-callback render and overwrote what the user was typing.
   useEffect(() => {
     if (!visible) {
       return;
     }
 
     setLoggedDate(today);
-    onLoggedDateChange?.(localDateKey(today));
     const frame = requestAnimationFrame(() => {
       inputRef.current?.focus();
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [onLoggedDateChange, today, visible]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- today is memoised on visible
+  }, [visible]);
 
   function updateLoggedDate(date: Date) {
     const next = new Date(date);

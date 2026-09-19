@@ -237,6 +237,7 @@ export default function HomeScreen() {
   const paywallDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSavingBarcodeMeal, setIsSavingBarcodeMeal] = useState(false);
   const [showBarcodeLookupSlow, setShowBarcodeLookupSlow] = useState(false);
+  const weightDraftLoadRef = useRef(0);
   const barcodeLookupAbortRef = useRef<AbortController | null>(null);
   const productLookupAbortRef = useRef<AbortController | null>(null);
   const [showManualEntrySheet, setShowManualEntrySheet] = useState(false);
@@ -606,8 +607,12 @@ export default function HomeScreen() {
     return String(bodyFatPct);
   }
 
+  /** Only the most recent call may write the drafts — a slower earlier
+   *  response must not clobber a newer day's prefill or user input. */
   const loadWeightSheetDraftsForDay = useCallback(
     async (loggedOn: string) => {
+      const requestId = ++weightDraftLoadRef.current;
+
       if (!userId) {
         setWeightDraft('');
         setWaistDraft('');
@@ -621,11 +626,19 @@ export default function HomeScreen() {
           fetchWaistCmForDay(userId, loggedOn),
           fetchBodyFatPctForDay(userId, loggedOn),
         ]);
+        if (requestId !== weightDraftLoadRef.current) {
+          return;
+        }
+
         setWeightDraft(weightKgToDraft(weightKg));
         setWaistDraft(waistCmToDraft(waistCm));
         setBodyFatDraft(bodyFatPctToDraft(bodyFatPct));
       } catch (loadError) {
         console.error('[Home] weight sheet day load failed:', loadError);
+        if (requestId !== weightDraftLoadRef.current) {
+          return;
+        }
+
         setWeightDraft('');
         setWaistDraft('');
         setBodyFatDraft('');
@@ -639,9 +652,11 @@ export default function HomeScreen() {
     setWaistDraft('');
     setBodyFatDraft('');
     setWeightSheet('current');
+    void loadWeightSheetDraftsForDay(localDateKey(new Date()));
   }
 
   function closeWeightSheet() {
+    weightDraftLoadRef.current += 1;
     setWaistDraft('');
     setBodyFatDraft('');
     setWeightDraft('');
