@@ -24,7 +24,9 @@ export type HomeProgressRowItem = {
    */
   weekDayDots?: boolean[];
   /**
-   * Macro coverage: empty → "—"; partial → "~ N"; value (default) → "N/goal".
+   * Macro coverage: empty → "—", no bar; partial → "~ N/goal" with the normal
+   * bar; value (default) → "N/goal". Partial reads as a lower bound, so the
+   * tilde carries that — never a colour judgement.
    * null actual with value mode also shows "—" (unknown ≠ 0).
    */
   coverage?: 'empty' | 'partial' | 'value';
@@ -78,7 +80,7 @@ export function WeekDayDots({ flags }: { flags: boolean[] }) {
 function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
   const decimals = item.decimals ?? 0;
   const coverage = item.coverage ?? 'value';
-  const hasGoal = item.goal != null && item.goal > 0 && coverage === 'value';
+  const hasGoal = item.goal != null && item.goal > 0 && coverage !== 'empty';
   const actual = item.actual;
   const progressPercent = hasGoal
     ? Math.min(100, Math.max(0, ((actual ?? 0) / item.goal!) * 100))
@@ -91,23 +93,24 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
   } else if (coverage === 'empty' || actual == null) {
     // Unknown macros must never render as "0/goal".
     valueText = '–';
-  } else if (coverage === 'partial') {
-    valueText = `~ ${formatProgressAmount(actual, decimals)}`;
-  } else if (hasGoal) {
-    const left = formatProgressAmount(actual, decimals);
-    const right = formatProgressAmount(item.goal!, decimals);
-    valueText = item.goalPrefix
-      ? `${item.goalPrefix} ${left}/${right}`
-      : `${left}/${right}`;
   } else {
-    valueText = formatProgressAmount(actual, decimals);
+    // Partial totals are a lower bound: the tilde sits on the actual, never on
+    // the goal, so "~ 74/54" stays readable as "at least 74 of 54".
+    const left = `${coverage === 'partial' ? '~ ' : ''}${formatProgressAmount(actual, decimals)}`;
+    if (hasGoal) {
+      const right = formatProgressAmount(item.goal!, decimals);
+      valueText = item.goalPrefix
+        ? `${item.goalPrefix} ${left}/${right}`
+        : `${left}/${right}`;
+    } else {
+      valueText = left;
+    }
   }
   if (item.valueUnit && valueText !== '–') {
     valueText = `${valueText}${item.valueUnit}`;
   }
 
-  const showBar =
-    !item.valueFullWidth && hasGoal && coverage === 'value' && actual != null;
+  const showBar = !item.valueFullWidth && hasGoal && actual != null;
 
   const row = (
     <View style={styles.row}>
