@@ -808,15 +808,28 @@
       "sectionTitle": "Gewicht",
       "trendLabel": "Trendgewicht",
       "currentLabel": "Aktuelles Gewicht",
+      "currentWaistLabel": "Aktuelle Taille",
+      "currentBodyFatLabel": "Aktuelles Körperfett",
       "notLogged": "Noch nicht erfasst",
       "empty": "Noch kein Gewicht erfasst.",
+      "notTracked": "Noch nicht getrackt",
       "latestDated": "{{weight}} · {{date}}",
       "trendNeedsMeasurements": "Kolibi braucht etwa 3 Wiegevorgänge pro Woche für einen verlässlichen Trend.",
       "targetLabel": "Ziel",
       "changeInRange": "{{delta}} in {{days}} Tagen",
       "waistLabel": "Taille",
       "waistChangeInRange": "{{delta}} in {{days}} Tagen",
-      "updateOnHome": "Gewicht auf Startseite aktualisieren"
+      "waistUnchanged": "unverändert",
+      "updateOnHome": "Gewicht auf Startseite aktualisieren",
+      "tabs": {
+        "weight": "Gewicht",
+        "waist": "Taille",
+        "bodyFat": "Körperfett"
+      },
+      "comparisonUnchanged_one": "Gewicht seit einer Woche unverändert, Taille {{waistDelta}}.",
+      "comparisonUnchanged_other": "Gewicht seit {{count}} Wochen unverändert, Taille {{waistDelta}}.",
+      "comparisonBoth_one": "Gewicht {{weightDelta}} seit einer Woche, Taille {{waistDelta}}.",
+      "comparisonBoth_other": "Gewicht {{weightDelta}} seit {{count}} Wochen, Taille {{waistDelta}}."
     },
     "calories": {
       "sectionTitle": "Kalorien",

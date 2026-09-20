@@ -145,8 +145,9 @@ export async function fetchHistoryData(
       .from('waist_logs')
       .select('waist_cm, logged_at')
       .eq('user_id', userId)
-      .gte('logged_on', dateKeys[0]!)
-      .lte('logged_on', dateKeys[dateKeys.length - 1]!)
+      // Same 60-day lookback as weight: the 7-day range is one weekly point,
+      // so the Progress waist chart always plots 30 days from this window.
+      .gte('logged_at', sinceWeight)
       .order('logged_at', { ascending: true }),
     supabase
       .from('body_fat_logs')
@@ -404,16 +405,40 @@ export function getTrendWeightKg(weightLogs: WeightLogEntry[]): number | null {
   return averaged[averaged.length - 1]!.weightKg;
 }
 
+function filterLogsByLocalDay<T extends { logged_at: string; logged_on?: string }>(
+  logs: T[],
+  startKey: string,
+  endKey: string,
+): T[] {
+  return logs.filter((entry) => {
+    const key = entry.logged_on ?? localDateKey(new Date(entry.logged_at));
+    return key >= startKey && key <= endKey;
+  });
+}
+
 /** Weight logs whose local calendar day falls in [startKey, endKey]. */
 export function filterWeightLogsInRange(
   weightLogs: WeightLogEntry[],
   startKey: string,
   endKey: string,
 ): WeightLogEntry[] {
-  return weightLogs.filter((entry) => {
-    const key = localDateKey(new Date(entry.logged_at));
-    return key >= startKey && key <= endKey;
-  });
+  return filterLogsByLocalDay(weightLogs, startKey, endKey);
+}
+
+export function filterWaistLogsInRange(
+  waistLogs: WaistLogEntry[],
+  startKey: string,
+  endKey: string,
+): WaistLogEntry[] {
+  return filterLogsByLocalDay(waistLogs, startKey, endKey);
+}
+
+export function filterBodyFatLogsInRange(
+  bodyFatLogs: BodyFatLogEntry[],
+  startKey: string,
+  endKey: string,
+): BodyFatLogEntry[] {
+  return filterLogsByLocalDay(bodyFatLogs, startKey, endKey);
 }
 
 function startOfLocalDay(date: Date): Date {

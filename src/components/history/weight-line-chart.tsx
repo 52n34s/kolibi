@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import Svg, {
   Circle,
   ClipPath,
@@ -30,6 +30,8 @@ type WeightLineChartProps = {
   targetLabel?: string | null;
   /** Format a kg delta for the edge marker, e.g. "+1,2 kg". */
   formatDeltaKg?: (deltaKg: number) => string;
+  /** Small in-chart note, e.g. "30 Tage" when waist ignores the 7-day range. */
+  rangeBadge?: string | null;
 };
 
 export function WeightLineChart({
@@ -39,6 +41,7 @@ export function WeightLineChart({
   targetWeightKg = null,
   targetLabel = null,
   formatDeltaKg,
+  rangeBadge = null,
 }: WeightLineChartProps) {
   const points = buildLineChartPoints({
     values,
@@ -77,6 +80,20 @@ export function WeightLineChart({
 
   return (
     <View style={{ width, height, overflow: 'hidden' }}>
+      {rangeBadge ? (
+        <Text
+          style={{
+            position: 'absolute',
+            top: 4,
+            left: 4,
+            zIndex: 1,
+            fontSize: 11,
+            fontWeight: '600',
+            color: '#9CA3AF',
+          }}>
+          {rangeBadge}
+        </Text>
+      ) : null}
       <Svg width={width} height={height}>
         <Defs>
           <ClipPath id="weight-chart-clip">

@@ -49,6 +49,8 @@ import type { GoalType } from '@/lib/calorie-goal-math';
 import {
   buildHistorySummaryStats,
   countWeighDaysInLastMonth,
+  filterBodyFatLogsInRange,
+  filterWaistLogsInRange,
   filterWeightLogsInRange,
   getLatestWeightKg,
   getLatestWaistCm,
@@ -58,6 +60,17 @@ import {
   weightChangeInRange,
   type HistoryRangeDays,
 } from '@/lib/history';
+import {
+  computeWeightWaistComparison,
+  getLatestBodyFatPct,
+  rangeWindowKeys,
+  resolveActiveBodyMetric,
+  resolveVisibleBodyMetrics,
+  shouldShowBodyMetricSwitcher,
+  shouldShowWaistRangeBadge,
+  waistChartRangeDays,
+  type HistoryBodyMetric,
+} from '@/lib/history-body-metrics';
 import {
   resolveActiveHistoryArea,
   resolveVisibleHistoryAreas,
@@ -160,7 +173,11 @@ function deriveRateFromCalorieTarget(params: {
   };
 }
 
-export function HistoryPanel() {
+type HistoryPanelProps = {
+  onOpenWeightSheet: () => void;
+};
+
+export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
   const { t, i18n } = useTranslation();
   const { width: windowWidth } = useWindowDimensions();
   const { insets } = useMeshScreenInsets();
@@ -171,6 +188,7 @@ export function HistoryPanel() {
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [rangeDays, setRangeDays] = useState<HistoryRangeDays>(7);
   const [activeArea, setActiveArea] = useState<HistoryContentArea>('nutrition');
+  const [activeBodyMetric, setActiveBodyMetric] = useState<HistoryBodyMetric>('weight');
   const scrollRef = useRef<ScrollView>(null);
   const [observedDismissedUntil, setObservedDismissedUntilState] = useState<string | null>(
     () => getObservedPromptDismissedUntil(),
@@ -396,14 +414,29 @@ export function HistoryPanel() {
           }),
     [i18n.language, latestWaistCm, unitSystem, waistUnitLabels],
   );
+  const waistChartDays = waistChartRangeDays(rangeDays);
+  const waistChartWindow = useMemo(
+    () => rangeWindowKeys({ rangeDays: waistChartDays, todayKey }),
+    [todayKey, waistChartDays],
+  );
+  const waistLogsInChart = useMemo(
+    () =>
+      filterWaistLogsInRange(
+        data?.waistLogs ?? [],
+        waistChartWindow.startKey,
+        waistChartWindow.endKey,
+      ),
+    [data?.waistLogs, waistChartWindow.endKey, waistChartWindow.startKey],
+  );
+  const waistValues = useMemo(
+    () => waistLogsInChart.map((entry) => entry.waist_cm),
+    [waistLogsInChart],
+  );
   const waistChangeLabel = useMemo(() => {
-    if (!data?.days.length) {
-      return null;
-    }
     const deltaCm = waistChangeInRange(
-      data.waistLogs,
-      data.days[0]!.date,
-      data.days[data.days.length - 1]!.date,
+      waistLogsInChart,
+      waistChartWindow.startKey,
+      waistChartWindow.endKey,
     );
     const delta =
       deltaCm == null
@@ -416,8 +449,99 @@ export function HistoryPanel() {
           });
     return delta == null
       ? null
-      : t('history.weight.waistChangeInRange', { delta, days: rangeDays });
-  }, [data, i18n.language, rangeDays, t, unitSystem, waistUnitLabels]);
+      : t('history.weight.waistChangeInRange', { delta, days: waistChartDays });
+  }, [
+    i18n.language,
+    t,
+    unitSystem,
+    waistChartDays,
+    waistChartWindow.endKey,
+    waistChartWindow.startKey,
+    waistLogsInChart,
+    waistUnitLabels,
+  ]);
+
+  const bodyFatLogsInRange = useMemo(() => {
+    if (!data?.days.length) {
+      return [];
+    }
+    return filterBodyFatLogsInRange(
+      data.bodyFatLogs,
+      data.days[0]!.date,
+      data.days[data.days.length - 1]!.date,
+    );
+  }, [data]);
+  const bodyFatValues = useMemo(
+    () => bodyFatLogsInRange.map((entry) => entry.body_fat_pct),
+    [bodyFatLogsInRange],
+  );
+  const latestBodyFatPct = useMemo(
+    () => getLatestBodyFatPct(data?.bodyFatLogs ?? []),
+    [data?.bodyFatLogs],
+  );
+  const bodyFatLabel = useMemo(
+    () =>
+      latestBodyFatPct == null
+        ? null
+        : formatBodyFatPct(latestBodyFatPct, i18n.language),
+    [i18n.language, latestBodyFatPct],
+  );
+  const bodyFatChangeLabel = useMemo(() => {
+    if (bodyFatLogsInRange.length < 2) {
+      return null;
+    }
+    const first = bodyFatLogsInRange[0]!;
+    const last = bodyFatLogsInRange[bodyFatLogsInRange.length - 1]!;
+    const deltaPp = last.body_fat_pct - first.body_fat_pct;
+    if (Math.abs(deltaPp) < 0.05) {
+      return null;
+    }
+    return t('history.weight.changeInRange', {
+      delta: formatBodyFatDeltaPp(deltaPp, i18n.language),
+      days: rangeDays,
+    });
+  }, [bodyFatLogsInRange, i18n.language, rangeDays, t]);
+
+  const weightWaistComparison = useMemo(
+    () =>
+      computeWeightWaistComparison({
+        weightLogs: data?.weightLogs ?? [],
+        waistLogs: data?.waistLogs ?? [],
+        todayKey,
+      }),
+    [data?.waistLogs, data?.weightLogs, todayKey],
+  );
+  const weightWaistComparisonLabel = useMemo(() => {
+    if (weightWaistComparison == null) {
+      return null;
+    }
+    const waistDelta =
+      formatWaistDeltaForDisplay({
+        deltaCm: weightWaistComparison.waistDeltaCm,
+        unitSystem,
+        locale: i18n.language,
+        ...waistUnitLabels,
+      }) ?? t('history.weight.waistUnchanged');
+    if (weightWaistComparison.weightUnchanged) {
+      return t('history.weight.comparisonUnchanged', {
+        count: weightWaistComparison.spanWeeks,
+        waistDelta,
+      });
+    }
+    const abs = Math.abs(weightWaistComparison.weightDeltaKg);
+    const formatted = formatWeightForDisplay({
+      weightKg: abs,
+      unitSystem,
+      kgLabel: t('onboarding.units.kg'),
+      lbsLabel: t('onboarding.units.lbs'),
+    });
+    const weightDelta = `${weightWaistComparison.weightDeltaKg > 0 ? '+' : '−'}${formatted}`;
+    return t('history.weight.comparisonBoth', {
+      count: weightWaistComparison.spanWeeks,
+      weightDelta,
+      waistDelta,
+    });
+  }, [i18n.language, t, unitSystem, waistUnitLabels, weightWaistComparison]);
 
   const targetWeightKg = data?.targetWeightKg ?? null;
 
@@ -1193,10 +1317,22 @@ export function HistoryPanel() {
 
   const hasWeightData = latestWeightLog != null;
   const hasWeightChartData = weightValues.length > 0;
+  const hasWaistData = (data?.waistLogs.length ?? 0) > 0;
+  const hasBodyFatData = (data?.bodyFatLogs.length ?? 0) > 0;
   const hasCalorieData = calorieValues.some((value) => value > 0);
   const hasNutritionContent =
     showBalanceCard || (summary?.loggedDays ?? 0) > 0 || hasCalorieData;
-  const hasBodyContent = hasWeightData || waistLabel != null;
+  const hasBodyContent = hasWeightData || hasWaistData || hasBodyFatData;
+  const visibleBodyMetrics = resolveVisibleBodyMetrics({
+    weight: hasBodyContent,
+    waist: hasWaistData,
+    bodyFat: hasBodyFatData,
+  });
+  const showBodyMetricSwitcher = shouldShowBodyMetricSwitcher(visibleBodyMetrics);
+  const resolvedBodyMetric = resolveActiveBodyMetric({
+    selected: activeBodyMetric,
+    visible: visibleBodyMetrics,
+  });
   const visibleAreas = resolveVisibleHistoryAreas({
     nutrition: hasNutritionContent,
     body: hasBodyContent,
@@ -1439,14 +1575,92 @@ export function HistoryPanel() {
 
       {showBody ? (
         <>
-      <Text className="mb-3 text-lg font-semibold text-gray-900">
-        {t('history.weight.sectionTitle')}
-      </Text>
+      {showBodyMetricSwitcher ? (
+        <View className="mb-3">
+          <PillSegmentSwitcher
+            compact
+            value={resolvedBodyMetric}
+            onChange={setActiveBodyMetric}
+            segments={visibleBodyMetrics.map((id) => ({
+              id,
+              label: t(`history.weight.tabs.${id}`),
+            }))}
+          />
+        </View>
+      ) : (
+        <Text className="mb-3 text-lg font-semibold text-gray-900">
+          {resolvedBodyMetric === 'waist'
+            ? t('history.weight.tabs.waist')
+            : resolvedBodyMetric === 'bodyFat'
+              ? t('history.weight.tabs.bodyFat')
+              : t('history.weight.sectionTitle')}
+        </Text>
+      )}
       <View style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
         <View
           className="px-4 py-5"
           style={{ overflow: 'hidden', borderRadius: ONBOARDING_CARD_RADIUS }}>
-          {hasWeightData && trendWeightLabel != null ? (
+          {resolvedBodyMetric === 'waist' ? (
+            hasWaistData && waistLabel != null ? (
+              <>
+                <Text className="text-sm text-gray-500">
+                  {t('history.weight.currentWaistLabel')}
+                </Text>
+                <Text className="mt-1 text-2xl font-bold text-[#4F46E5]">{waistLabel}</Text>
+                {waistChangeLabel ? (
+                  <Text className="mt-1 text-sm text-gray-500">{waistChangeLabel}</Text>
+                ) : null}
+                {waistValues.length > 0 ? (
+                  <View className="mt-4">
+                    <WeightLineChart
+                      values={waistValues}
+                      width={chartWidth - 32}
+                      rangeBadge={
+                        shouldShowWaistRangeBadge(rangeDays)
+                          ? t('history.range.days30')
+                          : null
+                      }
+                    />
+                  </View>
+                ) : null}
+                {weightWaistComparisonLabel ? (
+                  <Text className="mt-4 px-1 text-sm text-gray-500">
+                    {weightWaistComparisonLabel}
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              <BodyMetricEmptyState
+                label={t('history.weight.notTracked')}
+                onPress={onOpenWeightSheet}
+              />
+            )
+          ) : resolvedBodyMetric === 'bodyFat' ? (
+            hasBodyFatData && bodyFatLabel != null ? (
+              <>
+                <Text className="text-sm text-gray-500">
+                  {t('history.weight.currentBodyFatLabel')}
+                </Text>
+                <Text className="mt-1 text-2xl font-bold text-[#4F46E5]">{bodyFatLabel}</Text>
+                {bodyFatChangeLabel ? (
+                  <Text className="mt-1 text-sm text-gray-500">{bodyFatChangeLabel}</Text>
+                ) : null}
+                {bodyFatValues.length > 0 ? (
+                  <View className="mt-4">
+                    <WeightLineChart
+                      values={bodyFatValues}
+                      width={chartWidth - 32}
+                    />
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <BodyMetricEmptyState
+                label={t('history.weight.notTracked')}
+                onPress={onOpenWeightSheet}
+              />
+            )
+          ) : hasWeightData && trendWeightLabel != null ? (
             <>
               <Text className="text-sm text-gray-500">
                 {hasWeightChartData
@@ -1486,29 +1700,18 @@ export function HistoryPanel() {
                 ) : null}
               </View>
               ) : null}
+              {weightWaistComparisonLabel ? (
+                <Text className="mt-4 px-1 text-sm text-gray-500">
+                  {weightWaistComparisonLabel}
+                </Text>
+              ) : null}
             </>
           ) : (
-            <View className="items-center py-6">
-              <Ionicons name="analytics-outline" size={28} color="#9CA3AF" />
-              <Text className="mt-3 text-center text-sm text-gray-500">
-                {t('history.weight.empty')}
-              </Text>
-            </View>
+            <BodyMetricEmptyState
+              label={t('history.weight.notTracked')}
+              onPress={onOpenWeightSheet}
+            />
           )}
-          {waistLabel != null ? (
-            <View
-              className={hasWeightData ? 'mt-6 border-t border-gray-200 pt-4' : 'mt-4'}>
-              <View className="flex-row items-start justify-between gap-4">
-                <Text className="text-sm text-gray-500">{t('history.weight.waistLabel')}</Text>
-                <View className="items-end">
-                  <Text className="text-base font-semibold text-gray-900">{waistLabel}</Text>
-                  {waistChangeLabel ? (
-                    <Text className="mt-1 text-sm text-gray-500">{waistChangeLabel}</Text>
-                  ) : null}
-                </View>
-              </View>
-            </View>
-          ) : null}
         </View>
       </View>
         </>
@@ -1518,6 +1721,23 @@ export function HistoryPanel() {
         <SupplementHistorySection userId={userId} rangeDays={rangeDays} />
       ) : null}
     </ScrollView>
+  );
+}
+
+function BodyMetricEmptyState(props: {
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={props.label}
+      onPress={props.onPress}
+      className="items-center justify-center py-6"
+      style={{ minHeight: 180 }}>
+      <Ionicons name="analytics-outline" size={28} color="#9CA3AF" />
+      <Text className="mt-3 text-center text-sm text-gray-500">{props.label}</Text>
+    </Pressable>
   );
 }
 

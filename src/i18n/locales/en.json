@@ -808,15 +808,28 @@
       "sectionTitle": "Weight",
       "trendLabel": "Trend weight",
       "currentLabel": "Current weight",
+      "currentWaistLabel": "Current waist",
+      "currentBodyFatLabel": "Current body fat",
       "notLogged": "Not logged yet",
       "empty": "No weight logged yet.",
+      "notTracked": "Not tracked yet",
       "latestDated": "{{weight}} · {{date}}",
       "trendNeedsMeasurements": "Kolibi needs about 3 weigh-ins a week for a reliable trend.",
       "targetLabel": "Target",
       "changeInRange": "{{delta}} in {{days}} days",
       "waistLabel": "Waist",
       "waistChangeInRange": "{{delta}} in {{days}} days",
-      "updateOnHome": "Update weight on home"
+      "waistUnchanged": "unchanged",
+      "updateOnHome": "Update weight on home",
+      "tabs": {
+        "weight": "Weight",
+        "waist": "Waist",
+        "bodyFat": "Body fat"
+      },
+      "comparisonUnchanged_one": "Weight unchanged for 1 week, waist {{waistDelta}}.",
+      "comparisonUnchanged_other": "Weight unchanged for {{count}} weeks, waist {{waistDelta}}.",
+      "comparisonBoth_one": "Weight {{weightDelta}} over 1 week, waist {{waistDelta}}.",
+      "comparisonBoth_other": "Weight {{weightDelta}} over {{count}} weeks, waist {{waistDelta}}."
     },
     "calories": {
       "sectionTitle": "Calories",

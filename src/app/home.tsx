@@ -1350,7 +1350,7 @@ export default function HomeScreen() {
             </View>
 
             {homeTab === 'history' ? (
-              <HistoryPanel />
+              <HistoryPanel onOpenWeightSheet={openCurrentWeightSheet} />
             ) : (
               <ScrollView
                 className="flex-1 px-6"

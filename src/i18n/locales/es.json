@@ -808,15 +808,28 @@
       "sectionTitle": "Peso",
       "trendLabel": "Peso de tendencia",
       "currentLabel": "Peso actual",
+      "currentWaistLabel": "Cintura actual",
+      "currentBodyFatLabel": "Grasa corporal actual",
       "notLogged": "Sin registro",
       "empty": "Aún no hay peso registrado.",
+      "notTracked": "Aún no registrado",
       "latestDated": "{{weight}} · {{date}}",
       "trendNeedsMeasurements": "Kolibi necesita unos 3 pesajes por semana para una tendencia fiable.",
       "targetLabel": "Meta",
       "changeInRange": "{{delta}} en {{days}} días",
       "waistLabel": "Cintura",
       "waistChangeInRange": "{{delta}} en {{days}} días",
-      "updateOnHome": "Actualizar peso en inicio"
+      "waistUnchanged": "sin cambios",
+      "updateOnHome": "Actualizar peso en inicio",
+      "tabs": {
+        "weight": "Peso",
+        "waist": "Cintura",
+        "bodyFat": "Grasa"
+      },
+      "comparisonUnchanged_one": "Peso sin cambios desde hace 1 semana, cintura {{waistDelta}}.",
+      "comparisonUnchanged_other": "Peso sin cambios desde hace {{count}} semanas, cintura {{waistDelta}}.",
+      "comparisonBoth_one": "Peso {{weightDelta}} en 1 semana, cintura {{waistDelta}}.",
+      "comparisonBoth_other": "Peso {{weightDelta}} en {{count}} semanas, cintura {{waistDelta}}."
     },
     "calories": {
       "sectionTitle": "Calorías",
