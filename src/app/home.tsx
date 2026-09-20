@@ -21,6 +21,12 @@ import { BarcodeScanButton } from '@/components/home/BarcodeScanButton';
 import { HistoryKoliButton } from '@/components/home/history-koli-button';
 import { ManualEntryButton } from '@/components/home/ManualEntryButton';
 import { ScanMealButton } from '@/components/home/ScanMealButton';
+import {
+  SCAN_BUTTON_BAR_GAP,
+  SCAN_BUTTON_LABEL_GAP,
+  SCAN_BUTTON_LABEL_LINE_HEIGHT,
+  scanButtonBarScrollPadding,
+} from '@/components/home/scan-button-bar';
 import { BarcodeFlowModal, type BarcodeFlowState } from '@/components/scan/BarcodeFlowModal';
 import { ProductLookupModal, type ProductLookupState } from '@/components/scan/ProductLookupModal';
 import {
@@ -163,7 +169,7 @@ function HomeErrorState() {
 
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
-  const { contentTopPadding } = useMeshScreenInsets();
+  const { contentTopPadding, insets } = useMeshScreenInsets();
   const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
@@ -1348,7 +1354,9 @@ export default function HomeScreen() {
             ) : (
               <ScrollView
                 className="flex-1 px-6"
-                contentContainerStyle={{ paddingBottom: 120 }}
+                contentContainerStyle={{
+                  paddingBottom: scanButtonBarScrollPadding(insets.bottom),
+                }}
                 showsVerticalScrollIndicator={false}>
                 {homeTab === 'today' ? (
                   <>
@@ -1391,14 +1399,21 @@ export default function HomeScreen() {
           </View>
         </GestureDetector>
 
-        <View className="absolute bottom-8 left-0 right-0 items-center px-6">
+        <View
+          className="absolute left-0 right-0 items-center px-6"
+          style={{ bottom: SCAN_BUTTON_BAR_GAP }}>
           <View className="flex-row items-end justify-center gap-5">
             <View className="items-center">
               <ManualEntryButton
                 accessibilityLabel={t('home.manualEntry.buttonLabel')}
                 onPress={() => void handleManualEntryPress()}
               />
-              <Text className="mt-3 text-sm font-medium text-gray-600">
+              <Text
+                className="text-sm font-medium text-gray-600"
+                style={{
+                  marginTop: SCAN_BUTTON_LABEL_GAP,
+                  lineHeight: SCAN_BUTTON_LABEL_LINE_HEIGHT,
+                }}>
                 {t('home.manualEntry.buttonLabel')}
               </Text>
             </View>
@@ -1408,7 +1423,12 @@ export default function HomeScreen() {
                 accessibilityLabel={t('home.scan.buttonLabel')}
                 onPress={() => void handleScanPress()}
               />
-              <Text className="mt-3 text-sm font-medium text-gray-600">
+              <Text
+                className="text-sm font-medium text-gray-600"
+                style={{
+                  marginTop: SCAN_BUTTON_LABEL_GAP,
+                  lineHeight: SCAN_BUTTON_LABEL_LINE_HEIGHT,
+                }}>
                 {t('home.scan.buttonLabel')}
               </Text>
             </View>
@@ -1418,7 +1438,12 @@ export default function HomeScreen() {
                 accessibilityLabel={t('home.scan.barcodeLabel')}
                 onPress={() => void handleBarcodePress()}
               />
-              <Text className="mt-3 text-sm font-medium text-gray-600">
+              <Text
+                className="text-sm font-medium text-gray-600"
+                style={{
+                  marginTop: SCAN_BUTTON_LABEL_GAP,
+                  lineHeight: SCAN_BUTTON_LABEL_LINE_HEIGHT,
+                }}>
                 {t('home.scan.barcodeLabel')}
               </Text>
             </View>

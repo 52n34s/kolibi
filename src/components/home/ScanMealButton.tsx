@@ -3,9 +3,13 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
+import { SCAN_MEAL_BUTTON_SIZE } from '@/components/home/scan-button-bar';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 
-const BUTTON_SIZE = 80;
+export {
+  SCAN_BUTTON_BAR_HEIGHT,
+  scanButtonBarScrollPadding,
+} from '@/components/home/scan-button-bar';
 
 type ScanMealButtonProps = {
   accessibilityLabel: string;
@@ -37,9 +41,9 @@ export function ScanMealButton({ accessibilityLabel, onPress }: ScanMealButtonPr
 
 const styles = StyleSheet.create({
   pressable: {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: BUTTON_SIZE / 2,
+    width: SCAN_MEAL_BUTTON_SIZE,
+    height: SCAN_MEAL_BUTTON_SIZE,
+    borderRadius: SCAN_MEAL_BUTTON_SIZE / 2,
     shadowColor: ONBOARDING_ACCENT,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.38,
@@ -47,9 +51,9 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   gradient: {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: BUTTON_SIZE / 2,
+    width: SCAN_MEAL_BUTTON_SIZE,
+    height: SCAN_MEAL_BUTTON_SIZE,
+    borderRadius: SCAN_MEAL_BUTTON_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',

@@ -18,6 +18,8 @@ import { CalorieBarChart } from '@/components/history/calorie-bar-chart';
 import { WeightLineChart } from '@/components/history/weight-line-chart';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
+import { useMeshScreenInsets } from '@/components/home/home-layout';
+import { scanButtonBarScrollPadding } from '@/components/home/scan-button-bar';
 import {
   getOnboardingIdleCardStyle,
   ONBOARDING_ACCENT,
@@ -161,6 +163,7 @@ function deriveRateFromCalorieTarget(params: {
 export function HistoryPanel() {
   const { t, i18n } = useTranslation();
   const { width: windowWidth } = useWindowDimensions();
+  const { insets } = useMeshScreenInsets();
   const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
@@ -1239,7 +1242,9 @@ export function HistoryPanel() {
     <ScrollView
       ref={scrollRef}
       className="flex-1 px-6"
-      contentContainerStyle={{ paddingBottom: 120 }}
+      contentContainerStyle={{
+        paddingBottom: scanButtonBarScrollPadding(insets.bottom),
+      }}
       showsVerticalScrollIndicator={false}>
       {showObservedUpdatePrompt &&
       observedEnergy &&
