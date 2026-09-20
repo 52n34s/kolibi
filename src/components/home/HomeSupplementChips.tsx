@@ -1,14 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { GLASS_SURFACE } from '@/components/ui/glass-styles';
+import { GLASS_BORDER } from '@/constants/brand';
 import { localDateKey } from '@/lib/day-window';
 import {
   fetchSupplementsForDay,
@@ -16,24 +11,17 @@ import {
   removeIntake,
   type SupplementForDay,
 } from '@/lib/supplements';
-import { GLASS_BORDER, GLASS_BORDER_TOP } from '@/constants/brand';
 import { useAuthStore } from '@/stores/auth-store';
 
-const CHIP_SCROLL_THRESHOLD = 3;
-
-/** Light glass chrome — same shape both states; done only mutes color. */
-const DUE_CHIP = {
-  backgroundColor: 'rgba(255, 255, 255, 0.52)',
-  borderColor: GLASS_BORDER,
-  borderTopColor: GLASS_BORDER_TOP,
+/** Open: frame only. Taken: same frame, glass fill. */
+const OPEN_CHIP = {
+  backgroundColor: 'transparent',
   textColor: '#4F46E5',
 } as const;
 
-const DONE_CHIP = {
-  backgroundColor: 'rgba(255, 255, 255, 0.38)',
-  borderColor: 'rgba(156, 163, 175, 0.45)',
-  borderTopColor: 'rgba(255, 255, 255, 0.7)',
-  textColor: '#6B7280',
+const TAKEN_CHIP = {
+  backgroundColor: GLASS_SURFACE.backgroundColor,
+  textColor: '#4F46E5',
 } as const;
 
 function supplementsDayQueryKey(userId: string, date: string) {
@@ -94,78 +82,60 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
     return null;
   }
 
-  // Only hide when nothing is due today (schedule/cycle/interval) or none exist.
   if (dueItems.length === 0) {
     return null;
   }
 
-  const useScroll = dueItems.length > CHIP_SCROLL_THRESHOLD;
+  return (
+    <View style={styles.row}>
+      {dueItems.map((item) => {
+        const taken = item.taken;
+        const palette = taken ? TAKEN_CHIP : OPEN_CHIP;
+        const pending =
+          toggleMutation.isPending && toggleMutation.variables?.id === item.id;
 
-  const chips = dueItems.map((item) => {
-    const done = item.taken;
-    const palette = done ? DONE_CHIP : DUE_CHIP;
-    const pending =
-      toggleMutation.isPending && toggleMutation.variables?.id === item.id;
-
-    return (
-      <Pressable
-        key={item.id}
-        accessibilityRole="button"
-        accessibilityLabel={
-          done
-            ? t('supplements.homeChip.takenA11y', { name: item.name })
-            : t('supplements.homeChip.dueA11y', { name: item.name })
-        }
-        disabled={toggleMutation.isPending}
-        onPress={() => toggleMutation.mutate(item)}
-        style={({ pressed }) => [
-          styles.chip,
-          {
-            backgroundColor: palette.backgroundColor,
-            borderColor: palette.borderColor,
-            borderTopColor: palette.borderTopColor,
-            opacity: pressed ? 0.85 : 1,
-          },
-        ]}>
-        {pending ? (
-          <ActivityIndicator size="small" color={palette.textColor} />
-        ) : (
-          <Text style={[styles.chipText, { color: palette.textColor }]} numberOfLines={1}>
-            {done ? `${item.name} ✓` : `${item.name} +`}
-          </Text>
-        )}
-      </Pressable>
-    );
-  });
-
-  if (useScroll) {
-    return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.row}
-        contentContainerStyle={styles.rowContent}>
-        {chips}
-      </ScrollView>
-    );
-  }
-
-  return <View style={[styles.row, styles.rowContent]}>{chips}</View>;
+        return (
+          <Pressable
+            key={item.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected: taken }}
+            accessibilityLabel={
+              taken
+                ? t('supplements.homeChip.takenA11y', { name: item.name })
+                : t('supplements.homeChip.dueA11y', { name: item.name })
+            }
+            disabled={toggleMutation.isPending}
+            onPress={() => toggleMutation.mutate(item)}
+            style={({ pressed }) => [
+              styles.chip,
+              { backgroundColor: palette.backgroundColor },
+              pressed ? styles.chipPressed : null,
+            ]}>
+            {pending ? (
+              <ActivityIndicator size="small" color={palette.textColor} />
+            ) : (
+              <Text style={[styles.chipText, { color: palette.textColor }]} numberOfLines={1}>
+                {taken ? `${item.name} ✓` : `${item.name} +`}
+              </Text>
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   row: {
-    // Same top gap as home blocks (weight uses mt-6 → 24).
     marginTop: 24,
-  },
-  rowContent: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
+    flexWrap: 'wrap',
     gap: 8,
     alignItems: 'center',
   },
   chip: {
-    borderWidth: 1,
+    borderWidth: GLASS_SURFACE.borderWidth,
+    borderColor: GLASS_BORDER,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,
@@ -173,6 +143,9 @@ const styles = StyleSheet.create({
     minHeight: 32,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chipPressed: {
+    opacity: 0.85,
   },
   chipText: {
     fontSize: 13,
