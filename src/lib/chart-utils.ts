@@ -3,34 +3,32 @@ export type ChartPoint = {
   y: number;
 };
 
+export type LineChartYDomain = {
+  min: number;
+  max: number;
+  range: number;
+};
+
+/** Y-domain from plotted values only. Target weight must not stretch or clamp this. */
 export function resolveLineChartYDomain(params: {
   values: number[];
-  targetWeightKg?: number | null;
-  yPaddingKg?: number;
-}): { min: number; max: number; range: number } {
-  const yPaddingKg = params.yPaddingKg ?? 2;
-
+}): LineChartYDomain {
   if (params.values.length === 0) {
     return { min: 0, max: 1, range: 1 };
   }
 
-  if (params.targetWeightKg == null) {
-    const min = Math.min(...params.values);
-    const max = Math.max(...params.values);
-    const range = max - min || 1;
-
-    return { min, max, range };
-  }
-
-  const candidates = [...params.values, params.targetWeightKg];
-  let min = Math.min(...candidates);
-  let max = Math.max(...candidates);
-  min -= yPaddingKg;
-  max += yPaddingKg;
-
+  const min = Math.min(...params.values);
+  const max = Math.max(...params.values);
   const range = max - min || 1;
 
   return { min, max, range };
+}
+
+export function isValueInYDomain(
+  value: number | null | undefined,
+  domain: Pick<LineChartYDomain, 'min' | 'max'>,
+): boolean {
+  return value != null && value >= domain.min && value <= domain.max;
 }
 
 export function valueToChartY(params: {
@@ -51,7 +49,6 @@ export function buildLineChartPoints(params: {
   width: number;
   height: number;
   padding?: number;
-  targetWeightKg?: number | null;
 }): ChartPoint[] {
   const padding = params.padding ?? 16;
   const { values, width, height } = params;
@@ -60,10 +57,7 @@ export function buildLineChartPoints(params: {
     return [];
   }
 
-  const { min, range } = resolveLineChartYDomain({
-    values,
-    targetWeightKg: params.targetWeightKg,
-  });
+  const { min, range } = resolveLineChartYDomain({ values });
   const innerWidth = width - padding * 2;
 
   return values.map((value, index) => {

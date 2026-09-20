@@ -70,6 +70,8 @@ import {
   computeProteinDistributionStats,
   formatBalanceAccuracyValue,
   pickBalanceAccuracyHint,
+  shouldShowWeightChangeDelta,
+  TREND_RELIABLE_WEIGH_DAYS_LAST_MONTH,
 } from '@/lib/history-balance';
 import {
   MacroEmpfehlungsZiel,
@@ -353,6 +355,14 @@ export function HistoryPanel() {
     [weightLogsInRange],
   );
 
+  const uniqueWeighDaysInRange = useMemo(() => {
+    const days = new Set<string>();
+    for (const log of weightLogsInRange) {
+      days.add(localDateKey(new Date(log.logged_at)));
+    }
+    return days.size;
+  }, [weightLogsInRange]);
+
   const latestWaistCm = useMemo(
     () => getLatestWaistCm(data?.waistLogs ?? []),
     [data?.waistLogs],
@@ -445,6 +455,10 @@ export function HistoryPanel() {
     () => (data ? countWeighDaysInLastMonth(data.weightLogs) : 0),
     [data],
   );
+  const showWeightChangeDelta = shouldShowWeightChangeDelta({
+    uniqueWeighDaysInRange,
+    weighDaysLastMonth,
+  });
   const weighSpanLastMonth = useMemo(
     () => (data ? weighSpanDaysInLastMonth(data.weightLogs) : 0),
     [data],
@@ -1097,7 +1111,7 @@ export function HistoryPanel() {
   }, [data?.bodyFatLogs, data?.weightLogs, i18n.language, t, unitSystem]);
 
   const historyWeightEtaInput = useMemo((): WeightGoalEtaInput | null => {
-    if (weighDaysLastMonth < 8) {
+    if (weighDaysLastMonth < TREND_RELIABLE_WEIGH_DAYS_LAST_MONTH) {
       return null;
     }
     if (targetWeightKg == null || !(targetWeightKg > 0) || !data?.weightLogs?.length) {
@@ -1379,7 +1393,9 @@ export function HistoryPanel() {
         {t('history.weight.sectionTitle')}
       </Text>
       <View style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-        <View className="px-4 py-5">
+        <View
+          className="px-4 py-5"
+          style={{ overflow: 'hidden', borderRadius: ONBOARDING_CARD_RADIUS }}>
           {hasWeightData && trendWeightLabel != null ? (
             <>
               <Text className="text-sm text-gray-500">
@@ -1388,7 +1404,7 @@ export function HistoryPanel() {
                   : t('history.weight.currentLabel')}
               </Text>
               <Text className="mt-1 text-2xl font-bold text-[#4F46E5]">{trendWeightLabel}</Text>
-              {weightChangeLabel ? (
+              {showWeightChangeDelta && weightChangeLabel ? (
                 <Text className="mt-1 text-sm text-gray-500">{weightChangeLabel}</Text>
               ) : null}
               {hasWeightChartData ? (
@@ -1409,7 +1425,7 @@ export function HistoryPanel() {
                     return `${deltaKg > 0 ? '+' : deltaKg < 0 ? '−' : ''}${formatted}`;
                   }}
                 />
-                {weighDaysLastMonth < 8 ? (
+                {weighDaysLastMonth < TREND_RELIABLE_WEIGH_DAYS_LAST_MONTH ? (
                   <Text className="mt-4 px-1 text-sm text-gray-500">
                     {t('history.weight.trendNeedsMeasurements')}
                   </Text>

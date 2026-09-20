@@ -60,6 +60,11 @@ const ACCURACY_RANK: Record<BalanceAccuracy, number> = {
   unavailable: 3,
 };
 
+/** Matches `history.weight.trendNeedsMeasurements` (~3 weigh-ins / week). */
+export const TREND_MIN_WEIGH_INS_PER_WEEK = 3;
+/** Same bar as the progress-tab hint: hide the kg-delta until a trend is reliable. */
+export const TREND_RELIABLE_WEIGH_DAYS_LAST_MONTH = 8;
+
 /** Weight-rate row: need ≥2 weigh days and ≥7 days between first and last. */
 export function accuracyFromWeighIns(params: {
   weighDayCount: number;
@@ -69,13 +74,27 @@ export function accuracyFromWeighIns(params: {
   if (weighDayCount < 2 || spanDays < 7) {
     return 'unavailable';
   }
-  if (weighDayCount >= 8) {
+  if (weighDayCount >= TREND_RELIABLE_WEIGH_DAYS_LAST_MONTH) {
     return 'reliable';
   }
   if (weighDayCount >= 4) {
     return 'rough';
   }
   return 'very_rough';
+}
+
+/**
+ * Progress-tab "+X kg in Y days" line. Hidden while the "need ~3 weigh-ins a
+ * week" hint is showing, and until the visible range itself has that many days.
+ */
+export function shouldShowWeightChangeDelta(params: {
+  uniqueWeighDaysInRange: number;
+  weighDaysLastMonth: number;
+}): boolean {
+  return (
+    params.uniqueWeighDaysInRange >= TREND_MIN_WEIGH_INS_PER_WEEK &&
+    params.weighDaysLastMonth >= TREND_RELIABLE_WEIGH_DAYS_LAST_MONTH
+  );
 }
 
 /** Macro rows (protein / fiber / fat / carbs): based on tracked meal days. */

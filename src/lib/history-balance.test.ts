@@ -10,6 +10,7 @@ import {
   computeProteinDistributionStats,
   formatBalanceAccuracyValue,
   pickBalanceAccuracyHint,
+  shouldShowWeightChangeDelta,
 } from './history-balance-stats.ts';
 import type { HistorySummaryStats } from './history.ts';
 
@@ -74,6 +75,25 @@ describe('balance accuracy', () => {
     assert.equal(accuracyFromWeighIns({ weighDayCount: 3, spanDays: 14 }), 'very_rough');
     assert.equal(accuracyFromWeighIns({ weighDayCount: 5, spanDays: 14 }), 'rough');
     assert.equal(accuracyFromWeighIns({ weighDayCount: 8, spanDays: 14 }), 'reliable');
+  });
+
+  it('hides the kg-delta until the same minimum the trend hint names', () => {
+    assert.equal(
+      shouldShowWeightChangeDelta({ uniqueWeighDaysInRange: 2, weighDaysLastMonth: 2 }),
+      false,
+    );
+    assert.equal(
+      shouldShowWeightChangeDelta({ uniqueWeighDaysInRange: 3, weighDaysLastMonth: 5 }),
+      false,
+    );
+    assert.equal(
+      shouldShowWeightChangeDelta({ uniqueWeighDaysInRange: 2, weighDaysLastMonth: 10 }),
+      false,
+    );
+    assert.equal(
+      shouldShowWeightChangeDelta({ uniqueWeighDaysInRange: 3, weighDaysLastMonth: 8 }),
+      true,
+    );
   });
 
   it('grades macros and protein distribution by tracked days', () => {

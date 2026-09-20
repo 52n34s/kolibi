@@ -12,6 +12,8 @@ export {
   computeProteinDistributionStats,
   formatBalanceAccuracyValue,
   pickBalanceAccuracyHint,
+  shouldShowWeightChangeDelta,
+  TREND_RELIABLE_WEIGH_DAYS_LAST_MONTH,
   type BalanceAccuracy,
   type BalanceAccuracyHintKind,
   type BalanceNutrient,
