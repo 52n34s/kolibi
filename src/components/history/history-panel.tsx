@@ -856,12 +856,11 @@ export function HistoryPanel() {
                       : 'history.balance.proteinDistribution.value',
                     {
                       hits: formatDecimal(
-                        proteinDistribution.averageMealsAtThreshold,
+                        Math.round(proteinDistribution.averageMealsAtThreshold),
                         i18n.language,
-                        1,
                       ),
                       meals: formatDecimal(
-                        proteinDistribution.averageMealCount,
+                        Math.round(proteinDistribution.averageMealCount),
                         i18n.language,
                       ),
                       threshold: proteinDistribution.thresholdG,

@@ -731,8 +731,8 @@
       },
       "proteinDistribution": {
         "label": "Proteína distribuida",
-        "value": "media {{hits}} de {{meals}} comidas ≥ {{threshold}} g",
-        "valueOnTarget": "✓ media {{hits}} de {{meals}} comidas ≥ {{threshold}} g"
+        "value": "En {{hits}} de {{meals}} comidas ≥ {{threshold}} g de proteína",
+        "valueOnTarget": "✓ En {{hits}} de {{meals}} comidas ≥ {{threshold}} g de proteína"
       },
       "weightRate": {
         "loss": "Pérdida de peso",

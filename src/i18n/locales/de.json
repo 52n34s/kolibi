@@ -731,8 +731,8 @@
       },
       "proteinDistribution": {
         "label": "Protein verteilt",
-        "value": "Ø {{hits}} von {{meals}} Mahlzeiten ≥ {{threshold}} g",
-        "valueOnTarget": "✓ Ø {{hits}} von {{meals}} Mahlzeiten ≥ {{threshold}} g"
+        "value": "Bei {{hits}} von {{meals}} Mahlzeiten ≥ {{threshold}} g Protein",
+        "valueOnTarget": "✓ Bei {{hits}} von {{meals}} Mahlzeiten ≥ {{threshold}} g Protein"
       },
       "weightRate": {
         "loss": "Abnahme",

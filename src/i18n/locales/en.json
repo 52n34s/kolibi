@@ -731,8 +731,8 @@
       },
       "proteinDistribution": {
         "label": "Protein distributed",
-        "value": "avg {{hits}} of {{meals}} meals ≥ {{threshold}} g",
-        "valueOnTarget": "✓ avg {{hits}} of {{meals}} meals ≥ {{threshold}} g"
+        "value": "{{hits}} of {{meals}} meals ≥ {{threshold}} g protein",
+        "valueOnTarget": "✓ {{hits}} of {{meals}} meals ≥ {{threshold}} g protein"
       },
       "weightRate": {
         "loss": "Weight loss",
