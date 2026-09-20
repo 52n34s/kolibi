@@ -569,6 +569,28 @@ export default function HomeScreen() {
     });
   }, [currentDisplayKg, t, unitSystem, weightUnitLabels]);
 
+  const dailyWeightLabel = useMemo(() => {
+    const dailyKg = displayWeight?.dailyKg;
+    const trendKg = displayWeight?.trendKg;
+    if (dailyKg == null || trendKg == null) {
+      return null;
+    }
+    const dailyFormatted = formatWeightForDisplay({
+      weightKg: dailyKg,
+      unitSystem,
+      ...weightUnitLabels,
+    });
+    const trendFormatted = formatWeightForDisplay({
+      weightKg: trendKg,
+      unitSystem,
+      ...weightUnitLabels,
+    });
+    if (dailyFormatted === trendFormatted) {
+      return null;
+    }
+    return t('home.weight.dailyToday', { weight: dailyFormatted });
+  }, [displayWeight?.dailyKg, displayWeight?.trendKg, t, unitSystem, weightUnitLabels]);
+
   const weightProgressPercent = useMemo(
     () =>
       weightGoalProgressPercent({
@@ -1389,6 +1411,7 @@ export default function HomeScreen() {
                     <View className="mt-6">
                       <WeightProgressCard
                         currentValue={weightLabel}
+                        dailyValue={dailyWeightLabel}
                         startLabel={t('home.weight.startTitle')}
                         startValue={startWeightLabel}
                         targetLabel={t('home.weight.targetTitle')}

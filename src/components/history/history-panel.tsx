@@ -358,16 +358,18 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
     return key >= data.days[0]!.date && key <= data.days[data.days.length - 1]!.date;
   }, [data?.days, latestWeightLog]);
 
-  const trendWeightKg = useMemo(() => {
+  const displayWeight = useMemo(() => {
     if (!data?.days.length) {
-      return latestWeightLog?.weight_kg ?? null;
+      return null;
     }
     return resolveDisplayWeight({
       logs: data.weightLogs,
       startOn: data.days[0]!.date,
       today: todayKey,
-    }).trendKg;
-  }, [data, latestWeightLog, todayKey]);
+    });
+  }, [data, todayKey]);
+
+  const trendWeightKg = displayWeight?.trendKg ?? latestWeightLog?.weight_kg ?? null;
 
   const trendWeightLabel = useMemo(() => {
     if (trendWeightKg == null || latestWeightLog == null) {
@@ -397,6 +399,30 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
     unitSystem,
     weightLogsInRange.length,
   ]);
+
+  const dailyWeightLabel = useMemo(() => {
+    const dailyKg = displayWeight?.dailyKg;
+    const trendKg = displayWeight?.trendKg;
+    if (dailyKg == null || trendKg == null) {
+      return null;
+    }
+    const dailyFormatted = formatWeightForDisplay({
+      weightKg: dailyKg,
+      unitSystem,
+      kgLabel: t('onboarding.units.kg'),
+      lbsLabel: t('onboarding.units.lbs'),
+    });
+    const trendFormatted = formatWeightForDisplay({
+      weightKg: trendKg,
+      unitSystem,
+      kgLabel: t('onboarding.units.kg'),
+      lbsLabel: t('onboarding.units.lbs'),
+    });
+    if (dailyFormatted === trendFormatted) {
+      return null;
+    }
+    return t('history.weight.dailyToday', { weight: dailyFormatted });
+  }, [displayWeight?.dailyKg, displayWeight?.trendKg, t, unitSystem]);
 
   const weightChange = useMemo(() => {
     if (!data?.days.length) {
@@ -1877,6 +1903,9 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
                   : t('history.weight.currentLabel')}
               </Text>
               <Text className="mt-1 text-2xl font-bold text-[#4F46E5]">{trendWeightLabel}</Text>
+              {dailyWeightLabel ? (
+                <Text className="mt-1 text-sm text-gray-500">{dailyWeightLabel}</Text>
+              ) : null}
               {showWeightChangeDelta && weightChangeLabel ? (
                 <Text className="mt-1 text-sm text-gray-500">{weightChangeLabel}</Text>
               ) : null}

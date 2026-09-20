@@ -6,6 +6,8 @@ import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 
 type WeightProgressCardProps = {
   currentValue: string;
+  /** Shown under the main number when trend and today's log differ. */
+  dailyValue?: string | null;
   startLabel: string;
   startValue: string;
   targetLabel: string;
@@ -22,6 +24,7 @@ type WeightProgressCardProps = {
  */
 export function WeightProgressCard({
   currentValue,
+  dailyValue,
   startLabel,
   startValue,
   targetLabel,
@@ -31,6 +34,10 @@ export function WeightProgressCard({
   accessibilityLabel,
 }: WeightProgressCardProps) {
   const showRange = progressPercent != null;
+  const dailyLine =
+    dailyValue != null && dailyValue.length > 0 ? (
+      <Text style={styles.dailyValue}>{dailyValue}</Text>
+    ) : null;
 
   return (
     <Pressable
@@ -51,6 +58,7 @@ export function WeightProgressCard({
             </View>
             <View style={styles.currentSlot}>
               <Text style={styles.currentValue}>{currentValue}</Text>
+              {dailyLine}
             </View>
             <View style={styles.edgeRight}>
               <Text style={styles.edgeLabel}>{targetLabel}</Text>
@@ -64,7 +72,10 @@ export function WeightProgressCard({
         </>
       ) : (
         <View style={styles.aloneRow}>
-          <Text style={styles.currentValueAlone}>{currentValue}</Text>
+          <View style={styles.aloneCurrent}>
+            <Text style={styles.currentValueAlone}>{currentValue}</Text>
+            {dailyLine}
+          </View>
           <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
         </View>
       )}
@@ -147,12 +158,22 @@ const styles = StyleSheet.create({
     color: '#26234A',
     textAlign: 'center',
   },
+  dailyValue: {
+    marginTop: 2,
+    fontSize: 12,
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+  },
   currentValueAlone: {
-    flex: 1,
     fontSize: 20,
     fontWeight: '500',
     color: '#26234A',
     textAlign: 'center',
+  },
+  aloneCurrent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   aloneRow: {
     flexDirection: 'row',
