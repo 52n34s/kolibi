@@ -1,7 +1,7 @@
 import { Href, router } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 
 import {
@@ -12,6 +12,11 @@ import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import type { HistoryRangeDays } from '@/lib/history';
 import { fetchSupplementHistory } from '@/lib/supplements';
+
+/** Shared by the weekday header and every supplement row so dots line up. */
+const NAME_COL_WIDTH = 96;
+const COUNT_COL_WIDTH = 40;
+const ROW_GAP = 10;
 
 type Props = {
   userId: string;
@@ -29,6 +34,24 @@ function weekdayShort(dateKey: string, locale: string): string {
   const date = parseDateOnly(dateKey);
   date.setHours(12, 0, 0, 0);
   return date.toLocaleDateString(locale, { weekday: 'short' });
+}
+
+function SupplementGridRow({
+  name,
+  track,
+  count,
+}: {
+  name: ReactNode;
+  track: ReactNode;
+  count: ReactNode;
+}) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.nameCol}>{name}</View>
+      <View style={styles.dayTrack}>{track}</View>
+      <View style={styles.countCol}>{count}</View>
+    </View>
+  );
 }
 
 export function SupplementHistorySection({ userId, rangeDays }: Props) {
@@ -91,25 +114,17 @@ export function SupplementHistorySection({ userId, rangeDays }: Props) {
         ]}>
         <View className="px-4 py-3" style={{ gap: 14 }}>
           {!compact && dayKeys.length > 0 ? (
-            <View className="flex-row items-center" style={{ gap: 10 }}>
-              <View style={{ maxWidth: '28%', flexShrink: 1, width: '28%' }} />
-              <View className="min-w-0 flex-1 flex-row items-center justify-between">
-                {dayKeys.map((day) => (
-                  <Text
-                    key={`${day.day}-label`}
-                    style={{
-                      width: dotSize + 8,
-                      fontSize: 10,
-                      color: '#9CA3AF',
-                      textAlign: 'center',
-                    }}
-                    numberOfLines={1}>
+            <SupplementGridRow
+              name={null}
+              track={dayKeys.map((day) => (
+                <View key={`${day.day}-label`} style={styles.dayCell}>
+                  <Text style={styles.weekdayLabel} numberOfLines={1}>
                     {weekdayShort(day.day, i18n.language)}
                   </Text>
-                ))}
-              </View>
-              <View style={{ minWidth: 36 }} />
-            </View>
+                </View>
+              ))}
+              count={null}
+            />
           ) : null}
 
           {data.map((row) => {
@@ -117,58 +132,41 @@ export function SupplementHistorySection({ userId, rangeDays }: Props) {
             const takenDue = dueDays.filter((day) => day.taken).length;
             const dueCount = dueDays.length;
             return (
-              <View key={row.supplement_id} className="flex-row items-center" style={{ gap: 10 }}>
-                <Text
-                  className="text-sm font-medium text-gray-900"
-                  numberOfLines={1}
-                  style={{ flexShrink: 1, maxWidth: '28%' }}>
-                  {row.name}
-                </Text>
-                <View className="min-w-0 flex-1 flex-row items-center justify-between">
-                  {row.days.map((day) => {
-                    if (!day.is_due) {
-                      return (
-                        <View
-                          key={day.day}
-                          style={{
-                            width: compact ? dotSize : dotSize + 8,
-                            height: dotSize,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        />
-                      );
-                    }
-                    return (
+              <SupplementGridRow
+                key={row.supplement_id}
+                name={
+                  <Text
+                    className="text-sm font-medium text-gray-900"
+                    numberOfLines={1}
+                    ellipsizeMode="tail">
+                    {row.name}
+                  </Text>
+                }
+                track={row.days.map((day) => (
+                  <View key={day.day} style={styles.dayCell}>
+                    {day.is_due ? (
                       <View
-                        key={day.day}
                         style={{
-                          width: compact ? dotSize : dotSize + 8,
+                          width: dotSize,
                           height: dotSize,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}>
-                        <View
-                          style={{
-                            width: dotSize,
-                            height: dotSize,
-                            borderRadius: dotSize / 2,
-                            backgroundColor: day.taken ? '#4B5563' : 'transparent',
-                            borderWidth: day.taken ? 0 : 1,
-                            borderColor: '#9CA3AF',
-                          }}
-                        />
-                      </View>
-                    );
-                  })}
-                </View>
-                <Text className="text-xs tabular-nums text-gray-500">
-                  {t('history.supplements.quote', {
-                    taken: takenDue,
-                    due: dueCount,
-                  })}
-                </Text>
-              </View>
+                          borderRadius: dotSize / 2,
+                          backgroundColor: day.taken ? '#4B5563' : 'transparent',
+                          borderWidth: day.taken ? 0 : 1,
+                          borderColor: '#9CA3AF',
+                        }}
+                      />
+                    ) : null}
+                  </View>
+                ))}
+                count={
+                  <Text className="text-xs tabular-nums text-gray-500" numberOfLines={1}>
+                    {t('history.supplements.quote', {
+                      taken: takenDue,
+                      due: dueCount,
+                    })}
+                  </Text>
+                }
+              />
             );
           })}
         </View>
@@ -176,3 +174,38 @@ export function SupplementHistorySection({ userId, rangeDays }: Props) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ROW_GAP,
+  },
+  nameCol: {
+    width: NAME_COL_WIDTH,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  dayTrack: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dayCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countCol: {
+    width: COUNT_COL_WIDTH,
+    flexGrow: 0,
+    flexShrink: 0,
+    alignItems: 'flex-end',
+  },
+  weekdayLabel: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    textAlign: 'center',
+  },
+});
