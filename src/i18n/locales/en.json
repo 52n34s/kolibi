@@ -749,6 +749,7 @@
       "topFoods": "Most of it came from: {{foods}}",
       "summary": {
         "onTrack": "You're on track this week.",
+        "calorieUndershoot": "On three of the last seven days, your deficit was well above what you had planned.",
         "smallUnder": "You're on track — about {{amount}} g more {{nutrient}} a day would round it off.",
         "smallOver": "You're on track — about {{amount}} g less {{nutrient}} a day would round it off.",
         "largeUnder": {

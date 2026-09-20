@@ -749,6 +749,7 @@
       "topFoods": "La mayor parte vino de: {{foods}}",
       "summary": {
         "onTrack": "Vas bien esta semana.",
+        "calorieUndershoot": "En tres de los últimos siete días, tu déficit estuvo claramente por encima de lo previsto.",
         "smallUnder": "Vas bien — unos {{amount}} g más de {{nutrient}} al día lo redondearían.",
         "smallOver": "Vas bien — unos {{amount}} g menos de {{nutrient}} al día lo redondearían.",
         "largeUnder": {

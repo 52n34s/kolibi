@@ -10,6 +10,7 @@ export {
   computeBalanceStats,
   computeBalanceSummaryHeadline,
   computeProteinDistributionStats,
+  detectRepeatedCalorieUndershoot,
   formatBalanceAccuracyValue,
   pickBalanceAccuracyHint,
   shouldShowWeightChangeDelta,
@@ -20,6 +21,7 @@ export {
   type BalanceStats,
   type BalanceSummaryHeadline,
   type BalanceSummaryNutrient,
+  type CalorieUndershootDay,
   type ProteinDistributionMeal,
   type ProteinDistributionStats,
 } from '@/lib/history-balance-stats';

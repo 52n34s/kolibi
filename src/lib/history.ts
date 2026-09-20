@@ -116,7 +116,7 @@ function macroOrEmpty(kcal: number, value: number): number | null {
 
 export async function fetchHistoryData(
   userId: string,
-  rangeDays: HistoryRangeDays = 7,
+  rangeDays: number = 7,
 ): Promise<HistoryData> {
   const dateKeys = buildDateKeys(rangeDays);
   const sinceMeals = localDayWindow(parseDateOnly(dateKeys[0]!)).startISO;

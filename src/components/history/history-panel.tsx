@@ -89,6 +89,7 @@ import {
   computeBalanceStats,
   computeBalanceSummaryHeadline,
   computeProteinDistributionStats,
+  detectRepeatedCalorieUndershoot,
   formatBalanceAccuracyValue,
   pickBalanceAccuracyHint,
   shouldShowWeightChangeDelta,
@@ -196,6 +197,8 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
   const [isApplyingObserved, setIsApplyingObserved] = useState(false);
   const { data, isLoading, isError, error } = useHistory(userId, rangeDays);
   const { data: balanceData } = useHistory(userId, 7);
+  /** 7 closed days + today — undershoot must not use in-progress today. */
+  const { data: calorieUndershootData } = useHistory(userId, 8);
   const { data: profileSettings } = useProfileSettings(userId);
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
   const profile = profileSettings?.profile;
@@ -1162,8 +1165,30 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
       ? t('history.balance.allOk')
       : topFoodsLine;
 
+  const showsCalorieUndershoot = useMemo(() => {
+    const days = calorieUndershootData?.days;
+    if (!days?.length) {
+      return false;
+    }
+    return detectRepeatedCalorieUndershoot({
+      todayKey,
+      days: days.map((day) => ({
+        date: day.date,
+        hasMeals: day.hasMeals,
+        totalCalories: day.totalCalories,
+        calorieGoal: day.scaledGoal?.calorieGoal ?? day.goal?.dailyCalorieGoal ?? null,
+      })),
+    });
+  }, [calorieUndershootData?.days, todayKey]);
+
   const balanceSummaryHeadline = useMemo(() => {
-    if (!showBalanceCard || !balanceSummary) {
+    if (!showBalanceCard) {
+      return null;
+    }
+    if (showsCalorieUndershoot) {
+      return t('history.balance.summary.calorieUndershoot');
+    }
+    if (!balanceSummary) {
       return null;
     }
     const headline = computeBalanceSummaryHeadline({
@@ -1192,7 +1217,14 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
         : `history.balance.summary.largeOver.${headline.nutrient}`,
       { amount: headline.amountG },
     );
-  }, [balanceSummary, macroAccuracy, referenceWeightKg, showBalanceCard, t]);
+  }, [
+    balanceSummary,
+    macroAccuracy,
+    referenceWeightKg,
+    showBalanceCard,
+    showsCalorieUndershoot,
+    t,
+  ]);
 
   const bodyFatChangeLines = useMemo(() => {
     if (!data?.bodyFatLogs?.length) {

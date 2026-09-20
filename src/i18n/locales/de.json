@@ -749,6 +749,7 @@
       "topFoods": "Am meisten davon hattest du bei: {{foods}}",
       "summary": {
         "onTrack": "Du bist diese Woche auf Kurs.",
+        "calorieUndershoot": "An drei der letzten sieben Tage lag dein Defizit deutlich über dem geplanten.",
         "smallUnder": "Du bist auf Kurs — etwa {{amount}} g mehr {{nutrient}} pro Tag würden es abrunden.",
         "smallOver": "Du bist auf Kurs — etwa {{amount}} g weniger {{nutrient}} pro Tag würden es abrunden.",
         "largeUnder": {

@@ -4,10 +4,9 @@ import { localDateKey } from '@/lib/day-window';
 import {
   fetchHistoryData,
   resolveHistoryPreviewData,
-  type HistoryRangeDays,
 } from '@/lib/history';
 
-export function useHistory(userId: string | undefined, rangeDays: HistoryRangeDays = 7) {
+export function useHistory(userId: string | undefined, rangeDays: number = 7) {
   return useQuery({
     queryKey: ['history', userId, rangeDays, localDateKey()],
     enabled: !!userId,

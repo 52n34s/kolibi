@@ -472,3 +472,50 @@ export function computeBalanceSummaryHeadline(params: {
     direction: top.direction,
   };
 }
+
+/** Last 7 closed calendar days; today is still in progress. */
+export const CALORIE_UNDERSHOOT_LOOKBACK_DAYS = 7;
+/** Deficit must be strictly more than this fraction of that day's goal. */
+export const CALORIE_UNDERSHOOT_RATIO = 0.25;
+export const CALORIE_UNDERSHOOT_MIN_DAYS = 3;
+
+export type CalorieUndershootDay = {
+  date: string;
+  hasMeals: boolean;
+  totalCalories: number;
+  calorieGoal: number | null;
+};
+
+/**
+ * Pattern, not a single day: ≥3 of the last 7 *completed, fully logged* days
+ * are more than 25 % under that day's calorie goal.
+ *
+ * Untracked days are not treated as zero — they would look like a huge deficit.
+ * If any of the seven closed days is missing meals or a goal, returns false.
+ */
+export function detectRepeatedCalorieUndershoot(params: {
+  days: readonly CalorieUndershootDay[];
+  todayKey: string;
+}): boolean {
+  const closed = params.days
+    .filter((day) => day.date < params.todayKey)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const window = closed.slice(-CALORIE_UNDERSHOOT_LOOKBACK_DAYS);
+  if (window.length < CALORIE_UNDERSHOOT_LOOKBACK_DAYS) {
+    return false;
+  }
+
+  const complete = window.every(
+    (day) => day.hasMeals && day.calorieGoal != null && day.calorieGoal > 0,
+  );
+  if (!complete) {
+    return false;
+  }
+
+  const underCount = window.filter((day) => {
+    const goal = day.calorieGoal!;
+    return day.totalCalories < goal * (1 - CALORIE_UNDERSHOOT_RATIO);
+  }).length;
+
+  return underCount >= CALORIE_UNDERSHOOT_MIN_DAYS;
+}

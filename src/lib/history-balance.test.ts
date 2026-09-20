@@ -8,6 +8,7 @@ import {
   computeBalanceStats,
   computeBalanceSummaryHeadline,
   computeProteinDistributionStats,
+  detectRepeatedCalorieUndershoot,
   formatBalanceAccuracyValue,
   pickBalanceAccuracyHint,
   shouldShowWeightChangeDelta,
@@ -204,6 +205,148 @@ describe('computeBalanceSummaryHeadline', () => {
         macroAccuracy: 'very_rough',
       }),
       null,
+    );
+  });
+});
+
+function undershootDay(params: {
+  date: string;
+  calories: number;
+  goal: number | null;
+  hasMeals?: boolean;
+}) {
+  return {
+    date: params.date,
+    hasMeals: params.hasMeals ?? true,
+    totalCalories: params.calories,
+    calorieGoal: params.goal,
+  };
+}
+
+/** 7 closed days Mon–Sun 14–20 Sep, plus in-progress 21 Sep. */
+function closedWeek(overrides: Record<string, Partial<{
+  calories: number;
+  goal: number | null;
+  hasMeals: boolean;
+}>> = {}) {
+  const dates = [
+    '2026-09-14',
+    '2026-09-15',
+    '2026-09-16',
+    '2026-09-17',
+    '2026-09-18',
+    '2026-09-19',
+    '2026-09-20',
+  ];
+  const closed = dates.map((date) => {
+    const extra = overrides[date] ?? {};
+    return undershootDay({
+      date,
+      calories: extra.calories ?? 2000,
+      goal: extra.goal === undefined ? 2000 : extra.goal,
+      hasMeals: extra.hasMeals,
+    });
+  });
+  return [
+    ...closed,
+    undershootDay({ date: '2026-09-21', calories: 0, goal: 2000, hasMeals: false }),
+  ];
+}
+
+describe('detectRepeatedCalorieUndershoot', () => {
+  const todayKey = '2026-09-21';
+
+  it('ignores an untracked day instead of treating it as a 2000 kcal hole', () => {
+    assert.equal(
+      detectRepeatedCalorieUndershoot({
+        todayKey,
+        days: closedWeek({
+          '2026-09-14': { calories: 1000 },
+          '2026-09-15': { calories: 1000 },
+          '2026-09-16': { calories: 1000 },
+          '2026-09-17': { hasMeals: false, calories: 0 },
+        }),
+      }),
+      false,
+    );
+  });
+
+  it('returns false when a closed day has meals but no calorie goal', () => {
+    assert.equal(
+      detectRepeatedCalorieUndershoot({
+        todayKey,
+        days: closedWeek({
+          '2026-09-14': { calories: 1000 },
+          '2026-09-15': { calories: 1000 },
+          '2026-09-16': { calories: 1000 },
+          '2026-09-17': { goal: null },
+        }),
+      }),
+      false,
+    );
+  });
+
+  it('returns false without seven complete closed days in the payload', () => {
+    assert.equal(
+      detectRepeatedCalorieUndershoot({
+        todayKey,
+        days: closedWeek().slice(2),
+      }),
+      false,
+    );
+  });
+
+  it('returns false when only two complete days are more than 25% under', () => {
+    assert.equal(
+      detectRepeatedCalorieUndershoot({
+        todayKey,
+        days: closedWeek({
+          '2026-09-14': { calories: 1400 },
+          '2026-09-15': { calories: 1400 },
+        }),
+      }),
+      false,
+    );
+  });
+
+  it('returns false at exactly 25% under — the gap must be strictly larger', () => {
+    assert.equal(
+      detectRepeatedCalorieUndershoot({
+        todayKey,
+        days: closedWeek({
+          '2026-09-14': { calories: 1500 },
+          '2026-09-15': { calories: 1500 },
+          '2026-09-16': { calories: 1500 },
+        }),
+      }),
+      false,
+    );
+  });
+
+  it('returns true for three of the last seven fully logged days', () => {
+    assert.equal(
+      detectRepeatedCalorieUndershoot({
+        todayKey,
+        days: closedWeek({
+          '2026-09-14': { calories: 1400 },
+          '2026-09-16': { calories: 1000 },
+          '2026-09-20': { calories: 1499 },
+        }),
+      }),
+      true,
+    );
+  });
+
+  it('does not count today even when it looks empty', () => {
+    assert.equal(
+      detectRepeatedCalorieUndershoot({
+        todayKey,
+        days: closedWeek({
+          '2026-09-14': { calories: 1400 },
+          '2026-09-15': { calories: 1400 },
+        }),
+      }),
+      false,
     );
   });
 });
