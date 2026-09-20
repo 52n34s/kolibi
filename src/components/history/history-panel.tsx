@@ -254,7 +254,6 @@ export function HistoryPanel() {
         label: t('history.summary.fat'),
         actual: summary.fatAvg,
         goal: summary.fatGoalAvg,
-        goalPrefix: t('history.summary.minPrefix'),
       },
       {
         key: 'fiber',
