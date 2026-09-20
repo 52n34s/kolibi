@@ -60,7 +60,7 @@ export function formatProgressAmount(value: number, decimals: 0 | 1): string {
   return rounded.toFixed(1);
 }
 
-function WeekDayDots({ flags }: { flags: boolean[] }) {
+export function WeekDayDots({ flags }: { flags: boolean[] }) {
   const days = flags.length === 7 ? flags : [false, false, false, false, false, false, false];
   return (
     <View style={styles.dotsRow}>

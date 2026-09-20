@@ -656,6 +656,53 @@ export async function getMovementActual(params: {
 }
 
 /**
+ * Running-workout kilometres by local day. Display-only — not stored.
+ * Rest days are omitted; the caller fills the chart window with zeros.
+ */
+export async function getRunningKmByDay(params: {
+  start: Date;
+  end: Date;
+}): Promise<Array<{ date: string; km: number }>> {
+  if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
+    return [];
+  }
+
+  try {
+    const workouts = await queryWorkoutSamples({
+      filter: {
+        workoutActivityType: WorkoutActivityType.running,
+        date: {
+          startDate: params.start,
+          endDate: params.end,
+        },
+      },
+      limit: -1,
+    });
+
+    const byDay = new Map<string, number>();
+    for (const workout of workouts) {
+      const loggedAt = workout.endDate ?? workout.startDate;
+      const dayKey = localDateKey(loggedAt);
+      const next = (byDay.get(dayKey) ?? 0) + quantityToKm(workout.totalDistance);
+      byDay.set(dayKey, roundKm(next));
+    }
+
+    return Array.from(byDay.entries()).map(([date, km]) => ({ date, km }));
+  } catch (error) {
+    if (isHealthAuthorizationNotDetermined(error)) {
+      console.warn(
+        '[Health] running km series: authorization notDetermined while health_connected expected true',
+        error,
+      );
+      return [];
+    }
+
+    console.warn('[Health] running km series failed:', error);
+    return [];
+  }
+}
+
+/**
  * True when HealthKit already has a workout matching the selected training
  * activity on the local calendar day — blocks a manual training_sessions entry.
  * Returns null when Health is unavailable / not authorized / non-iOS.

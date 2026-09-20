@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  historyTrainingHasOwnContent,
   resolveActiveHistoryArea,
+  resolveHistoryTrainingVisible,
   resolveVisibleHistoryAreas,
   shouldShowHistoryAreaSwitcher,
 } from './history-areas.ts';
@@ -21,6 +23,52 @@ describe('shouldShowHistoryAreaSwitcher', () => {
     assert.equal(shouldShowHistoryAreaSwitcher([]), false);
     assert.equal(shouldShowHistoryAreaSwitcher(['nutrition']), false);
     assert.equal(shouldShowHistoryAreaSwitcher(['nutrition', 'body']), true);
+  });
+});
+
+describe('resolveHistoryTrainingVisible', () => {
+  it('shows training when a session, goal, or Health connection exists', () => {
+    assert.equal(
+      historyTrainingHasOwnContent({
+        hasSessionInRange: true,
+        hasMovementGoal: false,
+        healthConnected: false,
+      }),
+      true,
+    );
+    assert.equal(
+      resolveHistoryTrainingVisible({
+        nutrition: false,
+        body: false,
+        hasSessionInRange: false,
+        hasMovementGoal: false,
+        healthConnected: true,
+      }),
+      true,
+    );
+  });
+
+  it('hitchhikes empty training only when nutrition and body already fill the pill row', () => {
+    assert.equal(
+      resolveHistoryTrainingVisible({
+        nutrition: true,
+        body: true,
+        hasSessionInRange: false,
+        hasMovementGoal: false,
+        healthConnected: false,
+      }),
+      true,
+    );
+    assert.equal(
+      resolveHistoryTrainingVisible({
+        nutrition: true,
+        body: false,
+        hasSessionInRange: false,
+        hasMovementGoal: false,
+        healthConnected: false,
+      }),
+      false,
+    );
   });
 });
 

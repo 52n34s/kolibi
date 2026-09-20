@@ -100,6 +100,27 @@ export async function fetchTrainingSessionsForWeek(
   return ((data ?? []) as TrainingSessionRow[]).map(mapRow);
 }
 
+export async function fetchTrainingSessionsInRange(
+  userId: string,
+  startKey: string,
+  endKey: string,
+): Promise<TrainingSession[]> {
+  const { data, error } = await supabase
+    .from('training_sessions')
+    .select(TRAINING_SESSION_SELECT)
+    .eq('user_id', userId)
+    .gte('logged_on', startKey)
+    .lte('logged_on', endKey)
+    .order('logged_on', { ascending: true })
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return ((data ?? []) as TrainingSessionRow[]).map(mapRow);
+}
+
 export async function fetchTrainingSessionsForDate(
   userId: string,
   loggedOn: string,

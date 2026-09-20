@@ -709,6 +709,17 @@
       "body": "Körper",
       "training": "Training"
     },
+    "training": {
+      "sessionsTitle": "Trainingseinheiten",
+      "sessionsHeadlineWeek": "Diese Woche",
+      "sessionsHeadlineRange": "Tage mit Training",
+      "sessionsValue": "{{actual}} von {{goal}}",
+      "runningKmTitle": "Laufkilometer",
+      "runningKmHeadline": "Im Zeitraum",
+      "kmValue": "{{km}} km",
+      "connectHealth": "Apple Health verbinden",
+      "setMovementGoal": "Bewegungsziel festlegen"
+    },
     "balance": {
       "title": "Letzte 7 Tage",
       "protein": {

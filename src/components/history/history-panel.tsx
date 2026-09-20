@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Swipeable } from 'react-native-gesture-handler';
 
 import { CalorieBarChart } from '@/components/history/calorie-bar-chart';
+import { HistoryTrainingSection } from '@/components/history/history-training-section';
 import { WeightLineChart } from '@/components/history/weight-line-chart';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
@@ -28,6 +29,8 @@ import {
 import { SupplementHistorySection } from '@/components/supplements/SupplementHistorySection';
 import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
 import { useHistory } from '@/hooks/use-history';
+import { useRunningKmSeries } from '@/hooks/use-running-km-series';
+import { useTrainingSessionsRange } from '@/hooks/use-training-sessions-range';
 import {
   useBalanceSupplementHistory,
   useTopContributingFoods,
@@ -73,6 +76,7 @@ import {
 } from '@/lib/history-body-metrics';
 import {
   resolveActiveHistoryArea,
+  resolveHistoryTrainingVisible,
   resolveVisibleHistoryAreas,
   shouldShowHistoryAreaSwitcher,
   type HistoryContentArea,
@@ -117,6 +121,19 @@ import {
 } from '@/lib/weight-goal-eta';
 import { formatWeightForDisplay } from '@/lib/weight-logs';
 import { formatWaistDeltaForDisplay, formatWaistForDisplay } from '@/lib/waist-logs';
+import {
+  countDistinctTrainingDays,
+  localWeekDateKeys,
+  weekDotFlags,
+} from '@/lib/training-sessions';
+import {
+  dailyKmSeries,
+  inclusiveDateKeys,
+  loggedOnInRange,
+  resolveHistoryTrainingEmptyKind,
+  sumKm,
+  weeklyDistinctTrainingDayCounts,
+} from '@/lib/history-training';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
@@ -202,6 +219,21 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
   const { data: profileSettings } = useProfileSettings(userId);
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
   const profile = profileSettings?.profile;
+  const todayKey = localDateKey();
+  const chartWidth = windowWidth - 48;
+  const trainingLookback = rangeWindowKeys({ rangeDays: 35, todayKey });
+  const historyRangeWindow = rangeWindowKeys({ rangeDays, todayKey });
+  const { data: trainingSessions = [] } = useTrainingSessionsRange({
+    userId,
+    startKey: trainingLookback.startKey,
+    endKey: trainingLookback.endKey,
+  });
+  const { data: runningKmSamples = [] } = useRunningKmSeries({
+    userId,
+    startKey: historyRangeWindow.startKey,
+    endKey: todayKey,
+    enabled: healthConnectedPreference === true,
+  });
   const { data: observedEnergy } = useObservedEnergy({
     userId,
     biologicalSex: profile?.biological_sex,
@@ -211,9 +243,6 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
     activityLevel: profile?.activity_level,
     healthConnected: healthConnectedPreference === true,
   });
-
-  const chartWidth = windowWidth - 48;
-  const todayKey = localDateKey();
 
   useEffect(() => {
     initializeUnitSystem();
@@ -1355,6 +1384,24 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
   const hasNutritionContent =
     showBalanceCard || (summary?.loggedDays ?? 0) > 0 || hasCalorieData;
   const hasBodyContent = hasWeightData || hasWaistData || hasBodyFatData;
+  const hasMovementGoal =
+    profile?.movement_goal_type != null &&
+    profile.movement_goal_value != null &&
+    profile.movement_goal_value > 0 &&
+    profile.movement_goal_period != null;
+  const hasSessionInRange = trainingSessions.some((session) =>
+    loggedOnInRange(session.loggedOn, historyRangeWindow.startKey, todayKey),
+  );
+  const kmValues = useMemo(
+    () =>
+      dailyKmSeries({
+        samples: runningKmSamples,
+        startKey: historyRangeWindow.startKey,
+        endKey: todayKey,
+      }),
+    [historyRangeWindow.startKey, runningKmSamples, todayKey],
+  );
+  const hasRunningKm = kmValues.some((value) => value > 0);
   const visibleBodyMetrics = resolveVisibleBodyMetrics({
     weight: hasBodyContent,
     waist: hasWaistData,
@@ -1368,15 +1415,74 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
   const visibleAreas = resolveVisibleHistoryAreas({
     nutrition: hasNutritionContent,
     body: hasBodyContent,
-    training: false,
+    training: resolveHistoryTrainingVisible({
+      nutrition: hasNutritionContent,
+      body: hasBodyContent,
+      hasSessionInRange,
+      hasMovementGoal,
+      healthConnected: healthConnectedPreference === true,
+    }),
   });
   const showAreaSwitcher = shouldShowHistoryAreaSwitcher(visibleAreas);
   const resolvedArea = resolveActiveHistoryArea({
     selected: activeArea,
     visible: visibleAreas,
   });
-  const showNutrition = !showAreaSwitcher || resolvedArea === 'nutrition';
-  const showBody = !showAreaSwitcher || resolvedArea === 'body';
+  const showNutrition = !showAreaSwitcher
+    ? visibleAreas.includes('nutrition')
+    : resolvedArea === 'nutrition';
+  const showBody = !showAreaSwitcher
+    ? visibleAreas.includes('body')
+    : resolvedArea === 'body';
+  const showTraining = !showAreaSwitcher
+    ? visibleAreas.includes('training')
+    : resolvedArea === 'training';
+
+  const trainingWeekKeys = useMemo(() => localWeekDateKeys(), [todayKey]);
+  const trainingWeekDots = useMemo(
+    () => weekDotFlags(trainingSessions),
+    [trainingSessions],
+  );
+  const trainingWeekDayLabels = useMemo(
+    () => trainingWeekKeys.map((key) => formatShortDayLabel(key, i18n.language)),
+    [i18n.language, trainingWeekKeys],
+  );
+  const sessionsThisWeek = useMemo(
+    () =>
+      countDistinctTrainingDays(
+        trainingSessions.filter((session) => trainingWeekKeys.includes(session.loggedOn)),
+      ),
+    [trainingSessions, trainingWeekKeys],
+  );
+  const weeklyTrainingCounts = useMemo(
+    () =>
+      weeklyDistinctTrainingDayCounts({
+        loggedOnKeys: trainingSessions.map((session) => session.loggedOn),
+        startKey: historyRangeWindow.startKey,
+        endKey: todayKey,
+      }),
+    [historyRangeWindow.startKey, todayKey, trainingSessions],
+  );
+  const kmDateLabels = useMemo(
+    () =>
+      inclusiveDateKeys(historyRangeWindow.startKey, todayKey).map((key) =>
+        rangeDays === 7
+          ? formatShortDayLabel(key, i18n.language)
+          : formatDayNumber(key),
+      ),
+    [historyRangeWindow.startKey, i18n.language, rangeDays, todayKey],
+  );
+  const trainingEmptyKind = resolveHistoryTrainingEmptyKind({
+    healthConnected: healthConnectedPreference === true,
+    hasMovementGoal,
+    hasSessionInRange,
+    hasRunningKm,
+  });
+  const sessionsGoal =
+    profile?.training_sessions_per_week != null &&
+    profile.training_sessions_per_week >= 1
+      ? profile.training_sessions_per_week
+      : null;
 
   function openDayDetail(index: number) {
     const day = data?.days[index];
@@ -1747,6 +1853,23 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
         </View>
       </View>
         </>
+      ) : null}
+
+      {showTraining ? (
+        <HistoryTrainingSection
+          chartWidth={chartWidth}
+          rangeDays={rangeDays}
+          emptyKind={trainingEmptyKind}
+          weekDotFlags={trainingWeekDots}
+          weekDayLabels={trainingWeekDayLabels}
+          sessionsThisWeek={sessionsThisWeek}
+          sessionsGoal={sessionsGoal}
+          weeklyCounts={weeklyTrainingCounts}
+          kmValues={kmValues}
+          kmDateLabels={kmDateLabels}
+          kmTotal={sumKm(kmValues)}
+          healthConnected={healthConnectedPreference === true}
+        />
       ) : null}
 
       {showNutrition && userId ? (

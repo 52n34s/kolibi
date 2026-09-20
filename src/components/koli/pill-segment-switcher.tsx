@@ -47,7 +47,7 @@ export function PillSegmentSwitcher<T extends string>({
               ]}
               numberOfLines={1}
               adjustsFontSizeToFit
-              minimumFontScale={0.75}>
+              minimumFontScale={segments.length >= 3 ? 0.7 : 0.75}>
               {segment.label}
             </Text>
           </Pressable>
