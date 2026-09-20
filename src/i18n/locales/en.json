@@ -858,6 +858,18 @@
       "goalNotSet": "Daily goal: Not set",
       "goalProgress": "{{consumed}} / {{goal}} kcal",
       "goalProgressWithBurned": "{{consumed}} / {{goal}} kcal · +{{burned}} burned"
+    },
+    "macro": {
+      "sectionTitle": "Macro trend",
+      "empty": "No macros logged in this period yet."
+    }
+  },
+  "macro": {
+    "short": {
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "fiber": "Fiber"
     }
   },
   "settings": {

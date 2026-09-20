@@ -2,9 +2,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  buildIndexedLineChartPoints,
   buildLineChartPoints,
+  buildMonotoneXCubicSegments,
   isValueInYDomain,
+  pointsToMonotoneXPath,
   resolveLineChartYDomain,
+  resolveLineChartYDomainFromSeries,
+  sampleCubicSegmentY,
   valueToChartY,
 } from './chart-utils.ts';
 
@@ -79,5 +84,67 @@ describe('buildLineChartPoints', () => {
       assert.ok(point.y >= padding);
       assert.ok(point.y <= height - padding);
     }
+  });
+});
+
+describe('buildIndexedLineChartPoints', () => {
+  it('keeps calendar x for a gap instead of packing logged days', () => {
+    const domain = resolveLineChartYDomainFromSeries([[49, null, 160]]);
+    const points = buildIndexedLineChartPoints({
+      values: [49, null, 160],
+      width: 300,
+      height: 180,
+      padding: 16,
+      domain,
+    });
+
+    assert.equal(points.length, 2);
+    assert.equal(points[0]!.x, 16);
+    assert.equal(points[1]!.x, 284);
+  });
+});
+
+describe('pointsToMonotoneXPath', () => {
+  it('does not overshoot between 49 g and 160 g (no dip below the lower point)', () => {
+    const domain = resolveLineChartYDomain({ values: [49, 160, 50] });
+    const points = buildLineChartPoints({
+      values: [49, 160, 50],
+      width: 300,
+      height: 180,
+      padding: 16,
+    });
+    const segments = buildMonotoneXCubicSegments(points);
+    assert.equal(segments.length, 2);
+
+    const yMin = valueToChartY({
+      value: 160,
+      min: domain.min,
+      range: domain.range,
+      height: 180,
+      padding: 16,
+    });
+    const yMax = valueToChartY({
+      value: 49,
+      min: domain.min,
+      range: domain.range,
+      height: 180,
+      padding: 16,
+    });
+
+    for (const segment of segments) {
+      const lo = Math.min(segment.from.y, segment.to.y);
+      const hi = Math.max(segment.from.y, segment.to.y);
+      for (let step = 0; step <= 20; step += 1) {
+        const y = sampleCubicSegmentY(segment, step / 20);
+        assert.ok(y + 1e-9 >= lo);
+        assert.ok(y - 1e-9 <= hi);
+        assert.ok(y + 1e-9 >= yMin);
+        assert.ok(y - 1e-9 <= yMax);
+      }
+    }
+
+    const path = pointsToMonotoneXPath(points);
+    assert.match(path, /^M /);
+    assert.match(path, / C /);
   });
 });

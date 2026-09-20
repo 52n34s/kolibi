@@ -269,6 +269,14 @@ export async function fetchHistoryData(
     const goal = goals[index] ?? null;
     const activeEnergyKcal = energyByDate.get(dateKey) ?? null;
 
+    /**
+     * Reconstructs the displayed carb/fat (and calorie) goal for this day from
+     * the calorie_goals row as-of that date and that day's active energy.
+     * The preference "Makros an Training anpassen" (`adaptMacrosToTraining`)
+     * and the weight for the 10 g/kg carbohydrate cap (`latestWeightKg`) are
+     * the current values, not the day's. Known deviation; no snapshot of
+     * either is planned.
+     */
     let scaledGoal: HistoryDayRow['scaledGoal'] = null;
     if (goal != null) {
       const basisKcal = goal.dailyCalorieGoal;

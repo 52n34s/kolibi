@@ -16,6 +16,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 import { CalorieBarChart } from '@/components/history/calorie-bar-chart';
 import { HistoryTrainingSection } from '@/components/history/history-training-section';
+import { MacroTrendChart } from '@/components/history/macro-trend-chart';
 import { WeightLineChart } from '@/components/history/weight-line-chart';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
@@ -74,6 +75,12 @@ import {
   waistChartRangeDays,
   type HistoryBodyMetric,
 } from '@/lib/history-body-metrics';
+import {
+  HISTORY_MACRO_NUTRIENTS,
+  historyMacroActualSeries,
+  historyMacroGoalSeries,
+  type HistoryMacroNutrient,
+} from '@/lib/history-macro-trend';
 import {
   resolveActiveHistoryArea,
   resolveHistoryTrainingVisible,
@@ -207,6 +214,8 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
   const [rangeDays, setRangeDays] = useState<HistoryRangeDays>(7);
   const [activeArea, setActiveArea] = useState<HistoryContentArea>('nutrition');
   const [activeBodyMetric, setActiveBodyMetric] = useState<HistoryBodyMetric>('weight');
+  const [activeMacroNutrient, setActiveMacroNutrient] =
+    useState<HistoryMacroNutrient>('protein');
   const scrollRef = useRef<ScrollView>(null);
   const [observedDismissedUntil, setObservedDismissedUntilState] = useState<string | null>(
     () => getObservedPromptDismissedUntil(),
@@ -1376,6 +1385,16 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
     [data?.days],
   );
 
+  const macroActualValues = useMemo(
+    () => (data?.days ? historyMacroActualSeries(data.days, activeMacroNutrient) : []),
+    [activeMacroNutrient, data?.days],
+  );
+  const macroGoalValues = useMemo(
+    () => (data?.days ? historyMacroGoalSeries(data.days, activeMacroNutrient) : []),
+    [activeMacroNutrient, data?.days],
+  );
+  const hasMacroActualData = macroActualValues.some((value) => value != null);
+
   const hasWeightData = latestWeightLog != null;
   const hasWeightChartData = weightValues.length > 0;
   const hasWaistData = (data?.waistLogs.length ?? 0) > 0;
@@ -1708,6 +1727,68 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
           {t('history.calories.tapHint')}
         </Text>
       ) : null}
+
+      <Text className="mb-3 text-lg font-semibold text-gray-900">
+        {t('history.macro.sectionTitle')}
+      </Text>
+      <View className="mb-3">
+        <PillSegmentSwitcher
+          compact
+          value={activeMacroNutrient}
+          onChange={setActiveMacroNutrient}
+          segments={HISTORY_MACRO_NUTRIENTS.map((id) => ({
+            id,
+            label: t(`macro.short.${id}`),
+          }))}
+        />
+      </View>
+      <View
+        style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
+        className="mb-8">
+        <View
+          className="px-4 py-5"
+          style={{ overflow: 'hidden', borderRadius: ONBOARDING_CARD_RADIUS }}>
+          {hasMacroActualData || macroGoalValues.some((value) => value != null) ? (
+            <>
+              <MacroTrendChart
+                actual={macroActualValues}
+                goal={macroGoalValues}
+                width={chartWidth - 32}
+              />
+              <View className="mt-3" style={{ position: 'relative', height: 16 }}>
+                {data?.days.map((day, index) => {
+                  const count = data.days.length;
+                  const leftPct = count <= 1 ? 50 : (index / (count - 1)) * 100;
+                  return (
+                    <Pressable
+                      key={`macro-day-${day.date}`}
+                      onPress={() => router.push(`/koli/day/${day.date}` as Href)}
+                      style={{
+                        position: 'absolute',
+                        left: `${leftPct}%`,
+                        transform: [{ translateX: -12 }],
+                        width: 24,
+                        alignItems: 'center',
+                      }}>
+                      <Text className="text-[10px] text-gray-500">
+                        {rangeDays === 7
+                          ? formatShortDayLabel(day.date, i18n.language)
+                          : formatDayNumber(day.date)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          ) : (
+            <View className="items-center py-8">
+              <Text className="text-center text-sm text-gray-500">
+                {t('history.macro.empty')}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
         </>
       ) : null}
 

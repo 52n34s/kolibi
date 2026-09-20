@@ -858,6 +858,18 @@
       "goalNotSet": "Tagesziel: Nicht gesetzt",
       "goalProgress": "{{consumed}} / {{goal}} kcal",
       "goalProgressWithBurned": "{{consumed}} / {{goal}} kcal · +{{burned}} verbrannt"
+    },
+    "macro": {
+      "sectionTitle": "Makro-Verlauf",
+      "empty": "Noch keine Makros in diesem Zeitraum."
+    }
+  },
+  "macro": {
+    "short": {
+      "protein": "Protein",
+      "carbs": "Kohlenh.",
+      "fat": "Fett",
+      "fiber": "Ballastst."
     }
   },
   "settings": {

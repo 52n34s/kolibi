@@ -36,6 +36,7 @@ export function PillSegmentSwitcher<T extends string>({
               styles.segment,
               compact && styles.segmentCompact,
               compact && segments.length >= 3 && styles.segmentCompactTriple,
+              compact && segments.length >= 4 && styles.segmentCompactQuad,
               isActive && styles.segmentActive,
             ]}
             onPress={() => onChange(segment.id)}>
@@ -83,6 +84,9 @@ const styles = StyleSheet.create({
   },
   segmentCompactTriple: {
     paddingHorizontal: 4,
+  },
+  segmentCompactQuad: {
+    paddingHorizontal: 2,
   },
   segmentActive: {
     backgroundColor: ONBOARDING_CARD_COLORS.idle,
