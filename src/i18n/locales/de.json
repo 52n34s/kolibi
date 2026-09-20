@@ -189,8 +189,9 @@
       "subtitle": "Du kannst dein Kalorienziel vor dem Speichern anpassen.",
       "dailyGoal": "Dein Tagesziel: {{calories}} kcal",
       "caloriesLabel": "Tägliche Kalorien (kcal)",
+      "caloriesLabelHealth": "Grundziel ohne Bewegung (kcal)",
       "tdee": "Geschätzter Erhaltungsbedarf: {{calories}} kcal",
-      "tdeeHealth": "Geschätzter Erhaltungsbedarf: {{calories}} kcal — deine tatsächliche Bewegung kommt täglich dazu",
+      "tdeeHealth": "Geschätzter Erhaltungsbedarf: {{calories}} kcal — dein Tagesziel enthält deine übliche Bewegung und passt sich täglich an",
       "minimumApplied": "Dein berechnetes Ziel läge bei {{calculated}} kcal. Aus Sicherheitsgründen setzen wir mindestens {{minimum}} kcal an.",
       "farFromTdeeWarning": "Dieses Ziel weicht stark von deinem geschätzten Bedarf ab und könnte auf Dauer ungesund sein."
     }

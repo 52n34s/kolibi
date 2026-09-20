@@ -1,5 +1,6 @@
+import * as Sentry from '@sentry/react-native';
 import { Href, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
@@ -55,6 +56,7 @@ import {
   MAXIMUM_DAILY_CALORIES,
   CalorieSource,
   resolveCalorieSource,
+  resolveEffectiveDailyCalorieGoal,
   resolveReviewCaloriePrefill,
   shouldRecalculateOnboardingDailyGoal,
   skipOnboarding,
@@ -266,15 +268,6 @@ export default function OnboardingScreen() {
     });
   }, [activityLevel, birthDate, calorieSource, effectiveSex, parsedHeight, parsedWeight]);
 
-  const showCustomGoalFarFromTdeeWarning = isCalorieGoalFarFromTdee(
-    parsedCustomCalories,
-    maintenanceCalories,
-  );
-
-  const showSummaryFarFromTdeeWarning =
-    isCalorieGoalFarFromTdee(parsedDailyCalories, maintenanceCalories) &&
-    (summaryManuallyEdited || goalType === 'custom');
-
   const calorieGoalCalculation = useMemo(() => {
     if (!birthDate || !activityLevel || !goalType || !parsedHeight || !parsedWeight) {
       return null;
@@ -302,6 +295,79 @@ export default function OnboardingScreen() {
     parsedWeight,
     recentActiveEnergy,
   ]);
+
+  /**
+   * What an average day shows once movement joins — the number the home screen
+   * renders. The stored field stays the base, so comparisons against expected
+   * maintenance have to lift it here first.
+   */
+  const resolveExpectedDayGoal = (baseDailyGoal: number): number | null => {
+    if (calorieGoalCalculation == null || !(baseDailyGoal > 0)) {
+      return null;
+    }
+    return resolveEffectiveDailyCalorieGoal({
+      calorieSource,
+      baseDailyGoal,
+      activeEnergyBurnedKcal: calorieGoalCalculation.expectedActiveEnergyKcal,
+      bmr: calorieGoalCalculation.bmr,
+    });
+  };
+
+  const summaryExpectedDayGoal = resolveExpectedDayGoal(parsedDailyCalories);
+  const customExpectedDayGoal = resolveExpectedDayGoal(parsedCustomCalories);
+
+  const showCustomGoalFarFromTdeeWarning = isCalorieGoalFarFromTdee(
+    customExpectedDayGoal ?? parsedCustomCalories,
+    calorieGoalCalculation?.expectedMaintenanceKcal ?? maintenanceCalories,
+  );
+
+  const showSummaryFarFromTdeeWarning =
+    isCalorieGoalFarFromTdee(
+      summaryExpectedDayGoal ?? parsedDailyCalories,
+      calorieGoalCalculation?.expectedMaintenanceKcal ?? maintenanceCalories,
+    ) &&
+    (summaryManuallyEdited || goalType === 'custom');
+
+  const isCalculatedGoal = !summaryManuallyEdited && goalType !== 'custom';
+  const reportedFloorBreachRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (calorieGoalCalculation == null || !isCalculatedGoal) {
+      return;
+    }
+    if (!calorieGoalCalculation.clampedToMinimum) {
+      return;
+    }
+
+    const signature = [
+      goalType,
+      calorieSource,
+      calorieGoalCalculation.bmr,
+      calorieGoalCalculation.rawCalories,
+    ].join(':');
+    if (reportedFloorBreachRef.current === signature) {
+      return;
+    }
+    reportedFloorBreachRef.current = signature;
+
+    Sentry.captureException(
+      new Error('Calculated onboarding calorie goal fell below the resting-metabolism floor'),
+      {
+        tags: { calorie_goal: 'floor_breach', calorie_source: calorieSource },
+        extra: {
+          goalType,
+          bmr: calorieGoalCalculation.bmr,
+          maintenanceCalories: calorieGoalCalculation.maintenanceCalories,
+          expectedMaintenanceKcal: calorieGoalCalculation.expectedMaintenanceKcal,
+          expectedActiveEnergyKcal: calorieGoalCalculation.expectedActiveEnergyKcal,
+          rawCalories: calorieGoalCalculation.rawCalories,
+          dailyCalories: calorieGoalCalculation.dailyCalories,
+          effectiveDailyCalories: calorieGoalCalculation.effectiveDailyCalories,
+          floor: calorieGoalCalculation.minimumCalories,
+        },
+      },
+    );
+  }, [calorieGoalCalculation, calorieSource, goalType, isCalculatedGoal]);
 
   const onboardingWeightEtaInput = useMemo((): WeightGoalEtaInput | null => {
     if (!goalType || !parsedHeight || !parsedWeight || !maintenanceCalories) {
@@ -801,7 +867,9 @@ export default function OnboardingScreen() {
             />
             <Text className="mb-4 text-lg font-semibold text-[#4F46E5]">
               {t('onboarding.summary.dailyGoal', {
-                calories: formatKcal(parsedDailyCalories || 0),
+                calories: formatKcal(
+                  summaryExpectedDayGoal ?? (parsedDailyCalories || 0),
+                ),
               })}
             </Text>
             {maintenanceCalories !== null && (
@@ -829,7 +897,9 @@ export default function OnboardingScreen() {
               </Text>
             )}
             <Text className="mb-2 text-sm font-medium text-gray-700">
-              {t('onboarding.summary.caloriesLabel')}
+              {calorieSource === CalorieSource.HEALTH
+                ? t('onboarding.summary.caloriesLabelHealth')
+                : t('onboarding.summary.caloriesLabel')}
             </Text>
             <OnboardingField
               keyboardType="numeric"

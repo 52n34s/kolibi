@@ -189,8 +189,9 @@
       "subtitle": "You can adjust your calorie goal before saving.",
       "dailyGoal": "Your daily goal: {{calories}} kcal",
       "caloriesLabel": "Daily calories (kcal)",
+      "caloriesLabelHealth": "Base goal before movement (kcal)",
       "tdee": "Estimated maintenance: {{calories}} kcal",
-      "tdeeHealth": "Estimated maintenance: {{calories}} kcal — your actual movement is added on top each day",
+      "tdeeHealth": "Estimated maintenance: {{calories}} kcal — your daily goal includes your usual movement and adjusts each day",
       "minimumApplied": "Your calculated target would be {{calculated}} kcal. For safety, we set a minimum of {{minimum}} kcal.",
       "farFromTdeeWarning": "This target differs significantly from your estimated needs and may be unhealthy long term."
     }

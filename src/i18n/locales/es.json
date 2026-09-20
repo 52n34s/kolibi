@@ -189,8 +189,9 @@
       "subtitle": "Puedes ajustar tu objetivo calórico antes de guardar.",
       "dailyGoal": "Tu objetivo diario: {{calories}} kcal",
       "caloriesLabel": "Calorías diarias (kcal)",
+      "caloriesLabelHealth": "Objetivo base sin movimiento (kcal)",
       "tdee": "Mantenimiento estimado: {{calories}} kcal",
-      "tdeeHealth": "Mantenimiento estimado: {{calories}} kcal — tu movimiento real se suma cada día",
+      "tdeeHealth": "Mantenimiento estimado: {{calories}} kcal — tu objetivo diario incluye tu movimiento habitual y se ajusta cada día",
       "minimumApplied": "Tu objetivo calculado sería de {{calculated}} kcal. Por seguridad, establecemos un mínimo de {{minimum}} kcal.",
       "farFromTdeeWarning": "Este objetivo se desvía mucho de tus necesidades estimadas y podría ser poco saludable a largo plazo."
     }

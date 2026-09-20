@@ -331,6 +331,10 @@ describe('floor leaves ordinary deficits alone', () => {
     assert.equal(result.effectiveDailyGoal, result.baseDailyGoal);
   });
 
+  // Guards `calculateDailyCalorieGoalForSource`, which no screen calls. The
+  // onboarding summary runs `calculateDailyCalorieGoalDetails` instead and once
+  // shipped `baseDailyGoal` straight to the user, so this assertion stayed green
+  // through that bug. Its counterpart lives in onboarding-calorie-details.test.ts.
   it('catches the BMR-based collapse: a HEALTH day without movement', () => {
     const result = calculateDailyCalorieGoalForSource({
       ...PROFILE,
