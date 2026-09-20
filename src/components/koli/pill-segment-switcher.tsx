@@ -32,7 +32,12 @@ export function PillSegmentSwitcher<T extends string>({
         return (
           <Pressable
             key={segment.id}
-            style={[styles.segment, compact && styles.segmentCompact, isActive && styles.segmentActive]}
+            style={[
+              styles.segment,
+              compact && styles.segmentCompact,
+              compact && segments.length >= 3 && styles.segmentCompactTriple,
+              isActive && styles.segmentActive,
+            ]}
             onPress={() => onChange(segment.id)}>
             <Text
               style={[
@@ -40,7 +45,9 @@ export function PillSegmentSwitcher<T extends string>({
                 compact && styles.labelCompact,
                 isActive && styles.labelActive,
               ]}
-              numberOfLines={1}>
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}>
               {segment.label}
             </Text>
           </Pressable>
@@ -62,6 +69,7 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: PILL_RADIUS,
@@ -72,6 +80,9 @@ const styles = StyleSheet.create({
   segmentCompact: {
     paddingHorizontal: 8,
     paddingVertical: 7,
+  },
+  segmentCompactTriple: {
+    paddingHorizontal: 4,
   },
   segmentActive: {
     backgroundColor: ONBOARDING_CARD_COLORS.idle,
@@ -84,9 +95,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   label: {
+    width: '100%',
     fontSize: 13,
     fontWeight: '600',
     color: TEXT_SECONDARY,
+    textAlign: 'center',
   },
   labelCompact: {
     fontSize: 12,

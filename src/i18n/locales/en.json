@@ -704,6 +704,11 @@
       "days7": "7 days",
       "days30": "30 days"
     },
+    "areas": {
+      "nutrition": "Nutrition",
+      "body": "Body",
+      "training": "Training"
+    },
     "balance": {
       "title": "Last 7 days",
       "protein": {

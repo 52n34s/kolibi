@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Href, router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -56,6 +56,12 @@ import {
   weightChangeInRange,
   type HistoryRangeDays,
 } from '@/lib/history';
+import {
+  resolveActiveHistoryArea,
+  resolveVisibleHistoryAreas,
+  shouldShowHistoryAreaSwitcher,
+  type HistoryContentArea,
+} from '@/lib/history-areas';
 import {
   computeBodyFatChangeSummary,
   formatBodyFatDeltaPp,
@@ -161,6 +167,8 @@ export function HistoryPanel() {
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [rangeDays, setRangeDays] = useState<HistoryRangeDays>(7);
+  const [activeArea, setActiveArea] = useState<HistoryContentArea>('nutrition');
+  const scrollRef = useRef<ScrollView>(null);
   const [observedDismissedUntil, setObservedDismissedUntilState] = useState<string | null>(
     () => getObservedPromptDismissedUntil(),
   );
@@ -1185,6 +1193,21 @@ export function HistoryPanel() {
   const hasWeightData = latestWeightLog != null;
   const hasWeightChartData = weightValues.length > 0;
   const hasCalorieData = calorieValues.some((value) => value > 0);
+  const hasNutritionContent =
+    showBalanceCard || (summary?.loggedDays ?? 0) > 0 || hasCalorieData;
+  const hasBodyContent = hasWeightData || waistLabel != null;
+  const visibleAreas = resolveVisibleHistoryAreas({
+    nutrition: hasNutritionContent,
+    body: hasBodyContent,
+    training: false,
+  });
+  const showAreaSwitcher = shouldShowHistoryAreaSwitcher(visibleAreas);
+  const resolvedArea = resolveActiveHistoryArea({
+    selected: activeArea,
+    visible: visibleAreas,
+  });
+  const showNutrition = !showAreaSwitcher || resolvedArea === 'nutrition';
+  const showBody = !showAreaSwitcher || resolvedArea === 'body';
 
   function openDayDetail(index: number) {
     const day = data?.days[index];
@@ -1214,21 +1237,10 @@ export function HistoryPanel() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       className="flex-1 px-6"
       contentContainerStyle={{ paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}>
-      <View className="mb-5">
-        <PillSegmentSwitcher
-          compact
-          value={String(rangeDays) as '7' | '30'}
-          onChange={(value) => setRangeDays(Number(value) as HistoryRangeDays)}
-          segments={[
-            { id: '7', label: t('history.range.days7') },
-            { id: '30', label: t('history.range.days30') },
-          ]}
-        />
-      </View>
-
       {showObservedUpdatePrompt &&
       observedEnergy &&
       observedEnergy.status === 'ready' &&
@@ -1250,6 +1262,37 @@ export function HistoryPanel() {
         </Text>
       ) : null}
 
+      <View className="mb-5">
+        <PillSegmentSwitcher
+          compact
+          value={String(rangeDays) as '7' | '30'}
+          onChange={(value) => setRangeDays(Number(value) as HistoryRangeDays)}
+          segments={[
+            { id: '7', label: t('history.range.days7') },
+            { id: '30', label: t('history.range.days30') },
+          ]}
+        />
+      </View>
+
+      {showAreaSwitcher ? (
+        <View className="mb-5">
+          <PillSegmentSwitcher
+            compact
+            value={resolvedArea}
+            onChange={(value) => {
+              setActiveArea(value);
+              scrollRef.current?.scrollTo({ y: 0, animated: false });
+            }}
+            segments={visibleAreas.map((id) => ({
+              id,
+              label: t(`history.areas.${id}`),
+            }))}
+          />
+        </View>
+      ) : null}
+
+      {showNutrition ? (
+        <>
       {showBalanceCard ? (
         <>
           {balanceSummaryHeadline ? (
@@ -1388,7 +1431,11 @@ export function HistoryPanel() {
           {t('history.calories.tapHint')}
         </Text>
       ) : null}
+        </>
+      ) : null}
 
+      {showBody ? (
+        <>
       <Text className="mb-3 text-lg font-semibold text-gray-900">
         {t('history.weight.sectionTitle')}
       </Text>
@@ -1461,8 +1508,10 @@ export function HistoryPanel() {
           ) : null}
         </View>
       </View>
+        </>
+      ) : null}
 
-      {userId ? (
+      {showNutrition && userId ? (
         <SupplementHistorySection userId={userId} rangeDays={rangeDays} />
       ) : null}
     </ScrollView>
