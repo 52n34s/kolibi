@@ -39,6 +39,10 @@ export type HomeDashboardData = {
   latestWeight: HomeLatestWeight | null;
   /** Oldest weight_logs row (optionally from progress_start_date) — Home weight progress baseline. */
   startWeightKg: number | null;
+  /** `YYYY-MM-DD` from profiles.progress_start_date, else null. */
+  progressStartDate: string | null;
+  /** Chronological weigh-ins for `resolveDisplayWeight`. */
+  weightLogs: HomeLatestWeight[];
   consumedCaloriesToday: number;
   consumedMacrosToday: TodayConsumedMacros;
 };
@@ -51,7 +55,7 @@ const EMPTY_MACROS: TodayConsumedMacros = {
 };
 
 export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardData> {
-  const [profileResult, calorieGoalResult, weightResult, consumptionResult] = await Promise.all([
+  const [profileResult, calorieGoalResult, weightLogsResult, consumptionResult] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -72,9 +76,7 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
       .from('weight_logs')
       .select('weight_kg, logged_at')
       .eq('user_id', userId)
-      .order('logged_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .order('logged_at', { ascending: true }),
     fetchTodayConsumedCalories(userId).catch(() => ({
       kcal: 0,
       ...EMPTY_MACROS,
@@ -89,8 +91,8 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
     throw calorieGoalResult.error;
   }
 
-  if (weightResult.error) {
-    throw weightResult.error;
+  if (weightLogsResult.error) {
+    throw weightLogsResult.error;
   }
 
   const progressStartDate =
@@ -98,25 +100,19 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
       ? profileResult.data.progress_start_date
       : null;
 
-  let startWeightQuery = supabase
-    .from('weight_logs')
-    .select('weight_kg')
-    .eq('user_id', userId)
-    .order('logged_at', { ascending: true })
-    .limit(1);
+  const weightLogs: HomeLatestWeight[] = (weightLogsResult.data ?? [])
+    .map((row) => ({
+      weight_kg: Number(row.weight_kg),
+      logged_at: String(row.logged_at),
+    }))
+    .filter((row) => Number.isFinite(row.weight_kg));
 
-  if (progressStartDate != null) {
-    startWeightQuery = startWeightQuery.gte('logged_on', progressStartDate);
-  }
-
-  const startWeightResult = await startWeightQuery.maybeSingle();
-
-  if (startWeightResult.error) {
-    throw startWeightResult.error;
-  }
-
-  const startWeightRaw = startWeightResult.data?.weight_kg;
-  const startWeightKg = startWeightRaw == null ? null : Number(startWeightRaw);
+  const latestWeight = weightLogs.length > 0 ? weightLogs[weightLogs.length - 1]! : null;
+  const startLog =
+    progressStartDate == null
+      ? weightLogs[0]
+      : weightLogs.find((row) => localDateKeyFromLoggedAt(row.logged_at) >= progressStartDate);
+  const startWeightKg = startLog?.weight_kg ?? null;
 
   return {
     profile: profileResult.data
@@ -166,14 +162,11 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
           macro_goal_source: calorieGoalResult.data.macro_goal_source ?? null,
         }
       : null,
-    latestWeight: weightResult.data
-      ? {
-          weight_kg: Number(weightResult.data.weight_kg),
-          logged_at: weightResult.data.logged_at,
-        }
-      : null,
+    latestWeight,
     startWeightKg:
       startWeightKg != null && Number.isFinite(startWeightKg) ? startWeightKg : null,
+    progressStartDate,
+    weightLogs,
     consumedCaloriesToday: consumptionResult.kcal,
     consumedMacrosToday: {
       proteinG: consumptionResult.proteinG,
@@ -182,6 +175,14 @@ export async function fetchHomeDashboard(userId: string): Promise<HomeDashboardD
       fiberG: consumptionResult.fiberG,
     },
   };
+}
+
+function localDateKeyFromLoggedAt(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function parseMovementGoalType(value: unknown): MovementGoalType | null {

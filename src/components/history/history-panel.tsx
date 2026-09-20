@@ -58,12 +58,12 @@ import {
   filterWeightLogsInRange,
   getLatestWeightKg,
   getLatestWaistCm,
-  getTrendWeightKg,
   waistChangeInRange,
   weighSpanDaysInLastMonth,
   weightChangeInRange,
   type HistoryRangeDays,
 } from '@/lib/history';
+import { resolveDisplayWeight } from '@/lib/display-weight';
 import {
   computeWeightWaistComparison,
   getLatestBodyFatPct,
@@ -354,12 +354,15 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
   }, [data?.days, latestWeightLog]);
 
   const trendWeightKg = useMemo(() => {
-    const inRange = getTrendWeightKg(weightLogsInRange);
-    if (inRange != null) {
-      return inRange;
+    if (!data?.days.length) {
+      return latestWeightLog?.weight_kg ?? null;
     }
-    return latestWeightLog?.weight_kg ?? null;
-  }, [latestWeightLog, weightLogsInRange]);
+    return resolveDisplayWeight({
+      logs: data.weightLogs,
+      startOn: data.days[0]!.date,
+      today: todayKey,
+    }).trendKg;
+  }, [data, latestWeightLog, todayKey]);
 
   const trendWeightLabel = useMemo(() => {
     if (trendWeightKg == null || latestWeightLog == null) {

@@ -70,6 +70,7 @@ import { useHealthConnectedPreference } from '@/hooks/use-health-connected-prefe
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
+import { resolveDisplayWeight } from '@/lib/display-weight';
 import {
   getTimeOfDay,
   resolveDisplayName,
@@ -534,7 +535,20 @@ export default function HomeScreen() {
     return localDateKey(new Date(loggedAt)) === localDateKey();
   }, [data?.latestWeight?.logged_at]);
   const targetWeightKg = data?.profile?.target_weight_kg ?? null;
-  const startWeightKg = data?.startWeightKg ?? null;
+  const displayWeight = useMemo(() => {
+    const logs = data?.weightLogs ?? [];
+    if (logs.length === 0) {
+      return null;
+    }
+    const firstKey = localDateKey(new Date(logs[0]!.logged_at));
+    return resolveDisplayWeight({
+      logs,
+      startOn: data?.progressStartDate ?? firstKey,
+      today: localDateKey(),
+    });
+  }, [data?.progressStartDate, data?.weightLogs]);
+  const startWeightKg = displayWeight?.barStartKg ?? data?.startWeightKg ?? null;
+  const currentDisplayKg = displayWeight?.trendKg ?? latestWeightKg;
   const weightUnitLabels = useMemo(
     () => ({
       kgLabel: t('onboarding.units.kg'),
@@ -544,25 +558,25 @@ export default function HomeScreen() {
   );
 
   const weightLabel = useMemo(() => {
-    if (latestWeightKg == null) {
+    if (currentDisplayKg == null) {
       return t('home.weight.notLogged');
     }
 
     return formatWeightForDisplay({
-      weightKg: latestWeightKg,
+      weightKg: currentDisplayKg,
       unitSystem,
       ...weightUnitLabels,
     });
-  }, [latestWeightKg, t, unitSystem, weightUnitLabels]);
+  }, [currentDisplayKg, t, unitSystem, weightUnitLabels]);
 
   const weightProgressPercent = useMemo(
     () =>
       weightGoalProgressPercent({
         startKg: startWeightKg,
-        currentKg: latestWeightKg,
+        currentKg: displayWeight?.barEndKg ?? currentDisplayKg,
         targetKg: targetWeightKg,
       }),
-    [latestWeightKg, startWeightKg, targetWeightKg],
+    [currentDisplayKg, displayWeight?.barEndKg, startWeightKg, targetWeightKg],
   );
 
   const startWeightLabel = useMemo(() => {
