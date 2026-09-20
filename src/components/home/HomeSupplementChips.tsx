@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -45,6 +46,10 @@ type HomeSupplementChipsProps = {
 export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  // Pressed state rides on React state, not Pressable's style callback: the
+  // NativeWind interop owns the style prop and drops the function form, which
+  // silently costs the chip its border and padding.
+  const [pressedId, setPressedId] = useState<string | null>(null);
   const userId = useAuthStore((state) => state.session?.user?.id);
   const dateKey = date ?? localDateKey();
   const queryKey = userId
@@ -116,16 +121,18 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
             }
             disabled={toggleMutation.isPending}
             onPress={() => toggleMutation.mutate(item)}
-            style={({ pressed }) => [
+            onPressIn={() => setPressedId(item.id)}
+            onPressOut={() => setPressedId(null)}
+            style={[
               styles.chip,
               { backgroundColor: palette.backgroundColor },
-              pressed ? styles.chipPressed : null,
+              pressedId === item.id ? styles.chipPressed : null,
             ]}>
             {pending ? (
               <ActivityIndicator size="small" color={palette.textColor} />
             ) : (
               <Text style={[styles.chipText, { color: palette.textColor }]} numberOfLines={1}>
-                {taken ? `${item.name} ✓` : item.name}
+                {taken ? `${item.name} ✓` : `${item.name} +`}
               </Text>
             )}
           </Pressable>
