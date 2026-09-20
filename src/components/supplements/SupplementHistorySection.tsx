@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Href, router } from 'expo-router';
 import { useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -91,7 +92,10 @@ export function SupplementHistorySection({ userId, rangeDays }: Props) {
         onPress={() => router.push('/koli/supplements' as Href)}
         className="mt-8"
         style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
-        <Text className="text-sm text-gray-500">{t('history.supplements.emptyCta')}</Text>
+        <View className="flex-row items-center">
+          <Text className="flex-1 text-sm text-gray-500">{t('history.supplements.emptyCta')}</Text>
+          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+        </View>
       </Pressable>
     );
   }
@@ -112,7 +116,8 @@ export function SupplementHistorySection({ userId, rangeDays }: Props) {
           { borderRadius: ONBOARDING_CARD_RADIUS },
           pressed ? { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor } : null,
         ]}>
-        <View className="px-4 py-3" style={{ gap: 14 }}>
+        <View className="flex-row items-start px-4 py-3">
+          <View className="min-w-0 flex-1" style={{ gap: 14 }}>
           {!compact && dayKeys.length > 0 ? (
             <SupplementGridRow
               name={null}
@@ -169,6 +174,8 @@ export function SupplementHistorySection({ userId, rangeDays }: Props) {
               />
             );
           })}
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" style={{ marginTop: 2 }} />
         </View>
       </Pressable>
     </View>

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { getOnboardingSecondarySurfaceStyle } from '@/components/onboarding/onboarding-styles';
@@ -55,13 +56,17 @@ export function WeightProgressCard({
               <Text style={styles.edgeLabel}>{targetLabel}</Text>
               <Text style={styles.edgeValue}>{targetValue}</Text>
             </View>
+            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
           </View>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${progressPercent}%` }]} />
           </View>
         </>
       ) : (
-        <Text style={styles.currentValueAlone}>{currentValue}</Text>
+        <View style={styles.aloneRow}>
+          <Text style={styles.currentValueAlone}>{currentValue}</Text>
+          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+        </View>
       )}
     </Pressable>
   );
@@ -143,10 +148,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   currentValueAlone: {
+    flex: 1,
     fontSize: 20,
     fontWeight: '500',
     color: '#26234A',
     textAlign: 'center',
+  },
+  aloneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   track: {
     marginTop: 10,

@@ -215,15 +215,6 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     return Math.min(100, Math.max(0, (calorieGoalDisplay.consumedToday / goal) * 100));
   }, [calorieGoalDisplay]);
 
-  const openMacroGoalsEditor = useCallback(() => {
-    if (latestWeightKg == null) {
-      router.push({ pathname: '/onboarding', params: { mode: 'review' } } as Href);
-      return;
-    }
-
-    router.push('/koli/macro-goals' as Href);
-  }, [latestWeightKg]);
-
   const openCalorieGoalSettings = useCallback(() => {
     router.push('/koli/calorie-goal' as Href);
   }, []);
@@ -356,7 +347,6 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
                 // it lags a floored or movement-raised number. Left as-is.
                 ? (goal?.fiberG ?? null)
                 : null,
-      onPress: openMacroGoalsEditor,
     }));
   }, [
     activeEnergyBurned,
@@ -370,7 +360,6 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     healthConnectedPreference,
     latestWeightKg,
     macroRefWeightKg,
-    openMacroGoalsEditor,
     sportEnergyDay,
     t,
   ]);
@@ -383,7 +372,6 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
       goal: tile.goalValue ?? null,
       decimals: 0 as const,
       coverage: tile.coverage,
-      onPress: tile.onPress,
     }));
   }, [nutrientTiles]);
 

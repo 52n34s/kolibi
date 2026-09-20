@@ -1891,7 +1891,10 @@ function BodyMetricEmptyState(props: {
       className="items-center justify-center py-6"
       style={{ minHeight: 180 }}>
       <Ionicons name="analytics-outline" size={28} color="#9CA3AF" />
-      <Text className="mt-3 text-center text-sm text-gray-500">{props.label}</Text>
+      <View className="mt-3 flex-row items-center justify-center">
+        <Text className="text-center text-sm text-gray-500">{props.label}</Text>
+        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
+      </View>
     </Pressable>
   );
 }

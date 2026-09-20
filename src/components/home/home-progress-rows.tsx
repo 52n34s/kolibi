@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
@@ -114,14 +115,19 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
         {item.label}
       </Text>
       {item.valueFullWidth ? (
-        <Text
-          style={[
-            styles.valueFullWidth,
-            item.valueTone === 'secondary' ? styles.valueSecondary : null,
-          ]}
-          numberOfLines={1}>
-          {valueText}
-        </Text>
+        <>
+          <Text
+            style={[
+              styles.valueFullWidth,
+              item.valueTone === 'secondary' ? styles.valueSecondary : null,
+            ]}
+            numberOfLines={1}>
+            {valueText}
+          </Text>
+          {item.onPress ? (
+            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+          ) : null}
+        </>
       ) : (
         <>
           <View style={styles.barSlot}>
@@ -133,11 +139,19 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
               </View>
             ) : null}
           </View>
-          <Text
-            style={[styles.value, item.valueTone === 'secondary' ? styles.valueSecondary : null]}
-            numberOfLines={1}>
-            {valueText}
-          </Text>
+          <View style={styles.valueSlot}>
+            <Text
+              style={[
+                styles.valueText,
+                item.valueTone === 'secondary' ? styles.valueSecondary : null,
+              ]}
+              numberOfLines={1}>
+              {valueText}
+            </Text>
+            {item.onPress ? (
+              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            ) : null}
+          </View>
         </>
       )}
     </View>
@@ -248,10 +262,17 @@ const styles = StyleSheet.create({
   dotEmpty: {
     backgroundColor: 'rgba(79, 70, 229, 0.18)',
   },
-  value: {
+  valueSlot: {
     width: VALUE_WIDTH,
     flexGrow: 0,
     flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 2,
+  },
+  valueText: {
+    flexShrink: 1,
     textAlign: 'right',
     fontSize: 13,
     fontWeight: '600',
