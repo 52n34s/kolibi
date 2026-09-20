@@ -1,5 +1,19 @@
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { supabase } from '@/lib/supabase';
+import {
+  buildSupplementHistoryRows,
+  isSupplementDue,
+  type SupplementHistoryRow,
+} from '@/lib/supplement-due';
+
+export {
+  buildSupplementHistoryRows,
+  isSupplementDue,
+  nextIntervalIntakeDate,
+  type SupplementDueInput,
+  type SupplementHistoryDay,
+  type SupplementHistoryRow,
+} from '@/lib/supplement-due';
 
 /** ISO weekday: 1 = Monday … 7 = Sunday (matches Postgres extract(isodow)). */
 export type IsoWeekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -150,31 +164,43 @@ export async function fetchSupplements(userId: string): Promise<Supplement[]> {
 }
 
 export async function fetchSupplementsForDay(date: string): Promise<SupplementForDay[]> {
-  const { data, error } = await supabase.rpc('supplements_for_day', { p_date: date });
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw userError;
+  }
+
+  if (!user?.id) {
+    throw new Error('Not authenticated');
+  }
+
+  const supplements = await fetchSupplements(user.id);
+  const { data: intakes, error } = await supabase
+    .from('supplement_intakes')
+    .select('supplement_id')
+    .eq('user_id', user.id)
+    .eq('logged_on', date);
 
   if (error) {
     throw error;
   }
 
-  const rows = (data ?? []) as Array<{
-    id: string;
-    name: string;
-    dose_amount: number | string | null;
-    dose_unit: string | null;
-    is_due: boolean;
-    taken: boolean;
-    sort_order: number;
-  }>;
+  const takenIds = new Set((intakes ?? []).map((row) => String(row.supplement_id)));
 
-  return rows.map((row) => ({
-    id: String(row.id),
-    name: String(row.name),
-    dose_amount: row.dose_amount == null ? null : Number(row.dose_amount),
-    dose_unit: row.dose_unit == null ? null : String(row.dose_unit),
-    is_due: row.is_due === true,
-    taken: row.taken === true,
-    sort_order: Number(row.sort_order ?? 0),
-  }));
+  return supplements
+    .filter((item) => item.is_active)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      dose_amount: item.dose_amount,
+      dose_unit: item.dose_unit,
+      is_due: isSupplementDue(item, date),
+      taken: takenIds.has(item.id),
+      sort_order: item.sort_order,
+    }));
 }
 
 /**
@@ -501,112 +527,42 @@ export function cyclePauseStartDate(s: {
   return start;
 }
 
-/**
- * Next due calendar day for an interval schedule (local dates).
- * Due when ≥ intervalDays have passed since the last intake before `fromDate`
- * (or since startDate as first due day when there is no prior intake).
- * Returns today when today is already due (still open).
- */
-export function nextIntervalIntakeDate(params: {
-  startDate: string;
-  intervalDays: number;
-  fromDate?: string;
-  lastIntakeDate?: string | null;
-}): string | null {
-  const interval = Math.max(1, Math.floor(params.intervalDays));
-  const start = parseDateOnly(params.startDate);
-  const from = parseDateOnly(params.fromDate ?? localDateKey());
-  if (Number.isNaN(start.getTime()) || Number.isNaN(from.getTime())) {
-    return null;
-  }
-
-  if (from < start) {
-    return localDateKey(start);
-  }
-
-  let last: Date | null = null;
-  if (params.lastIntakeDate) {
-    const parsed = parseDateOnly(params.lastIntakeDate);
-    if (!Number.isNaN(parsed.getTime()) && parsed < from) {
-      last = parsed;
-    }
-  }
-
-  // No prior intake: startDate is the first due day (same as SQL).
-  if (last == null) {
-    return localDateKey(from);
-  }
-
-  const nextDue = new Date(last);
-  nextDue.setDate(nextDue.getDate() + interval);
-  if (from < nextDue) {
-    return localDateKey(nextDue);
-  }
-  return localDateKey(from);
-}
-
-export type SupplementHistoryDay = {
-  day: string;
-  is_due: boolean;
-  taken: boolean;
-};
-
-export type SupplementHistoryRow = {
-  supplement_id: string;
-  name: string;
-  sort_order: number;
-  days: SupplementHistoryDay[];
-};
-
-/** One RPC for the whole range — due/taken per active supplement and day. */
 export async function fetchSupplementHistory(
   fromDate: string,
   toDate: string,
 ): Promise<SupplementHistoryRow[]> {
-  const { data, error } = await supabase.rpc('supplement_history', {
-    p_from: fromDate,
-    p_to: toDate,
-  });
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw userError;
+  }
+
+  if (!user?.id) {
+    throw new Error('Not authenticated');
+  }
+
+  const supplements = await fetchSupplements(user.id);
+  const { data: intakes, error } = await supabase
+    .from('supplement_intakes')
+    .select('supplement_id, logged_on')
+    .eq('user_id', user.id)
+    .gte('logged_on', fromDate)
+    .lte('logged_on', toDate);
 
   if (error) {
     throw error;
   }
 
-  const rows = (data ?? []) as Array<{
-    supplement_id: string;
-    name: string;
-    sort_order: number;
-    day: string;
-    is_due: boolean;
-    taken: boolean;
-  }>;
+  const takenKeys = new Set(
+    (intakes ?? []).map(
+      (row) => `${row.supplement_id}:${String(row.logged_on).slice(0, 10)}`,
+    ),
+  );
 
-  const byId = new Map<string, SupplementHistoryRow>();
-  for (const row of rows) {
-    const id = String(row.supplement_id);
-    let entry = byId.get(id);
-    if (!entry) {
-      entry = {
-        supplement_id: id,
-        name: String(row.name),
-        sort_order: Number(row.sort_order ?? 0),
-        days: [],
-      };
-      byId.set(id, entry);
-    }
-    entry.days.push({
-      day: String(row.day).slice(0, 10),
-      is_due: row.is_due === true,
-      taken: row.taken === true,
-    });
-  }
-
-  return [...byId.values()].sort((a, b) => {
-    if (a.sort_order !== b.sort_order) {
-      return a.sort_order - b.sort_order;
-    }
-    return a.name.localeCompare(b.name);
-  });
+  return buildSupplementHistoryRows(supplements, fromDate, toDate, takenKeys);
 }
 
 function describeWeekdays(weekdays: number[], t: Translate): string {
