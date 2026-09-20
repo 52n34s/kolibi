@@ -19,6 +19,7 @@ describe('resolveDisplayWeight', () => {
     assert.deepEqual(result, {
       dailyKg: null,
       trendKg: null,
+      trendUsesMa: false,
       startTrendKg: null,
       startRawKg: null,
       barStartKg: null,
@@ -127,7 +128,32 @@ describe('resolveDisplayWeight', () => {
       Math.abs((result.trendKg ?? 0) - (80.3 + 80.7 + 80.8 + 80.9) / 4) < 1e-9,
     );
     assert.equal(result.barUsesMa, true);
+    assert.equal(result.trendUsesMa, true);
     assert.equal(result.barStartKg, result.startTrendKg);
     assert.equal(result.barEndKg, result.trendKg);
+  });
+
+  it('marks the raw fallback so nothing may call it a trend', () => {
+    const result = resolveDisplayWeight({
+      logs: [logOn('2026-09-19', 80), logOn('2026-09-20', 81)],
+      startOn: '2026-09-19',
+      today: '2026-09-20',
+    });
+    assert.equal(result.trendKg, result.dailyKg);
+    assert.equal(result.trendUsesMa, false);
+  });
+
+  it('reports a trend once the end has an MA, even with a raw bar start', () => {
+    const result = resolveDisplayWeight({
+      logs: [
+        logOn('2026-09-18', 80.7),
+        logOn('2026-09-19', 80.8),
+        logOn('2026-09-20', 80.9),
+      ],
+      startOn: '2026-09-18',
+      today: '2026-09-20',
+    });
+    assert.equal(result.trendUsesMa, true);
+    assert.equal(result.barUsesMa, false);
   });
 });

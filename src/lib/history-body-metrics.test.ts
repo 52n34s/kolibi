@@ -4,9 +4,6 @@ import { describe, it } from 'node:test';
 import {
   computeWeightWaistComparison,
   rangeWindowKeys,
-  resolveActiveBodyMetric,
-  resolveVisibleBodyMetrics,
-  shouldShowBodyMetricSwitcher,
   shouldShowWaistRangeBadge,
   waistChartRangeDays,
   WEIGHT_WAIST_COMPARISON_WINDOW_DAYS,
@@ -15,34 +12,6 @@ import {
 function isoOn(dayKey: string): string {
   return `${dayKey}T12:00:00.000Z`;
 }
-
-describe('resolveVisibleBodyMetrics', () => {
-  it('keeps weight → waist → body fat order and drops empty series', () => {
-    assert.deepEqual(
-      resolveVisibleBodyMetrics({ weight: true, waist: false, bodyFat: true }),
-      ['weight', 'bodyFat'],
-    );
-  });
-});
-
-describe('shouldShowBodyMetricSwitcher', () => {
-  it('hides pills when only one series has logs', () => {
-    assert.equal(shouldShowBodyMetricSwitcher(['weight']), false);
-    assert.equal(shouldShowBodyMetricSwitcher(['weight', 'waist']), true);
-  });
-});
-
-describe('resolveActiveBodyMetric', () => {
-  it('falls back when the selected series has no logs', () => {
-    assert.equal(
-      resolveActiveBodyMetric({
-        selected: 'waist',
-        visible: ['weight', 'bodyFat'],
-      }),
-      'weight',
-    );
-  });
-});
 
 describe('waistChartRangeDays', () => {
   it('never charts waist on 7 days', () => {

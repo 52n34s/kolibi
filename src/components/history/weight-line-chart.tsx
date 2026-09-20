@@ -68,15 +68,16 @@ export function WeightLineChart({
     : null;
 
   const targetOutside = targetWeightKg != null && !targetVisible;
-  const edgeY = targetOutside
-    ? targetWeightKg > yDomain.max
-      ? CHART_PADDING
-      : height - CHART_PADDING
+  const targetAbove = targetOutside && targetWeightKg! > yDomain.max;
+  /**
+   * Off-scale marker sits outside the plotted band, not on its edge. Inside the
+   * band it lands level with the nearest point and reads as if the target were
+   * that value — which is exactly the clamping the domain fix removed.
+   */
+  const edgeY = targetOutside ? (targetAbove ? 11 : height - 5) : null;
+  const edgeDelta = targetOutside
+    ? targetWeightKg! - (targetAbove ? yDomain.max : yDomain.min)
     : null;
-  const edgeDelta =
-    targetOutside && targetWeightKg != null
-      ? targetWeightKg - (targetWeightKg > yDomain.max ? yDomain.max : yDomain.min)
-      : null;
 
   return (
     <View style={{ width, height, overflow: 'hidden' }}>
@@ -129,16 +130,19 @@ export function WeightLineChart({
           {edgeY != null && edgeDelta != null ? (
             <SvgText
               x={width - CHART_PADDING}
-              y={edgeY + (targetWeightKg! > yDomain.max ? 12 : -6)}
+              y={edgeY}
               fill={TARGET_LINE_COLOR}
               fontSize={11}
               fontWeight="600"
               textAnchor="end">
-              {targetLabel
-                ? `${targetLabel} (${formatDeltaKg ? formatDeltaKg(edgeDelta) : `${edgeDelta > 0 ? '+' : ''}${edgeDelta.toFixed(1)} kg`})`
-                : formatDeltaKg
-                  ? formatDeltaKg(edgeDelta)
-                  : `${edgeDelta > 0 ? '+' : ''}${edgeDelta.toFixed(1)} kg`}
+              {/* Arrow says the target is off the visible scale, not at this height. */}
+              {`${targetAbove ? '↑' : '↓'} ${
+                targetLabel
+                  ? `${targetLabel} (${formatDeltaKg ? formatDeltaKg(edgeDelta) : `${edgeDelta > 0 ? '+' : ''}${edgeDelta.toFixed(1)} kg`})`
+                  : formatDeltaKg
+                    ? formatDeltaKg(edgeDelta)
+                    : `${edgeDelta > 0 ? '+' : ''}${edgeDelta.toFixed(1)} kg`
+              }`}
             </SvgText>
           ) : null}
 

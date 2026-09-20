@@ -9,7 +9,16 @@ type WeightLog = DatedLog & { weight_kg: number };
 type WaistLog = DatedLog & { waist_cm: number };
 type BodyFatLog = DatedLog & { body_fat_pct: number };
 
-const METRIC_ORDER: HistoryBodyMetric[] = ['weight', 'waist', 'bodyFat'];
+/**
+ * All three tabs show as soon as the body card renders. Gating them on existing
+ * logs made the "not tracked yet" state unreachable — the very state that asks
+ * for the first entry.
+ */
+export const BODY_METRIC_TABS: readonly HistoryBodyMetric[] = [
+  'weight',
+  'waist',
+  'bodyFat',
+];
 
 /** Waist is typically weekly; a 7-day window is one point. Always chart 30 days. */
 export const WAIST_CHART_RANGE_DAYS = 30;
@@ -57,30 +66,6 @@ export function waistChartRangeDays(globalRangeDays: number): number {
 
 export function shouldShowWaistRangeBadge(globalRangeDays: number): boolean {
   return globalRangeDays < WAIST_CHART_RANGE_DAYS;
-}
-
-export function resolveVisibleBodyMetrics(has: {
-  weight: boolean;
-  waist: boolean;
-  bodyFat: boolean;
-}): HistoryBodyMetric[] {
-  return METRIC_ORDER.filter((metric) => has[metric]);
-}
-
-export function shouldShowBodyMetricSwitcher(
-  metrics: readonly HistoryBodyMetric[],
-): boolean {
-  return metrics.length >= 2;
-}
-
-export function resolveActiveBodyMetric(params: {
-  selected: HistoryBodyMetric;
-  visible: readonly HistoryBodyMetric[];
-}): HistoryBodyMetric {
-  if (params.visible.includes(params.selected)) {
-    return params.selected;
-  }
-  return params.visible[0] ?? 'weight';
 }
 
 export type WeightWaistComparison = {

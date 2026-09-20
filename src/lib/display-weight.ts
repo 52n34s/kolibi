@@ -17,6 +17,12 @@ export type DisplayWeight = {
    * has fewer than 3 samples. Theil-Sen is not used here.
    */
   trendKg: number | null;
+  /**
+   * Whether `trendKg` is an actual moving average. False means it fell back to
+   * the raw weigh-in, so nothing may call it a trend. Narrower than
+   * `barUsesMa`, which also needs an average at the start of the range.
+   */
+  trendUsesMa: boolean;
   /** MA at the first weigh-in on or after `startOn`, or null (no raw fallback). */
   startTrendKg: number | null;
   /** Raw first weigh-in on or after `startOn`. */
@@ -79,6 +85,7 @@ export function resolveDisplayWeight(params: {
   const empty: DisplayWeight = {
     dailyKg: null,
     trendKg: null,
+    trendUsesMa: false,
     startTrendKg: null,
     startRawKg: null,
     barStartKg: null,
@@ -110,6 +117,7 @@ export function resolveDisplayWeight(params: {
     return {
       dailyKg,
       trendKg,
+      trendUsesMa: true,
       startTrendKg,
       startRawKg,
       barStartKg: startTrendKg,
@@ -121,6 +129,7 @@ export function resolveDisplayWeight(params: {
   return {
     dailyKg,
     trendKg,
+    trendUsesMa: endMa != null,
     startTrendKg,
     startRawKg,
     barStartKg: startRawKg,

@@ -65,12 +65,10 @@ import {
 } from '@/lib/history';
 import { resolveDisplayWeight } from '@/lib/display-weight';
 import {
+  BODY_METRIC_TABS,
   computeWeightWaistComparison,
   getLatestBodyFatPct,
   rangeWindowKeys,
-  resolveActiveBodyMetric,
-  resolveVisibleBodyMetrics,
-  shouldShowBodyMetricSwitcher,
   shouldShowWaistRangeBadge,
   waistChartRangeDays,
   type HistoryBodyMetric,
@@ -1446,16 +1444,7 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
     loggedOnInRange(session.loggedOn, historyRangeWindow.startKey, todayKey),
   );
   const hasRunningKm = runningKmActual != null && runningKmActual > 0;
-  const visibleBodyMetrics = resolveVisibleBodyMetrics({
-    weight: hasBodyContent,
-    waist: hasWaistData,
-    bodyFat: hasBodyFatData,
-  });
-  const showBodyMetricSwitcher = shouldShowBodyMetricSwitcher(visibleBodyMetrics);
-  const resolvedBodyMetric = resolveActiveBodyMetric({
-    selected: activeBodyMetric,
-    visible: visibleBodyMetrics,
-  });
+  const resolvedBodyMetric = activeBodyMetric;
   const visibleAreas = resolveVisibleHistoryAreas({
     nutrition: hasNutritionContent,
     body: hasBodyContent,
@@ -1810,27 +1799,17 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
 
       {showBody ? (
         <>
-      {showBodyMetricSwitcher ? (
-        <View className="mb-3">
-          <PillSegmentSwitcher
-            compact
-            value={resolvedBodyMetric}
-            onChange={setActiveBodyMetric}
-            segments={visibleBodyMetrics.map((id) => ({
-              id,
-              label: t(`history.weight.tabs.${id}`),
-            }))}
-          />
-        </View>
-      ) : (
-        <Text className="mb-3 text-lg font-semibold text-gray-900">
-          {resolvedBodyMetric === 'waist'
-            ? t('history.weight.tabs.waist')
-            : resolvedBodyMetric === 'bodyFat'
-              ? t('history.weight.tabs.bodyFat')
-              : t('history.weight.sectionTitle')}
-        </Text>
-      )}
+      <View className="mb-3">
+        <PillSegmentSwitcher
+          compact
+          value={resolvedBodyMetric}
+          onChange={setActiveBodyMetric}
+          segments={BODY_METRIC_TABS.map((id) => ({
+            id,
+            label: t(`history.weight.tabs.${id}`),
+          }))}
+        />
+      </View>
       <View style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
         <View
           className="px-4 py-5"
@@ -1898,7 +1877,7 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
           ) : hasWeightData && trendWeightLabel != null ? (
             <>
               <Text className="text-sm text-gray-500">
-                {hasWeightChartData
+                {displayWeight?.trendUsesMa
                   ? t('history.weight.trendLabel')
                   : t('history.weight.currentLabel')}
               </Text>
