@@ -2,9 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
-  dailyKmSeries,
   resolveHistoryTrainingEmptyKind,
-  sumKm,
   weeklyDistinctTrainingDayCounts,
 } from './history-training.ts';
 
@@ -24,29 +22,6 @@ describe('weeklyDistinctTrainingDayCounts', () => {
         { weekStart: '2026-09-14', count: 2 },
       ],
     );
-  });
-});
-
-describe('dailyKmSeries', () => {
-  it('fills rest days with 0 and sums two runs on one day', () => {
-    assert.deepEqual(
-      dailyKmSeries({
-        samples: [
-          { date: '2026-09-18', km: 5.2 },
-          { date: '2026-09-18', km: 1.1 },
-          { date: '2026-09-20', km: 8 },
-        ],
-        startKey: '2026-09-18',
-        endKey: '2026-09-20',
-      }),
-      [6.3, 0, 8],
-    );
-  });
-});
-
-describe('sumKm', () => {
-  it('rounds to one decimal', () => {
-    assert.equal(sumKm([1.14, 2.14]), 3.3);
   });
 });
 

@@ -715,7 +715,8 @@
       "sessionsHeadlineRange": "Days with training",
       "sessionsValue": "{{actual}} of {{goal}}",
       "runningKmTitle": "Running distance",
-      "runningKmHeadline": "In this period",
+      "runningKmPeriodDay": "Today",
+      "runningKmPeriodWeek": "This week",
       "kmValue": "{{km}} km",
       "connectHealth": "Connect Apple Health",
       "setMovementGoal": "Set a movement goal"

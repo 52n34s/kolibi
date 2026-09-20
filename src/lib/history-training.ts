@@ -20,18 +20,6 @@ function mondayOnOrBefore(dateKey: string): string {
   return localDateKey(date);
 }
 
-/** Inclusive local calendar keys from start to end. */
-export function inclusiveDateKeys(startKey: string, endKey: string): string[] {
-  const keys: string[] = [];
-  const cursor = parseDateOnly(startKey);
-  const end = parseDateOnly(endKey);
-  while (cursor.getTime() <= end.getTime()) {
-    keys.push(localDateKey(cursor));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return keys;
-}
-
 export function loggedOnInRange(
   loggedOn: string,
   startKey: string,
@@ -73,25 +61,6 @@ export function weeklyDistinctTrainingDayCounts(params: {
     weekStart,
     count: days.size,
   }));
-}
-
-export function dailyKmSeries(params: {
-  samples: readonly { date: string; km: number }[];
-  startKey: string;
-  endKey: string;
-}): number[] {
-  const byDay = new Map<string, number>();
-  for (const sample of params.samples) {
-    const next = (byDay.get(sample.date) ?? 0) + sample.km;
-    byDay.set(sample.date, Math.round(next * 10) / 10);
-  }
-  return inclusiveDateKeys(params.startKey, params.endKey).map(
-    (key) => byDay.get(key) ?? 0,
-  );
-}
-
-export function sumKm(values: readonly number[]): number {
-  return Math.round(values.reduce((sum, value) => sum + value, 0) * 10) / 10;
 }
 
 /**

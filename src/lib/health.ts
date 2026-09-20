@@ -583,6 +583,10 @@ export async function getSportEnergyDay(params: {
 /**
  * Live movement progress from HealthKit for the user's goal type/period.
  * Display-only — does not write to the database or affect calorie goals.
+ *
+ * Progress Laufkilometer uses this current window only (same as Home).
+ * Open: a 7/30 daily series would need either 30 HealthKit queries or
+ * persisting daily running km in `daily_health_stats`. Neither is in place.
  */
 export async function getMovementActual(params: {
   type: MovementGoalType;
@@ -652,53 +656,6 @@ export async function getMovementActual(params: {
 
     console.warn('[Health] read movement actual failed:', error);
     return null;
-  }
-}
-
-/**
- * Running-workout kilometres by local day. Display-only — not stored.
- * Rest days are omitted; the caller fills the chart window with zeros.
- */
-export async function getRunningKmByDay(params: {
-  start: Date;
-  end: Date;
-}): Promise<Array<{ date: string; km: number }>> {
-  if (Platform.OS !== 'ios' || !isHealthDataAvailable()) {
-    return [];
-  }
-
-  try {
-    const workouts = await queryWorkoutSamples({
-      filter: {
-        workoutActivityType: WorkoutActivityType.running,
-        date: {
-          startDate: params.start,
-          endDate: params.end,
-        },
-      },
-      limit: -1,
-    });
-
-    const byDay = new Map<string, number>();
-    for (const workout of workouts) {
-      const loggedAt = workout.endDate ?? workout.startDate;
-      const dayKey = localDateKey(loggedAt);
-      const next = (byDay.get(dayKey) ?? 0) + quantityToKm(workout.totalDistance);
-      byDay.set(dayKey, roundKm(next));
-    }
-
-    return Array.from(byDay.entries()).map(([date, km]) => ({ date, km }));
-  } catch (error) {
-    if (isHealthAuthorizationNotDetermined(error)) {
-      console.warn(
-        '[Health] running km series: authorization notDetermined while health_connected expected true',
-        error,
-      );
-      return [];
-    }
-
-    console.warn('[Health] running km series failed:', error);
-    return [];
   }
 }
 

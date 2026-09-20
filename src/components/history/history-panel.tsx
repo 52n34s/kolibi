@@ -14,8 +14,8 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { Swipeable } from 'react-native-gesture-handler';
 
-import { CalorieBarChart } from '@/components/history/calorie-bar-chart';
 import { HistoryTrainingSection } from '@/components/history/history-training-section';
+import { CalorieBarChart } from '@/components/history/calorie-bar-chart';
 import { MacroTrendChart } from '@/components/history/macro-trend-chart';
 import { WeightLineChart } from '@/components/history/weight-line-chart';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
@@ -30,7 +30,7 @@ import {
 import { SupplementHistorySection } from '@/components/supplements/SupplementHistorySection';
 import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
 import { useHistory } from '@/hooks/use-history';
-import { useRunningKmSeries } from '@/hooks/use-running-km-series';
+import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useTrainingSessionsRange } from '@/hooks/use-training-sessions-range';
 import {
   useBalanceSupplementHistory,
@@ -134,11 +134,8 @@ import {
   weekDotFlags,
 } from '@/lib/training-sessions';
 import {
-  dailyKmSeries,
-  inclusiveDateKeys,
   loggedOnInRange,
   resolveHistoryTrainingEmptyKind,
-  sumKm,
   weeklyDistinctTrainingDayCounts,
 } from '@/lib/history-training';
 import { useAuthStore } from '@/stores/auth-store';
@@ -237,11 +234,19 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
     startKey: trainingLookback.startKey,
     endKey: trainingLookback.endKey,
   });
-  const { data: runningKmSamples = [] } = useRunningKmSeries({
-    userId,
-    startKey: historyRangeWindow.startKey,
-    endKey: todayKey,
+  /**
+   * Live Home window only (`getMovementActual`), not a 7/30 series.
+   * A range chart would need either 30 HealthKit queries or persisting
+   * daily running km in `daily_health_stats`. Neither is in place.
+   */
+  const runningKmPeriod =
+    profile?.movement_goal_period === 'day' || profile?.movement_goal_period === 'week'
+      ? profile.movement_goal_period
+      : 'week';
+  const { data: runningKmActual } = useMovementGoalActual({
     enabled: healthConnectedPreference === true,
+    type: 'running_km',
+    period: runningKmPeriod,
   });
   const { data: observedEnergy } = useObservedEnergy({
     userId,
@@ -1414,16 +1419,7 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
   const hasSessionInRange = trainingSessions.some((session) =>
     loggedOnInRange(session.loggedOn, historyRangeWindow.startKey, todayKey),
   );
-  const kmValues = useMemo(
-    () =>
-      dailyKmSeries({
-        samples: runningKmSamples,
-        startKey: historyRangeWindow.startKey,
-        endKey: todayKey,
-      }),
-    [historyRangeWindow.startKey, runningKmSamples, todayKey],
-  );
-  const hasRunningKm = kmValues.some((value) => value > 0);
+  const hasRunningKm = runningKmActual != null && runningKmActual > 0;
   const visibleBodyMetrics = resolveVisibleBodyMetrics({
     weight: hasBodyContent,
     waist: hasWaistData,
@@ -1484,15 +1480,6 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
         endKey: todayKey,
       }),
     [historyRangeWindow.startKey, todayKey, trainingSessions],
-  );
-  const kmDateLabels = useMemo(
-    () =>
-      inclusiveDateKeys(historyRangeWindow.startKey, todayKey).map((key) =>
-        rangeDays === 7
-          ? formatShortDayLabel(key, i18n.language)
-          : formatDayNumber(key),
-      ),
-    [historyRangeWindow.startKey, i18n.language, rangeDays, todayKey],
   );
   const trainingEmptyKind = resolveHistoryTrainingEmptyKind({
     healthConnected: healthConnectedPreference === true,
@@ -1949,9 +1936,8 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
           sessionsThisWeek={sessionsThisWeek}
           sessionsGoal={sessionsGoal}
           weeklyCounts={weeklyTrainingCounts}
-          kmValues={kmValues}
-          kmDateLabels={kmDateLabels}
-          kmTotal={sumKm(kmValues)}
+          runningKm={runningKmActual ?? 0}
+          runningKmPeriod={runningKmPeriod}
           healthConnected={healthConnectedPreference === true}
         />
       ) : null}

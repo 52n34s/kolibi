@@ -23,9 +23,8 @@ type HistoryTrainingSectionProps = {
   sessionsThisWeek: number;
   sessionsGoal: number | null;
   weeklyCounts: Array<{ weekStart: string; count: number }>;
-  kmValues: number[];
-  kmDateLabels: string[];
-  kmTotal: number;
+  runningKm: number;
+  runningKmPeriod: 'day' | 'week';
   healthConnected: boolean;
 };
 
@@ -38,9 +37,8 @@ export function HistoryTrainingSection({
   sessionsThisWeek,
   sessionsGoal,
   weeklyCounts,
-  kmValues,
-  kmDateLabels,
-  kmTotal,
+  runningKm,
+  runningKmPeriod,
   healthConnected,
 }: HistoryTrainingSectionProps) {
   const { t, i18n } = useTranslation();
@@ -155,46 +153,18 @@ export function HistoryTrainingSection({
             className="mb-8">
             <View className="px-4 py-5">
               <Text className="text-sm text-gray-500">
-                {t('history.training.runningKmHeadline')}
+                {runningKmPeriod === 'day'
+                  ? t('history.training.runningKmPeriodDay')
+                  : t('history.training.runningKmPeriodWeek')}
               </Text>
               <Text className="mt-1 text-2xl font-bold text-[#4F46E5]">
                 {t('history.training.kmValue', {
-                  km: kmTotal.toLocaleString(i18n.language, {
+                  km: runningKm.toLocaleString(i18n.language, {
                     maximumFractionDigits: 1,
                     minimumFractionDigits: 0,
                   }),
                 })}
               </Text>
-              <View className="mt-4">
-                <CalorieBarChart
-                  values={kmValues}
-                  width={innerWidth}
-                  height={140}
-                  compact={rangeDays === 30}
-                />
-                <View className="mt-3" style={{ position: 'relative', height: 16 }}>
-                  {kmDateLabels.map((label, index) => {
-                    const showLabel =
-                      rangeDays === 7 || index % 5 === 0 || index === kmDateLabels.length - 1;
-                    if (!showLabel) {
-                      return null;
-                    }
-                    const count = kmDateLabels.length;
-                    const leftPct = count <= 1 ? 50 : (index / (count - 1)) * 100;
-                    return (
-                      <Text
-                        key={`${label}-${index}`}
-                        className="absolute w-6 text-center text-[10px] text-gray-500"
-                        style={{
-                          left: `${leftPct}%`,
-                          transform: [{ translateX: -12 }],
-                        }}>
-                        {label}
-                      </Text>
-                    );
-                  })}
-                </View>
-              </View>
             </View>
           </View>
         </>
