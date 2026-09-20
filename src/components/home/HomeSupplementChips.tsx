@@ -3,7 +3,13 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { GLASS_SURFACE } from '@/components/ui/glass-styles';
-import { GLASS_BORDER } from '@/constants/brand';
+import {
+  BRAND_INDIGO,
+  BRAND_INDIGO_DEEP,
+  CHIP_BORDER,
+  CHIP_SURFACE_SELECTED,
+  GLASS_BORDER_TOP,
+} from '@/constants/brand';
 import { localDateKey } from '@/lib/day-window';
 import {
   fetchSupplementsForDay,
@@ -13,15 +19,19 @@ import {
 } from '@/lib/supplements';
 import { useAuthStore } from '@/stores/auth-store';
 
-/** Open: frame only. Taken: same frame, glass fill. */
+/**
+ * Open: frame only. Taken: same frame, filled.
+ * The taken label darkens because the fill costs the lighter indigo its
+ * contrast (3.4:1) — same hue, so the state still reads without colour coding.
+ */
 const OPEN_CHIP = {
   backgroundColor: 'transparent',
-  textColor: '#4F46E5',
+  textColor: BRAND_INDIGO,
 } as const;
 
 const TAKEN_CHIP = {
-  backgroundColor: GLASS_SURFACE.backgroundColor,
-  textColor: '#4F46E5',
+  backgroundColor: CHIP_SURFACE_SELECTED,
+  textColor: BRAND_INDIGO_DEEP,
 } as const;
 
 function supplementsDayQueryKey(userId: string, date: string) {
@@ -115,7 +125,7 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
               <ActivityIndicator size="small" color={palette.textColor} />
             ) : (
               <Text style={[styles.chipText, { color: palette.textColor }]} numberOfLines={1}>
-                {taken ? `${item.name} ✓` : `${item.name} +`}
+                {taken ? `${item.name} ✓` : item.name}
               </Text>
             )}
           </Pressable>
@@ -135,7 +145,8 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: GLASS_SURFACE.borderWidth,
-    borderColor: GLASS_BORDER,
+    borderColor: CHIP_BORDER,
+    borderTopColor: GLASS_BORDER_TOP,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 7,

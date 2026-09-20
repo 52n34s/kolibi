@@ -11,3 +11,13 @@ export const TEXT_TERTIARY = '#9494C4';
 
 export const GLASS_BORDER = 'rgba(79, 70, 229, 0.13)';
 export const GLASS_BORDER_TOP = 'rgba(255, 255, 255, 0.95)';
+
+/**
+ * Outline for standalone chips that carry a toggle on their own (no card
+ * behind them). GLASS_BORDER lands at ~1.2:1 on the home mesh and vanishes —
+ * these need to read as a control, so this clears 3:1 across the mesh range
+ * (rgb(220,218,250) is the worst case at 3.09:1).
+ */
+export const CHIP_BORDER = 'rgba(79, 70, 229, 0.75)';
+/** Filled chip state. Deeper than GLASS_SURFACE, which is invisible at 1.1:1. */
+export const CHIP_SURFACE_SELECTED = 'rgba(79, 70, 229, 0.22)';
