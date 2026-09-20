@@ -50,3 +50,4 @@ example
 .env.local
 targets/*/Assets.xcassets/
 supabase/.temp/
+qa/
