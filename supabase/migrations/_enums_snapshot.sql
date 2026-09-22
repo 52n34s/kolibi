@@ -88,3 +88,14 @@ CREATE TYPE public.schedule_kind AS ENUM (
   'interval',
   'weekdays'
 );
+
+-- ---------------------------------------------------------------------------
+-- exercise_kind
+-- From 20260922101000_workout_logger.sql (public.exercises.kind,
+-- public.session_sets.kind).
+-- ---------------------------------------------------------------------------
+CREATE TYPE public.exercise_kind AS ENUM (
+  'reps',
+  'weighted',
+  'time'
+);
