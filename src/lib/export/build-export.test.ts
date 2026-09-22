@@ -37,7 +37,7 @@ const labels: ExportLabels = {
   mealLine: '- {{time}}: {{items}}',
   itemAmount: '{{name}} {{amount}} ({{kcal}} kcal)',
   sessionHeading: '### {{date}} · {{name}} · {{duration}} · {{intensity}}',
-  weightEntry: '- {{date}}: {{kg}} kg',
+  weightEntry: '- {{date}}: {{kg}} {{unit}}',
   kg: 'kg',
   kcal: 'kcal',
   minutes: '{{n}} min',
@@ -56,6 +56,7 @@ function baseOptions(partial: Partial<ExportOptions> = {}): ExportOptions {
     includeQuestion: false,
     startKey: '2026-09-22',
     endKey: '2026-09-22',
+    unitSystem: 'metric',
     ...partial,
   };
 }
