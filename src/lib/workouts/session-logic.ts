@@ -1,3 +1,4 @@
+import { newId } from '../id';
 import { resolveExerciseName } from './exercise-name';
 import type {
   ActiveExercise,
@@ -32,10 +33,6 @@ export type SessionSetUpsertPayload = {
   weightKg: number | null;
   completedAt: string;
 };
-
-function newId(): string {
-  return globalThis.crypto.randomUUID();
-}
 
 /** Lower-bound target for set prefill (never history, never max). */
 export function defaultSetValue(
@@ -75,7 +72,9 @@ function snapshotFromTemplateExercise(te: TemplateExercise, lang: string): Activ
     targetSeconds: te.targetSeconds,
     targetSecondsMax: te.targetSecondsMax,
     targetWeightKg: te.targetWeightKg,
-    restSeconds: te.restSeconds ?? exercise.defaultRestSeconds,
+    // Plan value only — a null here means "use the standard rest"
+    // (training.rest_seconds_last), never the catalog default.
+    restSeconds: te.restSeconds,
     addedInSession: false,
     sets: [],
   };
@@ -131,7 +130,8 @@ export function buildActiveExerciseFromCatalog(
     targetSeconds: exercise.defaultSeconds,
     targetSecondsMax: null,
     targetWeightKg: null,
-    restSeconds: exercise.defaultRestSeconds,
+    // Added mid-session: no plan value, so the standard rest applies.
+    restSeconds: null,
     addedInSession: true,
     sets: [],
   };

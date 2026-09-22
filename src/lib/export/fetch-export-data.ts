@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import type { TFunction } from 'i18next';
 import { Platform } from 'react-native';
 import {
@@ -149,8 +150,10 @@ async function fetchRunningKmByDay(
       const key = localDateKey(new Date(workout.startDate));
       result.set(key, Math.round(((result.get(key) ?? 0) + km) * 10) / 10);
     }
-  } catch {
-    // Health unavailable — omit running section
+  } catch (error) {
+    // Expected when Health is not connected — reported at warning level so it
+    // stays filterable and does not drown real errors.
+    Sentry.captureException(error, { level: 'warning' });
   }
   return result;
 }

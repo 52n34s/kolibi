@@ -16,6 +16,7 @@ import {
 } from '@/components/training/training-panel-utils';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, BRAND_MINT, TEXT_SECONDARY } from '@/constants/brand';
+import { adoptTargetFromMedian } from '@/lib/workouts/adopt-target';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { allSetsHitUpperBound } from '@/lib/workouts/format-target';
 import { applyProgression } from '@/lib/workouts/apply-progression';
@@ -399,34 +400,19 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           };
         }
 
-        if (sessionItem.kind === 'time') {
-          const max =
-            te.targetSecondsMax != null && te.targetSecondsMax > median
-              ? te.targetSecondsMax
-              : te.targetSecondsMax;
-          return {
-            exerciseId: te.exerciseId,
-            targetSets: sessionItem.sets.length,
-            targetReps: null,
-            targetRepsMax: null,
-            targetSeconds: median,
-            targetSecondsMax: max,
-            targetWeightKg: te.targetWeightKg,
-            restSeconds: te.restSeconds,
-          };
-        }
-
-        const max =
-          te.targetRepsMax != null && te.targetRepsMax > median
-            ? te.targetRepsMax
-            : te.targetRepsMax;
+        const adopted = adoptTargetFromMedian({
+          kind: sessionItem.kind,
+          median,
+          targetRepsMax: te.targetRepsMax,
+          targetSecondsMax: te.targetSecondsMax,
+        });
         return {
           exerciseId: te.exerciseId,
           targetSets: sessionItem.sets.length,
-          targetReps: median,
-          targetRepsMax: max,
-          targetSeconds: null,
-          targetSecondsMax: null,
+          targetReps: adopted.targetReps,
+          targetRepsMax: adopted.targetRepsMax,
+          targetSeconds: adopted.targetSeconds,
+          targetSecondsMax: adopted.targetSecondsMax,
           targetWeightKg: te.targetWeightKg,
           restSeconds: te.restSeconds,
         };
@@ -579,7 +565,8 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         Sentry.captureException(progressErr);
         setProgressError(t('training.progression.applyError'));
       }
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       setError(t('training.panel.finishError'));
     } finally {
       setSaving(false);

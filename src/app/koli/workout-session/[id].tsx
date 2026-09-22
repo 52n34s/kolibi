@@ -38,6 +38,7 @@ import {
 import { useExercises } from '@/hooks/use-exercises';
 import { useWorkoutSession } from '@/hooks/use-workout-session';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
+import { newId } from '@/lib/id';
 import { formatAppDate } from '@/lib/onboarding';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import { updateTrainingSession } from '@/lib/training-sessions';
@@ -235,7 +236,7 @@ export default function WorkoutSessionDetailScreen() {
         : (template.targetReps ?? 0);
     const newSet: SessionSet = {
       ...template,
-      id: globalThis.crypto.randomUUID(),
+      id: newId(),
       setIndex: nextIndex,
       completedAt: new Date().toISOString(),
       ...setValueFields(template, value, template.perSide ? value : null),
@@ -418,7 +419,7 @@ export default function WorkoutSessionDetailScreen() {
           exercise.perSide ? value : null,
         );
         const stub: SessionSet = {
-          id: globalThis.crypto.randomUUID(),
+          id: newId(),
           sessionId: session.id,
           userId: session.userId,
           exerciseId: exercise.id,

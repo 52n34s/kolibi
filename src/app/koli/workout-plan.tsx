@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import { Image } from 'expo-image';
 import { Href, Stack, router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -82,7 +83,8 @@ export default function WorkoutPlanScreen() {
       } else {
         await refetch();
       }
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       Alert.alert(t('settings.errors.title'), t('training.plan.reorderFailed'));
     } finally {
       setReordering(false);
@@ -229,6 +231,7 @@ export default function WorkoutPlanScreen() {
               <Text style={styles.restBtnText}>+{REST_STEP}</Text>
             </Pressable>
           </View>
+          <Text style={styles.restHint}>{t('training.plan.restHint')}</Text>
         </View>
       </ScrollView>
     </HomeLayout>
@@ -359,5 +362,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: BRAND_INDIGO,
     fontVariant: ['tabular-nums'],
+  },
+  restHint: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 18,
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
   },
 });

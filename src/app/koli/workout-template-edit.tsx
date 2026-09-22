@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import { Href, Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +32,7 @@ import { useExercises } from '@/hooks/use-exercises';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
+import { newId } from '@/lib/id';
 import { updateTrainingSessionsPerWeek } from '@/lib/profile';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { suggestShortLabel } from '@/lib/workouts/short-label';
@@ -117,7 +119,7 @@ function exerciseToDraft(exercise: Exercise): DraftExercise {
     exercise.defaultSecondsMax != null &&
     exercise.defaultSecondsMax > exercise.defaultSeconds;
   return {
-    key: globalThis.crypto.randomUUID(),
+    key: newId(),
     exerciseId: exercise.id,
     exercise,
     targetSets: Math.max(1, exercise.defaultSets || 3),
@@ -125,7 +127,8 @@ function exerciseToDraft(exercise: Exercise): DraftExercise {
     targetRepsMax: hasRepsRange ? exercise.defaultRepsMax : null,
     targetSeconds: kindTime ? (exercise.defaultSeconds ?? 30) : null,
     targetSecondsMax: hasTimeRange ? exercise.defaultSecondsMax : null,
-    restSeconds: exercise.defaultRestSeconds,
+    // New rows start on "Standard-Pause" so the plan's shared value applies.
+    restSeconds: null,
     rangeEnabled: hasRepsRange || hasTimeRange,
   };
 }
@@ -387,7 +390,8 @@ export default function WorkoutTemplateEditScreen() {
         await new Promise((resolve) => setTimeout(resolve, 1200));
       }
       router.back();
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       Alert.alert(t('settings.errors.title'), t('training.templateEdit.saveFailed'));
     } finally {
       setSaving(false);
@@ -423,7 +427,8 @@ export default function WorkoutTemplateEditScreen() {
         await invalidateTrainingQueries(queryClient, userId);
       }
       router.replace(PLAN_HREF);
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       Alert.alert(t('settings.errors.title'), t('training.templateEdit.deleteFailed'));
     } finally {
       setSaving(false);

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Href, Stack, router, useLocalSearchParams } from 'expo-router';
@@ -29,6 +30,7 @@ import {
   TEXT_TERTIARY,
 } from '@/constants/brand';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import { newId } from '@/lib/id';
 import { getCatalogExerciseImage } from '@/lib/workouts/catalog-images';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { workoutQueryKeys } from '@/lib/workouts/query-keys';
@@ -178,7 +180,8 @@ export default function ExerciseEditScreen() {
   async function openAppSettings() {
     try {
       await Linking.openSettings();
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       Alert.alert(
         t('training.exerciseEdit.openSettingsFailedTitle'),
         t('training.exerciseEdit.openSettingsFailedMessage'),
@@ -267,7 +270,8 @@ export default function ExerciseEditScreen() {
       setPendingImageUri(null);
       setUploadFailed(false);
       return true;
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       setUploadFailed(true);
       Alert.alert(
         t('settings.errors.title'),
@@ -300,7 +304,7 @@ export default function ExerciseEditScreen() {
     setSaving(true);
     try {
       if (!exerciseId) {
-        const id = globalThis.crypto.randomUUID();
+        const id = newId();
         const created = await createExercise({
           id,
           names: { [lang]: name },
@@ -352,7 +356,8 @@ export default function ExerciseEditScreen() {
         await invalidateExercises();
       }
       router.back();
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       Alert.alert(t('settings.errors.title'), t('training.exerciseEdit.saveFailed'));
     } finally {
       setSaving(false);
@@ -402,7 +407,8 @@ export default function ExerciseEditScreen() {
       await archiveExercise(exerciseId);
       await invalidateExercises();
       router.back();
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       Alert.alert(t('settings.errors.title'), t('training.exerciseEdit.archiveFailed'));
     } finally {
       setSaving(false);
@@ -430,7 +436,8 @@ export default function ExerciseEditScreen() {
       });
       await invalidateExercises();
       router.replace(`/koli/exercise-edit?id=${encodeURIComponent(created.id)}` as Href);
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       Alert.alert(t('settings.errors.title'), t('training.exerciseEdit.copyFailed'));
     } finally {
       setCopying(false);

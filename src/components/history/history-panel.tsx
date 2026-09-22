@@ -1558,8 +1558,8 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
             value={String(rangeDays) as '7' | '30'}
             onChange={(value) => setRangeDays(Number(value) as HistoryRangeDays)}
             segments={[
-              { id: '7', label: t('history.range.days7') },
-              { id: '30', label: t('history.range.days30') },
+              { id: '7', label: t('history.range.days7'), testID: 'history.range.7' },
+              { id: '30', label: t('history.range.days30'), testID: 'history.range.30' },
             ]}
           />
         </View>
@@ -1591,6 +1591,7 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
             segments={visibleAreas.map((id) => ({
               id,
               label: t(`history.areas.${id}`),
+              testID: `history.area.${id}`,
             }))}
           />
         </View>

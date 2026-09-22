@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FlatList,
@@ -43,9 +43,17 @@ export function TrainingOverviewSheet({
 }: TrainingOverviewSheetProps) {
   const { t, i18n } = useTranslation();
   const [adding, setAdding] = useState(false);
+  // Only one exercise shows its actions at a time — the row list stays scannable.
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const exercisesQuery = useExercises(visible && adding);
   const catalog = exercisesQuery.data ?? [];
+
+  useEffect(() => {
+    if (!visible) {
+      setExpandedIndex(null);
+    }
+  }, [visible]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLocaleLowerCase(i18n.language);
@@ -141,71 +149,94 @@ export function TrainingOverviewSheet({
                           })
                         : t('training.panel.statusOpen');
 
+                  const expanded = expandedIndex === index;
+
                   return (
                     <View style={styles.row}>
-                      <Pressable
-                        testID={`training.overview.exercise.${index}.jump`}
-                        accessibilityRole="button"
-                        style={styles.rowMain}
-                        onPress={() => {
-                          onJump(index, 0);
-                          onClose();
-                        }}>
-                        <Text style={styles.rowName}>{item.name}</Text>
-                        <Text style={styles.rowStatus}>{status}</Text>
-                      </Pressable>
-                      <View style={styles.rowActions}>
+                      <View style={styles.rowTop}>
                         <Pressable
-                          testID={`training.overview.exercise.${index}.up`}
+                          testID={`training.overview.exercise.${index}.jump`}
                           accessibilityRole="button"
-                          disabled={index === 0}
-                          onPress={() => onMoveUp(index)}
-                          style={styles.iconBtn}>
-                          <Ionicons
-                            name="chevron-up"
-                            size={18}
-                            color={index === 0 ? TEXT_TERTIARY : BRAND_INDIGO}
-                          />
-                        </Pressable>
-                        <Pressable
-                          testID={`training.overview.exercise.${index}.down`}
-                          accessibilityRole="button"
-                          disabled={index >= session.items.length - 1}
-                          onPress={() => onMoveDown(index)}
-                          style={styles.iconBtn}>
-                          <Ionicons
-                            name="chevron-down"
-                            size={18}
-                            color={
-                              index >= session.items.length - 1 ? TEXT_TERTIARY : BRAND_INDIGO
-                            }
-                          />
-                        </Pressable>
-                        <Pressable
-                          testID={`training.overview.exercise.${index}.skip`}
-                          accessibilityRole="button"
+                          style={styles.rowMain}
                           onPress={() => {
-                            onSkip(index);
+                            onJump(index, 0);
                             onClose();
-                          }}
-                          style={styles.chip}>
-                          <Text style={styles.chipText}>{t('training.panel.skip')}</Text>
+                          }}>
+                          <Text style={styles.rowName}>{item.name}</Text>
+                          <Text style={styles.rowStatus}>{status}</Text>
                         </Pressable>
                         <Pressable
-                          testID={`training.overview.exercise.${index}.addSet`}
+                          testID={`training.overview.exercise.${index}.more`}
                           accessibilityRole="button"
-                          onPress={() => onAddSet(index)}
-                          style={styles.chip}>
-                          <Text style={styles.chipText}>{t('training.panel.addSet')}</Text>
-                        </Pressable>
-                        <Pressable
-                          testID={`training.overview.exercise.${index}.removeSet`}
-                          accessibilityRole="button"
-                          onPress={() => onRemoveSet(index)}
-                          style={styles.chip}>
-                          <Text style={styles.chipText}>{t('training.panel.removeSet')}</Text>
+                          accessibilityLabel={t('training.panel.moreActions')}
+                          accessibilityState={{ expanded }}
+                          hitSlop={8}
+                          onPress={() =>
+                            setExpandedIndex((prev) => (prev === index ? null : index))
+                          }
+                          style={styles.iconBtn}>
+                          <Ionicons
+                            name={expanded ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal'}
+                            size={20}
+                            color={expanded ? BRAND_INDIGO : TEXT_SECONDARY}
+                          />
                         </Pressable>
                       </View>
+
+                      {expanded ? (
+                        <View style={styles.rowActions}>
+                          <Pressable
+                            testID={`training.overview.exercise.${index}.up`}
+                            accessibilityRole="button"
+                            disabled={index === 0}
+                            onPress={() => onMoveUp(index)}
+                            style={styles.iconBtn}>
+                            <Ionicons
+                              name="chevron-up"
+                              size={18}
+                              color={index === 0 ? TEXT_TERTIARY : BRAND_INDIGO}
+                            />
+                          </Pressable>
+                          <Pressable
+                            testID={`training.overview.exercise.${index}.down`}
+                            accessibilityRole="button"
+                            disabled={index >= session.items.length - 1}
+                            onPress={() => onMoveDown(index)}
+                            style={styles.iconBtn}>
+                            <Ionicons
+                              name="chevron-down"
+                              size={18}
+                              color={
+                                index >= session.items.length - 1 ? TEXT_TERTIARY : BRAND_INDIGO
+                              }
+                            />
+                          </Pressable>
+                          <Pressable
+                            testID={`training.overview.exercise.${index}.skip`}
+                            accessibilityRole="button"
+                            onPress={() => {
+                              onSkip(index);
+                              onClose();
+                            }}
+                            style={styles.chip}>
+                            <Text style={styles.chipText}>{t('training.panel.skip')}</Text>
+                          </Pressable>
+                          <Pressable
+                            testID={`training.overview.exercise.${index}.addSet`}
+                            accessibilityRole="button"
+                            onPress={() => onAddSet(index)}
+                            style={styles.chip}>
+                            <Text style={styles.chipText}>{t('training.panel.addSet')}</Text>
+                          </Pressable>
+                          <Pressable
+                            testID={`training.overview.exercise.${index}.removeSet`}
+                            accessibilityRole="button"
+                            onPress={() => onRemoveSet(index)}
+                            style={styles.chip}>
+                            <Text style={styles.chipText}>{t('training.panel.removeSet')}</Text>
+                          </Pressable>
+                        </View>
+                      ) : null}
                     </View>
                   );
                 }}
@@ -260,7 +291,13 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(79, 70, 229, 0.12)',
     gap: 8,
   },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   rowMain: {
+    flex: 1,
     gap: 2,
   },
   rowName: {

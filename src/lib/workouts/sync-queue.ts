@@ -1,3 +1,4 @@
+import { newId } from '../id';
 import type { StringKvStorage } from './kv-storage';
 import type { GymIntensity, UnitColorKey } from './types';
 
@@ -70,6 +71,16 @@ export type SyncQueueApi = {
   deleteWorkoutSession: (sessionId: string) => Promise<void>;
 };
 
+/**
+ * Error sink for this pure module. `sync-queue-runtime.ts` wires it to Sentry;
+ * Node tests leave the no-op in place so nothing native gets imported here.
+ */
+let reportError: (error: unknown) => void = () => {};
+
+export function setSyncQueueErrorReporter(report: (error: unknown) => void): void {
+  reportError = report;
+}
+
 export const WORKOUT_SYNC_QUEUE_KEY = 'workout-sync-queue-v1';
 const STATUS_KEY = 'workout-sync-queue-status-v1';
 
@@ -83,7 +94,9 @@ function readOps(storage: StringKvStorage): SyncQueueOp[] {
   try {
     const parsed = JSON.parse(raw) as SyncQueueOp[];
     return Array.isArray(parsed) ? parsed : [];
-  } catch {
+  } catch (error) {
+    // A corrupt queue silently drops pending writes — always report it.
+    reportError(error);
     return [];
   }
 }
@@ -109,7 +122,7 @@ function writeStatus(storage: StringKvStorage, status: SyncStatus): void {
 }
 
 function newOpId(): string {
-  return globalThis.crypto.randomUUID();
+  return newId();
 }
 
 /**

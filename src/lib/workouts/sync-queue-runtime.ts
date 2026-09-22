@@ -1,12 +1,18 @@
+import * as Sentry from '@sentry/react-native';
 import { useSyncExternalStore } from 'react';
 import type { NativeEventSubscription } from 'react-native';
 
 import { getMmkv } from '@/lib/mmkv-zustand-storage';
 import {
   createWorkoutSyncQueue,
+  setSyncQueueErrorReporter,
   type SyncStatus,
   type WorkoutSyncQueue,
 } from './sync-queue';
+
+setSyncQueueErrorReporter((error) => {
+  Sentry.captureException(error);
+});
 
 const TRAINING_MMKV_ID = 'training';
 

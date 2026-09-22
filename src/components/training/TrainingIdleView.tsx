@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Href, router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   IdleProgressionOverlay,
@@ -97,7 +97,9 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
 
   if (templates.length === 0) {
     return (
-      <View style={styles.empty}>
+      <ScrollView
+        contentContainerStyle={styles.empty}
+        showsVerticalScrollIndicator={false}>
         <Text style={styles.emptyText}>{t('training.panel.emptyTemplates')}</Text>
         {showEditPlan ? (
           <Pressable
@@ -108,111 +110,117 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
           </Pressable>
         ) : null}
         <RestTimerCard />
-      </View>
+      </ScrollView>
     );
   }
 
   return (
-    <View style={styles.wrap}>
-      {next ? (
-        <GlassCard testID="training.next.card" style={styles.nextCard}>
-          <Text style={styles.nextTitle}>{t('training.panel.nextTitle')}</Text>
-          <View style={styles.nextHeader}>
-            <View
-              style={[
-                styles.dot,
-                { backgroundColor: TRAINING_UNIT_COLORS[next.colorKey] ?? BRAND_INDIGO },
-              ]}
-            />
-            <Text style={styles.short}>{next.shortLabel}</Text>
-          </View>
-          <Text style={styles.nextName}>{next.name}</Text>
-          <Text style={styles.muted}>{lastLabel(next.id)}</Text>
-          <Text style={styles.muted}>{metaLabel(next)}</Text>
-          {deferredProgressions.length > 0 ? (
+    // Scrollable so nothing at the bottom ("Einheit nachtragen", "Plan
+    // bearbeiten") can become unreachable on short screens.
+    <View style={styles.root}>
+      <ScrollView
+        contentContainerStyle={styles.wrap}
+        showsVerticalScrollIndicator={false}>
+        {next ? (
+          <GlassCard testID="training.next.card" style={styles.nextCard}>
+            <Text style={styles.nextTitle}>{t('training.panel.nextTitle')}</Text>
+            <View style={styles.nextHeader}>
+              <View
+                style={[
+                  styles.dot,
+                  { backgroundColor: TRAINING_UNIT_COLORS[next.colorKey] ?? BRAND_INDIGO },
+                ]}
+              />
+              <Text style={styles.short}>{next.shortLabel}</Text>
+            </View>
+            <Text style={styles.nextName}>{next.name}</Text>
+            <Text style={styles.muted}>{lastLabel(next.id)}</Text>
+            <Text style={styles.muted}>{metaLabel(next)}</Text>
+            {deferredProgressions.length > 0 ? (
+              <Pressable
+                testID="training.next.progression"
+                accessibilityRole="button"
+                onPress={() => setShowProgressionOverlay(true)}
+                style={styles.progressLine}>
+                <Text style={styles.progressLineText}>
+                  {t('training.progression.nextReady', {
+                    count: deferredProgressions.length,
+                  })}
+                </Text>
+              </Pressable>
+            ) : null}
             <Pressable
-              testID="training.next.progression"
+              testID="training.next.start"
               accessibilityRole="button"
-              onPress={() => setShowProgressionOverlay(true)}
-              style={styles.progressLine}>
-              <Text style={styles.progressLineText}>
-                {t('training.progression.nextReady', {
-                  count: deferredProgressions.length,
-                })}
-              </Text>
+              onPress={() => onStart(next)}
+              style={styles.startPressable}>
+              <LinearGradient
+                colors={['#4F46E5', '#7CE7C7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.startGradient}>
+                <Text style={styles.startText}>{t('training.panel.start')}</Text>
+              </LinearGradient>
             </Pressable>
-          ) : null}
-          <Pressable
-            testID="training.next.start"
-            accessibilityRole="button"
-            onPress={() => onStart(next)}
-            style={styles.startPressable}>
-            <LinearGradient
-              colors={['#4F46E5', '#7CE7C7']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.startGradient}>
-              <Text style={styles.startText}>{t('training.panel.start')}</Text>
-            </LinearGradient>
-          </Pressable>
-        </GlassCard>
-      ) : null}
+          </GlassCard>
+        ) : null}
 
-      {others.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('training.panel.moreUnits')}</Text>
-          {others.map((template) => (
-            <GlassCard key={template.id} style={styles.compactCard}>
-              <View style={styles.compactRow}>
-                <View style={styles.compactLeft}>
-                  <View
-                    style={[
-                      styles.dotSm,
-                      {
-                        backgroundColor:
-                          TRAINING_UNIT_COLORS[template.colorKey] ?? BRAND_INDIGO,
-                      },
-                    ]}
-                  />
-                  <View style={styles.compactText}>
-                    <Text style={styles.compactName}>
-                      {template.shortLabel} · {template.name}
-                    </Text>
-                    <Text style={styles.mutedSm}>{metaLabel(template)}</Text>
+        {others.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('training.panel.moreUnits')}</Text>
+            {others.map((template) => (
+              <GlassCard key={template.id} style={styles.compactCard}>
+                <View style={styles.compactRow}>
+                  <View style={styles.compactLeft}>
+                    <View
+                      style={[
+                        styles.dotSm,
+                        {
+                          backgroundColor:
+                            TRAINING_UNIT_COLORS[template.colorKey] ?? BRAND_INDIGO,
+                        },
+                      ]}
+                    />
+                    <View style={styles.compactText}>
+                      <Text style={styles.compactName}>
+                        {template.shortLabel} · {template.name}
+                      </Text>
+                      <Text style={styles.mutedSm}>{metaLabel(template)}</Text>
+                    </View>
                   </View>
+                  <Pressable
+                    testID={`training.template.${template.shortLabel}.start`}
+                    accessibilityRole="button"
+                    onPress={() => onStart(template)}
+                    style={styles.compactStart}>
+                    <Text style={styles.compactStartText}>{t('training.panel.start')}</Text>
+                  </Pressable>
                 </View>
-                <Pressable
-                  testID={`training.template.${template.shortLabel}.start`}
-                  accessibilityRole="button"
-                  onPress={() => onStart(template)}
-                  style={styles.compactStart}>
-                  <Text style={styles.compactStartText}>{t('training.panel.start')}</Text>
-                </Pressable>
-              </View>
-            </GlassCard>
-          ))}
-        </View>
-      ) : null}
+              </GlassCard>
+            ))}
+          </View>
+        ) : null}
 
-      <RestTimerCard />
+        <RestTimerCard />
 
-      <Pressable
-        testID="training.backfill.open"
-        accessibilityRole="button"
-        onPress={() => router.push('/koli/workout-backfill' as Href)}
-        style={styles.linkWrap}>
-        <Text style={styles.link}>{t('training.backfill.open')}</Text>
-      </Pressable>
-
-      {showEditPlan ? (
         <Pressable
-          testID="training.idle.editPlan"
+          testID="training.backfill.open"
           accessibilityRole="button"
-          onPress={onEditPlan}
+          onPress={() => router.push('/koli/workout-backfill' as Href)}
           style={styles.linkWrap}>
-          <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
+          <Text style={styles.link}>{t('training.backfill.open')}</Text>
         </Pressable>
-      ) : null}
+
+        {showEditPlan ? (
+          <Pressable
+            testID="training.idle.editPlan"
+            accessibilityRole="button"
+            onPress={onEditPlan}
+            style={styles.linkWrap}>
+            <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
 
       {showProgressionOverlay && next ? (
         <IdleProgressionOverlay
@@ -226,6 +234,9 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   wrap: {
     gap: 16,
     paddingBottom: 24,

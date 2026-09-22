@@ -8,6 +8,9 @@ import { useTimerTick } from '@/hooks/use-timer-tick';
 import { formatTimerMmSs, remainingMs } from '@/lib/training/rest-timer';
 import { useRestTimerStore } from '@/stores/rest-timer-store';
 
+/** Same step as "Standard-Pausendauer" in the plan — both edit the same value. */
+const REST_STEP_SECONDS = 15;
+
 export function RestTimerCard() {
   const { t } = useTranslation();
   const status = useRestTimerStore((s) => s.status);
@@ -49,18 +52,18 @@ export function RestTimerCard() {
 
       <View style={styles.row}>
         <Pressable
-          testID="training.timerCard.minus30"
+          testID="training.timerCard.minus15"
           accessibilityRole="button"
-          onPress={() => void addSeconds(-30)}
+          onPress={() => void addSeconds(-REST_STEP_SECONDS)}
           style={styles.chip}>
-          <Text style={styles.chipText}>−30</Text>
+          <Text style={styles.chipText}>−{REST_STEP_SECONDS}</Text>
         </Pressable>
         <Pressable
-          testID="training.timerCard.plus30"
+          testID="training.timerCard.plus15"
           accessibilityRole="button"
-          onPress={() => void addSeconds(30)}
+          onPress={() => void addSeconds(REST_STEP_SECONDS)}
           style={styles.chip}>
-          <Text style={styles.chipText}>+30</Text>
+          <Text style={styles.chipText}>+{REST_STEP_SECONDS}</Text>
         </Pressable>
       </View>
 

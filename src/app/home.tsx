@@ -292,7 +292,9 @@ export default function HomeScreen() {
   }, [homeTabs, homeTab]);
 
   const homeTabIndex = homeTabs.indexOf(homeTab);
-  const hideScanButtons = homeTab === 'training' && Boolean(activeSession);
+  // The scan bar belongs to the food flow. On the training tab it covered
+  // "Einheit nachtragen" and "Plan bearbeiten", so it stays hidden there.
+  const hideScanButtons = homeTab === 'training';
 
   const homeTabSwipeGesture = useMemo(
     () =>
@@ -1442,7 +1444,10 @@ export default function HomeScreen() {
                 onOpenTrainingTab={() => setHomeTab('training')}
               />
             ) : homeTab === 'training' ? (
-              <View className="flex-1 px-6">
+              // No scan-bar padding here — the bar is hidden on this tab.
+              <View
+                className="flex-1 px-6"
+                style={{ paddingBottom: Math.max(insets.bottom, 24) }}>
                 <TrainingPanel
                   onEditPlan={() => router.push('/koli/workout-plan' as Href)}
                 />

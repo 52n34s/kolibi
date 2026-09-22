@@ -262,6 +262,7 @@ export default function WorkoutBackfillScreen() {
                 return (
                   <Pressable
                     key={key}
+                    testID={`training.backfill.intensity.${key}`}
                     accessibilityRole="button"
                     onPress={() => setIntensity(key)}
                     style={[styles.chip, selected && styles.chipOn]}>
@@ -274,6 +275,7 @@ export default function WorkoutBackfillScreen() {
             </View>
 
             <Pressable
+              testID="training.backfill.next"
               accessibilityRole="button"
               onPress={goToSets}
               style={styles.primaryBtn}>
@@ -353,6 +355,7 @@ function BackfillExerciseCard({
           {item.kind === 'time' && item.perSide ? (
             <View style={styles.sideRow}>
               <TextInput
+                testID={`training.backfill.set.${exerciseIndex}.${setIndex}`}
                 value={String(set.value)}
                 onChangeText={(text) => {
                   const value = Number(text.replace(',', '.'));
@@ -365,6 +368,7 @@ function BackfillExerciseCard({
               />
               <Text style={styles.slash}>/</Text>
               <TextInput
+                testID={`training.backfill.set.${exerciseIndex}.${setIndex}.other`}
                 value={String(set.secondsOtherSide ?? set.value)}
                 onChangeText={(text) => {
                   const other = Number(text.replace(',', '.'));
@@ -380,6 +384,7 @@ function BackfillExerciseCard({
           ) : (
             <View style={styles.sideRow}>
               <TextInput
+                testID={`training.backfill.set.${exerciseIndex}.${setIndex}`}
                 value={String(set.value)}
                 onChangeText={(text) => {
                   const value = Number(text.replace(',', '.'));

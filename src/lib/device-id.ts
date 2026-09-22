@@ -2,6 +2,7 @@ import * as Application from 'expo-application';
 import { Platform } from 'react-native';
 
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
+import { newId } from '@/lib/id';
 
 const DEVICE_ID_STORAGE_KEY = 'kolibi_device_id';
 const secureStore = createChunkedSecureStoreAdapter();
@@ -30,7 +31,7 @@ export async function getDeviceId(): Promise<string> {
     return cached;
   }
 
-  const deviceId = (await resolveNativeDeviceId()) ?? globalThis.crypto.randomUUID();
+  const deviceId = (await resolveNativeDeviceId()) ?? newId();
   await secureStore.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
   return deviceId;
 }

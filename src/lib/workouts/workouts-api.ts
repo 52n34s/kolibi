@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Image } from 'react-native';
 
+import { newId } from '@/lib/id';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { sessionSetsToHistoryUnits } from '@/lib/workouts/progression-history';
 import type { ProgressionHistoryUnit } from '@/lib/workouts/progression';
@@ -267,7 +268,7 @@ export type CreateExerciseInput = {
 export async function createExercise(input: CreateExerciseInput): Promise<Exercise> {
   try {
     const userId = await requireUserId();
-    const id = input.id ?? globalThis.crypto.randomUUID();
+    const id = input.id ?? newId();
     const { data, error } = await supabase
       .from('exercises')
       .insert({
