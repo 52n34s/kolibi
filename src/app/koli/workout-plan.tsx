@@ -25,14 +25,12 @@ import {
 } from '@/constants/brand';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
-import { DEFAULT_REST_SECONDS } from '@/lib/training/rest-timer';
+import { clampRestSeconds, DEFAULT_REST_SECONDS } from '@/lib/training/rest-timer';
 import type { WorkoutTemplate } from '@/lib/workouts/types';
 import { reorderTemplates } from '@/lib/workouts/workouts-api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRestTimerStore } from '@/stores/rest-timer-store';
 
-const REST_MIN = 15;
-const REST_MAX = 600;
 const REST_STEP = 15;
 const GOALS_HREF = { pathname: '/koli', params: { segment: 'goals' } } as Href;
 
@@ -57,10 +55,7 @@ export default function WorkoutPlanScreen() {
 
   const idleDurationSec = useRestTimerStore((s) => s.idleDurationSec);
   const setIdleDurationSec = useRestTimerStore((s) => s.setIdleDurationSec);
-  const restSec = Math.min(
-    REST_MAX,
-    Math.max(REST_MIN, idleDurationSec || DEFAULT_REST_SECONDS),
-  );
+  const restSec = clampRestSeconds(idleDurationSec || DEFAULT_REST_SECONDS);
 
   const ordered = useMemo(
     () => [...templates].sort((a, b) => a.position - b.position),
@@ -92,8 +87,7 @@ export default function WorkoutPlanScreen() {
   }
 
   function adjustRest(delta: number) {
-    const next = Math.min(REST_MAX, Math.max(REST_MIN, restSec + delta));
-    setIdleDurationSec(next);
+    setIdleDurationSec(restSec + delta);
   }
 
   function metaLine(template: WorkoutTemplate): string {

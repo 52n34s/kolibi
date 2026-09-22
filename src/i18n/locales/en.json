@@ -651,6 +651,9 @@
       "addToTemplate": "Add to template?",
       "done": "Done",
       "backToSession": "Back to the workout",
+      "openExercises_one": "{{count}} exercise still open: {{names}}",
+      "openExercises_other": "{{count}} exercises still open: {{names}}",
+      "openExercisesMore": "and {{count}} more",
       "retry": "Try again",
       "finishError": "Couldn’t save. Please try again.",
       "sync": {

@@ -18,6 +18,7 @@ import {
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, BRAND_MINT, TEXT_SECONDARY } from '@/constants/brand';
 import { adoptTargetFromMedian } from '@/lib/workouts/adopt-target';
+import { openExerciseNames } from '@/lib/workouts/session-logic';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { allSetsHitUpperBound } from '@/lib/workouts/format-target';
 import { applyProgression } from '@/lib/workouts/apply-progression';
@@ -47,7 +48,10 @@ import {
   type SaveTemplateExerciseInput,
 } from '@/lib/workouts/workouts-api';
 import { useAuthStore } from '@/stores/auth-store';
-import { useWorkoutSessionStore } from '@/stores/workout-session-store';
+import {
+  summaryDraftOf,
+  useWorkoutSessionStore,
+} from '@/stores/workout-session-store';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 
 type TrainingSummaryViewProps = {
@@ -56,6 +60,9 @@ type TrainingSummaryViewProps = {
 };
 
 type Decision = 'accept' | 'later';
+
+/** Beyond this the hint turns into a wall of names. */
+const OPEN_NAMES_SHOWN = 3;
 
 type SuggestionRow = {
   index: number;
@@ -95,10 +102,27 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
   const insets = useSafeAreaInsets();
   const resumeSession = useWorkoutSessionStore((state) => state.resumeSession);
 
-  const [intensity, setIntensity] = useState<GymIntensity | null>(null);
-  const [adopt, setAdopt] = useState<Record<number, boolean>>({});
-  const [addToTemplate, setAddToTemplate] = useState<Record<number, boolean>>({});
-  const [decisions, setDecisions] = useState<Record<number, Decision>>({});
+  // These four live on the session, not in component state: leaving the
+  // summary (tab switch, "Zurück zur Einheit", app restart) used to discard
+  // a ticked adopt box without a word.
+  const updateSummaryDraft = useWorkoutSessionStore((state) => state.updateSummaryDraft);
+  const draft = summaryDraftOf(session);
+  const intensity = draft.intensity;
+  const adopt = draft.adopt;
+  const addToTemplate = draft.addToTemplate;
+  const decisions = draft.decisions;
+
+  const setIntensity = (next: GymIntensity) => updateSummaryDraft({ intensity: next });
+  const setAdopt = (updater: (prev: Record<number, boolean>) => Record<number, boolean>) =>
+    updateSummaryDraft({ adopt: updater(adopt) });
+  const setAddToTemplate = (
+    updater: (prev: Record<number, boolean>) => Record<number, boolean>,
+  ) => updateSummaryDraft({ addToTemplate: updater(addToTemplate) });
+  const setDecisions = (
+    updater: (prev: Record<number, Decision>) => Record<number, Decision>,
+  ) => updateSummaryDraft({ decisions: updater(decisions) });
+
+  const openNames = openExerciseNames(session);
   const [saving, setSaving] = useState(false);
   const [footerHeight, setFooterHeight] = useState(96);
   const [error, setError] = useState<string | null>(null);
@@ -664,6 +688,28 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
 
       <Text style={styles.title}>{session.templateName}</Text>
 
+      {openNames.length > 0 ? (
+        <Pressable
+          testID="training.summary.openExercises"
+          accessibilityRole="button"
+          onPress={resumeSession}
+          style={styles.openCard}>
+          <Text style={styles.openText}>
+            {t('training.panel.openExercises', {
+              count: openNames.length,
+              names:
+                openNames.length > OPEN_NAMES_SHOWN
+                  ? `${openNames.slice(0, OPEN_NAMES_SHOWN).join(', ')} ${t(
+                      'training.panel.openExercisesMore',
+                      { count: openNames.length - OPEN_NAMES_SHOWN },
+                    )}`
+                  : openNames.join(', '),
+            })}
+          </Text>
+          <Text style={styles.openLink}>{t('training.panel.backToSession')}</Text>
+        </Pressable>
+      ) : null}
+
       {firstLevelHints.map((hint) => (
         <Text key={hint} style={styles.firstLevel}>
           {hint}
@@ -873,6 +919,23 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(79, 70, 229, 0.18)',
     backgroundColor: 'rgba(255, 255, 255, 0.94)',
+  },
+  openCard: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 4,
+    backgroundColor: 'rgba(79, 70, 229, 0.08)',
+  },
+  openText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#1E1B4B',
+  },
+  openLink: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: BRAND_INDIGO,
   },
   backLink: {
     alignSelf: 'center',

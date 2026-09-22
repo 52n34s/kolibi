@@ -10,6 +10,7 @@ import {
 } from '@/lib/notifications-local';
 import {
   addSecondsToRemaining,
+  clampRestSeconds,
   DEFAULT_REST_SECONDS,
   remainingMs,
   type RestTimerStatus,
@@ -85,7 +86,7 @@ export const useRestTimerStore = create<RestTimerState>()(
       getLastDurationSec: () => readLastDurationSec(),
 
       setIdleDurationSec: (sec) => {
-        const next = Math.max(1, Math.round(sec));
+        const next = clampRestSeconds(sec);
         writeLastDurationSec(next);
         set({ idleDurationSec: next, durationSec: next });
       },
@@ -167,7 +168,7 @@ export const useRestTimerStore = create<RestTimerState>()(
       addSeconds: async (delta) => {
         const state = get();
         if (state.status === 'idle' || state.status === 'finished') {
-          const next = Math.max(1, state.idleDurationSec + delta);
+          const next = clampRestSeconds(state.idleDurationSec + delta);
           writeLastDurationSec(next);
           set({ idleDurationSec: next, durationSec: next });
           return;

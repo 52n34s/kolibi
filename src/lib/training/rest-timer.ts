@@ -10,6 +10,23 @@ export type RestTimerClockState = {
 
 export const DEFAULT_REST_SECONDS = 120;
 
+/**
+ * Lower bound for the shared standard rest. The timer card and the plan
+ * editor edit the same value, so they clamp against the same floor — the card
+ * used to allow 1 s, which the plan could then not undo in its 15 s steps.
+ */
+export const REST_MIN_SECONDS = 15;
+
+/** Upper bound for the shared standard rest. */
+export const REST_MAX_SECONDS = 600;
+
+export function clampRestSeconds(seconds: number): number {
+  if (!Number.isFinite(seconds)) {
+    return DEFAULT_REST_SECONDS;
+  }
+  return Math.min(REST_MAX_SECONDS, Math.max(REST_MIN_SECONDS, Math.round(seconds)));
+}
+
 /** Remaining rest time; always derived from endsAt (or remainingOnPause when paused). */
 export function remainingMs(state: RestTimerClockState, now: number): number {
   if (state.status === 'paused') {

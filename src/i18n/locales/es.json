@@ -651,6 +651,9 @@
       "addToTemplate": "¿Añadir a la plantilla?",
       "done": "Listo",
       "backToSession": "Volver a la sesión",
+      "openExercises_one": "{{count}} ejercicio pendiente: {{names}}",
+      "openExercises_other": "{{count}} ejercicios pendientes: {{names}}",
+      "openExercisesMore": "y {{count}} más",
       "retry": "Reintentar",
       "finishError": "No se pudo guardar. Inténtalo de nuevo.",
       "sync": {

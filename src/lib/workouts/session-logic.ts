@@ -1,15 +1,16 @@
 import { newId } from '../id';
 import { resolveExerciseName } from './exercise-name';
-import type {
-  ActiveExercise,
-  ActiveSession,
-  ActiveSessionCursor,
-  ActiveSet,
-  Exercise,
-  ExerciseKind,
-  GymIntensity,
-  TemplateExercise,
-  WorkoutTemplate,
+import {
+  emptySummaryDraft,
+  type ActiveExercise,
+  type ActiveSession,
+  type ActiveSessionCursor,
+  type ActiveSet,
+  type Exercise,
+  type ExerciseKind,
+  type GymIntensity,
+  type TemplateExercise,
+  type WorkoutTemplate,
 } from './types';
 
 /** Queue/API payload for a completed set (camelCase). */
@@ -111,6 +112,7 @@ export function buildActiveSessionFromTemplate(
     phase: 'active',
     items,
     cursor: { exerciseIndex: 0, setIndex: 0 },
+    summaryDraft: emptySummaryDraft(),
   };
 }
 
@@ -266,7 +268,13 @@ export function completeCurrentSet(
     };
   });
 
-  const nextCursor = findNextOpenCursor({ ...session, items }, exerciseIndex, setIndex);
+  // Forward first, then wrap to the front — same fallback as skipExercise.
+  // Jumping ahead from the overview used to end the session while earlier
+  // exercises were still open.
+  const withSet = { ...session, items };
+  const nextCursor =
+    findNextOpenCursor(withSet, exerciseIndex, setIndex) ??
+    findNextOpenCursor(withSet, 0, -1);
   const isLastSet = nextCursor == null;
   const next: ActiveSession = {
     ...session,
@@ -461,10 +469,14 @@ export function addExerciseToSession(
   opts: { lang?: string } = {},
 ): ActiveSession {
   const nextItem = buildActiveExerciseFromCatalog(exercise, opts);
+  const items = [...session.items, nextItem];
   return {
     ...session,
     phase: 'active',
-    items: [...session.items, nextItem],
+    items,
+    // Move to the exercise the user just picked. Without this nothing on
+    // screen changes and the add looks like it did nothing at all.
+    cursor: { exerciseIndex: items.length - 1, setIndex: 0 },
   };
 }
 
@@ -541,6 +553,16 @@ export function allDoneSetUpserts(session: ActiveSession): SessionSetUpsertPaylo
     });
   });
   return out;
+}
+
+/**
+ * Exercises that still have an unfinished set — skipped ones included.
+ * The summary lists these so nothing quietly falls off the end of a session.
+ */
+export function openExerciseNames(session: ActiveSession): string[] {
+  return session.items
+    .filter((item) => item.sets.some((set) => !set.done))
+    .map((item) => item.name);
 }
 
 export function currentExerciseIsPerSide(session: ActiveSession): boolean {

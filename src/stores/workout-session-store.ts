@@ -35,13 +35,20 @@ import {
   flushWorkoutSyncQueue,
   getWorkoutSyncStatus,
 } from '@/lib/workouts/sync-queue-runtime';
-import type {
-  ActiveSession,
-  Exercise,
-  GymIntensity,
-  WorkoutTemplate,
+import {
+  emptySummaryDraft,
+  type ActiveSession,
+  type Exercise,
+  type GymIntensity,
+  type SummaryDraft,
+  type WorkoutTemplate,
 } from '@/lib/workouts/types';
 import { useAuthStore } from '@/stores/auth-store';
+
+/** Sessions persisted before summaryDraft existed come back without one. */
+export function summaryDraftOf(session: ActiveSession): SummaryDraft {
+  return session.summaryDraft ?? emptySummaryDraft();
+}
 
 type CompleteResult = { restSeconds: number | null; isLastSet: boolean };
 
@@ -68,6 +75,8 @@ type WorkoutSessionState = {
   enterSummary: () => void;
   /** Back out of the summary while nothing has been written yet. */
   resumeSession: () => void;
+  /** Persisted summary choices — survives tab switches and app restarts. */
+  updateSummaryDraft: (patch: Partial<SummaryDraft>) => void;
   /** `queryClient` required so invalidateTrainingQueries can run after link. */
   finishSession: (
     intensity: GymIntensity,
@@ -246,6 +255,19 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
           return;
         }
         set({ active: { ...active, phase: 'summary' } });
+      },
+
+      updateSummaryDraft: (patch) => {
+        const active = get().active;
+        if (!active) {
+          return;
+        }
+        set({
+          active: {
+            ...active,
+            summaryDraft: { ...summaryDraftOf(active), ...patch },
+          },
+        });
       },
 
       resumeSession: () => {

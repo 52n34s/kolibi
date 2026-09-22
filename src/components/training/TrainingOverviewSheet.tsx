@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassSheetSurface } from '@/components/shared/GlassSheetSurface';
 import { BRAND_INDIGO, TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
 import { useExercises } from '@/hooks/use-exercises';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import type { ActiveSession, Exercise } from '@/lib/workouts/types';
 
@@ -47,11 +48,19 @@ export function TrainingOverviewSheet({
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const exercisesQuery = useExercises(visible && adding);
+  // The search field autofocuses, and the sheet is anchored to the bottom —
+  // without this the result rows sit behind the keyboard and every tap on them
+  // lands on the keyboard instead.
+  const keyboardHeight = useKeyboardHeight();
   const catalog = exercisesQuery.data ?? [];
 
   useEffect(() => {
     if (!visible) {
+      // Everything, not just the expanded row: otherwise the sheet re-opens
+      // in "Übung hinzufügen" mode with the old search term still in place.
       setExpandedIndex(null);
+      setAdding(false);
+      setQuery('');
     }
   }, [visible]);
 
@@ -91,7 +100,7 @@ export function TrainingOverviewSheet({
           </View>
 
           {adding ? (
-            <View style={styles.addBlock}>
+            <View style={[styles.addBlock, { paddingBottom: keyboardHeight + 8 }]}>
               <TextInput
                 value={query}
                 onChangeText={setQuery}
@@ -103,10 +112,11 @@ export function TrainingOverviewSheet({
               <FlatList
                 data={filtered}
                 keyExtractor={(item) => item.id}
-                style={styles.list}
-                keyboardShouldPersistTaps="handled"
+                style={[styles.list, keyboardHeight > 0 && styles.listWithKeyboard]}
+                keyboardShouldPersistTaps="always"
                 renderItem={({ item }) => (
                   <Pressable
+                    testID={`training.overview.addRow.${item.id}`}
                     accessibilityRole="button"
                     style={styles.addRow}
                     onPress={() => {
@@ -285,6 +295,9 @@ const styles = StyleSheet.create({
   list: {
     maxHeight: 360,
     paddingHorizontal: 16,
+  },
+  listWithKeyboard: {
+    maxHeight: 200,
   },
   row: {
     paddingVertical: 12,

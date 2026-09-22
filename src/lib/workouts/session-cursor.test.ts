@@ -12,6 +12,7 @@ import {
   editDoneSet,
   jumpTo,
   moveExercise,
+  openExerciseNames,
   removeLastSet,
   setCurrent,
   setCurrentSides,
@@ -271,56 +272,57 @@ describe('cursor', () => {
   });
 });
 
+function threeExercises(): ActiveSession {
+  const session = buildActiveSessionFromTemplate(
+    {
+      id: 't1',
+      name: 'Push',
+      shortLabel: 'Ps',
+      colorKey: 'teal',
+      weekdays: [],
+      position: 0,
+      exercises: [0, 1, 2].map((position) => ({
+        id: `te-${position}`,
+        templateId: 't1',
+        exerciseId: `ex-${position}`,
+        position,
+        targetSets: 2,
+        targetReps: 8,
+        targetRepsMax: null,
+        targetSeconds: null,
+        targetSecondsMax: null,
+        targetWeightKg: null,
+        restSeconds: null,
+        exercise: {
+          id: `ex-${position}`,
+          userId: null,
+          catalogSlug: `slug-${position}`,
+          names: { de: `Übung ${position}` },
+          kind: 'reps',
+          perSide: false,
+          defaultSets: 2,
+          defaultReps: 8,
+          defaultRepsMax: null,
+          defaultSeconds: null,
+          defaultSecondsMax: null,
+          defaultRestSeconds: 60,
+          imageAsset: null,
+          imagePath: null,
+          note: null,
+          archivedAt: null,
+          ladderKey: null,
+          ladderStep: null,
+          progressionKind: 'none',
+          timeCapSeconds: null,
+        },
+      })),
+    } as never,
+    { userId: 'user-a', loggedOn: '2026-09-22' },
+  );
+  return session;
+}
+
 describe('skipExercise', () => {
-  function threeExercises(): ActiveSession {
-    const session = buildActiveSessionFromTemplate(
-      {
-        id: 't1',
-        name: 'Push',
-        shortLabel: 'Ps',
-        colorKey: 'teal',
-        weekdays: [],
-        position: 0,
-        exercises: [0, 1, 2].map((position) => ({
-          id: `te-${position}`,
-          templateId: 't1',
-          exerciseId: `ex-${position}`,
-          position,
-          targetSets: 2,
-          targetReps: 8,
-          targetRepsMax: null,
-          targetSeconds: null,
-          targetSecondsMax: null,
-          targetWeightKg: null,
-          restSeconds: null,
-          exercise: {
-            id: `ex-${position}`,
-            userId: null,
-            catalogSlug: `slug-${position}`,
-            names: { de: `Übung ${position}` },
-            kind: 'reps',
-            perSide: false,
-            defaultSets: 2,
-            defaultReps: 8,
-            defaultRepsMax: null,
-            defaultSeconds: null,
-            defaultSecondsMax: null,
-            defaultRestSeconds: 60,
-            imageAsset: null,
-            imagePath: null,
-            note: null,
-            archivedAt: null,
-            ladderKey: null,
-            ladderStep: null,
-            progressionKind: 'none',
-            timeCapSeconds: null,
-          },
-        })),
-      } as never,
-      { userId: 'user-a', loggedOn: '2026-09-22' },
-    );
-    return session;
-  }
 
   it('marks the exercise and moves the cursor past it', () => {
     const next = skipExercise(threeExercises(), 0);
@@ -351,5 +353,99 @@ describe('skipExercise', () => {
     assert.equal(back.items[0]?.skipped, false);
     assert.deepEqual(back.cursor, { exerciseIndex: 0, setIndex: 0 });
     assert.equal(back.phase, 'active');
+  });
+});
+
+describe('addExerciseToSession', () => {
+  const catalogExercise = {
+    id: 'ex-new',
+    userId: null,
+    catalogSlug: 'pike_push_up',
+    names: { de: 'Pike Push-ups' },
+    kind: 'reps' as const,
+    perSide: false,
+    defaultSets: 3,
+    defaultReps: 6,
+    defaultRepsMax: null,
+    defaultSeconds: null,
+    defaultSecondsMax: null,
+    defaultRestSeconds: 90,
+    imageAsset: null,
+    imagePath: null,
+    note: null,
+    archivedAt: null,
+    ladderKey: null,
+    ladderStep: null,
+    progressionKind: 'none' as const,
+    timeCapSeconds: null,
+  };
+
+  it('appends the exercise and moves the cursor onto it', () => {
+    const before = threeExercises();
+    assert.equal(before.items.length, 3);
+
+    const after = addExerciseToSession(before, catalogExercise as never);
+
+    assert.equal(after.items.length, 4);
+    assert.equal(after.items[3]?.name, 'Pike Push-ups');
+    assert.equal(after.items[3]?.addedInSession, true);
+    // The header reads "Übung {cursor+1}/{items.length}" — here: 4/4.
+    assert.deepEqual(after.cursor, { exerciseIndex: 3, setIndex: 0 });
+    assert.equal(after.cursor.exerciseIndex + 1, after.items.length);
+  });
+
+  it('re-opens a session that had already reached the summary', () => {
+    const summary: ActiveSession = { ...threeExercises(), phase: 'summary' };
+    const after = addExerciseToSession(summary, catalogExercise as never);
+    assert.equal(after.phase, 'active');
+    assert.equal(after.cursor.exerciseIndex, 3);
+  });
+
+  it('builds the sets from the catalog defaults', () => {
+    const after = addExerciseToSession(threeExercises(), catalogExercise as never);
+    assert.equal(after.items[3]?.sets.length, 3);
+    assert.equal(after.items[3]?.sets[0]?.value, 6);
+    assert.equal(after.items[3]?.sets.every((set) => !set.done), true);
+  });
+});
+
+describe('open exercises at the end of a session', () => {
+  /** Jumping ahead used to end the session with earlier exercises untouched. */
+  it('wraps to the first open exercise instead of going to the summary', () => {
+    let session = threeExercises();
+    // Skip ahead to the last exercise, as the overview lets you.
+    session = jumpTo(session, 2, 0);
+    session = completeCurrentSet(session)!.session;
+    const result = completeCurrentSet(session)!;
+
+    assert.equal(result.isLastSet, false);
+    assert.equal(result.session.phase, 'active');
+    assert.deepEqual(result.session.cursor, { exerciseIndex: 0, setIndex: 0 });
+  });
+
+  it('only reaches the summary once nothing open is left', () => {
+    let session = threeExercises();
+    for (let i = 0; i < 6; i += 1) {
+      const step = completeCurrentSet(session);
+      assert.ok(step, `set ${i} should complete`);
+      session = step!.session;
+    }
+    assert.equal(session.phase, 'summary');
+  });
+
+  it('treats skipped exercises as not open for the cursor', () => {
+    let session = skipExercise(threeExercises(), 0);
+    session = completeCurrentSet(session)!.session;
+    session = completeCurrentSet(session)!.session;
+    session = completeCurrentSet(session)!.session;
+    const last = completeCurrentSet(session)!;
+    assert.equal(last.session.phase, 'summary');
+  });
+
+  it('lists what is still open, skipped included', () => {
+    const session = skipExercise(threeExercises(), 1);
+    const open = openExerciseNames(session);
+    assert.equal(open.length, 3);
+    assert.ok(open.includes('Übung 1'));
   });
 });

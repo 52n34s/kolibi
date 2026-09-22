@@ -178,6 +178,25 @@ export type ActiveSessionCursor = {
   setIndex: number;
 };
 
+export type SummaryDecision = 'accept' | 'later';
+
+/**
+ * What the user picked on the summary screen, keyed by session item index.
+ *
+ * Persisted with the session: this used to be local component state, so a tab
+ * switch or "Zurück zur Einheit" silently threw away a ticked adopt box.
+ */
+export type SummaryDraft = {
+  intensity: GymIntensity | null;
+  adopt: Record<number, boolean>;
+  addToTemplate: Record<number, boolean>;
+  decisions: Record<number, SummaryDecision>;
+};
+
+export function emptySummaryDraft(): SummaryDraft {
+  return { intensity: null, adopt: {}, addToTemplate: {}, decisions: {} };
+}
+
 /** In-progress workout logger session (Zustand + MMKV). */
 export type ActiveSession = {
   sessionId: string;
@@ -200,6 +219,7 @@ export type ActiveSession = {
   phase: 'active' | 'summary';
   items: ActiveExercise[];
   cursor: ActiveSessionCursor;
+  summaryDraft: SummaryDraft;
 };
 
 export function isUnitColorKey(value: string): value is UnitColorKey {

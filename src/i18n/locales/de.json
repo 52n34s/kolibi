@@ -651,6 +651,9 @@
       "addToTemplate": "Zur Vorlage hinzufügen?",
       "done": "Fertig",
       "backToSession": "Zurück zur Einheit",
+      "openExercises_one": "{{count}} Übung offen: {{names}}",
+      "openExercises_other": "{{count}} Übungen offen: {{names}}",
+      "openExercisesMore": "und {{count}} weitere",
       "retry": "Erneut versuchen",
       "finishError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
       "sync": {

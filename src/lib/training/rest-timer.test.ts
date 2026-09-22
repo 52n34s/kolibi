@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  DEFAULT_REST_SECONDS,
+  REST_MAX_SECONDS,
+  REST_MIN_SECONDS,
   addSecondsToRemaining,
+  clampRestSeconds,
   elapsedMs,
   formatHoldMmSs,
   formatTimerMmSs,
@@ -90,5 +94,40 @@ describe('formatters / progress', () => {
       durationSec: 60,
     };
     assert.equal(restProgress(state, 30_000), 0.5);
+  });
+});
+
+describe('clampRestSeconds', () => {
+  it('keeps values inside the allowed band', () => {
+    assert.equal(clampRestSeconds(45), 45);
+    assert.equal(clampRestSeconds(REST_MIN_SECONDS), REST_MIN_SECONDS);
+    assert.equal(clampRestSeconds(REST_MAX_SECONDS), REST_MAX_SECONDS);
+  });
+
+  /** The timer card used to allow 1 s, which the plan's 15 s steps could not undo. */
+  it('never drops below the shared floor', () => {
+    assert.equal(clampRestSeconds(1), REST_MIN_SECONDS);
+    assert.equal(clampRestSeconds(0), REST_MIN_SECONDS);
+    assert.equal(clampRestSeconds(-90), REST_MIN_SECONDS);
+  });
+
+  it('never exceeds the ceiling', () => {
+    assert.equal(clampRestSeconds(REST_MAX_SECONDS + 15), REST_MAX_SECONDS);
+    assert.equal(clampRestSeconds(10_000), REST_MAX_SECONDS);
+  });
+
+  it('rounds and falls back for junk input', () => {
+    assert.equal(clampRestSeconds(44.6), 45);
+    assert.equal(clampRestSeconds(Number.NaN), DEFAULT_REST_SECONDS);
+  });
+
+  it('walks down in 15 s steps and stops at the floor', () => {
+    let value = DEFAULT_REST_SECONDS;
+    for (let step = 0; step < 20; step += 1) {
+      value = clampRestSeconds(value - 15);
+    }
+    assert.equal(value, REST_MIN_SECONDS);
+    // …and back up lands on a clean multiple again, not 16.
+    assert.equal(clampRestSeconds(value + 15), 30);
   });
 });
