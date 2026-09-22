@@ -188,6 +188,58 @@ export async function insertTrainingSession(params: {
   return mapRow(data);
 }
 
+/**
+ * Update linked training_sessions row and recalculate MET kcal when duration/intensity change.
+ * Manual kcal_source stays manual only when caller passes manualKcal; otherwise re-estimate.
+ */
+export async function updateTrainingSession(params: {
+  id: string;
+  userId: string;
+  loggedOn: string;
+  durationMinutes: number;
+  intensity: TrainingIntensity;
+  weightKg: number;
+  /** Preserve prior manual kcal when provided; otherwise MET estimate. */
+  manualKcal?: number | null;
+}): Promise<TrainingSession> {
+  const estimatedKcal = calculateTrainingCalories({
+    activity: 'strength',
+    weightKg: params.weightKg,
+    durationMinutes: params.durationMinutes,
+    intensity: params.intensity,
+  });
+
+  const manual =
+    params.manualKcal != null &&
+    Number.isFinite(params.manualKcal) &&
+    params.manualKcal > 0
+      ? Math.round(params.manualKcal)
+      : null;
+
+  const kcal = manual ?? estimatedKcal;
+  const kcalSource: TrainingKcalSource = manual != null ? 'manual' : 'estimated';
+
+  const { data, error } = await supabase
+    .from('training_sessions')
+    .update({
+      logged_on: params.loggedOn,
+      duration_min: params.durationMinutes,
+      intensity: params.intensity,
+      estimated_kcal: kcal,
+      kcal_source: kcalSource,
+    })
+    .eq('id', params.id)
+    .eq('user_id', params.userId)
+    .select(TRAINING_SESSION_SELECT)
+    .single<TrainingSessionRow>();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapRow(data);
+}
+
 export async function deleteTrainingSessionById(
   userId: string,
   sessionId: string,

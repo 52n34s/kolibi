@@ -23,11 +23,25 @@ export async function clearPushPermissionAskedFlag(): Promise<void> {
 }
 
 Notifications.setNotificationHandler({
-  handleNotification: (async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  })) as any,
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data as { kind?: unknown } | undefined;
+    if (data?.kind === 'rest-timer') {
+      return {
+        shouldShowAlert: false,
+        shouldShowBanner: false,
+        shouldShowList: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      };
+    }
+    return {
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 function getExpoProjectId(): string | null {

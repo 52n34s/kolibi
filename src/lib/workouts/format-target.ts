@@ -62,3 +62,33 @@ export function allSetsHitUpperBound(params: {
   }
   return params.setValues.every((value) => value >= bound);
 }
+
+/** Target range without set count — e.g. "8–12" or "30–40 s". */
+export function formatTargetRange(input: {
+  kind: ExerciseKind;
+  reps?: number | null;
+  repsMax?: number | null;
+  seconds?: number | null;
+  secondsMax?: number | null;
+}): string {
+  if (input.kind === 'time') {
+    const min = input.seconds;
+    const max = input.secondsMax;
+    if (min == null || !(min > 0)) {
+      return '–';
+    }
+    if (max != null && max > min) {
+      return `${min}–${max} s`;
+    }
+    return `${min} s`;
+  }
+  const min = input.reps;
+  const max = input.repsMax;
+  if (min == null || !(min > 0)) {
+    return '–';
+  }
+  if (max != null && max > min) {
+    return `${min}–${max}`;
+  }
+  return String(min);
+}

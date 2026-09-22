@@ -8,6 +8,8 @@ export const workoutQueryKeys = {
     ['workout-exercise-history', userId, exerciseId] as const,
   sessionDetail: (userId: string, sessionId: string) =>
     ['workout-session', userId, sessionId] as const,
+  exerciseBestsBefore: (userId: string, beforeKey: string) =>
+    ['workout-exercise-bests-before', userId, beforeKey] as const,
 };
 
 /** Manual training_sessions rows (legacy logger / kcal). */

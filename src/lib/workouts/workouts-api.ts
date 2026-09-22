@@ -844,6 +844,110 @@ export async function fetchWorkoutSessionById(
   }
 }
 
+export async function fetchExerciseById(exerciseId: string): Promise<Exercise | null> {
+  try {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from('exercises')
+      .select(EXERCISE_SELECT)
+      .eq('id', exerciseId)
+      .or(`user_id.eq.${userId},user_id.is.null`)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+    if (!data) {
+      return null;
+    }
+    return mapExercise(data as ExerciseRow);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+/**
+ * Sessions that include `exerciseId`, newest first. Optional `startKey` (inclusive).
+ */
+export async function fetchSessionsContainingExercise(
+  exerciseId: string,
+  startKey: string | null = null,
+): Promise<WorkoutSession[]> {
+  try {
+    const userId = await requireUserId();
+    const { data: setRows, error: setError } = await supabase
+      .from('session_sets')
+      .select('session_id')
+      .eq('user_id', userId)
+      .eq('exercise_id', exerciseId);
+
+    if (setError) {
+      throw setError;
+    }
+
+    const sessionIds = [
+      ...new Set(((setRows ?? []) as { session_id: string }[]).map((row) => row.session_id)),
+    ];
+    if (sessionIds.length === 0) {
+      return [];
+    }
+
+    let query = supabase
+      .from('workout_sessions')
+      .select(
+        'id, user_id, template_id, template_name, short_label, color_key, logged_on, started_at, finished_at, intensity, training_session_id, created_at',
+      )
+      .eq('user_id', userId)
+      .in('id', sessionIds)
+      .order('logged_on', { ascending: false })
+      .order('started_at', { ascending: false });
+
+    if (startKey != null) {
+      query = query.gte('logged_on', startKey);
+    }
+
+    const { data: sessions, error } = await query;
+    if (error) {
+      throw error;
+    }
+
+    const sessionRows = (sessions ?? []) as WorkoutSessionRow[];
+    if (sessionRows.length === 0) {
+      return [];
+    }
+
+    const ids = sessionRows.map((row) => row.id);
+    const { data: allSets, error: allSetsError } = await supabase
+      .from('session_sets')
+      .select(
+        `id, session_id, user_id, exercise_id, exercise_name, exercise_position, set_index, kind,
+         per_side, target_reps, target_reps_max, target_seconds, target_seconds_max, target_weight_kg,
+         reps, seconds, seconds_other_side, weight_kg, completed_at`,
+      )
+      .in('session_id', ids)
+      .eq('exercise_id', exerciseId)
+      .order('set_index', { ascending: true });
+
+    if (allSetsError) {
+      throw allSetsError;
+    }
+
+    const setsBySession = new Map<string, SessionSet[]>();
+    for (const row of (allSets ?? []) as SessionSetRow[]) {
+      const mapped = mapSessionSet(row);
+      const list = setsBySession.get(mapped.sessionId) ?? [];
+      list.push(mapped);
+      setsBySession.set(mapped.sessionId, list);
+    }
+
+    return sessionRows.map((row) =>
+      mapWorkoutSession(row, setsBySession.get(row.id) ?? []),
+    );
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
 export async function fetchExerciseHistory(
   exerciseId: string,
   limit = 40,
@@ -866,6 +970,90 @@ export async function fetchExerciseHistory(
       throw error;
     }
     return ((data ?? []) as SessionSetRow[]).map(mapSessionSet);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+/**
+ * Max single-set performance per exercise_id for sets logged before `beforeDateKey`
+ * (exclusive). Slim columns only; aggregated client-side (no full SessionSet rows).
+ */
+export async function fetchExerciseBestsBefore(
+  beforeDateKey: string,
+): Promise<Record<string, number>> {
+  try {
+    const userId = await requireUserId();
+    const { data: sessions, error: sessionError } = await supabase
+      .from('workout_sessions')
+      .select('id')
+      .eq('user_id', userId)
+      .lt('logged_on', beforeDateKey);
+
+    if (sessionError) {
+      throw sessionError;
+    }
+    const sessionIds = ((sessions ?? []) as { id: string }[]).map((row) => row.id);
+    if (sessionIds.length === 0) {
+      return {};
+    }
+
+    type SlimRow = {
+      exercise_id: string | null;
+      kind: string;
+      per_side: boolean | null;
+      reps: number | null;
+      seconds: number | null;
+      seconds_other_side: number | null;
+    };
+
+    const bests: Record<string, number> = {};
+    const chunkSize = 100;
+    for (let offset = 0; offset < sessionIds.length; offset += chunkSize) {
+      const chunk = sessionIds.slice(offset, offset + chunkSize);
+      const { data, error } = await supabase
+        .from('session_sets')
+        .select('exercise_id, kind, per_side, reps, seconds, seconds_other_side')
+        .eq('user_id', userId)
+        .in('session_id', chunk);
+
+      if (error) {
+        throw error;
+      }
+
+      for (const row of (data ?? []) as SlimRow[]) {
+        if (row.exercise_id == null) {
+          continue;
+        }
+        let value: number | null = null;
+        if (row.kind === 'time') {
+          if (row.seconds == null || !Number.isFinite(Number(row.seconds))) {
+            continue;
+          }
+          const seconds = Number(row.seconds);
+          if (
+            row.per_side &&
+            row.seconds_other_side != null &&
+            Number.isFinite(Number(row.seconds_other_side))
+          ) {
+            value = Math.min(seconds, Number(row.seconds_other_side));
+          } else {
+            value = seconds;
+          }
+        } else if (row.reps != null && Number.isFinite(Number(row.reps))) {
+          value = Number(row.reps);
+        }
+        if (value == null) {
+          continue;
+        }
+        const prev = bests[row.exercise_id];
+        if (prev == null || value > prev) {
+          bests[row.exercise_id] = value;
+        }
+      }
+    }
+
+    return bests;
   } catch (error) {
     captureAndThrow(error);
   }

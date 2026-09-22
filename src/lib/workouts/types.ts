@@ -121,7 +121,32 @@ export type ActiveExercise = {
   targetSecondsMax: number | null;
   targetWeightKg: number | null;
   restSeconds: number | null;
+  /** True when added mid-session; template stays unchanged until user opts in. */
+  addedInSession: boolean;
   sets: ActiveSet[];
+};
+
+export type ActiveSessionCursor = {
+  exerciseIndex: number;
+  setIndex: number;
+};
+
+/** In-progress workout logger session (Zustand + MMKV). */
+export type ActiveSession = {
+  sessionId: string;
+  templateId: string | null;
+  templateName: string;
+  shortLabel: string;
+  colorKey: UnitColorKey;
+  startedAt: string;
+  loggedOn: string;
+  finishedAt: string | null;
+  intensity: GymIntensity | null;
+  /** Linked training_sessions row once insert succeeded (retry-safe). */
+  trainingSessionId: string | null;
+  phase: 'active' | 'summary';
+  items: ActiveExercise[];
+  cursor: ActiveSessionCursor;
 };
 
 export function isUnitColorKey(value: string): value is UnitColorKey {

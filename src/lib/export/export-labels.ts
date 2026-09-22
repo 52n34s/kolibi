@@ -1,0 +1,46 @@
+import type { TFunction } from 'i18next';
+
+import type { ExportLabels } from './types';
+
+export function buildExportLabels(t: TFunction): ExportLabels {
+  return {
+    title: t('export.markdown.title'),
+    context: t('export.markdown.context'),
+    nutrition: t('export.markdown.nutrition'),
+    training: t('export.markdown.training'),
+    body: t('export.markdown.body'),
+    questionHeading: t('export.markdown.questionHeading'),
+    questionBody: t('export.markdown.questionBody'),
+    missing: t('export.markdown.missing'),
+    goalType: t('export.markdown.goalType'),
+    weight: t('export.markdown.weight'),
+    weightCurrent: t('export.markdown.weightCurrent'),
+    weightStart: t('export.markdown.weightStart'),
+    weightTarget: t('export.markdown.weightTarget'),
+    calorieGoal: t('export.markdown.calorieGoal'),
+    macros: t('export.markdown.macros'),
+    diet: t('export.markdown.diet'),
+    trainingPlan: t('export.markdown.trainingPlan'),
+    trainingPlanSessions: t('export.markdown.trainingPlanSessions'),
+    trainingPlanRotating: t('export.markdown.trainingPlanRotating'),
+    movementGoal: t('export.markdown.movementGoal'),
+    burned: t('export.markdown.burned'),
+    runningKm: t('export.markdown.runningKm'),
+    manualTraining: t('export.markdown.manualTraining'),
+    tableExercise: t('export.markdown.tableExercise'),
+    tableTarget: t('export.markdown.tableTarget'),
+    tableActual: t('export.markdown.tableActual'),
+    dayTotals: t('export.markdown.dayTotals'),
+    mealLine: t('export.markdown.mealLine'),
+    itemAmount: t('export.markdown.itemAmount'),
+    sessionHeading: t('export.markdown.sessionHeading'),
+    weightEntry: t('export.markdown.weightEntry'),
+    kg: t('export.markdown.kg'),
+    kcal: t('export.markdown.kcal'),
+    minutes: t('export.markdown.minutes'),
+    protein: t('export.markdown.protein'),
+    carbs: t('export.markdown.carbs'),
+    fat: t('export.markdown.fat'),
+    fiber: t('export.markdown.fiber'),
+  };
+}
