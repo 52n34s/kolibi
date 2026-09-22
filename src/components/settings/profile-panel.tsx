@@ -487,8 +487,8 @@ export function ProfilePanel() {
         <SettingsSection title={t('settings.units.sectionTitle')} unframed>
           <UnitSystemToggle
               unitSystem={unitSystem}
-              metricLabel={t('onboarding.units.cm')}
-              imperialLabel={t('onboarding.units.ftIn')}
+              metricLabel={t('settings.units.metric')}
+              imperialLabel={t('settings.units.imperial')}
             onChange={setUnitSystem}
           />
         </SettingsSection>
