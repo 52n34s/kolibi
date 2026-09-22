@@ -137,7 +137,9 @@
       "in": "in",
       "ftIn": "ft, in",
       "kg": "kg",
-      "lbs": "lbs"
+      "lbs": "lbs",
+      "km": "km",
+      "mi": "mi"
     },
     "height": {
       "title": "¿Cuánto mides?",
@@ -149,7 +151,11 @@
     "weight": {
       "title": "¿Cuál es tu peso actual?",
       "subtitle": "Introduce tu peso en kilogramos.",
-      "placeholder": "Peso (kg)"
+      "subtitleMetric": "Introduce tu peso en kilogramos.",
+      "subtitleImperial": "Introduce tu peso en libras.",
+      "placeholder": "Peso (kg)",
+      "placeholderMetric": "Peso (kg)",
+      "placeholderImperial": "Peso (lbs)"
     },
     "activity": {
       "title": "¿Qué tan activo eres?",
@@ -248,6 +254,7 @@
       "labelDistanceKm": "Movimiento diario",
       "unitSteps": "",
       "unitKm": "km",
+      "unitMi": "mi",
       "healthRequired": "Debes conectar Apple Health."
     },
     "training": {
@@ -618,6 +625,9 @@
       "start": "Empezar",
       "moreUnits": "Otras unidades",
       "editPlan": "Editar plan",
+      "newWorkout": "Nueva sesión",
+      "createFirstWorkout": "Crea tu primera sesión",
+      "emptyFirstWorkout": "Crea tu primera sesión. Kolibi suma tu entrenamiento directamente a tus calorías y macros.",
       "emptyTemplates": "Aún no hay plantillas de entrenamiento",
       "exerciseProgress": "Ejercicio {{current}}/{{total}} · Serie {{set}}/{{sets}}",
       "overview": "Resumen",
@@ -1005,8 +1015,9 @@
       "mealLine": "- {{time}}: {{items}}",
       "itemAmount": "{{name}} {{amount}} ({{kcal}} kcal)",
       "sessionHeading": "### {{date}} · {{name}} · {{duration}} · {{intensity}}",
-      "weightEntry": "- {{date}}: {{kg}} kg",
+      "weightEntry": "- {{date}}: {{kg}} {{unit}}",
       "kg": "kg",
+      "lb": "lb",
       "kcal": "kcal",
       "minutes": "{{n}} min",
       "protein": "P",
@@ -1351,7 +1362,9 @@
       "sectionTitle": "Idioma"
     },
     "units": {
-      "sectionTitle": "Sistema de unidades"
+      "sectionTitle": "Sistema de medidas",
+      "metric": "Métrico (kg · cm · km)",
+      "imperial": "Imperial (lb · ft/in · mi)"
     },
     "health": {
       "sectionTitle": "Apple Health",
@@ -1458,15 +1471,16 @@
       "sectionTitle": "Objetivo de movimiento",
       "screenTitle": "Editar objetivo de movimiento",
       "directEditSubtitle": "Elige el tipo, el valor y el periodo de tu objetivo de movimiento.",
-      "summary": "{{value}} {{type}} {{period}}",
+      "summary": "{{value}} {{unit}} {{type}} {{period}}",
       "type": {
         "none": "Sin objetivo",
         "steps": "Pasos",
-        "runningKm": "Running",
-        "distanceKm": "Movimiento diario"
+        "runningKm": "de carrera",
+        "distanceKm": "de movimiento diario"
       },
       "valueLabelSteps": "Pasos",
       "valueLabelKm": "Kilómetros",
+      "valueLabelMi": "Millas",
       "period": {
         "day": "por día",
         "week": "por semana"
