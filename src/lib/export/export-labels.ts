@@ -1,8 +1,9 @@
 import type { TFunction } from 'i18next';
 
+import type { UnitSystem } from '@/lib/unit-system';
 import type { ExportLabels } from './types';
 
-export function buildExportLabels(t: TFunction): ExportLabels {
+export function buildExportLabels(t: TFunction, unitSystem: UnitSystem = 'metric'): ExportLabels {
   return {
     title: t('export.markdown.title'),
     context: t('export.markdown.context'),
@@ -35,7 +36,8 @@ export function buildExportLabels(t: TFunction): ExportLabels {
     itemAmount: t('export.markdown.itemAmount'),
     sessionHeading: t('export.markdown.sessionHeading'),
     weightEntry: t('export.markdown.weightEntry'),
-    kg: t('export.markdown.kg'),
+    kg:
+      unitSystem === 'imperial' ? t('export.markdown.lb') : t('export.markdown.kg'),
     kcal: t('export.markdown.kcal'),
     minutes: t('export.markdown.minutes'),
     protein: t('export.markdown.protein'),
