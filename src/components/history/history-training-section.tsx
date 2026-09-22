@@ -21,6 +21,7 @@ import { TEXT_SECONDARY } from '@/constants/brand';
 import { useProgressionEvents } from '@/hooks/use-progression-events';
 import { useExercises } from '@/hooks/use-exercises';
 import { parseDateOnly } from '@/lib/day-window';
+import { formatDistanceKm, useUnitSystem } from '@/lib/measure-units';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import {
   bestSetByExercise,
@@ -308,6 +309,7 @@ export function HistoryTrainingSection({
         })
       : String(sessionsThisWeek);
 
+  const unitSystem = useUnitSystem();
   const runningKmLabel =
     runningKmPeriod === 'day'
       ? t('history.training.runningKmPeriodDay')
@@ -315,11 +317,11 @@ export function HistoryTrainingSection({
   const runningKmValue =
     runningKm == null
       ? '—'
-      : t('history.training.kmValue', {
-          km: runningKm.toLocaleString(i18n.language, {
-            maximumFractionDigits: 1,
-            minimumFractionDigits: 0,
-          }),
+      : formatDistanceKm({
+          distanceKm: runningKm,
+          unitSystem,
+          kmLabel: t('onboarding.units.km'),
+          miLabel: t('onboarding.units.mi'),
         });
 
   function openFirstSession() {
