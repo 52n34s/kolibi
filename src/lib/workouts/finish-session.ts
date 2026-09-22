@@ -26,6 +26,7 @@ export type FinishSessionDeps = {
   peekQueueLength: () => number;
   enqueueUpsertSession: (payload: {
     id: string;
+    userId: string;
     templateId: string | null;
     templateName: string;
     shortLabel: string;
@@ -48,6 +49,7 @@ export type FinishSessionDeps = {
   }) => Promise<{ id: string }>;
   upsertWorkoutSession: (input: {
     id: string;
+    userId: string;
     templateId: string | null;
     templateName: string;
     shortLabel: string;
@@ -88,6 +90,7 @@ export async function finishActiveSession(
 
   deps.enqueueUpsertSession({
     id: finished.sessionId,
+    userId: finished.userId,
     templateId: finished.templateId,
     templateName: finished.templateName,
     shortLabel: finished.shortLabel,
@@ -110,9 +113,9 @@ export async function finishActiveSession(
 
     let trainingSessionId = finished.trainingSessionId;
     if (!trainingSessionId) {
-      const weightKg = await deps.fetchLatestWeightKg(params.userId);
+      const weightKg = await deps.fetchLatestWeightKg(finished.userId);
       const training = await deps.insertTrainingSession({
-        userId: params.userId,
+        userId: finished.userId,
         loggedOn: finished.loggedOn,
         activity: 'strength',
         durationMinutes,
@@ -125,6 +128,7 @@ export async function finishActiveSession(
 
     await deps.upsertWorkoutSession({
       id: finished.sessionId,
+      userId: finished.userId,
       templateId: finished.templateId,
       templateName: finished.templateName,
       shortLabel: finished.shortLabel,

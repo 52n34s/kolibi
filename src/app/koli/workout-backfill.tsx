@@ -106,7 +106,11 @@ export default function WorkoutBackfillScreen() {
     if (loggedOn > todayKey) {
       return;
     }
+    if (!userId) {
+      return;
+    }
     const session = buildBackfillSession(template, {
+      userId,
       loggedOn,
       durationMinutes: Math.round(durationMinutes),
       intensity,

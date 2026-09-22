@@ -608,6 +608,8 @@ export async function reorderTemplates(orderedIds: string[]): Promise<void> {
 
 export type UpsertWorkoutSessionInput = {
   id: string;
+  /** Owner of the session — written as-is, never auth.uid(). */
+  userId: string;
   templateId?: string | null;
   templateName: string;
   shortLabel: string;
@@ -623,13 +625,14 @@ export async function upsertWorkoutSession(
   input: UpsertWorkoutSessionInput,
 ): Promise<WorkoutSession> {
   try {
-    const userId = await requireUserId();
+    // user_id comes from the operation, not from auth.uid(): a queued write
+    // belongs to whoever started the session.
     const { data, error } = await supabase
       .from('workout_sessions')
       .upsert(
         {
           id: input.id,
-          user_id: userId,
+          user_id: input.userId,
           template_id: input.templateId ?? null,
           template_name: input.templateName,
           short_label: input.shortLabel,
@@ -659,6 +662,8 @@ export async function upsertWorkoutSession(
 export type UpsertSessionSetInput = {
   id: string;
   sessionId: string;
+  /** Owner of the session this set belongs to. */
+  userId: string;
   exerciseId?: string | null;
   exerciseName: string;
   exercisePosition: number;
@@ -684,11 +689,10 @@ export async function upsertSessionSets(
     if (sets.length === 0) {
       return [];
     }
-    const userId = await requireUserId();
     const rows = sets.map((set) => ({
       id: set.id,
       session_id: set.sessionId,
-      user_id: userId,
+      user_id: set.userId,
       exercise_id: set.exerciseId ?? null,
       exercise_name: set.exerciseName,
       exercise_position: set.exercisePosition,
@@ -1206,6 +1210,35 @@ function mapProgressionEvent(row: ProgressionEventRow): ProgressionEvent {
 }
 
 /** Catalog ladder rungs for a key, sorted by ladder_step ascending. */
+/**
+ * Exercises by id — catalog and own, archived included.
+ *
+ * Needed wherever an id can point outside the current plan: after a
+ * `variant_up` the replaced exercise is gone from the template, and the
+ * export would otherwise have nothing but the raw UUID to print.
+ */
+export async function fetchExercisesByIds(ids: readonly string[]): Promise<Exercise[]> {
+  try {
+    const unique = [...new Set(ids.filter((id) => typeof id === 'string' && id.length > 0))];
+    if (unique.length === 0) {
+      return [];
+    }
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from('exercises')
+      .select(EXERCISE_SELECT)
+      .in('id', unique)
+      .or(`user_id.is.null,user_id.eq.${userId}`);
+
+    if (error) {
+      throw error;
+    }
+    return ((data ?? []) as ExerciseRow[]).map(mapExercise);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
 export async function fetchLadder(ladderKey: string): Promise<Exercise[]> {
   try {
     const { data, error } = await supabase

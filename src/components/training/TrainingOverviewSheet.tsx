@@ -139,8 +139,9 @@ export function TrainingOverviewSheet({
                 style={styles.list}
                 renderItem={({ item, index }) => {
                   const doneCount = item.sets.filter((s) => s.done).length;
-                  const status =
-                    doneCount === item.sets.length
+                  const status = item.skipped
+                    ? t('training.panel.statusSkipped')
+                    : doneCount === item.sets.length
                       ? t('training.panel.statusDone')
                       : doneCount > 0
                         ? t('training.panel.statusPartial', {

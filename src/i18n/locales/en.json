@@ -638,6 +638,7 @@
       "statusDone": "done",
       "statusPartial": "{{done}}/{{total}} sets",
       "statusOpen": "open",
+      "statusSkipped": "skipped",
       "duration": "Duration",
       "sets": "Sets",
       "reps": "Reps",
@@ -649,6 +650,7 @@
       "adoptTitle": "Adopt as new target?",
       "addToTemplate": "Add to template?",
       "done": "Done",
+      "backToSession": "Back to the workout",
       "retry": "Try again",
       "finishError": "Couldn’t save. Please try again.",
       "sync": {
@@ -1546,6 +1548,7 @@
       "action": "Sign out",
       "title": "Sign out?",
       "message": "You can sign back in at any time.",
+      "activeSessionWarning": "Your workout in progress will not be saved when you sign out.",
       "confirm": "Sign out"
     },
     "deleteAccount": {

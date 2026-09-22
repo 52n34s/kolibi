@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { ProgressionSuggestionCard } from '@/components/training/ProgressionSuggestionCard';
@@ -91,12 +92,15 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
   const userId = useAuthStore((s) => s.session?.user?.id);
   const finishSession = useWorkoutSessionStore((s) => s.finishSession);
   const templatesQuery = useWorkoutTemplates();
+  const insets = useSafeAreaInsets();
+  const resumeSession = useWorkoutSessionStore((state) => state.resumeSession);
 
   const [intensity, setIntensity] = useState<GymIntensity | null>(null);
   const [adopt, setAdopt] = useState<Record<number, boolean>>({});
   const [addToTemplate, setAddToTemplate] = useState<Record<number, boolean>>({});
   const [decisions, setDecisions] = useState<Record<number, Decision>>({});
   const [saving, setSaving] = useState(false);
+  const [footerHeight, setFooterHeight] = useState(96);
   const [error, setError] = useState<string | null>(null);
   const [progressError, setProgressError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<{
@@ -648,7 +652,10 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll}>
+    <View style={styles.root}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: footerHeight + 24 }]}
+        showsVerticalScrollIndicator={false}>
       <Image
         source={require('@/assets/images/koli-happy.png')}
         style={styles.koli}
@@ -800,29 +807,46 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      {progressError ? (
-        <>
-          <Text style={styles.progressHint}>{progressError}</Text>
+      {progressError ? <Text style={styles.progressHint}>{progressError}</Text> : null}
+      </ScrollView>
+
+      {/* Fixed footer: the summary grew past one screen, and a "Fertig" that
+          scrolls out of reach silently loses the intensity. */}
+      <View
+        onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
+        style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        {progressError ? (
           <Pressable
             accessibilityRole="button"
             onPress={() => onDismiss?.()}
             style={styles.doneBtn}>
             <Text style={styles.doneText}>{t('training.progression.celebration.continue')}</Text>
           </Pressable>
-        </>
-      ) : (
-        <Pressable
-          testID="training.summary.done"
-          accessibilityRole="button"
-          disabled={!intensity || saving}
-          onPress={() => void handleDone()}
-          style={[styles.doneBtn, (!intensity || saving) && styles.doneDisabled]}>
-          <Text style={styles.doneText}>
-            {error ? t('training.panel.retry') : t('training.panel.done')}
-          </Text>
-        </Pressable>
-      )}
-    </ScrollView>
+        ) : (
+          <>
+            <Pressable
+              testID="training.summary.back"
+              accessibilityRole="button"
+              disabled={saving}
+              onPress={resumeSession}
+              hitSlop={8}
+              style={styles.backLink}>
+              <Text style={styles.backLinkText}>{t('training.panel.backToSession')}</Text>
+            </Pressable>
+            <Pressable
+              testID="training.summary.done"
+              accessibilityRole="button"
+              disabled={!intensity || saving}
+              onPress={() => void handleDone()}
+              style={[styles.doneBtn, (!intensity || saving) && styles.doneDisabled]}>
+              <Text style={styles.doneText}>
+                {error ? t('training.panel.retry') : t('training.panel.done')}
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -836,10 +860,28 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   scroll: {
-    paddingBottom: 32,
     gap: 16,
     alignItems: 'stretch',
+  },
+  footer: {
+    paddingTop: 12,
+    gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(79, 70, 229, 0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+  },
+  backLink: {
+    alignSelf: 'center',
+    paddingVertical: 6,
+  },
+  backLinkText: {
+    color: TEXT_SECONDARY,
+    fontWeight: '600',
+    fontSize: 14,
   },
   koli: {
     width: 96,

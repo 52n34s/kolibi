@@ -12,6 +12,7 @@ import type { ActiveSession, GymIntensity, WorkoutTemplate } from './types';
 export function buildBackfillSession(
   template: WorkoutTemplate,
   opts: {
+    userId: string;
     loggedOn: string;
     durationMinutes: number;
     intensity: GymIntensity;
@@ -28,6 +29,7 @@ export function buildBackfillSession(
   ).toISOString();
 
   const base = buildActiveSessionFromTemplate(template, {
+    userId: opts.userId,
     loggedOn: opts.loggedOn,
     startedAt: Number.isFinite(startedMs)
       ? new Date(startedMs).toISOString()

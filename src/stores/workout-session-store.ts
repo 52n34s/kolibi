@@ -25,7 +25,9 @@ import {
   skipExercise as skipExerciseLogic,
   toSessionSetUpsert,
 } from '@/lib/workouts/session-logic';
+import { keepSessionForUser, sessionOwnership } from '@/lib/workouts/session-owner';
 import {
+  clearWorkoutSyncQueue,
   enqueueDeleteSession,
   enqueueDeleteSet,
   enqueueUpsertSession,
@@ -64,6 +66,8 @@ type WorkoutSessionState = {
   addExerciseToSession: (exercise: Exercise, opts?: { lang?: string }) => void;
   /** Move to summary without finishing (Beenden → Speichern). */
   enterSummary: () => void;
+  /** Back out of the summary while nothing has been written yet. */
+  resumeSession: () => void;
   /** `queryClient` required so invalidateTrainingQueries can run after link. */
   finishSession: (
     intensity: GymIntensity,
@@ -76,6 +80,7 @@ type WorkoutSessionState = {
 function enqueueSessionSnapshot(session: ActiveSession): void {
   enqueueUpsertSession({
     id: session.sessionId,
+    userId: session.userId,
     templateId: session.templateId,
     templateName: session.templateName,
     shortLabel: session.shortLabel,
@@ -111,7 +116,13 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
       active: null,
 
       startSession: (template, opts) => {
+        const userId = useAuthStore.getState().session?.user?.id;
+        if (!userId) {
+          // No account, no session: everything this writes is owner-scoped.
+          return;
+        }
         const session = buildActiveSessionFromTemplate(template, {
+          userId,
           loggedOn: opts?.loggedOn ?? localDateKey(),
           lang: opts?.lang,
         });
@@ -175,7 +186,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
         const { session, deletedSetId } = removeLastSetLogic(active, exerciseIndex);
         set({ active: session });
         if (deletedSetId) {
-          enqueueDeleteSet(deletedSetId);
+          enqueueDeleteSet(deletedSetId, active.userId);
           triggerFlush();
         }
       },
@@ -237,22 +248,38 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
         set({ active: { ...active, phase: 'summary' } });
       },
 
+      resumeSession: () => {
+        const active = get().active;
+        // Only before finishSession ran — afterwards there is no session left.
+        if (!active || active.phase !== 'summary') {
+          return;
+        }
+        set({ active: { ...active, phase: 'active', finishedAt: null } });
+      },
+
       finishSession: async (intensity, queryClient) => {
         const active = get().active;
         if (!active) {
           return { ok: false, error: new Error('no_active_session'), session: active };
         }
 
-        const userId = useAuthStore.getState().session?.user?.id;
-        if (!userId) {
+        // The session's own owner, never the currently signed-in user: a
+        // session started by A must not be filed under B after a switch.
+        const currentUserId = useAuthStore.getState().session?.user?.id;
+        if (!currentUserId) {
           const error = new Error('not_authenticated');
+          Sentry.captureException(error);
+          return { ok: false, error, session: active };
+        }
+        if (currentUserId !== active.userId) {
+          const error = new Error('session_owner_mismatch');
           Sentry.captureException(error);
           return { ok: false, error, session: active };
         }
 
         const result = await runFinishActiveSession(active, {
           intensity,
-          userId,
+          userId: active.userId,
           queryClient,
         });
 
@@ -272,7 +299,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
         }
         const sessionId = active.sessionId;
         set({ active: null });
-        enqueueDeleteSession(sessionId);
+        enqueueDeleteSession(sessionId, active.userId);
         triggerFlush();
       },
 
@@ -285,3 +312,34 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
     },
   ),
 );
+
+
+/**
+ * Drop a persisted session that does not belong to `currentUserId`.
+ * Call on app start and on every auth change — MMKV survives a sign-out.
+ */
+export function purgeForeignActiveSession(currentUserId: string | null): void {
+  const { active } = useWorkoutSessionStore.getState();
+  const verdict = sessionOwnership(active, currentUserId);
+  if (verdict === 'keep' || verdict === 'no-session') {
+    return;
+  }
+  if (verdict === 'foreign' || verdict === 'unowned') {
+    Sentry.addBreadcrumb({
+      category: 'workout-session',
+      level: 'warning',
+      message: `dropped ${verdict} active session`,
+      data: { sessionId: active?.sessionId ?? null },
+    });
+  }
+  useWorkoutSessionStore.setState({ active: keepSessionForUser(active, currentUserId) });
+}
+
+/**
+ * Everything the training feature persists, wiped. Used on sign-out so the
+ * next account starts clean.
+ */
+export function clearTrainingStateForSignOut(): void {
+  useWorkoutSessionStore.setState({ active: null });
+  clearWorkoutSyncQueue();
+}

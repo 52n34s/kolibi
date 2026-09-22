@@ -55,6 +55,8 @@ type RestTimerState = {
   /** Call from tick when remaining hits 0 while running. */
   markFinishedIfDue: (now?: number) => void;
   acknowledgeFinished: () => void;
+  /** Cancel a pending notification and forget the timer — used on sign-out. */
+  resetForSignOut: () => Promise<void>;
 };
 
 async function cancelCurrentNotification(id: string | null): Promise<void> {
@@ -213,6 +215,19 @@ export const useRestTimerStore = create<RestTimerState>()(
           notificationId: null,
         });
         void cancelCurrentNotification(notificationId);
+      },
+
+      resetForSignOut: async () => {
+        const state = get();
+        await cancelCurrentNotification(state.notificationId);
+        set({
+          status: 'idle',
+          endsAt: null,
+          remainingOnPause: null,
+          notificationId: null,
+          durationSec: DEFAULT_REST_SECONDS,
+          idleDurationSec: DEFAULT_REST_SECONDS,
+        });
       },
 
       acknowledgeFinished: () => {

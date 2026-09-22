@@ -11,6 +11,16 @@ import { isMissingAuthUserError } from '@/lib/auth-errors';
 import { getDeviceId } from '@/lib/device-id';
 import { supabase, wipeAuthStorageIfRequested } from '@/lib/supabase';
 import { unregisterPushToken } from '@/lib/notifications';
+import { flushWorkoutSyncQueue } from '@/lib/workouts/sync-queue-runtime';
+import { useRestTimerStore } from '@/stores/rest-timer-store';
+import {
+  clearTrainingStateForSignOut,
+  purgeForeignActiveSession,
+  useWorkoutSessionStore,
+} from '@/stores/workout-session-store';
+
+/** Sign-out waits at most this long for the sync queue. */
+const SIGN_OUT_FLUSH_TIMEOUT_MS = 5_000;
 
 type AuthState = {
   session: Session | null;
@@ -21,6 +31,8 @@ type AuthState = {
   refreshOnboardingStatus: () => Promise<boolean | null>;
   recoverSessionIfUserMissing: () => Promise<'recovered' | 'user_exists' | 'unknown'>;
   signOut: () => Promise<void>;
+  /** True while a workout is in progress — the UI warns before signing out. */
+  hasActiveTrainingSession: () => boolean;
 };
 
 /** Skip SIGNED_OUT while swapping a zombie JWT for a fresh anonymous session. */
@@ -257,6 +269,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
         session = null;
       }
 
+      // Before anything can read it: a persisted training session from a
+      // previous account is dropped on cold start too, not just on switch.
+      purgeForeignActiveSession(session?.user?.id ?? null);
+
       set({ session, initialized: true });
 
       if (session?.user?.id) {
@@ -270,6 +286,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
       if (replacingMissingUser && !session) {
         return;
       }
+
+      // MMKV survives a sign-out: a session from the previous account must
+      // never show up under the new one.
+      purgeForeignActiveSession(session?.user?.id ?? null);
 
       if (session?.user?.id) {
         identifyAnalyticsUser(session.user.id);
@@ -292,11 +312,35 @@ export const useAuthStore = create<AuthState>((set, get) => {
     return () => subscription.unsubscribe();
   },
 
+  hasActiveTrainingSession: () => useWorkoutSessionStore.getState().active != null,
+
   signOut: async () => {
     const userId = get().session?.user?.id ?? null;
+
+    // Best effort: give queued sets a short window to reach the server before
+    // the queue is wiped. A slow network must not block the sign-out.
+    if (useWorkoutSessionStore.getState().active != null || userId != null) {
+      try {
+        await Promise.race([
+          flushWorkoutSyncQueue(),
+          new Promise<void>((resolve) => setTimeout(resolve, SIGN_OUT_FLUSH_TIMEOUT_MS)),
+        ]);
+      } catch (error) {
+        Sentry.captureException(error);
+      }
+    }
+
     if (userId) {
       await unregisterPushToken(userId);
     }
+
+    try {
+      await useRestTimerStore.getState().resetForSignOut();
+    } catch (error) {
+      Sentry.captureException(error);
+    }
+    clearTrainingStateForSignOut();
+
     await supabase.auth.signOut();
     resetAnalyticsUser();
     set({ session: null, isOnboarded: null });

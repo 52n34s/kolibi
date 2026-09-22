@@ -638,6 +638,7 @@
       "statusDone": "listo",
       "statusPartial": "{{done}}/{{total}} series",
       "statusOpen": "pendiente",
+      "statusSkipped": "omitido",
       "duration": "Duración",
       "sets": "Series",
       "reps": "Repeticiones",
@@ -649,6 +650,7 @@
       "adoptTitle": "¿Adoptar como nuevo objetivo?",
       "addToTemplate": "¿Añadir a la plantilla?",
       "done": "Listo",
+      "backToSession": "Volver a la sesión",
       "retry": "Reintentar",
       "finishError": "No se pudo guardar. Inténtalo de nuevo.",
       "sync": {
@@ -1546,6 +1548,7 @@
       "action": "Cerrar sesión",
       "title": "¿Cerrar sesión?",
       "message": "Puedes volver a iniciar sesión en cualquier momento.",
+      "activeSessionWarning": "Tu sesión de entrenamiento en curso no se guardará al cerrar sesión.",
       "confirm": "Cerrar sesión"
     },
     "deleteAccount": {

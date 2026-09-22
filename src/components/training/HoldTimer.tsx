@@ -1,12 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 import { BRAND_INDIGO, BRAND_MINT, TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
 import { useTimerTick } from '@/hooks/use-timer-tick';
-import { elapsedMs, formatHoldMmSs } from '@/lib/training/rest-timer';
+import { formatHoldMmSs } from '@/lib/training/rest-timer';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
+import {
+  holdElapsedMs,
+  isHoldRunning,
+  type HoldPhase,
+} from '@/lib/workouts/hold-phase';
 
 const RING_SIZE = 160;
 const STROKE = 8;
@@ -14,26 +19,31 @@ const R = (RING_SIZE - STROKE) / 2;
 const CIRC = 2 * Math.PI * R;
 
 type HoldTimerProps = {
+  /** Owned by TrainingSetInput so it survives value writes — see hold-phase.ts. */
+  phase: HoldPhase;
   targetSeconds: number | null;
   targetSecondsMax?: number | null;
   perSide?: boolean;
-  onStop: (seconds: number, otherSide?: number) => void;
+  onStart: () => void;
+  onStop: () => void;
+  onSwitchSide: () => void;
 };
 
 export function HoldTimer({
+  phase,
   targetSeconds,
   targetSecondsMax = null,
   perSide = false,
+  onStart,
   onStop,
+  onSwitchSide,
 }: HoldTimerProps) {
   const { t } = useTranslation();
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [firstSideSec, setFirstSideSec] = useState<number | null>(null);
-  const [awaitingOtherSide, setAwaitingOtherSide] = useState(false);
 
-  const running = startedAt != null;
+  const running = isHoldRunning(phase);
+  const awaitingOtherSide = phase.status === 'awaitingOtherSide';
   const now = useTimerTick(running);
-  const elapsed = startedAt != null ? elapsedMs(startedAt, now) : 0;
+  const elapsed = holdElapsedMs(phase, now);
   const elapsedSec = Math.floor(elapsed / 1000);
 
   const lower = targetSeconds != null && targetSeconds > 0 ? targetSeconds : null;
@@ -56,38 +66,6 @@ export function HoldTimer({
     perSide,
     perSideLabel: perSide ? t('training.timer.perSide') : null,
   });
-
-  function handleStart() {
-    setStartedAt(Date.now());
-  }
-
-  function handleStop() {
-    if (startedAt == null) {
-      return;
-    }
-    const seconds = Math.max(0, Math.floor(elapsedMs(startedAt, Date.now()) / 1000));
-    setStartedAt(null);
-
-    if (perSide && firstSideSec == null) {
-      setFirstSideSec(seconds);
-      setAwaitingOtherSide(true);
-      return;
-    }
-
-    if (perSide && firstSideSec != null) {
-      onStop(firstSideSec, seconds);
-      setFirstSideSec(null);
-      setAwaitingOtherSide(false);
-      return;
-    }
-
-    onStop(seconds);
-  }
-
-  function handleSwitchSide() {
-    setAwaitingOtherSide(false);
-    setStartedAt(Date.now());
-  }
 
   return (
     <View style={styles.wrap}>
@@ -132,7 +110,7 @@ export function HoldTimer({
           <Pressable
             testID="training.hold.start"
             accessibilityRole="button"
-            onPress={handleStart}
+            onPress={onStart}
             style={styles.primary}>
             <Text style={styles.primaryText}>{t('training.timer.start')}</Text>
           </Pressable>
@@ -142,7 +120,7 @@ export function HoldTimer({
           <Pressable
             testID="training.hold.stop"
             accessibilityRole="button"
-            onPress={handleStop}
+            onPress={onStop}
             style={styles.primary}>
             <Text style={styles.primaryText}>{t('training.timer.holdStop')}</Text>
           </Pressable>
@@ -152,7 +130,7 @@ export function HoldTimer({
           <Pressable
             testID="training.hold.switchSide"
             accessibilityRole="button"
-            onPress={handleSwitchSide}
+            onPress={onSwitchSide}
             style={styles.primary}>
             <Text style={styles.primaryText}>{t('training.timer.switchSide')}</Text>
           </Pressable>

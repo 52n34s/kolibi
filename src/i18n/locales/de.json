@@ -638,6 +638,7 @@
       "statusDone": "fertig",
       "statusPartial": "{{done}}/{{total}} Sätze",
       "statusOpen": "offen",
+      "statusSkipped": "übersprungen",
       "duration": "Dauer",
       "sets": "Sätze",
       "reps": "Wiederholungen",
@@ -649,6 +650,7 @@
       "adoptTitle": "Als neues Ziel übernehmen?",
       "addToTemplate": "Zur Vorlage hinzufügen?",
       "done": "Fertig",
+      "backToSession": "Zurück zur Einheit",
       "retry": "Erneut versuchen",
       "finishError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
       "sync": {
@@ -1546,6 +1548,7 @@
       "action": "Abmelden",
       "title": "Abmelden?",
       "message": "Du kannst dich jederzeit wieder anmelden.",
+      "activeSessionWarning": "Deine laufende Einheit wird beim Abmelden nicht gespeichert.",
       "confirm": "Abmelden"
     },
     "deleteAccount": {

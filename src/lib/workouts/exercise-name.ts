@@ -25,3 +25,22 @@ export function resolveExerciseName(
   }
   return '';
 }
+
+
+/**
+ * A name for an exercise that may not be loaded.
+ *
+ * Never falls back to an id: a UUID in user-facing output (export, share
+ * sheet) is noise, not information.
+ */
+export function exerciseLabelOrFallback(
+  exercise: Parameters<typeof resolveExerciseName>[0] | null | undefined,
+  lang: string,
+  fallback: string,
+): string {
+  if (exercise == null) {
+    return fallback;
+  }
+  const name = resolveExerciseName(exercise, lang).trim();
+  return name.length > 0 ? name : fallback;
+}

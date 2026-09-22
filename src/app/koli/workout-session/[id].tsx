@@ -151,6 +151,7 @@ export default function WorkoutSessionDetailScreen() {
     try {
       await upsertWorkoutSession({
         id: session.id,
+        userId: session.userId,
         templateId: session.templateId,
         templateName: session.templateName,
         shortLabel: session.shortLabel,
@@ -194,6 +195,7 @@ export default function WorkoutSessionDetailScreen() {
         {
           id: updated.id,
           sessionId: updated.sessionId,
+          userId: updated.userId,
           exerciseId: updated.exerciseId,
           exerciseName: updated.exerciseName,
           exercisePosition: updated.exercisePosition,
@@ -259,6 +261,7 @@ export default function WorkoutSessionDetailScreen() {
         remaining.map((row) => ({
           id: row.id,
           sessionId: row.sessionId,
+          userId: row.userId,
           exerciseId: row.exerciseId,
           exerciseName: row.exerciseName,
           exercisePosition: row.exercisePosition,
@@ -304,6 +307,7 @@ export default function WorkoutSessionDetailScreen() {
         reindexed.map((row) => ({
           id: row.id,
           sessionId: row.sessionId,
+          userId: row.userId,
           exerciseId: row.exerciseId,
           exerciseName: row.exerciseName,
           exercisePosition: row.exercisePosition,
@@ -344,6 +348,7 @@ export default function WorkoutSessionDetailScreen() {
       item.sets.map((set) => ({
         id: set.id,
         sessionId: set.sessionId,
+        userId: set.userId,
         exerciseId: set.exerciseId,
         exerciseName: set.exerciseName,
         exercisePosition: position,
@@ -449,6 +454,7 @@ export default function WorkoutSessionDetailScreen() {
         newSets.map((row) => ({
           id: row.id,
           sessionId: row.sessionId,
+          userId: row.userId,
           exerciseId: row.exerciseId,
           exerciseName: row.exerciseName,
           exercisePosition: row.exercisePosition,

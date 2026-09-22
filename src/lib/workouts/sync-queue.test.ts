@@ -5,17 +5,23 @@ import { createMemoryKvStorage } from './kv-storage.ts';
 import {
   coalesceOps,
   createWorkoutSyncQueue,
+  partitionByOwner,
+  setSyncQueueDropReporter,
   type SyncQueueApi,
   type SyncQueueOp,
 } from './sync-queue.ts';
 
-function sessionOp(id: string, name = 'A'): SyncQueueOp {
+const USER = 'user-a';
+
+function sessionOp(id: string, name = 'A', userId = USER): SyncQueueOp {
   return {
     id: `op-session-${id}-${name}`,
     type: 'upsertSession',
+    userId,
     createdAt: '2026-09-22T10:00:00.000Z',
     payload: {
       id,
+      userId,
       templateId: 't1',
       templateName: name,
       shortLabel: 'A',
@@ -26,15 +32,22 @@ function sessionOp(id: string, name = 'A'): SyncQueueOp {
   };
 }
 
-function setOp(setId: string, sessionId: string, reps: number): SyncQueueOp {
+function setOp(
+  setId: string,
+  sessionId: string,
+  reps: number,
+  userId = USER,
+): SyncQueueOp {
   return {
     id: `op-set-${setId}-${reps}`,
     type: 'upsertSets',
+    userId,
     createdAt: '2026-09-22T10:00:00.000Z',
     payload: [
       {
         id: setId,
         sessionId,
+        userId,
         exerciseName: 'Push-up',
         exercisePosition: 0,
         setIndex: 0,
@@ -71,6 +84,7 @@ describe('coalesceOps', () => {
       {
         id: 'del-set',
         type: 'deleteSet',
+        userId: USER,
         createdAt: '2026-09-22T10:01:00.000Z',
         payload: { setId: 'set1' },
       },
@@ -86,6 +100,7 @@ describe('coalesceOps', () => {
       {
         id: 'del',
         type: 'deleteSession',
+        userId: USER,
         createdAt: '2026-09-22T10:01:00.000Z',
         payload: { sessionId: 's1' },
       },
@@ -114,9 +129,10 @@ describe('createWorkoutSyncQueue', () => {
       },
     };
 
-    const queue = createWorkoutSyncQueue(storage, api);
+    const queue = createWorkoutSyncQueue(storage, api, () => USER);
     queue.enqueueUpsertSession({
       id: 's1',
+      userId: USER,
       templateId: 't1',
       templateName: 'v1',
       shortLabel: 'A',
@@ -126,6 +142,7 @@ describe('createWorkoutSyncQueue', () => {
     });
     queue.enqueueUpsertSession({
       id: 's1',
+      userId: USER,
       templateId: 't1',
       templateName: 'v2',
       shortLabel: 'A',
@@ -137,6 +154,7 @@ describe('createWorkoutSyncQueue', () => {
       {
         id: 'set1',
         sessionId: 's1',
+        userId: USER,
         exerciseName: 'Push-up',
         exercisePosition: 0,
         setIndex: 0,
@@ -148,6 +166,7 @@ describe('createWorkoutSyncQueue', () => {
       {
         id: 'set1',
         sessionId: 's1',
+        userId: USER,
         exerciseName: 'Push-up',
         exercisePosition: 0,
         setIndex: 0,
@@ -173,9 +192,10 @@ describe('createWorkoutSyncQueue', () => {
       deleteSessionSet: async () => {},
       deleteWorkoutSession: async () => {},
     };
-    const queue = createWorkoutSyncQueue(storage, api);
+    const queue = createWorkoutSyncQueue(storage, api, () => USER);
     queue.enqueueUpsertSession({
       id: 's1',
+      userId: USER,
       templateId: null,
       templateName: 'A',
       shortLabel: 'A',
@@ -186,5 +206,163 @@ describe('createWorkoutSyncQueue', () => {
     await assert.rejects(() => queue.flush(), /network/);
     assert.equal(queue.getStatus(), 'offline');
     assert.equal(queue.peek().length, 1);
+  });
+});
+
+
+describe('account isolation', () => {
+  it('splits queued ops by owner', () => {
+    const ops = [sessionOp('s1', 'A', 'user-a'), sessionOp('s2', 'B', 'user-b')];
+    const { mine, foreign } = partitionByOwner(ops, 'user-a');
+    assert.equal(mine.length, 1);
+    assert.equal(foreign.length, 1);
+    assert.equal(mine[0]?.userId, 'user-a');
+    assert.equal(foreign[0]?.userId, 'user-b');
+  });
+
+  it('drops ops from a previous account instead of sending them', async () => {
+    const storage = createMemoryKvStorage();
+    const sent: string[] = [];
+    const api: SyncQueueApi = {
+      upsertWorkoutSession: async (input) => {
+        sent.push(`session:${input.id}:${input.userId}`);
+      },
+      upsertSessionSets: async (sets) => {
+        for (const set of sets) {
+          sent.push(`set:${set.id}:${set.userId}`);
+        }
+      },
+      deleteSessionSet: async () => {},
+      deleteWorkoutSession: async () => {},
+    };
+
+    const dropped: { count: number; ownerIds: string[] }[] = [];
+    setSyncQueueDropReporter((report) => {
+      dropped.push({ count: report.count, ownerIds: report.ownerIds });
+    });
+
+    // Queue belongs to user-a, but user-b is signed in now.
+    const queue = createWorkoutSyncQueue(storage, api, () => 'user-b');
+    queue.enqueueUpsertSession({
+      id: 's1',
+      userId: 'user-a',
+      templateId: null,
+      templateName: 'A',
+      shortLabel: 'A',
+      colorKey: 'indigo',
+      loggedOn: '2026-09-22',
+      startedAt: '2026-09-22T09:00:00.000Z',
+    });
+    queue.enqueueUpsertSets([
+      {
+        id: 'set1',
+        sessionId: 's1',
+        userId: 'user-a',
+        exerciseName: 'Push-up',
+        exercisePosition: 0,
+        setIndex: 0,
+        kind: 'reps',
+        reps: 8,
+      },
+    ]);
+
+    await queue.flush();
+
+    assert.deepEqual(sent, [], 'nothing from the old account may reach the API');
+    assert.equal(queue.peek().length, 0, 'foreign ops are removed, not kept');
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0]?.count, 2);
+    assert.deepEqual(dropped[0]?.ownerIds, ['user-a']);
+
+    setSyncQueueDropReporter(() => {});
+  });
+
+  it('keeps the queue untouched while nobody is signed in', async () => {
+    const storage = createMemoryKvStorage();
+    const sent: string[] = [];
+    const api: SyncQueueApi = {
+      upsertWorkoutSession: async (input) => {
+        sent.push(input.id);
+      },
+      upsertSessionSets: async () => {},
+      deleteSessionSet: async () => {},
+      deleteWorkoutSession: async () => {},
+    };
+    const queue = createWorkoutSyncQueue(storage, api, () => null);
+    queue.enqueueUpsertSession({
+      id: 's1',
+      userId: 'user-a',
+      templateId: null,
+      templateName: 'A',
+      shortLabel: 'A',
+      colorKey: 'indigo',
+      loggedOn: '2026-09-22',
+      startedAt: '2026-09-22T09:00:00.000Z',
+    });
+
+    await queue.flush();
+
+    assert.deepEqual(sent, []);
+    assert.equal(queue.peek().length, 1, 'a transient auth gap must not lose work');
+  });
+
+  it('sends the user_id carried by the operation, not the signed-in one', async () => {
+    const storage = createMemoryKvStorage();
+    const sent: string[] = [];
+    const api: SyncQueueApi = {
+      upsertWorkoutSession: async (input) => {
+        sent.push(`session:${input.userId}`);
+      },
+      upsertSessionSets: async (sets) => {
+        for (const set of sets) {
+          sent.push(`set:${set.userId}`);
+        }
+      },
+      deleteSessionSet: async () => {},
+      deleteWorkoutSession: async () => {},
+    };
+    const queue = createWorkoutSyncQueue(storage, api, () => USER);
+    queue.enqueueUpsertSession({
+      id: 's1',
+      userId: USER,
+      templateId: null,
+      templateName: 'A',
+      shortLabel: 'A',
+      colorKey: 'indigo',
+      loggedOn: '2026-09-22',
+      startedAt: '2026-09-22T09:00:00.000Z',
+    });
+    queue.enqueueUpsertSets([
+      {
+        id: 'set1',
+        sessionId: 's1',
+        userId: USER,
+        exerciseName: 'Push-up',
+        exercisePosition: 0,
+        setIndex: 0,
+        kind: 'reps',
+        reps: 8,
+      },
+    ]);
+
+    await queue.flush();
+    assert.deepEqual(sent, [`session:${USER}`, `set:${USER}`]);
+  });
+
+  it('never merges two owners into one upsertSets op', () => {
+    const out = coalesceOps([
+      setOp('set1', 's1', 8, 'user-a'),
+      setOp('set2', 's2', 9, 'user-b'),
+    ]);
+    const setOps = out.filter((op) => op.type === 'upsertSets');
+    assert.equal(setOps.length, 2);
+    for (const op of setOps) {
+      if (op.type !== 'upsertSets') {
+        continue;
+      }
+      const owners = new Set(op.payload.map((row) => row.userId));
+      assert.equal(owners.size, 1);
+      assert.equal([...owners][0], op.userId);
+    }
   });
 });

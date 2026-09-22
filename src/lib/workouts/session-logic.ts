@@ -16,6 +16,8 @@ import type {
 export type SessionSetUpsertPayload = {
   id: string;
   sessionId: string;
+  /** Owner of the session this set belongs to. */
+  userId: string;
   exerciseId: string | null;
   exerciseName: string;
   exercisePosition: number;
@@ -76,6 +78,7 @@ function snapshotFromTemplateExercise(te: TemplateExercise, lang: string): Activ
     // (training.rest_seconds_last), never the catalog default.
     restSeconds: te.restSeconds,
     addedInSession: false,
+    skipped: false,
     sets: [],
   };
   const count = Math.max(1, te.targetSets);
@@ -85,7 +88,7 @@ function snapshotFromTemplateExercise(te: TemplateExercise, lang: string): Activ
 
 export function buildActiveSessionFromTemplate(
   template: WorkoutTemplate,
-  opts: { loggedOn: string; startedAt?: string; lang?: string },
+  opts: { userId: string; loggedOn: string; startedAt?: string; lang?: string },
 ): ActiveSession {
   const lang = opts.lang ?? 'de';
   const items = template.exercises
@@ -95,6 +98,7 @@ export function buildActiveSessionFromTemplate(
 
   return {
     sessionId: newId(),
+    userId: opts.userId,
     templateId: template.id,
     templateName: template.name,
     shortLabel: template.shortLabel,
@@ -133,6 +137,7 @@ export function buildActiveExerciseFromCatalog(
     // Added mid-session: no plan value, so the standard rest applies.
     restSeconds: null,
     addedInSession: true,
+    skipped: false,
     sets: [],
   };
   base.sets = Array.from({ length: targetSets }, () => createEmptySet(base));
@@ -195,8 +200,9 @@ export function setCurrentSides(
   }));
 }
 
+/** Open = has an unfinished set AND was not skipped. */
 function hasOpenSets(item: ActiveExercise): boolean {
-  return item.sets.some((set) => !set.done);
+  return !item.skipped && item.sets.some((set) => !set.done);
 }
 
 /** Next open set after (exerciseIndex, setIndex), or null if session is complete. */
@@ -207,6 +213,9 @@ export function findNextOpenCursor(
 ): ActiveSessionCursor | null {
   for (let ei = fromExerciseIndex; ei < session.items.length; ei += 1) {
     const item = session.items[ei]!;
+    if (item.skipped) {
+      continue;
+    }
     const startSi = ei === fromExerciseIndex ? fromSetIndex + 1 : 0;
     for (let si = startSi; si < item.sets.length; si += 1) {
       if (!item.sets[si]!.done) {
@@ -336,19 +345,31 @@ export function removeLastSet(
   return { session: { ...session, items, cursor, phase }, deletedSetId };
 }
 
+/**
+ * Mark an exercise as skipped and move on. It stays out of the rotation until
+ * the user jumps back to it from the overview.
+ */
 export function skipExercise(session: ActiveSession, exerciseIndex: number): ActiveSession {
-  for (let ei = exerciseIndex + 1; ei < session.items.length; ei += 1) {
-    const item = session.items[ei]!;
-    for (let si = 0; si < item.sets.length; si += 1) {
-      if (!item.sets[si]!.done) {
-        return { ...session, cursor: { exerciseIndex: ei, setIndex: si }, phase: 'active' };
-      }
-    }
+  const target = session.items[exerciseIndex];
+  if (!target) {
+    return session;
   }
-  if (!session.items.some(hasOpenSets)) {
-    return { ...session, phase: 'summary' };
+  const items = session.items.map((item, ei) =>
+    ei === exerciseIndex ? { ...item, skipped: true } : item,
+  );
+  const next: ActiveSession = { ...session, items };
+
+  const cursor = findNextOpenCursor(next, exerciseIndex, Number.MAX_SAFE_INTEGER);
+  if (cursor) {
+    return { ...next, cursor, phase: 'active' };
   }
-  return session;
+
+  const fromStart = findNextOpenCursor(next, 0, -1);
+  if (fromStart) {
+    return { ...next, cursor: fromStart, phase: 'active' };
+  }
+
+  return { ...next, phase: 'summary' };
 }
 
 export function moveExercise(session: ActiveSession, from: number, to: number): ActiveSession {
@@ -387,8 +408,14 @@ export function jumpTo(
     return session;
   }
   const clampedSet = Math.max(0, Math.min(setIndex, item.sets.length - 1));
+  // Jumping to a skipped exercise puts it back in play — that is the only way
+  // back in, by design.
+  const items = item.skipped
+    ? session.items.map((row, ei) => (ei === exerciseIndex ? { ...row, skipped: false } : row))
+    : session.items;
   return {
     ...session,
+    items,
     phase: 'active',
     cursor: { exerciseIndex, setIndex: clampedSet },
   };
@@ -480,6 +507,7 @@ export function toSessionSetUpsert(
   return {
     id: set.id,
     sessionId: session.sessionId,
+    userId: session.userId,
     exerciseId: exercise.exerciseId,
     exerciseName: exercise.name,
     exercisePosition: exerciseIndex,

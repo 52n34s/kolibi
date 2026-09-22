@@ -383,7 +383,14 @@ export function ProfilePanel() {
   }
 
   function confirmSignOut() {
-    Alert.alert(t('settings.signOut.title'), t('settings.signOut.message'), [
+    // A running workout is only in MMKV until it is finished — signing out
+    // drops it, so say so instead of letting it vanish silently.
+    const hasActiveSession = useAuthStore.getState().hasActiveTrainingSession();
+    const message = hasActiveSession
+      ? t('settings.signOut.activeSessionWarning')
+      : t('settings.signOut.message');
+
+    Alert.alert(t('settings.signOut.title'), message, [
       { text: t('settings.common.cancel'), style: 'cancel' },
       {
         text: t('settings.signOut.confirm'),

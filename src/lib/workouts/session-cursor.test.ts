@@ -18,6 +18,7 @@ import {
   skipExercise,
   toSessionSetUpsert,
 } from './session-logic.ts';
+import type { ActiveSession } from './types.ts';
 import type { Exercise, TemplateExercise, WorkoutTemplate } from './types.ts';
 
 function exercise(partial: Partial<Exercise> & Pick<Exercise, 'id' | 'kind'>): Exercise {
@@ -267,5 +268,88 @@ describe('cursor', () => {
     assert.equal(session.items.length, 3);
     assert.equal(session.items[2]?.addedInSession, true);
     assert.equal(session.items[2]?.name, 'Extra');
+  });
+});
+
+describe('skipExercise', () => {
+  function threeExercises(): ActiveSession {
+    const session = buildActiveSessionFromTemplate(
+      {
+        id: 't1',
+        name: 'Push',
+        shortLabel: 'Ps',
+        colorKey: 'teal',
+        weekdays: [],
+        position: 0,
+        exercises: [0, 1, 2].map((position) => ({
+          id: `te-${position}`,
+          templateId: 't1',
+          exerciseId: `ex-${position}`,
+          position,
+          targetSets: 2,
+          targetReps: 8,
+          targetRepsMax: null,
+          targetSeconds: null,
+          targetSecondsMax: null,
+          targetWeightKg: null,
+          restSeconds: null,
+          exercise: {
+            id: `ex-${position}`,
+            userId: null,
+            catalogSlug: `slug-${position}`,
+            names: { de: `Übung ${position}` },
+            kind: 'reps',
+            perSide: false,
+            defaultSets: 2,
+            defaultReps: 8,
+            defaultRepsMax: null,
+            defaultSeconds: null,
+            defaultSecondsMax: null,
+            defaultRestSeconds: 60,
+            imageAsset: null,
+            imagePath: null,
+            note: null,
+            archivedAt: null,
+            ladderKey: null,
+            ladderStep: null,
+            progressionKind: 'none',
+            timeCapSeconds: null,
+          },
+        })),
+      } as never,
+      { userId: 'user-a', loggedOn: '2026-09-22' },
+    );
+    return session;
+  }
+
+  it('marks the exercise and moves the cursor past it', () => {
+    const next = skipExercise(threeExercises(), 0);
+    assert.equal(next.items[0]?.skipped, true);
+    assert.deepEqual(next.cursor, { exerciseIndex: 1, setIndex: 0 });
+  });
+
+  it('does not come back on its own after the next exercise is done', () => {
+    let session = skipExercise(threeExercises(), 0);
+    // finish exercise 1 completely
+    session = completeCurrentSet(session)!.session;
+    session = completeCurrentSet(session)!.session;
+    assert.equal(session.cursor.exerciseIndex, 2, 'goes on to 2, never back to the skipped 0');
+  });
+
+  it('ends the session when only skipped exercises are left', () => {
+    let session = threeExercises();
+    session = skipExercise(session, 1);
+    session = skipExercise(session, 2);
+    session = completeCurrentSet(session)!.session;
+    session = completeCurrentSet(session)!.session;
+    assert.equal(session.phase, 'summary');
+  });
+
+  it('jumping back from the overview un-skips it', () => {
+    const skipped = skipExercise(threeExercises(), 0);
+    const back = jumpTo(skipped, 0, 0);
+    assert.equal(back.items[0]?.skipped, false);
+    assert.deepEqual(back.cursor, { exerciseIndex: 0, setIndex: 0 });
+    assert.equal(back.phase, 'active');
   });
 });

@@ -172,13 +172,22 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
               accessibilityLabel={t(`training.panel.sync.${syncStatus}`)}
             />
             <Text style={styles.elapsed}>{sessionElapsedLabel(session.startedAt, now)}</Text>
-            <Pressable
-              testID="training.active.finish"
-              accessibilityRole="button"
-              onPress={handleFinishPress}
-              hitSlop={8}>
-              <Text style={styles.finishLink}>{t('training.panel.finish')}</Text>
-            </Pressable>
+            <View style={styles.headerLinks}>
+              <Pressable
+                testID="training.overview.open"
+                accessibilityRole="button"
+                onPress={() => setOverviewOpen(true)}
+                hitSlop={8}>
+                <Text style={styles.headerLink}>{t('training.panel.overview')}</Text>
+              </Pressable>
+              <Pressable
+                testID="training.active.finish"
+                accessibilityRole="button"
+                onPress={handleFinishPress}
+                hitSlop={8}>
+                <Text style={styles.finishLink}>{t('training.panel.finish')}</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -247,13 +256,6 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
           onDone={handleDone}
         />
 
-        <Pressable
-          testID="training.overview.open"
-          accessibilityRole="button"
-          onPress={() => setOverviewOpen(true)}
-          style={styles.overviewBtn}>
-          <Text style={styles.overviewText}>{t('training.panel.overview')}</Text>
-        </Pressable>
       </ScrollView>
 
       <RestTimerBar />
@@ -329,6 +331,16 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 13,
     color: TEXT_SECONDARY,
+  },
+  headerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  headerLink: {
+    color: TEXT_SECONDARY,
+    fontWeight: '700',
+    fontSize: 14,
   },
   elapsed: {
     fontSize: 14,
@@ -412,16 +424,5 @@ const styles = StyleSheet.create({
   },
   setCurrentText: {
     color: BRAND_INDIGO,
-  },
-  overviewBtn: {
-    alignSelf: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-  },
-  overviewText: {
-    color: BRAND_INDIGO,
-    fontWeight: '700',
   },
 });

@@ -5,6 +5,7 @@ import type { NativeEventSubscription } from 'react-native';
 import { getMmkv } from '@/lib/mmkv-zustand-storage';
 import {
   createWorkoutSyncQueue,
+  setSyncQueueDropReporter,
   setSyncQueueErrorReporter,
   type SyncStatus,
   type WorkoutSyncQueue,
@@ -13,6 +14,27 @@ import {
 setSyncQueueErrorReporter((error) => {
   Sentry.captureException(error);
 });
+
+setSyncQueueDropReporter((dropped) => {
+  // Breadcrumb, not an exception: dropping is the correct outcome after an
+  // account switch, but we want to see when and how often it happens.
+  Sentry.addBreadcrumb({
+    category: 'workout-sync',
+    level: 'warning',
+    message: 'dropped queue ops from a previous account',
+    data: dropped,
+  });
+});
+
+/** Read lazily: auth-store imports the queue, so a top-level import loops. */
+function currentUserId(): string | null {
+  try {
+    const store = require('@/stores/auth-store') as typeof import('@/stores/auth-store');
+    return store.useAuthStore.getState().session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const TRAINING_MMKV_ID = 'training';
 
@@ -44,7 +66,7 @@ function defaultApi() {
 
 export function getWorkoutSyncQueue(): WorkoutSyncQueue {
   if (!singleton) {
-    singleton = createWorkoutSyncQueue(defaultStorage(), defaultApi());
+    singleton = createWorkoutSyncQueue(defaultStorage(), defaultApi(), currentUserId);
   }
   return singleton;
 }
@@ -66,12 +88,17 @@ export function enqueueUpsertSets(
   getWorkoutSyncQueue().enqueueUpsertSets(payload);
 }
 
-export function enqueueDeleteSet(setId: string): void {
-  getWorkoutSyncQueue().enqueueDeleteSet(setId);
+export function enqueueDeleteSet(setId: string, userId: string): void {
+  getWorkoutSyncQueue().enqueueDeleteSet(setId, userId);
 }
 
-export function enqueueDeleteSession(sessionId: string): void {
-  getWorkoutSyncQueue().enqueueDeleteSession(sessionId);
+export function enqueueDeleteSession(sessionId: string, userId: string): void {
+  getWorkoutSyncQueue().enqueueDeleteSession(sessionId, userId);
+}
+
+/** Drop every queued op, e.g. on sign-out. */
+export function clearWorkoutSyncQueue(): void {
+  getWorkoutSyncQueue().clear();
 }
 
 export async function flushWorkoutSyncQueue(): Promise<void> {

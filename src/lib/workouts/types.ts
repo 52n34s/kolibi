@@ -165,6 +165,11 @@ export type ActiveExercise = {
   restSeconds: number | null;
   /** True when added mid-session; template stays unchanged until user opts in. */
   addedInSession: boolean;
+  /**
+   * Set by "Überspringen" in the session overview. The cursor walks past it;
+   * only an explicit jump from the overview brings it back.
+   */
+  skipped: boolean;
   sets: ActiveSet[];
 };
 
@@ -176,6 +181,12 @@ export type ActiveSessionCursor = {
 /** In-progress workout logger session (Zustand + MMKV). */
 export type ActiveSession = {
   sessionId: string;
+  /**
+   * Owner at the time the session was started. Everything this session writes
+   * carries this id — never the currently signed-in user — so a logged-out
+   * session can never land in the next account.
+   */
+  userId: string;
   templateId: string | null;
   templateName: string;
   shortLabel: string;

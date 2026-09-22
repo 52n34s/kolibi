@@ -6,6 +6,8 @@ export type SyncStatus = 'synced' | 'pending' | 'offline';
 
 export type UpsertSessionOpPayload = {
   id: string;
+  /** Owner of the session — the row is written under THIS id, not auth.uid(). */
+  userId: string;
   templateId: string | null;
   templateName: string;
   shortLabel: string;
@@ -20,6 +22,8 @@ export type UpsertSessionOpPayload = {
 export type SyncSetUpsertPayload = {
   id: string;
   sessionId: string;
+  /** Owner of the session this set belongs to. */
+  userId: string;
   exerciseId?: string | null;
   exerciseName: string;
   exercisePosition: number;
@@ -42,27 +46,34 @@ export type SyncQueueOp =
   | {
       id: string;
       type: 'upsertSession';
+      userId: string;
       payload: UpsertSessionOpPayload;
       createdAt: string;
     }
   | {
       id: string;
       type: 'upsertSets';
+      userId: string;
       payload: SyncSetUpsertPayload[];
       createdAt: string;
     }
   | {
       id: string;
       type: 'deleteSet';
+      userId: string;
       payload: { setId: string };
       createdAt: string;
     }
   | {
       id: string;
       type: 'deleteSession';
+      userId: string;
       payload: { sessionId: string };
       createdAt: string;
     };
+
+/** Current signed-in user, or null. Ops from anyone else are dropped on flush. */
+export type CurrentUserIdReader = () => string | null;
 
 export type SyncQueueApi = {
   upsertWorkoutSession: (input: UpsertSessionOpPayload) => Promise<unknown>;
@@ -79,6 +90,31 @@ let reportError: (error: unknown) => void = () => {};
 
 export function setSyncQueueErrorReporter(report: (error: unknown) => void): void {
   reportError = report;
+}
+
+type DroppedOpsReport = {
+  count: number;
+  currentUserId: string;
+  ownerIds: string[];
+  types: string[];
+};
+
+let reportDroppedOps: (report: DroppedOpsReport) => void = () => {};
+
+/** Wired to a Sentry breadcrumb in sync-queue-runtime.ts. */
+export function setSyncQueueDropReporter(
+  report: (dropped: DroppedOpsReport) => void,
+): void {
+  reportDroppedOps = report;
+}
+
+function dropForeign(foreign: readonly SyncQueueOp[], currentUserId: string): void {
+  reportDroppedOps({
+    count: foreign.length,
+    currentUserId,
+    ownerIds: [...new Set(foreign.map((op) => op.userId))],
+    types: [...new Set(foreign.map((op) => op.type))],
+  });
 }
 
 export const WORKOUT_SYNC_QUEUE_KEY = 'workout-sync-queue-v1';
@@ -176,12 +212,25 @@ export function coalesceOps(ops: SyncQueueOp[]): SyncQueueOp[] {
     out.push(op);
   }
   if (setById.size > 0) {
-    out.push({
-      id: setsOpMeta?.id ?? newOpId(),
-      type: 'upsertSets',
-      payload: [...setById.values()],
-      createdAt: setsOpMeta?.createdAt ?? new Date().toISOString(),
-    });
+    // One op per owner: a queue that survived an account switch must not mix
+    // two users into a single upsert.
+    const byUser = new Map<string, SyncSetUpsertPayload[]>();
+    for (const set of setById.values()) {
+      const list = byUser.get(set.userId) ?? [];
+      list.push(set);
+      byUser.set(set.userId, list);
+    }
+    let reuseMeta = true;
+    for (const [userId, payload] of byUser) {
+      out.push({
+        id: reuseMeta && setsOpMeta ? setsOpMeta.id : newOpId(),
+        type: 'upsertSets',
+        userId,
+        payload,
+        createdAt: setsOpMeta?.createdAt ?? new Date().toISOString(),
+      });
+      reuseMeta = false;
+    }
   }
   for (const op of deleteSets.values()) {
     out.push(op);
@@ -192,7 +241,24 @@ export function coalesceOps(ops: SyncQueueOp[]): SyncQueueOp[] {
   return out;
 }
 
-export function createWorkoutSyncQueue(storage: StringKvStorage, api: SyncQueueApi) {
+/** Ops whose owner is not the signed-in user. Never sent — see flush(). */
+export function partitionByOwner(
+  ops: readonly SyncQueueOp[],
+  currentUserId: string,
+): { mine: SyncQueueOp[]; foreign: SyncQueueOp[] } {
+  const mine: SyncQueueOp[] = [];
+  const foreign: SyncQueueOp[] = [];
+  for (const op of ops) {
+    (op.userId === currentUserId ? mine : foreign).push(op);
+  }
+  return { mine, foreign };
+}
+
+export function createWorkoutSyncQueue(
+  storage: StringKvStorage,
+  api: SyncQueueApi,
+  readCurrentUserId: CurrentUserIdReader = () => null,
+) {
   let flushing = false;
   const listeners = new Set<StatusListener>();
 
@@ -246,7 +312,21 @@ export function createWorkoutSyncQueue(storage: StringKvStorage, api: SyncQueueA
     }
     flushing = true;
     try {
-      let ops = coalesceOps(readOps(storage));
+      const currentUserId = readCurrentUserId();
+      if (currentUserId == null) {
+        // Nobody signed in — nothing can be written. Keep the queue as it is
+        // rather than dropping work over a transient auth gap.
+        return;
+      }
+
+      const { mine, foreign } = partitionByOwner(coalesceOps(readOps(storage)), currentUserId);
+      if (foreign.length > 0) {
+        // Left over from a previous account. Dropping is the only safe option:
+        // sending would file someone else's sets under the current user.
+        dropForeign(foreign, currentUserId);
+      }
+
+      let ops = mine;
       writeOps(storage, ops);
 
       while (ops.length > 0) {
@@ -278,26 +358,36 @@ export function createWorkoutSyncQueue(storage: StringKvStorage, api: SyncQueueA
     }
   }
 
+  function clear(): void {
+    writeOps(storage, []);
+    setStatus('synced');
+  }
+
   return {
     enqueue,
     flush,
+    clear,
     getStatus,
     peek,
     subscribe,
     enqueueUpsertSession(payload: UpsertSessionOpPayload) {
-      enqueue({ type: 'upsertSession', payload });
+      enqueue({ type: 'upsertSession', userId: payload.userId, payload });
     },
     enqueueUpsertSets(payload: SyncSetUpsertPayload[]) {
       if (payload.length === 0) {
         return;
       }
-      enqueue({ type: 'upsertSets', payload });
+      const first = payload[0];
+      if (!first) {
+        return;
+      }
+      enqueue({ type: 'upsertSets', userId: first.userId, payload });
     },
-    enqueueDeleteSet(setId: string) {
-      enqueue({ type: 'deleteSet', payload: { setId } });
+    enqueueDeleteSet(setId: string, userId: string) {
+      enqueue({ type: 'deleteSet', userId, payload: { setId } });
     },
-    enqueueDeleteSession(sessionId: string) {
-      enqueue({ type: 'deleteSession', payload: { sessionId } });
+    enqueueDeleteSession(sessionId: string, userId: string) {
+      enqueue({ type: 'deleteSession', userId, payload: { sessionId } });
     },
   };
 }

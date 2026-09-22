@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Pressable,
@@ -11,6 +11,14 @@ import {
 import { HoldTimer } from '@/components/training/HoldTimer';
 import { BRAND_INDIGO } from '@/constants/brand';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import {
+  initialHoldPhase,
+  isHoldReady,
+  readyValues,
+  startHold,
+  stopHold,
+  switchSide,
+} from '@/lib/workouts/hold-phase';
 import type { ActiveExercise, ActiveSet } from '@/lib/workouts/types';
 
 type TrainingSetInputProps = {
@@ -37,13 +45,31 @@ export function TrainingSetInput({
   const keyboardHeight = useKeyboardHeight();
   const [directEdit, setDirectEdit] = useState(false);
   const [draft, setDraft] = useState(String(set.value));
-  const [timeReady, setTimeReady] = useState(isEditingDone || set.done);
+  const [holdPhase, setHoldPhase] = useState(() =>
+    initialHoldPhase({
+      done: set.done,
+      isEditingDone,
+      value: set.value,
+      secondsOtherSide: set.secondsOtherSide,
+    }),
+  );
 
-  useEffect(() => {
+  // Reset on a NEW set only. Deriving this from set.value would undo the
+  // hold result the moment it is written (see hold-phase.ts).
+  const [phaseSetId, setPhaseSetId] = useState(set.id);
+  if (phaseSetId !== set.id) {
+    setPhaseSetId(set.id);
     setDirectEdit(false);
     setDraft(String(set.value));
-    setTimeReady(isEditingDone || set.done);
-  }, [set.id, isEditingDone, set.done, set.value]);
+    setHoldPhase(
+      initialHoldPhase({
+        done: set.done,
+        isEditingDone,
+        value: set.value,
+        secondsOtherSide: set.secondsOtherSide,
+      }),
+    );
+  }
 
   const step = item.kind === 'time' ? 5 : 1;
 
@@ -55,25 +81,34 @@ export function TrainingSetInput({
     setDirectEdit(false);
   }
 
-  function handleHoldStop(seconds: number, otherSide?: number) {
-    if (otherSide != null) {
-      onSetSides(seconds, otherSide);
-    } else {
-      onSetValue(seconds);
+  function handleHoldStop() {
+    const next = stopHold(holdPhase, Date.now(), item.perSide);
+    setHoldPhase(next);
+
+    const values = readyValues(next);
+    if (!values) {
+      return;
     }
-    setTimeReady(true);
+    if (values.secondsOtherSide != null) {
+      onSetSides(values.seconds, values.secondsOtherSide);
+    } else {
+      onSetValue(values.seconds);
+    }
   }
 
-  const showHold = item.kind === 'time' && !timeReady && !isEditingDone;
+  const showHold = item.kind === 'time' && !isEditingDone && !isHoldReady(holdPhase);
 
   return (
     <View style={[styles.wrap, keyboardHeight > 0 && { paddingBottom: Math.max(0, keyboardHeight - 24) }]}>
       {showHold ? (
         <HoldTimer
+          phase={holdPhase}
           targetSeconds={item.targetSeconds}
           targetSecondsMax={item.targetSecondsMax}
           perSide={item.perSide}
+          onStart={() => setHoldPhase(startHold(holdPhase, Date.now()))}
           onStop={handleHoldStop}
+          onSwitchSide={() => setHoldPhase(switchSide(holdPhase, Date.now()))}
         />
       ) : (
         <View style={styles.stepper}>

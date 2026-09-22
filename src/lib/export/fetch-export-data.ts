@@ -16,12 +16,15 @@ import {
 } from '@/lib/day-window';
 import { fetchMealsForLocalDate } from '@/lib/meals';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
-import { resolveExerciseName } from '@/lib/workouts/exercise-name';
+import {
+  exerciseLabelOrFallback,
+  resolveExerciseName,
+} from '@/lib/workouts/exercise-name';
 import {
   groupSessionSets,
   sessionDurationFromTimestamps,
 } from '@/lib/workouts/session-detail-utils';
-import { fetchTemplates, fetchWorkoutSessionsInRange, fetchProgressionEvents, fetchLadder, fetchExerciseHistoryUnits } from '@/lib/workouts/workouts-api';
+import { fetchTemplates, fetchWorkoutSessionsInRange, fetchProgressionEvents, fetchLadder, fetchExercisesByIds, fetchExerciseHistoryUnits } from '@/lib/workouts/workouts-api';
 import { suggestProgression } from '@/lib/workouts/progression';
 import { fetchProfileSettings } from '@/lib/profile';
 import { supabase } from '@/lib/supabase';
@@ -454,6 +457,23 @@ export async function fetchExportData(params: {
         exerciseById.set(te.exerciseId, te.exercise);
       }
     }
+    // Every exercise an event points at, whether or not it is still in a plan.
+    // Without this the "from" side of a variant_up prints its raw UUID.
+    const referencedIds = [
+      ...allEvents.flatMap((ev) => [ev.fromExerciseId, ev.toExerciseId]),
+      ...accepted.flatMap((ev) => [ev.fromExerciseId, ev.toExerciseId]),
+    ].filter((id): id is string => typeof id === 'string' && id.length > 0);
+    const missingIds = referencedIds.filter((id) => !exerciseById.has(id));
+    if (missingIds.length > 0) {
+      try {
+        for (const ex of await fetchExercisesByIds(missingIds)) {
+          exerciseById.set(ex.id, ex);
+        }
+      } catch (error) {
+        Sentry.captureException(error, { level: 'warning' });
+      }
+    }
+
     const ladderCache = new Map<string, Awaited<ReturnType<typeof fetchLadder>>>();
     async function ladderFor(key: string | null | undefined) {
       if (key == null) {
@@ -483,8 +503,9 @@ export async function fetchExportData(params: {
         await ladderFor(fromEx.ladderKey);
         fromEx = exerciseById.get(ev.fromExerciseId!) ?? fromEx;
       }
-      const fromName = fromEx ? resolveExerciseName(fromEx, lang) : ev.fromExerciseId ?? '';
-      const toName = toEx ? resolveExerciseName(toEx, lang) : ev.toExerciseId ?? '';
+      const unknownLabel = t('export.markdown.tableExercise');
+      const fromName = exerciseLabelOrFallback(fromEx, lang, unknownLabel);
+      const toName = exerciseLabelOrFallback(toEx, lang, unknownLabel);
       const step = toEx?.ladderStep;
       const total =
         toEx?.ladderKey != null
