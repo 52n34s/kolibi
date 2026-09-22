@@ -46,6 +46,10 @@ import { calculateTargetWeightForecast } from '@/lib/target-weight-forecast';
 import { kgToLbs } from '@/lib/units';
 import { fuzzyEtaParts, localizedMonthName } from '@/lib/weight-goal-eta';
 import {
+  profileSettingsQueryKey,
+  setProfileSettingsTargetWeight,
+} from '@/lib/profile-settings-cache';
+import {
   formatWeightForDisplay,
   parseWeightInputToKg,
   updateTargetWeightKg,
@@ -272,15 +276,29 @@ export default function TargetWeightSettingsScreen() {
     setIsSaving(true);
 
     try {
-      await updateTargetWeightKg({
+      const progressStartKey =
+        progressStartDate == null ? null : localDateKey(progressStartDate);
+      const savedKg = await updateTargetWeightKg({
         userId,
         targetWeightKg: weightKg,
-        progressStartDate:
-          progressStartDate == null ? null : localDateKey(progressStartDate),
+        progressStartDate: progressStartKey,
       });
+
+      const listKey = profileSettingsQueryKey(userId);
+
+      // Write the list query first so GoalsPanel cannot flash the pre-save value
+      // if invalidate/refetch is slow or the frozen stack screen skips a render.
+      await queryClient.cancelQueries({ queryKey: listKey });
+      setProfileSettingsTargetWeight(queryClient, userId, {
+        targetWeightKg: savedKg,
+        progressStartDate: progressStartKey,
+      });
+
+      await queryClient.invalidateQueries({ queryKey: listKey });
+      await queryClient.refetchQueries({ queryKey: listKey });
       await queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] });
       await queryClient.invalidateQueries({ queryKey: ['macro-goal-editor', userId] });
-      await queryClient.invalidateQueries({ queryKey: ['profile-settings', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['history', userId] });
       router.back();
     } catch (saveError) {
       console.error('[TargetWeightSettings] save failed:', saveError);
