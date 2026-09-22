@@ -11,10 +11,14 @@ import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { fetchMacroGoalEditorState } from '@/lib/calorie-goals';
+import {
+  distanceKmToDisplay,
+  formatWeightForDisplay,
+  useUnitSystem,
+} from '@/lib/measure-units';
 import type { MovementGoalType } from '@/lib/profile';
-import { formatWeightForDisplay } from '@/lib/weight-logs';
+import { resolveTrainingTabEnabled } from '@/lib/workouts/training-release';
 import { useAuthStore } from '@/stores/auth-store';
-import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
 
 function movementTypeI18nKey(
@@ -29,21 +33,26 @@ function movementTypeI18nKey(
   return 'steps';
 }
 
-function formatMovementValue(value: number, type: MovementGoalType): string {
+function formatMovementValue(
+  value: number,
+  type: MovementGoalType,
+  unitSystem: 'metric' | 'imperial',
+): string {
   if (type === 'steps') {
     return String(Math.round(value));
   }
-  return Number.isInteger(value) ? String(value) : String(value);
+  return String(distanceKmToDisplay(value, unitSystem));
 }
 
 export function GoalsPanel() {
   const { t } = useTranslation();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
-  const unitSystem = useOnboardingStore((state) => state.unitSystem);
+  const unitSystem = useUnitSystem();
   const { data, isLoading, isError } = useProfileSettings(userId);
   const { data: workoutTemplates = [] } = useWorkoutTemplates();
-  const { data: trainingTabEnabled = false } = useFeatureFlag('training_tab');
+  const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
+  const trainingTabEnabled = resolveTrainingTabEnabled(trainingTabFlag);
 
   const { data: macroState } = useQuery({
     queryKey: ['macro-goal-editor', userId],
@@ -77,10 +86,16 @@ export function GoalsPanel() {
   const movementGoalLabel =
     movementType != null && movementValue != null && movementPeriod != null
       ? t('settings.movementGoal.summary', {
-          value: formatMovementValue(movementValue, movementType),
+          value: formatMovementValue(movementValue, movementType, unitSystem),
+          unit:
+            movementType === 'steps'
+              ? ''
+              : unitSystem === 'imperial'
+                ? t('onboarding.units.mi')
+                : t('onboarding.units.km'),
           type: t(`settings.movementGoal.type.${movementTypeI18nKey(movementType)}`),
           period: t(`settings.movementGoal.period.${movementPeriod}`),
-        })
+        }).replace(/ {2,}/g, ' ')
       : t('settings.movementGoal.type.none');
 
   const targetWeightKg = data?.profile?.target_weight_kg ?? null;
