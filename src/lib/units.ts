@@ -1,102 +1,64 @@
 import type { UnitSystem } from '@/lib/unit-system';
 
+export type MealQuantityUnit = 'g' | 'ml' | 'pcs';
+
 const CM_PER_INCH = 2.54;
 const INCHES_PER_FOOT = 12;
 const LBS_PER_KG = 2.2046226218;
 
-/** Meal quantity: stored in DB as grams (ml 1:1). Display conversion only at UI boundary. */
-const G_TO_OZ = 0.03527;
-const ML_TO_FL_OZ = 0.03381;
-
-export type MealQuantityUnit = 'g' | 'ml' | 'pcs';
-
-export function gramsToOz(grams: number): number {
-  return Math.round(grams * G_TO_OZ * 10) / 10;
-}
-
-export function ozToGrams(oz: number): number {
-  return Math.max(0, Math.round(oz / G_TO_OZ));
-}
-
-export function mlToFlOz(ml: number): number {
-  return Math.round(ml * ML_TO_FL_OZ * 10) / 10;
-}
-
-export function flOzToMl(flOz: number): number {
-  return Math.max(0, Math.round(flOz / ML_TO_FL_OZ));
-}
-
-/** Convert stored quantity (g/ml/count) to display value for the active unit system. */
+/** Meal quantities are always shown and edited as g / ml / pcs (never oz). */
 export function toDisplay(
   storedQuantity: number,
   unit: MealQuantityUnit,
-  unitSystem: UnitSystem,
+  _unitSystem?: UnitSystem,
 ): number {
-  if (unit === 'pcs' || unitSystem === 'metric') {
-    return storedQuantity;
-  }
-
-  if (unit === 'ml') {
-    return mlToFlOz(storedQuantity);
-  }
-
-  return gramsToOz(storedQuantity);
+  return storedQuantity;
 }
 
-/** Convert a display value back to stored quantity (grams/ml/count). */
+/** Meal quantities are always stored as g / ml / count. */
 export function fromDisplay(
   displayQuantity: number,
   unit: MealQuantityUnit,
-  unitSystem: UnitSystem,
+  _unitSystem?: UnitSystem,
 ): number {
   if (unit === 'pcs') {
     return Math.max(1, Math.round(displayQuantity));
   }
 
-  if (unitSystem === 'metric') {
-    // Any positive gram/ml is allowed; floor at 1 for integer metric edits.
-    return Math.max(1, Math.round(displayQuantity));
-  }
-
-  if (unit === 'ml') {
-    return Math.max(1, flOzToMl(displayQuantity));
-  }
-
-  return Math.max(1, ozToGrams(displayQuantity));
+  return Math.max(1, Math.round(displayQuantity));
 }
 
 export function formatQuantity(
   storedQuantity: number,
   unit: MealQuantityUnit,
-  unitSystem: UnitSystem,
+  _unitSystem?: UnitSystem,
 ): string {
-  const display = toDisplay(storedQuantity, unit, unitSystem);
+  const display = toDisplay(storedQuantity, unit);
 
   if (unit === 'pcs') {
     return String(Math.round(display));
   }
 
-  if (unitSystem === 'imperial') {
-    return unit === 'ml' ? `${display} fl oz` : `${display} oz`;
-  }
-
   return unit === 'ml' ? `${display} ml` : `${display} g`;
 }
 
-export function getQuantityStep(unit: MealQuantityUnit, unitSystem: UnitSystem): number {
+export function getQuantityStep(unit: MealQuantityUnit, _unitSystem?: UnitSystem): number {
   if (unit === 'pcs') {
     return 1;
   }
 
-  return unitSystem === 'imperial' ? 0.5 : 10;
+  return 10;
 }
 
-export function getMinDisplayQuantity(unit: MealQuantityUnit, unitSystem: UnitSystem): number {
+export function getMinDisplayQuantity(
+  unit: MealQuantityUnit,
+  _unitSystem?: UnitSystem,
+): number {
   if (unit === 'pcs') {
     return 1;
   }
 
-  return unitSystem === 'imperial' ? 0.5 : 1;
+  return 1;
 }
 
 export function cmToFeetInches(cm: number): { feet: number; inches: number } {
