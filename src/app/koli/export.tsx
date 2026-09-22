@@ -24,6 +24,7 @@ import { buildExportMarkdown } from '@/lib/export/build-export';
 import { buildExportLabels } from '@/lib/export/export-labels';
 import { exportRangeKeys, fetchExportData } from '@/lib/export/fetch-export-data';
 import type { ExportDays, ExportSectionKey, ExportSections } from '@/lib/export/types';
+import { useUnitSystem } from '@/lib/measure-units';
 import { useAuthStore } from '@/stores/auth-store';
 
 const DAY_OPTIONS: ExportDays[] = [1, 3, 7, 30];
@@ -50,6 +51,7 @@ export default function ExportScreen() {
   const { t, i18n } = useTranslation();
   const { contentTopPadding } = useMeshScreenInsets();
   const userId = useAuthStore((s) => s.session?.user?.id);
+  const unitSystem = useUnitSystem();
   const params = useLocalSearchParams<{ days?: string; section?: string }>();
 
   const [days, setDays] = useState<ExportDays>(() => parseDays(params.days));
@@ -79,7 +81,7 @@ export default function ExportScreen() {
   }, [params.days, params.section]);
 
   const range = useMemo(() => exportRangeKeys(days), [days]);
-  const labels = useMemo(() => buildExportLabels(t), [t]);
+  const labels = useMemo(() => buildExportLabels(t, unitSystem), [t, unitSystem]);
 
   const exportQuery = useQuery({
     queryKey: [
@@ -90,6 +92,7 @@ export default function ExportScreen() {
       sections.training,
       sections.body,
       i18n.language,
+      unitSystem,
     ],
     enabled: Boolean(userId),
     staleTime: 60_000,
@@ -115,6 +118,7 @@ export default function ExportScreen() {
         includeQuestion,
         startKey: range.startKey,
         endKey: range.endKey,
+        unitSystem,
       },
       i18n.language,
       labels,
@@ -126,6 +130,7 @@ export default function ExportScreen() {
     includeQuestion,
     range.startKey,
     range.endKey,
+    unitSystem,
     i18n.language,
     labels,
   ]);
