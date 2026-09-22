@@ -14,6 +14,7 @@ type SettingsRowProps = {
   showChevron?: boolean;
   accessory?: ReactNode;
   isLast?: boolean;
+  testID?: string;
 };
 
 export function SettingsRow({
@@ -26,6 +27,7 @@ export function SettingsRow({
   showChevron = !!onPress,
   accessory,
   isLast = false,
+  testID,
 }: SettingsRowProps) {
   const labelClass = destructive
     ? 'text-red-600'
@@ -56,6 +58,7 @@ export function SettingsRow({
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       style={({ pressed }) => ({
         backgroundColor: pressed ? GLASS_SURFACE_PRESSED.backgroundColor : 'transparent',

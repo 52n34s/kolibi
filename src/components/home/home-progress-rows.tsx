@@ -1,7 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
+import {
+  BRAND_INDIGO,
+  TEXT_SECONDARY,
+  TRAINING_UNIT_COLORS,
+} from '@/constants/brand';
+import type { WeekDayMarker } from '@/lib/workouts/week-day-markers';
+
+export type { WeekDayMarker } from '@/lib/workouts/week-day-markers';
 
 export type HomeProgressRowItem = {
   key: string;
@@ -19,10 +26,10 @@ export type HomeProgressRowItem = {
   /** Appended to the ratio in primary weight, e.g. " km" */
   valueUnit?: string;
   /**
-   * Mon–Sun filled flags. When set, replaces the progress bar with seven dots
-   * (e.g. training week).
+   * Mon–Sun markers. When set, replaces the progress bar with seven dots
+   * (e.g. training week). Workout days may carry shortLabel + colorKey.
    */
-  weekDayDots?: boolean[];
+  weekDayDots?: WeekDayMarker[];
   /**
    * Macro coverage: empty → "—", no bar; partial → "~ N/goal" with the normal
    * bar; value (default) → "N/goal". Partial reads as a lower bound, so the
@@ -63,16 +70,43 @@ export function formatProgressAmount(value: number, decimals: 0 | 1): string {
   return rounded.toFixed(1);
 }
 
-export function WeekDayDots({ flags }: { flags: boolean[] }) {
+/** Convert legacy boolean flags to markers. */
+export function weekDayMarkersFromFlags(flags: boolean[]): WeekDayMarker[] {
   const days = flags.length === 7 ? flags : [false, false, false, false, false, false, false];
+  return days.map((filled) => ({ filled }));
+}
+
+export function WeekDayDots({ markers }: { markers: WeekDayMarker[] }) {
+  const days =
+    markers.length === 7
+      ? markers
+      : Array.from({ length: 7 }, (_, i) => markers[i] ?? { filled: false });
+
   return (
     <View style={styles.dotsRow}>
-      {days.map((filled, index) => (
-        <View
-          key={index}
-          style={[styles.dot, filled ? styles.dotFilled : styles.dotEmpty]}
-        />
-      ))}
+      {days.map((marker, index) => {
+        if (marker.filled && marker.shortLabel) {
+          const color =
+            (marker.colorKey ? TRAINING_UNIT_COLORS[marker.colorKey] : null) ?? BRAND_INDIGO;
+          return (
+            <Text
+              key={index}
+              style={[styles.dotLabel, { color }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}>
+              {marker.shortLabel}
+            </Text>
+          );
+        }
+
+        return (
+          <View
+            key={index}
+            style={[styles.dot, marker.filled ? styles.dotFilled : styles.dotEmpty]}
+          />
+        );
+      })}
     </View>
   );
 }
@@ -135,7 +169,7 @@ function HomeProgressRow({ item }: { item: HomeProgressRowItem }) {
         <>
           <View style={styles.barSlot}>
             {useWeekDots ? (
-              <WeekDayDots flags={item.weekDayDots!} />
+              <WeekDayDots markers={item.weekDayDots!} />
             ) : showBar ? (
               <View style={styles.track}>
                 <View style={[styles.fill, { width: `${progressPercent}%` }]} />
@@ -264,6 +298,13 @@ const styles = StyleSheet.create({
   },
   dotEmpty: {
     backgroundColor: 'rgba(79, 70, 229, 0.18)',
+  },
+  dotLabel: {
+    width: 14,
+    fontSize: 9,
+    fontWeight: '700',
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   valueSlot: {
     width: VALUE_WIDTH,

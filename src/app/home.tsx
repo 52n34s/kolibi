@@ -54,9 +54,11 @@ import { getGlassPillStyle } from '@/components/ui/glass-styles';
 import { DayMealList } from '@/components/day/DayMealList';
 import { DaySummaryBlock } from '@/components/day/DaySummaryBlock';
 import { HistoryPanel } from '@/components/history/history-panel';
+import { HomeActiveSessionBar } from '@/components/home/HomeActiveSessionBar';
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import { HomeSupplementChips } from '@/components/home/HomeSupplementChips';
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
+import { TrainingPanel } from '@/components/training/TrainingPanel';
 import {
   WeightProgressCard,
   weightGoalProgressPercent,
@@ -69,13 +71,19 @@ import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
+import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
+import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { resolveDisplayWeight } from '@/lib/display-weight';
 import {
   getTimeOfDay,
   resolveDisplayName,
 } from '@/lib/home';
-import { countDistinctTrainingDays, weekDotFlags } from '@/lib/training-sessions';
+import { localWeekDateKeys } from '@/lib/training-sessions';
+import {
+  buildWeekDayMarkers,
+  countDistinctTrainingDaysMerged,
+} from '@/lib/workouts/week-day-markers';
 import { cmToInches, kgToLbs } from '@/lib/units';
 import {
   fetchWeightKgForDay,
@@ -137,13 +145,13 @@ import {
 } from '@/services/mealVision/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { useWorkoutSessionStore } from '@/stores/workout-session-store';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 
 const MAX_WEIGHT_KG = 699.9;
 const SIGNUP_ROUTE = '/(auth)/login' as Href;
 
-type HomeTab = 'today' | 'meals' | 'history';
-const HOME_TABS: HomeTab[] = ['today', 'meals', 'history'];
+type HomeTab = 'today' | 'meals' | 'training' | 'history';
 type WeightSheetKind = 'current' | null;
 
 function navigateToSignup() {
@@ -197,6 +205,15 @@ export default function HomeScreen() {
     period: movementGoalPeriod,
   });
   const { data: trainingSessionsWeek = [] } = useTrainingSessionsWeek(hasTrainingGoal);
+  const { data: workoutTemplates } = useWorkoutTemplates();
+  const activeSession = useWorkoutSessionStore((state) => state.active);
+  const hasTemplates = (workoutTemplates?.length ?? 0) > 0;
+  const weekKeys = useMemo(() => localWeekDateKeys(), []);
+  const { data: workoutSessionsWeek = [] } = useWorkoutSessionsRange({
+    startKey: weekKeys[0]!,
+    endKey: weekKeys[6]!,
+    enabled: hasTrainingGoal || hasTemplates || Boolean(activeSession),
+  });
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
   const { data: scanAllowance } = useQuery({
@@ -215,7 +232,9 @@ export default function HomeScreen() {
 
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallWithValuePitch, setPaywallWithValuePitch] = useState(false);
-  const [homeTab, setHomeTab] = useState<HomeTab>('today');
+  const [homeTab, setHomeTab] = useState<HomeTab>(() =>
+    useWorkoutSessionStore.getState().active ? 'training' : 'today',
+  );
   const [weightSheet, setWeightSheet] = useState<WeightSheetKind>(null);
   const [weightDraft, setWeightDraft] = useState('');
   const [waistDraft, setWaistDraft] = useState('');
@@ -257,7 +276,23 @@ export default function HomeScreen() {
     setHomeTab(tab);
   }, []);
 
-  const homeTabIndex = HOME_TABS.indexOf(homeTab);
+  const homeTabs = useMemo<HomeTab[]>(() => {
+    const tabs: HomeTab[] = ['today', 'meals'];
+    if (hasTemplates || activeSession) {
+      tabs.push('training');
+    }
+    tabs.push('history');
+    return tabs;
+  }, [hasTemplates, activeSession]);
+
+  useEffect(() => {
+    if (!homeTabs.includes(homeTab)) {
+      setHomeTab('today');
+    }
+  }, [homeTabs, homeTab]);
+
+  const homeTabIndex = homeTabs.indexOf(homeTab);
+  const hideScanButtons = homeTab === 'training' && Boolean(activeSession);
 
   const homeTabSwipeGesture = useMemo(
     () =>
@@ -273,13 +308,13 @@ export default function HomeScreen() {
           const swipeRight =
             event.translationX > distance || event.velocityX > flick;
 
-          if (swipeLeft && homeTabIndex < HOME_TABS.length - 1) {
-            runOnJS(switchHomeTab)(HOME_TABS[homeTabIndex + 1]!);
+          if (swipeLeft && homeTabIndex >= 0 && homeTabIndex < homeTabs.length - 1) {
+            runOnJS(switchHomeTab)(homeTabs[homeTabIndex + 1]!);
           } else if (swipeRight && homeTabIndex > 0) {
-            runOnJS(switchHomeTab)(HOME_TABS[homeTabIndex - 1]!);
+            runOnJS(switchHomeTab)(homeTabs[homeTabIndex - 1]!);
           }
         }),
-    [homeTabIndex, switchHomeTab],
+    [homeTabIndex, homeTabs, switchHomeTab],
   );
 
   const secureStore = useMemo(() => createChunkedSecureStoreAdapter(), []);
@@ -501,12 +536,16 @@ export default function HomeScreen() {
       rows.push({
         key: 'training',
         label: t('home.training.label'),
-        actual: countDistinctTrainingDays(trainingSessionsWeek),
+        actual: countDistinctTrainingDaysMerged(trainingSessionsWeek, workoutSessionsWeek),
         goal: trainingSessionsPerWeek,
         decimals: 0 as const,
         dividerAbove: rows.length > 0,
-        weekDayDots: weekDotFlags(trainingSessionsWeek),
+        weekDayDots: buildWeekDayMarkers(trainingSessionsWeek, workoutSessionsWeek),
         onPress: () => {
+          if (hasTemplates || activeSession) {
+            setHomeTab('training');
+            return;
+          }
           router.push('/koli/training-log' as Href);
         },
       });
@@ -516,7 +555,10 @@ export default function HomeScreen() {
   }, [
     trainingSessionsPerWeek,
     trainingSessionsWeek,
+    workoutSessionsWeek,
     hasTrainingGoal,
+    hasTemplates,
+    activeSession,
     hasMovementGoal,
     healthConnectedPreference,
     movementActual,
@@ -1376,22 +1418,42 @@ export default function HomeScreen() {
                 <PillSegmentSwitcher
                   value={homeTab}
                   onChange={setHomeTab}
-                  segments={[
-                    { id: 'today', label: t('home.tabs.today') },
-                    { id: 'meals', label: t('home.tabs.meals') },
-                    { id: 'history', label: t('home.tabs.history') },
-                  ]}
+                  compact={homeTabs.length >= 4}
+                  segments={homeTabs.map((tab) => ({
+                    id: tab,
+                    testID: `home.tab.${tab}`,
+                    label:
+                      tab === 'meals' && homeTabs.length >= 4
+                        ? t('home.tabs.mealsShort')
+                        : t(`home.tabs.${tab}`),
+                  }))}
                 />
+                {activeSession && homeTab !== 'training' ? (
+                  <View className="mt-3">
+                    <HomeActiveSessionBar onPress={() => setHomeTab('training')} />
+                  </View>
+                ) : null}
               </View>
             </View>
 
             {homeTab === 'history' ? (
-              <HistoryPanel onOpenWeightSheet={openCurrentWeightSheet} />
+              <HistoryPanel
+                onOpenWeightSheet={openCurrentWeightSheet}
+                onOpenTrainingTab={() => setHomeTab('training')}
+              />
+            ) : homeTab === 'training' ? (
+              <View className="flex-1 px-6">
+                <TrainingPanel
+                  onEditPlan={() => router.push('/koli/workout-plan' as Href)}
+                />
+              </View>
             ) : (
               <ScrollView
                 className="flex-1 px-6"
                 contentContainerStyle={{
-                  paddingBottom: scanButtonBarScrollPadding(insets.bottom),
+                  paddingBottom: hideScanButtons
+                    ? Math.max(insets.bottom, 24)
+                    : scanButtonBarScrollPadding(insets.bottom),
                 }}
                 showsVerticalScrollIndicator={false}>
                 {homeTab === 'today' ? (
@@ -1436,6 +1498,7 @@ export default function HomeScreen() {
           </View>
         </GestureDetector>
 
+        {!hideScanButtons ? (
         <View
           className="absolute left-0 right-0 items-center px-6"
           style={{ bottom: SCAN_BUTTON_BAR_GAP }}>
@@ -1491,6 +1554,7 @@ export default function HomeScreen() {
             </Text>
           ) : null}
         </View>
+        ) : null}
       </View>
 
       <ScanOptionsSheet

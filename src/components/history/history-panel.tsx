@@ -127,17 +127,15 @@ import {
 import { formatWeightForDisplay } from '@/lib/weight-logs';
 import { formatWaistDeltaForDisplay, formatWaistForDisplay } from '@/lib/waist-logs';
 import {
-  countDistinctTrainingDays,
   localWeekDateKeys,
-  weekDotFlags,
 } from '@/lib/training-sessions';
-import {
-  loggedOnInRange,
-  resolveHistoryTrainingEmptyKind,
-  weeklyDistinctTrainingDayCounts,
-} from '@/lib/history-training';
+import { loggedOnInRange } from '@/lib/history-training';
+import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
+import { useExerciseBestsBefore } from '@/hooks/use-exercise-bests-before';
+import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
+import { useWorkoutSessionStore } from '@/stores/workout-session-store';
 import { formatKcal } from '@/utils/format';
 
 function formatShortDayLabel(dateKey: string, locale: string): string {
@@ -195,9 +193,10 @@ function deriveRateFromCalorieTarget(params: {
 
 type HistoryPanelProps = {
   onOpenWeightSheet: () => void;
+  onOpenTrainingTab?: () => void;
 };
 
-export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
+export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPanelProps) {
   const { t, i18n } = useTranslation();
   const { width: windowWidth } = useWindowDimensions();
   const { insets } = useMeshScreenInsets();
@@ -232,6 +231,18 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
     startKey: trainingLookback.startKey,
     endKey: trainingLookback.endKey,
   });
+  const { data: workoutSessions = [] } = useWorkoutSessionsRange({
+    startKey: historyRangeWindow.startKey,
+    endKey: todayKey,
+  });
+  const { data: beforeBests = {} } = useExerciseBestsBefore({
+    beforeKey: historyRangeWindow.startKey,
+  });
+  const { data: workoutTemplates = [] } = useWorkoutTemplates();
+  const activeSession = useWorkoutSessionStore((state) => state.active);
+  const canOpenTrainingTab =
+    Boolean(onOpenTrainingTab) &&
+    (workoutTemplates.length > 0 || activeSession != null);
   /**
    * Live Home window only (`getMovementActual`), not a 7/30 series.
    * A range chart would need either 30 HealthKit queries or persisting
@@ -1440,10 +1451,13 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
     profile.movement_goal_value != null &&
     profile.movement_goal_value > 0 &&
     profile.movement_goal_period != null;
-  const hasSessionInRange = trainingSessions.some((session) =>
-    loggedOnInRange(session.loggedOn, historyRangeWindow.startKey, todayKey),
-  );
-  const hasRunningKm = runningKmActual != null && runningKmActual > 0;
+  const hasSessionInRange =
+    trainingSessions.some((session) =>
+      loggedOnInRange(session.loggedOn, historyRangeWindow.startKey, todayKey),
+    ) ||
+    workoutSessions.some((session) =>
+      loggedOnInRange(session.loggedOn, historyRangeWindow.startKey, todayKey),
+    );
   const resolvedBodyMetric = activeBodyMetric;
   const visibleAreas = resolveVisibleHistoryAreas({
     nutrition: hasNutritionContent,
@@ -1472,36 +1486,10 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
     : resolvedArea === 'training';
 
   const trainingWeekKeys = useMemo(() => localWeekDateKeys(), [todayKey]);
-  const trainingWeekDots = useMemo(
-    () => weekDotFlags(trainingSessions),
-    [trainingSessions],
-  );
   const trainingWeekDayLabels = useMemo(
     () => trainingWeekKeys.map((key) => formatShortDayLabel(key, i18n.language)),
     [i18n.language, trainingWeekKeys],
   );
-  const sessionsThisWeek = useMemo(
-    () =>
-      countDistinctTrainingDays(
-        trainingSessions.filter((session) => trainingWeekKeys.includes(session.loggedOn)),
-      ),
-    [trainingSessions, trainingWeekKeys],
-  );
-  const weeklyTrainingCounts = useMemo(
-    () =>
-      weeklyDistinctTrainingDayCounts({
-        loggedOnKeys: trainingSessions.map((session) => session.loggedOn),
-        startKey: historyRangeWindow.startKey,
-        endKey: todayKey,
-      }),
-    [historyRangeWindow.startKey, todayKey, trainingSessions],
-  );
-  const trainingEmptyKind = resolveHistoryTrainingEmptyKind({
-    healthConnected: healthConnectedPreference === true,
-    hasMovementGoal,
-    hasSessionInRange,
-    hasRunningKm,
-  });
   const sessionsGoal =
     profile?.training_sessions_per_week != null &&
     profile.training_sessions_per_week >= 1
@@ -1563,16 +1551,32 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
         </Text>
       ) : null}
 
-      <View className="mb-5">
-        <PillSegmentSwitcher
-          compact
-          value={String(rangeDays) as '7' | '30'}
-          onChange={(value) => setRangeDays(Number(value) as HistoryRangeDays)}
-          segments={[
-            { id: '7', label: t('history.range.days7') },
-            { id: '30', label: t('history.range.days30') },
-          ]}
-        />
+      <View className="mb-5 flex-row items-center gap-3">
+        <View className="min-w-0 flex-1">
+          <PillSegmentSwitcher
+            compact
+            value={String(rangeDays) as '7' | '30'}
+            onChange={(value) => setRangeDays(Number(value) as HistoryRangeDays)}
+            segments={[
+              { id: '7', label: t('history.range.days7') },
+              { id: '30', label: t('history.range.days30') },
+            ]}
+          />
+        </View>
+        <Pressable
+          testID="history.export"
+          accessibilityRole="button"
+          accessibilityLabel={t('export.title')}
+          onPress={() =>
+            router.push(
+              `/koli/export?days=${rangeDays}&section=${resolvedArea}` as Href,
+            )
+          }
+          hitSlop={8}
+          className="h-10 w-10 items-center justify-center rounded-full"
+          style={{ backgroundColor: 'rgba(79,70,229,0.1)' }}>
+          <Ionicons name="share-outline" size={20} color={ONBOARDING_ACCENT} />
+        </Pressable>
       </View>
 
       {showAreaSwitcher ? (
@@ -1938,15 +1942,18 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
         <HistoryTrainingSection
           chartWidth={chartWidth}
           rangeDays={rangeDays}
-          emptyKind={trainingEmptyKind}
-          weekDotFlags={trainingWeekDots}
+          rangeStartKey={historyRangeWindow.startKey}
+          todayKey={todayKey}
+          workoutSessions={workoutSessions}
+          manualSessions={trainingSessions}
+          beforeBests={beforeBests}
           weekDayLabels={trainingWeekDayLabels}
-          sessionsThisWeek={sessionsThisWeek}
           sessionsGoal={sessionsGoal}
-          weeklyCounts={weeklyTrainingCounts}
           runningKm={runningKmActual ?? null}
           runningKmPeriod={runningKmPeriod}
           healthConnected={healthConnectedPreference === true}
+          onOpenTrainingTab={onOpenTrainingTab}
+          canOpenTrainingTab={canOpenTrainingTab}
         />
       ) : null}
 

@@ -1,0 +1,329 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { Href, router } from 'expo-router';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { RestTimerCard } from '@/components/training/RestTimerCard';
+import {
+  countTemplateExercises,
+  daysSinceLoggedOn,
+  estimateTemplateMinutes,
+} from '@/components/training/training-panel-utils';
+import { GlassCard } from '@/components/ui/glass-card';
+import { BRAND_INDIGO, TEXT_SECONDARY, TRAINING_UNIT_COLORS } from '@/constants/brand';
+import { useFeatureFlag } from '@/hooks/use-feature-flag';
+import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
+import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
+import { localDateKey, shiftLocalDateKey } from '@/lib/day-window';
+import { pickNextTemplate } from '@/lib/workouts/next-template';
+import type { WorkoutTemplate } from '@/lib/workouts/types';
+
+type TrainingIdleViewProps = {
+  onStart: (template: WorkoutTemplate) => void;
+  onEditPlan?: () => void;
+};
+
+function lastLoggedOnForTemplate(
+  sessions: { templateId: string | null; loggedOn: string }[],
+  templateId: string,
+): string | null {
+  let best: string | null = null;
+  for (const session of sessions) {
+    if (session.templateId !== templateId) {
+      continue;
+    }
+    if (best == null || session.loggedOn > best) {
+      best = session.loggedOn;
+    }
+  }
+  return best;
+}
+
+export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps) {
+  const { t } = useTranslation();
+  const todayKey = localDateKey();
+  const startKey = shiftLocalDateKey(todayKey, -90);
+  const templatesQuery = useWorkoutTemplates();
+  const sessionsQuery = useWorkoutSessionsRange({ startKey, endKey: todayKey });
+  const { data: trainingTabEnabled = false } = useFeatureFlag('training_tab');
+  const showEditPlan = Boolean(trainingTabEnabled && onEditPlan);
+
+  const templates = templatesQuery.data ?? [];
+  const sessions = sessionsQuery.data ?? [];
+
+  const next = useMemo(
+    () => pickNextTemplate(templates, sessions, todayKey),
+    [templates, sessions, todayKey],
+  );
+
+  const others = useMemo(() => {
+    if (!next) {
+      return templates.slice().sort((a, b) => a.position - b.position);
+    }
+    return templates
+      .filter((template) => template.id !== next.id)
+      .sort((a, b) => a.position - b.position);
+  }, [templates, next]);
+
+  function lastLabel(templateId: string): string {
+    const loggedOn = lastLoggedOnForTemplate(sessions, templateId);
+    if (loggedOn == null) {
+      return t('training.panel.lastNever');
+    }
+    const days = daysSinceLoggedOn(loggedOn, todayKey);
+    if (days === 0) {
+      return t('training.panel.lastToday');
+    }
+    if (days === 1) {
+      return t('training.panel.lastYesterday');
+    }
+    return t('training.panel.lastDays', { count: days });
+  }
+
+  function metaLabel(template: WorkoutTemplate): string {
+    return t('training.panel.meta', {
+      exercises: countTemplateExercises(template),
+      minutes: estimateTemplateMinutes(template),
+    });
+  }
+
+  if (templates.length === 0) {
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyText}>{t('training.panel.emptyTemplates')}</Text>
+        {showEditPlan ? (
+          <Pressable
+            testID="training.idle.editPlan"
+            accessibilityRole="button"
+            onPress={onEditPlan}>
+            <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
+          </Pressable>
+        ) : null}
+        <RestTimerCard />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.wrap}>
+      {next ? (
+        <GlassCard testID="training.next.card" style={styles.nextCard}>
+          <Text style={styles.nextTitle}>{t('training.panel.nextTitle')}</Text>
+          <View style={styles.nextHeader}>
+            <View
+              style={[
+                styles.dot,
+                { backgroundColor: TRAINING_UNIT_COLORS[next.colorKey] ?? BRAND_INDIGO },
+              ]}
+            />
+            <Text style={styles.short}>{next.shortLabel}</Text>
+          </View>
+          <Text style={styles.nextName}>{next.name}</Text>
+          <Text style={styles.muted}>{lastLabel(next.id)}</Text>
+          <Text style={styles.muted}>{metaLabel(next)}</Text>
+          <Pressable
+            testID="training.next.start"
+            accessibilityRole="button"
+            onPress={() => onStart(next)}
+            style={styles.startPressable}>
+            <LinearGradient
+              colors={['#4F46E5', '#7CE7C7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.startGradient}>
+              <Text style={styles.startText}>{t('training.panel.start')}</Text>
+            </LinearGradient>
+          </Pressable>
+        </GlassCard>
+      ) : null}
+
+      {others.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('training.panel.moreUnits')}</Text>
+          {others.map((template) => (
+            <GlassCard key={template.id} style={styles.compactCard}>
+              <View style={styles.compactRow}>
+                <View style={styles.compactLeft}>
+                  <View
+                    style={[
+                      styles.dotSm,
+                      {
+                        backgroundColor:
+                          TRAINING_UNIT_COLORS[template.colorKey] ?? BRAND_INDIGO,
+                      },
+                    ]}
+                  />
+                  <View style={styles.compactText}>
+                    <Text style={styles.compactName}>
+                      {template.shortLabel} · {template.name}
+                    </Text>
+                    <Text style={styles.mutedSm}>{metaLabel(template)}</Text>
+                  </View>
+                </View>
+                <Pressable
+                  testID={`training.template.${template.shortLabel}.start`}
+                  accessibilityRole="button"
+                  onPress={() => onStart(template)}
+                  style={styles.compactStart}>
+                  <Text style={styles.compactStartText}>{t('training.panel.start')}</Text>
+                </Pressable>
+              </View>
+            </GlassCard>
+          ))}
+        </View>
+      ) : null}
+
+      <RestTimerCard />
+
+      <Pressable
+        testID="training.backfill.open"
+        accessibilityRole="button"
+        onPress={() => router.push('/koli/workout-backfill' as Href)}
+        style={styles.linkWrap}>
+        <Text style={styles.link}>{t('training.backfill.open')}</Text>
+      </Pressable>
+
+      {showEditPlan ? (
+        <Pressable
+          testID="training.idle.editPlan"
+          accessibilityRole="button"
+          onPress={onEditPlan}
+          style={styles.linkWrap}>
+          <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: {
+    gap: 16,
+    paddingBottom: 24,
+  },
+  empty: {
+    gap: 16,
+    paddingVertical: 24,
+  },
+  emptyText: {
+    color: TEXT_SECONDARY,
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  nextCard: {
+    padding: 20,
+    gap: 8,
+  },
+  nextTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT_SECONDARY,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  nextHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  dotSm: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 4,
+  },
+  short: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT_SECONDARY,
+    letterSpacing: 0.4,
+  },
+  nextName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  muted: {
+    color: TEXT_SECONDARY,
+    fontSize: 14,
+  },
+  mutedSm: {
+    color: TEXT_SECONDARY,
+    fontSize: 12,
+  },
+  startPressable: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+  },
+  startGradient: {
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 999,
+    minWidth: 96,
+    alignItems: 'center',
+  },
+  startText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  section: {
+    gap: 10,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  compactCard: {
+    padding: 14,
+  },
+  compactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  compactLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    flex: 1,
+  },
+  compactText: {
+    flex: 1,
+    gap: 2,
+  },
+  compactName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E1B4B',
+  },
+  compactStart: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(79, 70, 229, 0.12)',
+  },
+  compactStartText: {
+    color: BRAND_INDIGO,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  linkWrap: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  link: {
+    color: BRAND_INDIGO,
+    fontWeight: '600',
+    fontSize: 15,
+    textAlign: 'center',
+  },
+});

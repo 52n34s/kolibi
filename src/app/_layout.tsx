@@ -73,6 +73,7 @@ import {
   refreshRevenueCatCustomerInfo,
   resetRevenueCatCustomerInfoStore,
 } from '@/lib/revenuecat-customer-info';
+import { ensureWorkoutSyncListeners } from '@/lib/workouts/sync-queue-runtime';
 import { useAppDayRollover } from '@/hooks/use-app-day-rollover';
 import { useTouchUserActivity } from '@/hooks/use-touch-user-activity';
 
@@ -91,6 +92,10 @@ function navigateFromPushData(data: unknown) {
 function AppLifecycle({ userId }: { userId: string | null }) {
   useAppDayRollover(userId);
   useTouchUserActivity(userId);
+
+  useEffect(() => {
+    ensureWorkoutSyncListeners();
+  }, []);
 
   useEffect(() => {
     const response = Notifications.getLastNotificationResponse();

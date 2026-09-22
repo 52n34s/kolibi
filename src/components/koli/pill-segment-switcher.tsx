@@ -9,6 +9,7 @@ const PILL_RADIUS = 999;
 type PillSegment<T extends string> = {
   id: T;
   label: string;
+  testID?: string;
 };
 
 type PillSegmentSwitcherProps<T extends string> = {
@@ -32,6 +33,7 @@ export function PillSegmentSwitcher<T extends string>({
         return (
           <Pressable
             key={segment.id}
+            testID={segment.testID}
             style={[
               styles.segment,
               compact && styles.segmentCompact,

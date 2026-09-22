@@ -15,6 +15,14 @@ export default function KoliLayout() {
       <Stack.Screen name="training-log" options={{ title: '' }} />
       <Stack.Screen name="day/[date]" options={{ title: '' }} />
       <Stack.Screen name="supplements" options={{ title: '' }} />
+      <Stack.Screen name="exercises" options={{ title: '' }} />
+      <Stack.Screen name="exercise-edit" options={{ title: '' }} />
+      <Stack.Screen name="workout-plan" options={{ title: '' }} />
+      <Stack.Screen name="workout-template-edit" options={{ title: '' }} />
+      <Stack.Screen name="workout-session/[id]" options={{ title: '' }} />
+      <Stack.Screen name="exercise-progress/[exerciseId]" options={{ title: '' }} />
+      <Stack.Screen name="workout-backfill" options={{ title: '' }} />
+      <Stack.Screen name="export" options={{ title: '' }} />
     </Stack>
   );
 }

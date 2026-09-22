@@ -7,7 +7,9 @@ import { useQuery } from '@tanstack/react-query';
 import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsSection } from '@/components/settings/settings-section';
+import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
+import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { fetchMacroGoalEditorState } from '@/lib/calorie-goals';
 import type { MovementGoalType } from '@/lib/profile';
 import { formatWeightForDisplay } from '@/lib/weight-logs';
@@ -40,6 +42,8 @@ export function GoalsPanel() {
   const userId = session?.user?.id;
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const { data, isLoading, isError } = useProfileSettings(userId);
+  const { data: workoutTemplates = [] } = useWorkoutTemplates();
+  const { data: trainingTabEnabled = false } = useFeatureFlag('training_tab');
 
   const { data: macroState } = useQuery({
     queryKey: ['macro-goal-editor', userId],
@@ -159,6 +163,21 @@ export function GoalsPanel() {
           onPress={() => router.push('/koli/training-goal' as Href)}
         />
       </SettingsSection>
+
+      {trainingTabEnabled ? (
+        <SettingsSection>
+          <SettingsRow
+            testID="goals.workoutPlan"
+            label={t('training.plan.goalsRow')}
+            value={
+              workoutTemplates.length > 0
+                ? t('training.plan.goalsValue', { count: workoutTemplates.length })
+                : t('training.plan.goalsCreate')
+            }
+            onPress={() => router.push('/koli/workout-plan' as Href)}
+          />
+        </SettingsSection>
+      ) : null}
 
       <SettingsSection>
         <SettingsRow
