@@ -188,7 +188,9 @@ export default function ExercisesCatalogScreen() {
                 sets: item.defaultSets,
                 kind: item.kind,
                 reps: item.defaultReps,
+                repsMax: item.defaultRepsMax,
                 seconds: item.defaultSeconds,
+                secondsMax: item.defaultSecondsMax,
                 perSide: item.perSide,
                 perSideLabel: item.perSide ? t('training.timer.perSide') : null,
               });
