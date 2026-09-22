@@ -1,15 +1,27 @@
+import * as Sentry from '@sentry/react-native';
+
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { refreshMacrosKeepingCalorieGoal } from '@/lib/calorie-goals';
 import { supabase } from '@/lib/supabase';
-import type { UnitSystem } from '@/lib/unit-system';
-import { kgToLbs, lbsToKg } from '@/lib/units';
+import { resolveTargetWeightUpdateRow } from '@/lib/weight-parse';
+
+export {
+  formatWeightDeltaForDisplay,
+  formatWeightForDisplay,
+  parseWeightInputToKg,
+} from '@/lib/weight-parse';
+
+function captureAndThrow(error: unknown): never {
+  Sentry.captureException(error);
+  throw error;
+}
 
 export async function updateTargetWeightKg(params: {
   userId: string;
   targetWeightKg: number;
   /** YYYY-MM-DD, or null to clear. Omit to leave the column unchanged. */
   progressStartDate?: string | null;
-}): Promise<void> {
+}): Promise<number> {
   const payload: {
     target_weight_kg: number;
     progress_start_date?: string | null;
@@ -21,16 +33,29 @@ export async function updateTargetWeightKg(params: {
     payload.progress_start_date = params.progressStartDate;
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .update(payload)
-    .eq('id', params.userId);
+    .eq('id', params.userId)
+    .select('target_weight_kg')
+    .single();
 
-  if (error) {
-    throw error;
+  let savedKg: number;
+  try {
+    savedKg = resolveTargetWeightUpdateRow({ data, error });
+  } catch (resolveError) {
+    captureAndThrow(resolveError);
   }
 
-  await refreshMacrosKeepingCalorieGoal(params.userId);
+  // Target weight is already persisted. Macro refresh must not turn a successful
+  // save into "Speichern fehlgeschlagen" (stale goals-panel cache vs DB).
+  try {
+    await refreshMacrosKeepingCalorieGoal(params.userId);
+  } catch (refreshError) {
+    Sentry.captureException(refreshError);
+  }
+
+  return savedKg;
 }
 
 /** Seeds target weight from the current entry when none exists yet. Never overwrites. */
@@ -144,53 +169,3 @@ export async function upsertTodayWeightLog(params: {
   return upsertWeightLog({ ...params, loggedOn: localDateKey() });
 }
 
-export function formatWeightForDisplay(params: {
-  weightKg: number;
-  unitSystem: UnitSystem;
-  kgLabel: string;
-  lbsLabel: string;
-}): string {
-  if (params.unitSystem === 'imperial') {
-    return `${kgToLbs(params.weightKg)} ${params.lbsLabel}`;
-  }
-
-  const kg = Math.round(params.weightKg * 10) / 10;
-  return `${kg} ${params.kgLabel}`;
-}
-
-export function formatWeightDeltaForDisplay(params: {
-  deltaKg: number;
-  unitSystem: UnitSystem;
-  kgLabel: string;
-  lbsLabel: string;
-}): string | null {
-  if (Math.abs(params.deltaKg) < 0.05) {
-    return null;
-  }
-
-  const sign = params.deltaKg > 0 ? '+' : '-';
-  const absKg = Math.abs(params.deltaKg);
-
-  if (params.unitSystem === 'imperial') {
-    return `${sign}${kgToLbs(absKg)} ${params.lbsLabel}`;
-  }
-
-  const kg = Math.round(absKg * 10) / 10;
-  return `${sign}${kg} ${params.kgLabel}`;
-}
-
-export function parseWeightInputToKg(params: {
-  value: string;
-  unitSystem: UnitSystem;
-}): number | null {
-  const parsed = Number(params.value.replace(',', '.'));
-  if (!parsed || parsed <= 0) {
-    return null;
-  }
-
-  if (params.unitSystem === 'imperial') {
-    return lbsToKg(parsed);
-  }
-
-  return parsed;
-}
