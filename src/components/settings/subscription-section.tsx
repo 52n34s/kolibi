@@ -19,7 +19,6 @@ import { useAuthStore } from '@/stores/auth-store';
 
 type SubscriptionSectionProps = {
   userId: string | undefined;
-  trialEndsAt: string | null;
   subscription: SubscriptionRow | null;
 };
 
@@ -42,19 +41,26 @@ function resolveSubscriptionUiMode(params: {
   isInTrial: boolean;
   subscription: SubscriptionRow | null;
   isPremiumEntitlementActive: boolean;
+  isPremiumEntitlementInTrialPeriod: boolean;
 }): SubscriptionUiMode {
-  const { isInTrial, subscription, isPremiumEntitlementActive } = params;
-
-  if (isPremiumEntitlementActive || subscription?.is_active === true) {
-    return 'paid';
-  }
+  const {
+    isInTrial,
+    subscription,
+    isPremiumEntitlementActive,
+    isPremiumEntitlementInTrialPeriod,
+  } = params;
 
   if (hasActiveAccessOverride(subscription)) {
     return 'override';
   }
 
-  if (isInTrial) {
+  // StoreKit intro/trial: entitlement is already active — show trial UI, not paid.
+  if (isPremiumEntitlementInTrialPeriod || isInTrial) {
     return 'trial';
+  }
+
+  if (isPremiumEntitlementActive || subscription?.is_active === true) {
+    return 'paid';
   }
 
   return 'no_subscription';
@@ -63,8 +69,13 @@ function resolveSubscriptionUiMode(params: {
 function hasPaidAppleSubscription(
   subscription: SubscriptionRow | null,
   isPremiumEntitlementActive: boolean,
+  isPremiumEntitlementInTrialPeriod: boolean,
 ): boolean {
   if (hasActiveAccessOverride(subscription)) {
+    return false;
+  }
+
+  if (isPremiumEntitlementInTrialPeriod) {
     return false;
   }
 
@@ -85,7 +96,6 @@ function hasPaidAppleSubscription(
 
 export function SubscriptionSection({
   userId,
-  trialEndsAt,
   subscription,
 }: SubscriptionSectionProps) {
   const { t, i18n } = useTranslation();
@@ -94,18 +104,24 @@ export function SubscriptionSection({
   const [showPaywall, setShowPaywall] = useState(false);
   const [showWithdrawalSheet, setShowWithdrawalSheet] = useState(false);
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
-  const { isPremiumEntitlementActive, entitlementExpirationDate, entitlementWillRenew } =
-    useRevenueCatPremiumEntitlement();
+  const {
+    isPremiumEntitlementActive,
+    isPremiumEntitlementInTrialPeriod,
+    entitlementExpirationDate,
+    entitlementWillRenew,
+  } = useRevenueCatPremiumEntitlement();
 
   const uiMode = resolveSubscriptionUiMode({
     isInTrial,
     subscription,
     isPremiumEntitlementActive,
+    isPremiumEntitlementInTrialPeriod,
   });
 
   const showPaidContractActions = hasPaidAppleSubscription(
     subscription,
     isPremiumEntitlementActive,
+    isPremiumEntitlementInTrialPeriod,
   );
   const { data: activeWithdrawal } = useWithdrawalStatus(userId, showPaidContractActions);
 

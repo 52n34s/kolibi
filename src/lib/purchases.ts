@@ -1,6 +1,7 @@
 import Purchases, {
   LOG_LEVEL,
   PACKAGE_TYPE,
+  INTRO_ELIGIBILITY_STATUS,
   type PurchasesPackage,
 } from 'react-native-purchases';
 
@@ -184,6 +185,39 @@ export async function getDefaultOfferingPlans(): Promise<DefaultOfferingPlan[]> 
   } catch (error) {
     console.warn('[RevenueCat] getOfferings unavailable:', error);
     return [];
+  }
+}
+
+/**
+ * StoreKit intro-eligibility per product id. Always writes a status for every
+ * requested id (UNKNOWN on miss/failure) so missing keys stay reserved for
+ * "still loading" (undefined → footnote placeholder).
+ */
+export async function checkIntroEligibilityByProductId(
+  productIds: string[],
+): Promise<Record<string, INTRO_ELIGIBILITY_STATUS>> {
+  const unique = [...new Set(productIds.filter((id) => id.length > 0))];
+  if (unique.length === 0) {
+    return {};
+  }
+
+  try {
+    const result = await Purchases.checkTrialOrIntroductoryPriceEligibility(unique);
+    const out: Record<string, INTRO_ELIGIBILITY_STATUS> = {};
+    for (const id of unique) {
+      // Always write a status so callers can tell "loaded" from "still pending" (undefined).
+      out[id] =
+        result[id]?.status ??
+        INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_UNKNOWN;
+    }
+    return out;
+  } catch (error) {
+    console.warn('[RevenueCat] intro eligibility check failed:', error);
+    const out: Record<string, INTRO_ELIGIBILITY_STATUS> = {};
+    for (const id of unique) {
+      out[id] = INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_UNKNOWN;
+    }
+    return out;
   }
 }
 

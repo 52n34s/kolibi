@@ -1,5 +1,5 @@
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
+import { INTRO_ELIGIBILITY_STATUS } from 'react-native-purchases';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -13,7 +13,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQueryClient } from '@tanstack/react-query';
 
 import { ExternalLink } from '@/components/external-link';
 import { OnboardingMeshBackground } from '@/components/onboarding/onboarding-background';
@@ -26,13 +25,22 @@ import {
   invalidatePremiumAccessQueries,
 } from '@/lib/premium-query-sync';
 import {
+  checkIntroEligibilityByProductId,
   ensurePurchasesIdentified,
   getDefaultOfferingPlans,
   purchasePremiumPackage,
   restorePremiumPurchases,
   type DefaultOfferingPlan,
 } from '@/lib/purchases';
+import {
+  getFreeIntroPrice,
+  introFreeTrialDays,
+  isEligibleForFreeIntro,
+  planPeriodLabelKey,
+} from '@/lib/paywall-intro';
 import { refreshRevenueCatCustomerInfo } from '@/lib/revenuecat-customer-info';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type PurchaseFlowPhase = 'idle' | 'purchasing';
 
@@ -77,16 +85,29 @@ function planLabelKey(plan: DefaultOfferingPlan): string {
   return 'paywall.planMonthly';
 }
 
-function autoRenewKey(plan: DefaultOfferingPlan): string {
-  if (plan.monthsCount === 3) {
-    return 'paywall.autoRenewQuarterly';
+/**
+ * null while eligibility is still pending (undefined) — caller shows a same-height
+ * placeholder so we never flash priceThenRenew before trialThenPrice (or vice versa).
+ */
+function selectedPlanFootnote(
+  plan: DefaultOfferingPlan,
+  eligibilityStatus: INTRO_ELIGIBILITY_STATUS | null | undefined,
+  t: (key: string, opts?: Record<string, string | number>) => string,
+): string | null {
+  if (eligibilityStatus === undefined) {
+    return null;
   }
 
-  if (plan.monthsCount === 12) {
-    return 'paywall.autoRenewAnnual';
+  const price = plan.pkg.product.priceString;
+  const period = t(planPeriodLabelKey(plan));
+  const intro = getFreeIntroPrice(plan.pkg.product);
+  const days = intro && isEligibleForFreeIntro(eligibilityStatus) ? introFreeTrialDays(intro) : null;
+
+  if (days != null && days > 0) {
+    return t('paywall.trialThenPrice', { days, price, period });
   }
 
-  return 'paywall.autoRenewMonthly';
+  return t('paywall.priceThenRenew', { price, period });
 }
 
 function defaultSelectedPlanId(plans: DefaultOfferingPlan[]): string | null {
@@ -107,6 +128,9 @@ export function PaywallSheet({
   const queryClient = useQueryClient();
   const purchaseAbortRef = useRef<AbortController | null>(null);
   const [plans, setPlans] = useState<DefaultOfferingPlan[]>([]);
+  const [introEligibilityByProductId, setIntroEligibilityByProductId] = useState<
+    Record<string, INTRO_ELIGIBILITY_STATUS>
+  >({});
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [isLoadingOffering, setIsLoadingOffering] = useState(false);
   const [purchaseFlowPhase, setPurchaseFlowPhase] = useState<PurchaseFlowPhase>('idle');
@@ -121,6 +145,13 @@ export function PaywallSheet({
   const isPurchaseSuccess = completion?.kind === 'purchase-success';
   const selectedPlan = plans.find((plan) => plan.pkg.identifier === selectedPackageId) ?? null;
   const selectedPackage = selectedPlan?.pkg ?? null;
+  const selectedIntroEligibility = selectedPlan
+    ? introEligibilityByProductId[selectedPlan.pkg.product.identifier]
+    : undefined;
+  const selectedFootnote =
+    selectedPlan == null
+      ? null
+      : selectedPlanFootnote(selectedPlan, selectedIntroEligibility, t);
   const monthlyPlan = plans.find((plan) => plan.monthsCount === 1) ?? null;
   const monthlyPrice = monthlyPlan?.pkg.product.price ?? null;
   const canSelectPlan = plans.length > 1;
@@ -143,6 +174,7 @@ export function PaywallSheet({
     setIsRestoring(false);
     setCompletion(null);
     setPlans([]);
+    setIntroEligibilityByProductId({});
     setSelectedPackageId(null);
     setContinuedFromValuePitch(false);
   }
@@ -172,18 +204,27 @@ export function PaywallSheet({
         }
 
         const nextPlans = await getDefaultOfferingPlans();
+        if (cancelled) {
+          return;
+        }
+
+        // Plans first — footnote stays placeholder until eligibility resolves (no price flicker).
+        setPlans(nextPlans);
+        setIntroEligibilityByProductId({});
+        setSelectedPackageId(defaultSelectedPlanId(nextPlans));
+        setIsLoadingOffering(false);
+
+        const productIds = nextPlans.map((plan) => plan.pkg.product.identifier);
+        const eligibility = await checkIntroEligibilityByProductId(productIds);
         if (!cancelled) {
-          setPlans(nextPlans);
-          setSelectedPackageId(defaultSelectedPlanId(nextPlans));
+          setIntroEligibilityByProductId(eligibility);
         }
       } catch (error) {
         console.error('[Paywall] identify/offerings failed:', error);
         if (!cancelled) {
           setPlans([]);
+          setIntroEligibilityByProductId({});
           setSelectedPackageId(null);
-        }
-      } finally {
-        if (!cancelled) {
           setIsLoadingOffering(false);
         }
       }
@@ -551,9 +592,19 @@ export function PaywallSheet({
                       )}
                     </View>
 
-                    <Text className="mt-4 text-center text-xs leading-5 text-gray-500">
-                      {selectedPlan ? t(autoRenewKey(selectedPlan)) : t('paywall.autoRenew')}
-                    </Text>
+                    <View style={styles.footnoteSlot}>
+                      {selectedFootnote != null ? (
+                        <Text className="text-center text-xs leading-5 text-gray-500">
+                          {selectedFootnote}
+                        </Text>
+                      ) : selectedPlan != null && !isLoadingOffering ? (
+                        <View
+                          accessibilityElementsHidden
+                          importantForAccessibility="no-hide-descendants"
+                          style={styles.footnotePlaceholder}
+                        />
+                      ) : null}
+                    </View>
 
                     <Pressable
                       className="mt-6 h-12 items-center justify-center rounded-xl bg-[#4F46E5]"
@@ -644,5 +695,14 @@ const styles = StyleSheet.create({
   saveBadgeSpacer: {
     height: 22,
     marginBottom: 6,
+  },
+  /** Reserves ~2 lines (text-xs / leading-5) so trial vs price copy doesn't shift layout. */
+  footnoteSlot: {
+    marginTop: 16,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  footnotePlaceholder: {
+    height: 40,
   },
 });

@@ -44,7 +44,6 @@ export function PlanPanel() {
       showsVerticalScrollIndicator={false}>
       <SubscriptionSection
         userId={userId}
-        trialEndsAt={data?.profile?.trial_ends_at ?? null}
         subscription={data?.subscription ?? null}
       />
     </ScrollView>

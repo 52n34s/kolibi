@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
+import {
+  getPremiumEntitlementExpirationDate,
+  isPremiumEntitlementInTrial,
+} from '@/lib/revenuecat-customer-info';
 import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { supabase } from '@/lib/supabase';
+import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
 import { useAuthStore } from '@/stores/auth-store';
 
 export type TrialStatus = {
@@ -54,11 +59,21 @@ export function useHasPremiumAccess(userId: string | undefined) {
   };
 }
 
+/**
+ * Trial UI status: prefer active RevenueCat entitlement in TRIAL/INTRO,
+ * fall back to profiles.trial_ends_at for users still on the legacy DB trial.
+ */
 export function useTrialStatus(userId: string | undefined) {
   const isAnonymous = useAuthStore((state) => state.session?.user?.is_anonymous === true);
-  const query = useQuery({
+  const { customerInfo } = useRevenueCatPremiumEntitlement();
+
+  const rcTrial = isPremiumEntitlementInTrial(customerInfo);
+  const rcExpiresAt = getPremiumEntitlementExpirationDate(customerInfo);
+  const rcStatus = rcTrial ? computeTrialStatus(rcExpiresAt) : null;
+
+  const dbQuery = useQuery({
     queryKey: ['trial-status', userId, isAnonymous],
-    enabled: !!userId,
+    enabled: !!userId && !rcTrial,
     staleTime: 60 * 1000,
     queryFn: async () => {
       if (!userId) {
@@ -79,12 +94,23 @@ export function useTrialStatus(userId: string | undefined) {
     },
   });
 
-  const status = computeTrialStatus(query.data ?? null);
+  if (rcStatus?.isInTrial) {
+    return {
+      isInTrial: true,
+      daysLeft: rcStatus.daysLeft,
+      endsAt: rcStatus.endsAt,
+      isLoading: false,
+      source: 'revenuecat' as const,
+    };
+  }
+
+  const dbStatus = computeTrialStatus(dbQuery.data ?? null);
 
   return {
-    isInTrial: status.isInTrial,
-    daysLeft: status.daysLeft,
-    endsAt: status.endsAt,
-    isLoading: query.isLoading,
+    isInTrial: dbStatus.isInTrial,
+    daysLeft: dbStatus.daysLeft,
+    endsAt: dbStatus.endsAt,
+    isLoading: dbQuery.isLoading,
+    source: 'database' as const,
   };
 }

@@ -66,6 +66,17 @@ export function hasActivePremiumEntitlement(customerInfo: CustomerInfo | null): 
   return customerInfo?.entitlements.active[REVENUECAT_PREMIUM_ENTITLEMENT] != null;
 }
 
+/** StoreKit free trial / intro period — periodType is TRIAL or INTRO (case-insensitive). */
+export function isPremiumEntitlementInTrial(customerInfo: CustomerInfo | null): boolean {
+  const entitlement = customerInfo?.entitlements.active[REVENUECAT_PREMIUM_ENTITLEMENT];
+  if (!entitlement) {
+    return false;
+  }
+
+  const periodType = (entitlement.periodType ?? '').toUpperCase();
+  return periodType === 'TRIAL' || periodType === 'INTRO';
+}
+
 export function getPremiumEntitlementExpirationDate(
   customerInfo: CustomerInfo | null,
 ): string | null {
