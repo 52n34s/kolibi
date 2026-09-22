@@ -33,6 +33,10 @@ import {
   type TrainingSession,
 } from '@/lib/training-sessions';
 import { getUserPreference, HEALTH_CONNECTED_PREFERENCE_KEY } from '@/lib/user-preferences';
+import { getStoredUnitSystem } from '@/lib/unit-system-storage';
+import {
+  distanceKmToDisplay,
+} from '@/lib/measure-units';
 import type { ExportData, ExportDays, ExportNutritionDay, ExportSections } from './types';
 
 function dateKeysInRange(startKey: string, endKey: string): string[] {
@@ -187,22 +191,38 @@ function resolveMovementLabel(
   value: number | null,
   period: string | null,
   t: TFunction,
+  unitSystem: 'metric' | 'imperial',
 ): string | null {
   if (type == null || value == null || !(value > 0)) {
     return null;
   }
   const typeLabel =
     type === 'steps'
-      ? t('home.movementGoal.labelSteps')
+      ? t('settings.movementGoal.type.steps')
       : type === 'running_km'
-        ? t('home.movementGoal.labelRunningKm')
-        : t('home.movementGoal.labelDistanceKm');
+        ? t('settings.movementGoal.type.runningKm')
+        : t('settings.movementGoal.type.distanceKm');
   const periodLabel =
     period === 'day'
-      ? t('export.markdown.periodDay')
-      : t('export.markdown.periodWeek');
-  const unit = type === 'steps' ? '' : ` ${t('home.movementGoal.unitKm')}`;
-  return `${value}${unit} ${typeLabel} · ${periodLabel}`;
+      ? t('settings.movementGoal.period.day')
+      : t('settings.movementGoal.period.week');
+  if (type === 'steps') {
+    return t('settings.movementGoal.summary', {
+      value: Math.round(value),
+      unit: '',
+      type: typeLabel,
+      period: periodLabel,
+    }).replace(/ {2,}/g, ' ');
+  }
+  const display = distanceKmToDisplay(value, unitSystem);
+  const unit =
+    unitSystem === 'imperial' ? t('onboarding.units.mi') : t('onboarding.units.km');
+  return t('settings.movementGoal.summary', {
+    value: display,
+    unit,
+    type: typeLabel,
+    period: periodLabel,
+  });
 }
 
 export async function fetchExportData(params: {
@@ -595,6 +615,7 @@ export async function fetchExportData(params: {
         profile.movement_goal_value,
         profile.movement_goal_period,
         t,
+        getStoredUnitSystem(),
       ),
       trainingSessionsPerWeek: profile.training_sessions_per_week,
       templates: exportTemplates,
