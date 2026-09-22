@@ -1,12 +1,15 @@
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { MealInputFloatingBar } from '@/components/scan/MealInputAccessoryBar';
 import { FoodAutocompleteOverlayProvider } from '@/components/scan/meal-food-autocomplete-overlay';
 import { MealFoodAutocompleteHost } from '@/components/scan/MealFoodAutocompleteHost';
 import { MealInputBarProvider } from '@/components/scan/meal-input-bar-context';
+import { ExerciseImageViewerHost } from '@/components/training/ExerciseImageViewer';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { GlassSheetSurface } from '@/components/shared/GlassSheetSurface';
+import { useExerciseImageViewerStore } from '@/stores/exercise-image-viewer-store';
 
 type GlassBottomSheetProps = {
   visible: boolean;
@@ -36,6 +39,18 @@ export function GlassBottomSheet({
   const { height: windowHeight } = useWindowDimensions();
   const maxSheetHeight = maxHeightRatio ? windowHeight * maxHeightRatio : undefined;
   const isCentered = presentation === 'center';
+  const enterSheetModal = useExerciseImageViewerStore((state) => state.enterSheetModal);
+  const leaveSheetModal = useExerciseImageViewerStore((state) => state.leaveSheetModal);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    enterSheetModal();
+    return () => {
+      leaveSheetModal();
+    };
+  }, [visible, enterSheetModal, leaveSheetModal]);
 
   return (
     <Modal
@@ -71,6 +86,7 @@ export function GlassBottomSheet({
               {numberInputAccessory ? <NumberInputAccessory /> : null}
               <MealInputFloatingBar />
               <MealFoodAutocompleteHost />
+              <ExerciseImageViewerHost inline />
             </View>
           </FoodAutocompleteOverlayProvider>
         </MealInputBarProvider>

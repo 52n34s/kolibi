@@ -584,6 +584,12 @@
       "planHint": "Your plan — today's targets adjust with your movement."
     }
   },
+  "training": {
+    "imageViewer": {
+      "close": "Close image",
+      "dismissHint": "Tap outside or swipe down to close"
+    }
+  },
   "dayDetail": {
     "back": "Back"
   },

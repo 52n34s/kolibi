@@ -584,6 +584,12 @@
       "planHint": "Dein Plan — die Tageswerte passen sich deiner Bewegung an."
     }
   },
+  "training": {
+    "imageViewer": {
+      "close": "Bild schließen",
+      "dismissHint": "Daneben tippen oder nach unten wischen"
+    }
+  },
   "dayDetail": {
     "back": "Zurück"
   },

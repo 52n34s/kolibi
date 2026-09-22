@@ -584,6 +584,12 @@
       "planHint": "Tu plan: los valores diarios se ajustan a tu movimiento."
     }
   },
+  "training": {
+    "imageViewer": {
+      "close": "Cerrar imagen",
+      "dismissHint": "Toca fuera o desliza hacia abajo para cerrar"
+    }
+  },
   "dayDetail": {
     "back": "Atrás"
   },
