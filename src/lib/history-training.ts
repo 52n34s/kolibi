@@ -29,8 +29,10 @@ export function loggedOnInRange(
 }
 
 /**
- * Distinct training days per Monday-start week overlapping the range.
- * Empty weeks stay in the series so a 30-day chart is not a single bar.
+ * Distinct training days per Monday-start week overlapping the range (4–5
+ * weeks in a 30-day window). Counts the full Mon–Sun week, not only days
+ * inside `startKey`…`endKey`, so the first bar is a real week rather than a stub.
+ * Days after `endKey` (today) are ignored.
  */
 export function weeklyDistinctTrainingDayCounts(params: {
   loggedOnKeys: readonly string[];
@@ -49,7 +51,7 @@ export function weeklyDistinctTrainingDayCounts(params: {
   }
 
   for (const loggedOn of params.loggedOnKeys) {
-    if (!loggedOnInRange(loggedOn, params.startKey, params.endKey)) {
+    if (loggedOn > params.endKey) {
       continue;
     }
     const weekStart = mondayOnOrBefore(loggedOn);
@@ -61,6 +63,21 @@ export function weeklyDistinctTrainingDayCounts(params: {
     weekStart,
     count: days.size,
   }));
+}
+
+/** Weeks whose distinct training days meet `training_sessions_per_week`. */
+export function countWeeksOnTrainingTarget(params: {
+  weeklyCounts: ReadonlyArray<{ count: number }>;
+  sessionsPerWeek: number;
+}): { onTarget: number; weekCount: number } {
+  const weekCount = params.weeklyCounts.length;
+  if (params.sessionsPerWeek < 1) {
+    return { onTarget: 0, weekCount };
+  }
+  const onTarget = params.weeklyCounts.filter(
+    (week) => week.count >= params.sessionsPerWeek,
+  ).length;
+  return { onTarget, weekCount };
 }
 
 /**

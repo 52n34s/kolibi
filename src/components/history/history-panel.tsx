@@ -1944,7 +1944,7 @@ export function HistoryPanel({ onOpenWeightSheet }: HistoryPanelProps) {
           sessionsThisWeek={sessionsThisWeek}
           sessionsGoal={sessionsGoal}
           weeklyCounts={weeklyTrainingCounts}
-          runningKm={runningKmActual ?? 0}
+          runningKm={runningKmActual ?? null}
           runningKmPeriod={runningKmPeriod}
           healthConnected={healthConnectedPreference === true}
         />
