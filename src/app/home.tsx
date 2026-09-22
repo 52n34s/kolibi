@@ -73,6 +73,7 @@ import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
+import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { resolveDisplayWeight } from '@/lib/display-weight';
 import {
@@ -84,7 +85,9 @@ import {
   buildWeekDayMarkers,
   countDistinctTrainingDaysMerged,
 } from '@/lib/workouts/week-day-markers';
+import { resolveTrainingTabEnabled } from '@/lib/workouts/training-release';
 import { cmToInches, kgToLbs } from '@/lib/units';
+import { distanceKmToDisplay, useUnitSystem } from '@/lib/measure-units';
 import {
   fetchWeightKgForDay,
   formatWeightForDisplay,
@@ -144,7 +147,6 @@ import {
   type EditableMealItem,
 } from '@/services/mealVision/types';
 import { useAuthStore } from '@/stores/auth-store';
-import { useOnboardingStore } from '@/stores/onboarding-store';
 import { useWorkoutSessionStore } from '@/stores/workout-session-store';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 
@@ -182,8 +184,7 @@ export default function HomeScreen() {
   const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
-  const unitSystem = useOnboardingStore((state) => state.unitSystem);
-  const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
+  const unitSystem = useUnitSystem();
   const { data, isLoading, isError, error } = useHomeDashboard();
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
   const movementGoalType = data?.profile?.movement_goal_type ?? null;
@@ -208,11 +209,13 @@ export default function HomeScreen() {
   const { data: workoutTemplates } = useWorkoutTemplates();
   const activeSession = useWorkoutSessionStore((state) => state.active);
   const hasTemplates = (workoutTemplates?.length ?? 0) > 0;
+  const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
+  const trainingTabEnabled = resolveTrainingTabEnabled(trainingTabFlag);
   const weekKeys = useMemo(() => localWeekDateKeys(), []);
   const { data: workoutSessionsWeek = [] } = useWorkoutSessionsRange({
     startKey: weekKeys[0]!,
     endKey: weekKeys[6]!,
-    enabled: hasTrainingGoal || hasTemplates || Boolean(activeSession),
+    enabled: hasTrainingGoal || hasTemplates || Boolean(activeSession) || trainingTabEnabled,
   });
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
   const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
@@ -278,12 +281,12 @@ export default function HomeScreen() {
 
   const homeTabs = useMemo<HomeTab[]>(() => {
     const tabs: HomeTab[] = ['today', 'meals'];
-    if (hasTemplates || activeSession) {
+    if (trainingTabEnabled || hasTemplates || activeSession) {
       tabs.push('training');
     }
     tabs.push('history');
     return tabs;
-  }, [hasTemplates, activeSession]);
+  }, [trainingTabEnabled, hasTemplates, activeSession]);
 
   useEffect(() => {
     if (!homeTabs.includes(homeTab)) {
@@ -455,10 +458,6 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    initializeUnitSystem();
-  }, [initializeUnitSystem]);
-
-  useEffect(() => {
     if (isError && error) {
       console.error('[Home] dashboard load failed:', error);
     }
@@ -507,8 +506,18 @@ export default function HomeScreen() {
       const unit =
         movementGoalType === 'steps'
           ? t('home.movementGoal.unitSteps')
-          : t('home.movementGoal.unitKm');
-      const actual = movementActual ?? 0;
+          : unitSystem === 'imperial'
+            ? t('home.movementGoal.unitMi')
+            : t('home.movementGoal.unitKm');
+      const actualRaw = movementActual ?? 0;
+      const actual =
+        movementGoalType === 'steps'
+          ? actualRaw
+          : distanceKmToDisplay(actualRaw, unitSystem);
+      const goal =
+        movementGoalType === 'steps'
+          ? movementGoalValue
+          : distanceKmToDisplay(movementGoalValue, unitSystem);
 
       rows.push({
         key: 'movement',
@@ -519,7 +528,7 @@ export default function HomeScreen() {
               ? t('home.movementGoal.labelRunningKm')
               : t('home.movementGoal.labelDistanceKm'),
         actual,
-        goal: movementGoalValue,
+        goal,
         decimals,
         valueUnit: unit ? ` ${unit}` : undefined,
         footerHint: healthConnected ? undefined : t('home.movementGoal.healthRequired'),
@@ -544,7 +553,7 @@ export default function HomeScreen() {
         dividerAbove: rows.length > 0,
         weekDayDots: buildWeekDayMarkers(trainingSessionsWeek, workoutSessionsWeek),
         onPress: () => {
-          if (hasTemplates || activeSession) {
+          if (trainingTabEnabled || hasTemplates || activeSession) {
             setHomeTab('training');
             return;
           }
@@ -559,6 +568,7 @@ export default function HomeScreen() {
     trainingSessionsWeek,
     workoutSessionsWeek,
     hasTrainingGoal,
+    trainingTabEnabled,
     hasTemplates,
     activeSession,
     hasMovementGoal,
@@ -566,6 +576,7 @@ export default function HomeScreen() {
     movementActual,
     movementGoalType,
     movementGoalValue,
+    unitSystem,
     t,
   ]);
 
