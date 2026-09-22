@@ -4,7 +4,9 @@ import type {
   ExportMacroPair,
   ExportNutritionDay,
   ExportOptions,
-} from './types.ts';
+} from './types';
+import { distanceKmToDisplay, kgToLbs } from '@/lib/measure-units-core';
+import type { UnitSystem } from '@/lib/unit-system';
 
 function fmtNum(value: number | null | undefined, missing: string, digits = 0): string {
   if (value == null || !Number.isFinite(value)) {
@@ -15,6 +17,13 @@ function fmtNum(value: number | null | undefined, missing: string, digits = 0): 
   }
   const rounded = Math.round(value * 10 ** digits) / 10 ** digits;
   return String(rounded);
+}
+
+function toExportWeight(kg: number | null | undefined, unitSystem: UnitSystem): number | null {
+  if (kg == null || !Number.isFinite(kg)) {
+    return null;
+  }
+  return unitSystem === 'imperial' ? kgToLbs(kg) : Math.round(kg * 10) / 10;
 }
 
 function fmtPair(pair: ExportMacroPair, missing: string): string {
@@ -95,7 +104,11 @@ function formatDayTotals(day: ExportNutritionDay, labels: ExportLabels): string 
     .replace('{{fiber}}', fmtPair(day.fiber, missing));
 }
 
-function buildContextSection(data: ExportData, labels: ExportLabels): string[] {
+function buildContextSection(
+  data: ExportData,
+  labels: ExportLabels,
+  unitSystem: UnitSystem,
+): string[] {
   const lines: string[] = [`## ${labels.context}`, ''];
   const c = data.context;
   const m = labels.missing;
@@ -104,7 +117,7 @@ function buildContextSection(data: ExportData, labels: ExportLabels): string[] {
     lines.push(`- ${labels.goalType}: ${c.goalTypeLabel}`);
   }
   lines.push(
-    `- ${labels.weight}: ${labels.weightCurrent} ${fmtNum(c.currentWeightKg, m, 1)} ${labels.kg} · ${labels.weightStart} ${fmtNum(c.startWeightKg, m, 1)} ${labels.kg} · ${labels.weightTarget} ${fmtNum(c.targetWeightKg, m, 1)} ${labels.kg}`,
+    `- ${labels.weight}: ${labels.weightCurrent} ${fmtNum(toExportWeight(c.currentWeightKg, unitSystem), m, 1)} ${labels.kg} · ${labels.weightStart} ${fmtNum(toExportWeight(c.startWeightKg, unitSystem), m, 1)} ${labels.kg} · ${labels.weightTarget} ${fmtNum(toExportWeight(c.targetWeightKg, unitSystem), m, 1)} ${labels.kg}`,
   );
   lines.push(`- ${labels.calorieGoal}: ${fmtNum(c.calorieGoal, m)} ${labels.kcal}`);
   lines.push(
@@ -168,7 +181,11 @@ function buildNutritionSection(data: ExportData, labels: ExportLabels): string[]
   return lines;
 }
 
-function buildTrainingSection(data: ExportData, labels: ExportLabels): string[] {
+function buildTrainingSection(
+  data: ExportData,
+  labels: ExportLabels,
+  unitSystem: UnitSystem,
+): string[] {
   const lines: string[] = [`## ${labels.training}`, ''];
 
   for (const session of data.workoutSessions) {
@@ -208,8 +225,10 @@ function buildTrainingSection(data: ExportData, labels: ExportLabels): string[] 
 
   if (data.runningDays.length > 0) {
     lines.push(`### ${labels.runningKm}`);
+    const distanceUnit = unitSystem === 'imperial' ? 'mi' : 'km';
     for (const row of data.runningDays) {
-      lines.push(`- ${row.dateLabel}: ${fmtNum(row.km, labels.missing, 1)} km`);
+      const display = distanceKmToDisplay(row.km, unitSystem);
+      lines.push(`- ${row.dateLabel}: ${fmtNum(display, labels.missing, 1)} ${distanceUnit}`);
     }
     lines.push('');
   }
@@ -231,13 +250,18 @@ function buildTrainingSection(data: ExportData, labels: ExportLabels): string[] 
   return lines;
 }
 
-function buildBodySection(data: ExportData, labels: ExportLabels): string[] {
+function buildBodySection(
+  data: ExportData,
+  labels: ExportLabels,
+  unitSystem: UnitSystem,
+): string[] {
   const lines: string[] = [`## ${labels.body}`, ''];
   for (const entry of data.weightEntries) {
     lines.push(
       labels.weightEntry
         .replace('{{date}}', entry.dateLabel)
-        .replace('{{kg}}', fmtNum(entry.weightKg, labels.missing, 1)),
+        .replace('{{kg}}', fmtNum(toExportWeight(entry.weightKg, unitSystem), labels.missing, 1))
+        .replace('{{unit}}', labels.kg),
     );
   }
   lines.push('');
@@ -253,13 +277,14 @@ export function buildExportMarkdown(
   lang: string,
   labels: ExportLabels,
 ): string {
+  const unitSystem = options.unitSystem ?? 'metric';
   const lines: string[] = [
     `# ${labels.title} · ${formatRangeLabel(options.startKey, options.endKey, lang)}`,
     '',
   ];
 
   if (hasContextContent(data)) {
-    lines.push(...buildContextSection(data, labels));
+    lines.push(...buildContextSection(data, labels, unitSystem));
   }
 
   if (options.sections.nutrition && hasNutritionContent(data)) {
@@ -267,11 +292,11 @@ export function buildExportMarkdown(
   }
 
   if (options.sections.training && hasTrainingContent(data)) {
-    lines.push(...buildTrainingSection(data, labels));
+    lines.push(...buildTrainingSection(data, labels, unitSystem));
   }
 
   if (options.sections.body && hasBodyContent(data)) {
-    lines.push(...buildBodySection(data, labels));
+    lines.push(...buildBodySection(data, labels, unitSystem));
   }
 
   if (options.includeQuestion) {
