@@ -10,7 +10,6 @@ import {
   type MealSource,
 } from '@/lib/meal-sources';
 import type { UnitSystem } from '@/lib/unit-system';
-import { gramsToOz, mlToFlOz } from '@/lib/units';
 import {
   getBaselineTotalGrams,
   getItemTotalGrams,
@@ -501,20 +500,11 @@ export async function fetchTodayMeals(userId: string): Promise<TodayMeal[]> {
   return fetchMealsForLocalDate(userId, localDateKey());
 }
 
-/** Display-only conversion for today-meal quantity labels (storage stays in g/ml). */
+/** Display-only label for today-meal quantity (storage stays in g/ml; never oz). */
 function formatStoredMassForDisplay(
   storedAmount: number,
   displayUnit: 'g' | 'ml',
-  unitSystem: UnitSystem,
 ): { amount: number; unit: string } {
-  if (unitSystem === 'imperial') {
-    if (displayUnit === 'ml') {
-      return { amount: mlToFlOz(storedAmount), unit: 'fl oz' };
-    }
-
-    return { amount: gramsToOz(storedAmount), unit: 'oz' };
-  }
-
   return { amount: storedAmount, unit: displayUnit };
 }
 
@@ -522,12 +512,12 @@ function formatStoredMassForDisplay(
 export function formatTodayMealQuantityLabel(
   meal: TodayMeal,
   t: (key: string, options?: Record<string, unknown>) => string,
-  unitSystem: UnitSystem = 'metric',
+  _unitSystem?: UnitSystem,
 ): string {
   const items = meal.items;
 
   if (items.length === 0) {
-    const { amount, unit } = formatStoredMassForDisplay(0, 'g', unitSystem);
+    const { amount, unit } = formatStoredMassForDisplay(0, 'g');
     return t('home.meals.quantityMass', { amount, unit });
   }
 
@@ -545,11 +535,7 @@ export function formatTodayMealQuantityLabel(
     (item) => item.quantity_type === 'grams' && item.display_unit === 'ml',
   );
   if (allMl) {
-    const { amount, unit } = formatStoredMassForDisplay(
-      meal.total_quantity_grams,
-      'ml',
-      unitSystem,
-    );
+    const { amount, unit } = formatStoredMassForDisplay(meal.total_quantity_grams, 'ml');
     return t('home.meals.quantityMass', { amount, unit });
   }
 
@@ -557,11 +543,7 @@ export function formatTodayMealQuantityLabel(
     return t('home.meals.quantityCount', { count: totalCount });
   }
 
-  const { amount, unit } = formatStoredMassForDisplay(
-    meal.total_quantity_grams,
-    'g',
-    unitSystem,
-  );
+  const { amount, unit } = formatStoredMassForDisplay(meal.total_quantity_grams, 'g');
   return t('home.meals.quantityMass', { amount, unit });
 }
 
