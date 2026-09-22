@@ -48,11 +48,13 @@ import { useAuthStore } from '@/stores/auth-store';
 type Step = 'template' | 'meta' | 'sets';
 
 const INTENSITIES: GymIntensity[] = ['easy', 'normal', 'hard'];
-const DURATION_ACCESSORY = 'backfill-duration';
+// One accessory bar for every number field on this screen — the set inputs used
+// to open a bare number pad with no way to close it.
+const NUMBER_ACCESSORY = 'backfill-number';
 
 export default function WorkoutBackfillScreen() {
   const { t, i18n } = useTranslation();
-  const { contentTopPadding } = useMeshScreenInsets();
+  const { contentTopPadding } = useMeshScreenInsets({ hasStackHeader: true });
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.session?.user?.id);
   const templatesQuery = useWorkoutTemplates();
@@ -255,9 +257,8 @@ export default function WorkoutBackfillScreen() {
               value={durationDraft}
               onChangeText={setDurationDraft}
               keyboardType="number-pad"
-              inputAccessoryViewID={DURATION_ACCESSORY}
+              inputAccessoryViewID={NUMBER_ACCESSORY}
             />
-            <NumberInputAccessory nativeID={DURATION_ACCESSORY} />
 
             <Text style={styles.fieldLabel}>{t('home.training.intensityLabel')}</Text>
             <View style={styles.intensityRow}>
@@ -315,8 +316,11 @@ export default function WorkoutBackfillScreen() {
         ) : null}
       </ScrollView>
 
+      <NumberInputAccessory nativeID={NUMBER_ACCESSORY} />
+
       {Platform.OS === 'ios' ? (
         <BirthDatePickerModal
+          title={t('home.training.datePickerTitle')}
           visible={showDatePicker}
           value={parseDateOnly(loggedOn)}
           minimumDate={parseDateOnly('2020-01-01')}
@@ -368,6 +372,7 @@ function BackfillExerciseCard({
                   }
                 }}
                 keyboardType="number-pad"
+                inputAccessoryViewID={NUMBER_ACCESSORY}
                 style={styles.input}
               />
               <Text style={styles.slash}>/</Text>
@@ -381,6 +386,7 @@ function BackfillExerciseCard({
                   }
                 }}
                 keyboardType="number-pad"
+                inputAccessoryViewID={NUMBER_ACCESSORY}
                 style={styles.input}
               />
               <Text style={styles.unit}>s</Text>
@@ -397,6 +403,7 @@ function BackfillExerciseCard({
                   }
                 }}
                 keyboardType="number-pad"
+                inputAccessoryViewID={NUMBER_ACCESSORY}
                 style={styles.input}
               />
               <Text style={styles.unit}>{item.kind === 'time' ? 's' : ''}</Text>

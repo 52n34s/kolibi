@@ -1,11 +1,10 @@
 import * as Sentry from '@sentry/react-native';
-import * as ImageManipulator from 'expo-image-manipulator';
-import { Image } from 'react-native';
 
 import { newId } from '@/lib/id';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { sessionSetsToHistoryUnits } from '@/lib/workouts/progression-history';
 import type { ProgressionHistoryUnit } from '@/lib/workouts/progression';
+import { uploadImageToStorage } from '@/lib/storage-upload';
 import { supabase } from '@/lib/supabase';
 import {
   isExerciseKind,
@@ -370,42 +369,14 @@ export async function uploadExerciseImage(params: {
 }): Promise<string> {
   try {
     const userId = await requireUserId();
-    const { width, height } = await new Promise<{ width: number; height: number }>(
-      (resolve, reject) => {
-        Image.getSize(
-          params.localUri,
-          (w, h) => resolve({ width: w, height: h }),
-          (err) => reject(err),
-        );
-      },
-    );
-
-    const longEdge = Math.max(width, height);
-    const scale = longEdge > EXERCISE_IMAGE_MAX_EDGE_PX ? EXERCISE_IMAGE_MAX_EDGE_PX / longEdge : 1;
-    const resize =
-      scale < 1
-        ? [{ resize: { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) } }]
-        : [];
-
-    const manipulated = await ImageManipulator.manipulateAsync(params.localUri, resize, {
-      compress: EXERCISE_IMAGE_QUALITY,
-      format: ImageManipulator.SaveFormat.WEBP,
+    const { objectPath } = await uploadImageToStorage({
+      bucket: EXERCISE_IMAGE_BUCKET,
+      objectPath: `${userId}/${params.exerciseId}.webp`,
+      localUri: params.localUri,
+      format: 'webp',
+      maxEdgePx: EXERCISE_IMAGE_MAX_EDGE_PX,
+      quality: EXERCISE_IMAGE_QUALITY,
     });
-
-    const objectPath = `${userId}/${params.exerciseId}.webp`;
-    const response = await fetch(manipulated.uri);
-    const blob = await response.blob();
-
-    const { error: uploadError } = await supabase.storage
-      .from(EXERCISE_IMAGE_BUCKET)
-      .upload(objectPath, blob, {
-        upsert: true,
-        contentType: 'image/webp',
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
 
     await updateExercise(params.exerciseId, { imagePath: objectPath });
     return objectPath;

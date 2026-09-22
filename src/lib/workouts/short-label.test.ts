@@ -17,7 +17,15 @@ describe('suggestShortLabel', () => {
 
   it('ignores emoji and punctuation', () => {
     assert.equal(suggestShortLabel('💪 Push!', []), 'P');
-    assert.equal(suggestShortLabel('🔥', []), 'X');
+  });
+
+  it('suggests nothing when there is no letter to derive one from', () => {
+    // The editor puts this straight into the field; an invented 'X' then got
+    // saved as the unit's short label.
+    assert.equal(suggestShortLabel('', []), '');
+    assert.equal(suggestShortLabel('   ', ['P', 'Pl']), '');
+    assert.equal(suggestShortLabel('🔥', []), '');
+    assert.equal(suggestShortLabel('123 !?', []), '');
   });
 
   it('appends the next consonant when the first letter is taken', () => {

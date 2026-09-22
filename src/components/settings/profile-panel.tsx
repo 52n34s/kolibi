@@ -331,11 +331,7 @@ export function ProfilePanel() {
     setIsUploadingAvatar(true);
 
     try {
-      await uploadAvatar({
-        userId,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-      });
+      await uploadAvatar({ userId, uri: asset.uri });
       await refreshProfile();
     } catch (uploadError) {
       console.error('[ProfilePanel] avatar upload failed:', uploadError);

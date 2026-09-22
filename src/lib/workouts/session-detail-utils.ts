@@ -71,3 +71,41 @@ export function formatActualSetValue(set: SessionSet): string {
   }
   return String(set.reps ?? 0);
 }
+
+const MS_PER_DAY = 86_400_000;
+
+/**
+ * Whole days between two `YYYY-MM-DD` keys. NaN-safe: an unparseable key yields 0,
+ * which leaves the caller's timestamps alone.
+ */
+export function dayDifference(fromDateKey: string, toDateKey: string): number {
+  const from = Date.parse(`${fromDateKey}T00:00:00Z`);
+  const to = Date.parse(`${toDateKey}T00:00:00Z`);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) {
+    return 0;
+  }
+  return Math.round((to - from) / MS_PER_DAY);
+}
+
+/**
+ * Move a timestamp onto another day, keeping the time of day.
+ *
+ * Editing a session's date used to change `logged_on` only, so a session moved
+ * from the 17th to the 18th still carried `started_at` on the 17th. The duration
+ * is derived from those timestamps, so they have to travel with the date.
+ */
+export function shiftTimestampToDate(
+  timestamp: string,
+  fromDateKey: string,
+  toDateKey: string,
+): string {
+  const days = dayDifference(fromDateKey, toDateKey);
+  if (days === 0) {
+    return timestamp;
+  }
+  const parsed = Date.parse(timestamp);
+  if (!Number.isFinite(parsed)) {
+    return timestamp;
+  }
+  return new Date(parsed + days * MS_PER_DAY).toISOString();
+}

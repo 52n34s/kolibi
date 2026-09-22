@@ -263,6 +263,7 @@
         "other": "Otro"
       },
       "dateLabel": "Fecha",
+      "datePickerTitle": "Seleccionar fecha",
       "durationLabel": "Duración (minutos)",
       "intensityLabel": "Intensidad",
       "intensity": {

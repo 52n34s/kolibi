@@ -164,6 +164,7 @@ function Stepper({
   return (
     <View style={styles.stepper}>
       <Pressable
+        testID={`${testID}.minus`}
         accessibilityRole="button"
         onPress={() => onChange(Math.max(min, value - step))}
         style={styles.stepBtn}>
@@ -174,6 +175,7 @@ function Stepper({
         {suffix ? ` ${suffix}` : ''}
       </Text>
       <Pressable
+        testID={`${testID}.plus`}
         accessibilityRole="button"
         onPress={() => onChange(value + step)}
         style={styles.stepBtn}>
@@ -204,7 +206,9 @@ export default function WorkoutTemplateEditScreen() {
 
   const [name, setName] = useState('');
   const [shortLabel, setShortLabel] = useState('');
-  const [shortTouched, setShortTouched] = useState(false);
+  // An existing unit already has a short label; the auto-suggest must never
+  // run for it (see the effect below).
+  const [shortTouched, setShortTouched] = useState(Boolean(paramId));
   const [colorKey, setColorKey] = useState<UnitColorKey>('indigo');
   const [weekdays, setWeekdays] = useState<number[]>([]);
   const [exercises, setExercises] = useState<DraftExercise[]>([]);
@@ -236,12 +240,16 @@ export default function WorkoutTemplateEditScreen() {
     setInitialized(true);
   }, [existing, initialized, paramId]);
 
+  // Only for a new unit. `otherLabels` changes in the same commit in which the
+  // init effect above loads an existing template, and this effect would then
+  // still see the stale `shortTouched === false` and overwrite the stored label
+  // with a suggestion for the empty name.
   useEffect(() => {
-    if (shortTouched) {
+    if (paramId || shortTouched) {
       return;
     }
     setShortLabel(suggestShortLabel(name, otherLabels));
-  }, [name, otherLabels, shortTouched]);
+  }, [name, otherLabels, paramId, shortTouched]);
 
   useFocusEffect(
     useCallback(() => {
@@ -436,6 +444,9 @@ export default function WorkoutTemplateEditScreen() {
   }
 
   const loading = Boolean(paramId) && (templatesQuery.isLoading || !initialized);
+  // The selected weekdays carry the unit's own colour, not the brand indigo.
+  const unitColor = TRAINING_UNIT_COLORS[colorKey] ?? BRAND_INDIGO;
+  const canSave = name.trim().length > 0 && shortLabel.trim().length > 0 && exercises.length > 0;
 
   return (
     <HomeLayout>
@@ -460,7 +471,7 @@ export default function WorkoutTemplateEditScreen() {
           <ScrollView
             className="flex-1 px-6"
             contentContainerStyle={{ paddingTop: 12, paddingBottom: 32 }}
-            keyboardShouldPersistTaps="always">
+            keyboardShouldPersistTaps="handled">
             <Text className="mb-6 text-2xl font-bold text-gray-900">
               {paramId
                 ? t('training.templateEdit.editTitle')
@@ -479,6 +490,8 @@ export default function WorkoutTemplateEditScreen() {
               value={name}
               onChangeText={(value) => setName(value.slice(0, NAME_MAX))}
               maxLength={NAME_MAX}
+              returnKeyType="done"
+              blurOnSubmit
               placeholder={t('training.templateEdit.namePlaceholder')}
             />
             {name.length >= 15 ? (
@@ -497,6 +510,8 @@ export default function WorkoutTemplateEditScreen() {
               }}
               maxLength={SHORT_MAX}
               autoCapitalize="characters"
+              returnKeyType="done"
+              blurOnSubmit
             />
 
             <Text style={styles.label}>{t('training.templateEdit.colorLabel')}</Text>
@@ -529,7 +544,10 @@ export default function WorkoutTemplateEditScreen() {
                     testID={`training.templateEdit.weekday.${day}`}
                     accessibilityRole="button"
                     onPress={() => toggleWeekday(day)}
-                    style={[styles.weekday, active && styles.weekdayActive]}>
+                    style={[
+                      styles.weekday,
+                      active && { backgroundColor: unitColor, borderColor: unitColor },
+                    ]}>
                     <Text style={[styles.weekdayText, active && styles.weekdayTextActive]}>
                       {t(`supplements.schedule.weekdayDot.${day}`)}
                     </Text>
@@ -736,9 +754,9 @@ export default function WorkoutTemplateEditScreen() {
             <Pressable
               testID="training.templateEdit.save"
               accessibilityRole="button"
-              disabled={saving}
+              disabled={saving || !canSave}
               onPress={() => void handleSave()}
-              style={[styles.primary, saving && styles.disabled]}>
+              style={[styles.primary, (saving || !canSave) && styles.disabled]}>
               {saving ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
@@ -835,10 +853,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.7)',
     borderWidth: 1,
     borderColor: CHIP_BORDER,
-  },
-  weekdayActive: {
-    backgroundColor: BRAND_INDIGO,
-    borderColor: BRAND_INDIGO,
   },
   weekdayText: {
     fontSize: 12,

@@ -49,6 +49,7 @@ import {
   formatActualSetValue,
   groupSessionSets,
   sessionDurationFromTimestamps,
+  shiftTimestampToDate,
   type SessionExerciseGroup,
 } from '@/lib/workouts/session-detail-utils';
 import type { GymIntensity, SessionSet } from '@/lib/workouts/types';
@@ -82,7 +83,7 @@ function setValueFields(
 
 export default function WorkoutSessionDetailScreen() {
   const { t, i18n } = useTranslation();
-  const { contentTopPadding } = useMeshScreenInsets();
+  const { contentTopPadding } = useMeshScreenInsets({ hasStackHeader: true });
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.session?.user?.id);
@@ -145,7 +146,10 @@ export default function WorkoutSessionDetailScreen() {
     const duration =
       next.durationMinutes ?? sessionDurationFromTimestamps(session);
     const intensity = next.intensity ?? session.intensity ?? 'normal';
-    const finishedAt = finishedAtFromDuration(session.startedAt, duration);
+    // The timestamps travel with the date, otherwise a session moved to another
+    // day keeps started_at on the old one and the two contradict each other.
+    const startedAt = shiftTimestampToDate(session.startedAt, session.loggedOn, loggedOn);
+    const finishedAt = finishedAtFromDuration(startedAt, duration);
 
     setSaving(true);
     try {
@@ -157,7 +161,7 @@ export default function WorkoutSessionDetailScreen() {
         shortLabel: session.shortLabel,
         colorKey: session.colorKey,
         loggedOn,
-        startedAt: session.startedAt,
+        startedAt,
         finishedAt,
         intensity,
         trainingSessionId: session.trainingSessionId,
@@ -817,6 +821,7 @@ export default function WorkoutSessionDetailScreen() {
 
       {Platform.OS === 'ios' ? (
         <BirthDatePickerModal
+          title={t('home.training.datePickerTitle')}
           visible={showDatePicker}
           value={parseDateOnly(session.loggedOn)}
           minimumDate={parseDateOnly('2020-01-01')}

@@ -8,6 +8,7 @@ import {
   refreshMacrosKeepingCalorieGoal,
   upsertDailyCalorieGoal,
 } from '@/lib/calorie-goals';
+import { uploadImageToStorage } from '@/lib/storage-upload';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -367,41 +368,20 @@ export async function fetchDietPreference(userId: string): Promise<string | null
   return data?.diet_preference ?? null;
 }
 
-function getAvatarExtension(mimeType: string | null | undefined): string {
-  switch (mimeType) {
-    case 'image/png':
-      return 'png';
-    case 'image/webp':
-      return 'webp';
-    case 'image/heic':
-    case 'image/heif':
-      return 'heic';
-    default:
-      return 'jpg';
-  }
-}
+const AVATAR_MAX_EDGE_PX = 512;
+const AVATAR_QUALITY = 0.85;
 
-export async function uploadAvatar(params: {
-  userId: string;
-  uri: string;
-  mimeType?: string | null;
-}) {
-  const extension = getAvatarExtension(params.mimeType);
-  const objectPath = `${params.userId}/avatar.${extension}`;
-
-  const response = await fetch(params.uri);
-  const blob = await response.blob();
-
-  const { error: uploadError } = await supabase.storage
-    .from(AVATAR_BUCKET)
-    .upload(objectPath, blob, {
-      upsert: true,
-      contentType: params.mimeType ?? 'image/jpeg',
-    });
-
-  if (uploadError) {
-    throw uploadError;
-  }
+export async function uploadAvatar(params: { userId: string; uri: string }) {
+  // Always re-encoded to JPEG: the picker also hands back HEIC, and one fixed
+  // extension keeps the object path stable across re-uploads (upsert).
+  const { objectPath } = await uploadImageToStorage({
+    bucket: AVATAR_BUCKET,
+    objectPath: `${params.userId}/avatar.jpg`,
+    localUri: params.uri,
+    format: 'jpeg',
+    maxEdgePx: AVATAR_MAX_EDGE_PX,
+    quality: AVATAR_QUALITY,
+  });
 
   const { error: profileError } = await supabase
     .from('profiles')

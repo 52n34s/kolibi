@@ -29,17 +29,15 @@ function isConsonant(ch: string): boolean {
 /**
  * Suggest a 1–2 character short label from a unit name.
  * First letter uppercased; on collision append next consonant (then any letter).
+ * Returns '' for a name without letters — the caller must not invent one.
  */
 export function suggestShortLabel(name: string, existingLabels: readonly string[]): string {
   const taken = new Set(existingLabels.map((label) => label.toLocaleUpperCase('en')));
   const letters = lettersOnly(name);
+  // No letters to work with → no suggestion. An invented 'X' used to be written
+  // into the field before the user had typed anything, and saving kept it.
   if (letters.length === 0) {
-    for (const fallback of ['X', 'Y', 'Z', 'W', 'V']) {
-      if (!taken.has(fallback)) {
-        return fallback;
-      }
-    }
-    return 'X';
+    return '';
   }
 
   const first = letters[0]!.toLocaleUpperCase('en');

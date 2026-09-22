@@ -710,30 +710,6 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         </Pressable>
       ) : null}
 
-      {firstLevelHints.map((hint) => (
-        <Text key={hint} style={styles.firstLevel}>
-          {hint}
-        </Text>
-      ))}
-
-      <GlassCard style={styles.statsCard}>
-        <Stat label={t('training.panel.duration')} value={durationLabel} />
-        <Stat label={t('training.panel.sets')} value={String(stats.setsDone)} />
-        <Stat label={t('training.panel.reps')} value={String(stats.repsTotal)} />
-        <Stat label={t('training.panel.seconds')} value={String(stats.secondsTotal)} />
-      </GlassCard>
-
-      {prs.length > 0 ? (
-        <View style={styles.block}>
-          <Text style={styles.blockTitle}>{t('training.panel.prs')}</Text>
-          {prs.map((pr) => (
-            <Text key={`${pr.name}-${pr.value}`} style={styles.prLine}>
-              {t('training.panel.prBeat', { name: pr.name, value: pr.value })}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-
       <View style={styles.block}>
         <Text style={styles.blockTitle}>{t('training.panel.intensityTitle')}</Text>
         {(['easy', 'normal', 'hard'] as const).map((key) => {
@@ -755,6 +731,12 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           );
         })}
       </View>
+
+      {firstLevelHints.map((hint) => (
+        <Text key={hint} style={styles.firstLevel}>
+          {hint}
+        </Text>
+      ))}
 
       {ascentRows.length > 0 || upperBoundReady.length > 0 ? (
         <View style={styles.block}>
@@ -849,6 +831,24 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
               </Pressable>
             );
           })}
+        </View>
+      ) : null}
+
+      <GlassCard style={styles.statsCard}>
+        <Stat label={t('training.panel.duration')} value={durationLabel} />
+        <Stat label={t('training.panel.sets')} value={String(stats.setsDone)} />
+        <Stat label={t('training.panel.reps')} value={String(stats.repsTotal)} />
+        <Stat label={t('training.panel.seconds')} value={String(stats.secondsTotal)} />
+      </GlassCard>
+
+      {prs.length > 0 ? (
+        <View style={styles.block}>
+          <Text style={styles.blockTitle}>{t('training.panel.prs')}</Text>
+          {prs.map((pr) => (
+            <Text key={`${pr.name}-${pr.value}`} style={styles.prLine}>
+              {t('training.panel.prBeat', { name: pr.name, value: pr.value })}
+            </Text>
+          ))}
         </View>
       ) : null}
 
