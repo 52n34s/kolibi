@@ -24,6 +24,7 @@ import { OnboardingReviewCancelButton } from '@/components/onboarding/onboarding
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { OnboardingKoliCompanion } from '@/components/onboarding/onboarding-koli-companion';
 import { HeightInput } from '@/components/onboarding/height-input';
+import { WeightInput } from '@/components/onboarding/weight-input';
 import { OnboardingLayout } from '@/components/onboarding/onboarding-layout';
 import { OptionCard } from '@/components/onboarding/option-card';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
@@ -63,6 +64,7 @@ import {
   summaryManuallyEditedAfterGoalTypeChange,
 } from '@/lib/onboarding';
 import { fetchProfileSettings } from '@/lib/profile';
+import { parseWeightInputToKg } from '@/lib/weight-parse';
 import {
   DIET_PREFERENCE_OPTIONS,
   type DietPreferenceValue,
@@ -135,6 +137,7 @@ export default function OnboardingScreen() {
     healthConnectedPreference === true,
   );
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
+  const unitSystem = useOnboardingStore((state) => state.unitSystem);
   const [step, setStep] = useState(0);
   const [dietPreference, setDietPreference] = useState<DietPreferenceValue>(null);
   const [biologicalSex, setBiologicalSex] = useState<BiologicalSex | null>(null);
@@ -244,7 +247,8 @@ export default function OnboardingScreen() {
   const effectiveSex: BiologicalSex = biologicalSex ?? 'prefer_not_to_say';
 
   const parsedHeight = Number(heightCm);
-  const parsedWeight = Number(weightKg);
+  // WeightInput always stores kilograms (like HeightInput stores cm).
+  const parsedWeight = parseWeightInputToKg({ value: weightKg, unitSystem: 'metric' });
   const parsedCustomCalories = Number(customCalorieGoal);
   const parsedDailyCalories = Number(dailyCalorieGoal);
 
@@ -611,7 +615,7 @@ export default function OnboardingScreen() {
       if (skipped) {
         await skipOnboarding(currentUserId, dietPreference);
       } else {
-        if (!birthDate || !activityLevel || !goalType) {
+        if (!birthDate || !activityLevel || !goalType || parsedWeight == null) {
           throw new Error(t('onboarding.errors.saveFailed'));
         }
 
@@ -753,14 +757,13 @@ export default function OnboardingScreen() {
             <StepHeader
               step={4}
               title={t('onboarding.weight.title')}
-              subtitle={t('onboarding.weight.subtitle')}
+              subtitle={
+                unitSystem === 'imperial'
+                  ? t('onboarding.weight.subtitleImperial')
+                  : t('onboarding.weight.subtitleMetric')
+              }
             />
-            <OnboardingField
-              keyboardType="numeric"
-              placeholder={t('onboarding.weight.placeholder')}
-              value={weightKg}
-              onChangeText={setWeightKg}
-            />
+            <WeightInput weightKg={weightKg} onChangeWeightKg={setWeightKg} />
           </View>
         );
       case 5:
