@@ -13,7 +13,7 @@
     },
     "icon": "./assets/images/icon.png",
     "scheme": "kolibi",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.steffen.kolibi",
       "appleTeamId": "PGR9TXQQM4",

@@ -25,6 +25,8 @@ export function GlassCard({ children, style, ...props }: GlassCardProps) {
       <GlassView
         glassEffectStyle="regular"
         tintColor="rgba(255, 255, 255, 0.28)"
+        // App is light-only; default 'auto' follows system dark mode and turns cards grey.
+        colorScheme="light"
         style={cardStyle}
         {...props}>
         {children}

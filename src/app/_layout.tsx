@@ -42,12 +42,12 @@ import '../global.css';
 import '@/i18n';
 
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { DarkTheme, DefaultTheme, ThemeProvider, router } from 'expo-router';
+import { DefaultTheme, ThemeProvider, router } from 'expo-router';
 import { Stack } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import { useColorScheme } from 'react-native';
+import { Appearance } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PostHogProvider } from 'posthog-react-native';
 
@@ -76,6 +76,9 @@ import {
 import { ensureWorkoutSyncListeners } from '@/lib/workouts/sync-queue-runtime';
 import { useAppDayRollover } from '@/hooks/use-app-day-rollover';
 import { useTouchUserActivity } from '@/hooks/use-touch-user-activity';
+
+// Lock before first paint — GlassView / UIKit follow this, not only ThemeProvider.
+Appearance.setColorScheme('light');
 
 SplashScreen.preventAutoHideAsync();
 
@@ -128,7 +131,12 @@ function PremiumAccessSync({ userId }: { userId: string | null }) {
 }
 
 function RootLayout() {
-  const colorScheme = useColorScheme();
+  // Kolibi is light-only — lock RN appearance so GlassView / system widgets
+  // do not follow the iPhone dark mode setting.
+  useEffect(() => {
+    Appearance.setColorScheme('light');
+  }, []);
+
   const session = useAuthStore((state) => state.session);
   const initialized = useAuthStore((state) => state.initialized);
   const initialize = useAuthStore((state) => state.initialize);
@@ -237,7 +245,7 @@ function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AppLifecycle userId={userId} />
       <PremiumAccessSync userId={userId} />
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
