@@ -1,0 +1,6 @@
+appId: com.steffen.kolibi
+---
+- scrollUntilVisible:
+    element: "Y-T-W"
+    direction: DOWN
+    timeout: 25000

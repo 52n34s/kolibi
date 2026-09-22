@@ -1,0 +1,103 @@
+# TAG 5 · heute · Pull & Legs · "Läuft gerade"
+#
+# NICHT AUSFÜHRBAR, solange der randomUUID-Blocker besteht (siehe blocker-repro.yaml).
+#
+# Diese Einheit wird NICHT verschoben — sie bleibt auf heute.
+appId: com.steffen.kolibi
+---
+- runFlow: common/launch.yaml
+- runFlow: common/open-training.yaml
+- assertVisible: "Pull & Legs"
+- takeScreenshot: .maestro/screenshots/tag5/01-naechstes-pull-legs
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 20000
+
+# --- Zwei Übungen loggen: Y-T-W (1) + Klimmzüge (3) ------------------------
+- repeat:
+    times: 4
+    commands:
+      - runFlow: common/set-done.yaml
+
+# --- Scan-Buttons müssen während der Session ausgeblendet sein -------------
+- assertNotVisible: "Mahlzeit scannen"
+- assertNotVisible: "Barcode"
+- takeScreenshot: .maestro/screenshots/tag5/02-scan-buttons-ausgeblendet
+
+# --- Heute-Tab: Leiste "Training läuft" ------------------------------------
+- tapOn:
+    id: "home.tab.today"
+- extendedWaitUntil:
+    visible:
+      id: "home.activeSessionBar"
+    timeout: 10000
+- assertVisible: "Training läuft · Pl"
+- takeScreenshot: .maestro/screenshots/tag5/03-heute-training-laeuft
+# Tap auf die Leiste muss zurück in den Training-Tab führen
+- tapOn:
+    id: "home.activeSessionBar"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 10000
+- assertNotVisible:
+    id: "home.activeSessionBar"
+
+# --- Rest der Einheit: Chin-ups(3) Barren-Rudern(3) Rucksack-Rudern(3)
+#     Rucksack-Curls(3) Bulgarian(3) Beckenheben(2) = 17 Sätze --------------
+- repeat:
+    times: 17
+    commands:
+      - runFlow: common/set-done.yaml
+# Seitstütz (2 Sätze, pro Seite)
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: "training.hold.start"
+      - extendedWaitUntil:
+          visible:
+            id: "training.hold.time"
+            text: "00:21"
+          timeout: 40000
+      - tapOn:
+          id: "training.hold.stop"
+      - tapOn:
+          id: "training.hold.switchSide"
+      - extendedWaitUntil:
+          visible:
+            id: "training.hold.time"
+            text: "00:23"
+          timeout: 40000
+      - tapOn:
+          id: "training.hold.stop"
+      - runFlow: common/set-done.yaml
+# Hängendes Knieheben (2) — letzter Satz führt in die Zusammenfassung
+- runFlow: common/set-done.yaml
+- tapOn:
+    id: "training.input.done"
+
+# --- Abschluss --------------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.intensity.normal"
+    timeout: 20000
+- tapOn:
+    id: "training.summary.intensity.normal"
+- tapOn:
+    id: "training.summary.done"
+- extendedWaitUntil:
+    visible:
+      id: "training.next.card"
+    timeout: 30000
+
+# --- Heute-Tab: 2/4, Wochenpunkte Mo (Ps) und Di (Pl) ----------------------
+- tapOn:
+    id: "home.tab.today"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "2/4"
+- takeScreenshot: .maestro/screenshots/tag5/04-heute-2-von-4

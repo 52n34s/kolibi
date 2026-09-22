@@ -1,0 +1,10 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.templateEdit.name"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Wochentage"
+- tapOn: "Wochentage"
+- waitForAnimationToEnd:
+    timeout: 3000

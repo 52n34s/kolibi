@@ -1,0 +1,7 @@
+appId: com.steffen.kolibi
+---
+# Wochentag in Einheitsfarbe
+- tapOn:
+    id: "training.templateEdit.weekday.6"
+- waitForAnimationToEnd:
+    timeout: 2000

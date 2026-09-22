@@ -1,0 +1,8 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.catalog.item.f8321640-caf2-4776-8e34-fe4e0917660d"
+- extendedWaitUntil:
+    visible:
+      id: "training.exerciseEdit.perSide"
+    timeout: 15000

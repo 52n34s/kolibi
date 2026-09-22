@@ -1,0 +1,19 @@
+appId: com.steffen.kolibi
+---
+- assertVisible: "Neue Übung"
+- tapOn:
+    id: "training.exerciseEdit.name"
+- inputText: "Test-Übung"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn: "Neue Übung"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: "training.exerciseEdit.kind.time"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "training.exerciseEdit.perSide"
+- waitForAnimationToEnd:
+    timeout: 1500

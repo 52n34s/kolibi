@@ -1,0 +1,11 @@
+# Open the Training tab from wherever the app currently is.
+appId: com.steffen.kolibi
+---
+- extendedWaitUntil:
+    visible:
+      id: "home.tab.training"
+    timeout: 30000
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 5000

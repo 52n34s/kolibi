@@ -1,0 +1,18 @@
+# Zeit-Sätze abschliessen.
+#
+# "Satz fertig" MUSS unmittelbar nach dem Halte-Stopp kommen: TrainingSetInput
+# setzt timeReady im Effekt wieder auf false, sobald sich set.value ändert
+# (Befund B7). Wer erst wartet, sieht nur noch den Halte-Timer.
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.input.done"
+- runFlow:
+    when:
+      visible:
+        id: "training.timerBar.skip"
+    commands:
+      - tapOn:
+          id: "training.timerBar.skip"
+      - waitForAnimationToEnd:
+          timeout: 2000

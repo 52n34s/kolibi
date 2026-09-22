@@ -1,0 +1,10 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.exerciseEdit.image"
+- extendedWaitUntil:
+    visible: "Mediathek"
+    timeout: 8000
+- tapOn: "Mediathek"
+- waitForAnimationToEnd:
+    timeout: 10000

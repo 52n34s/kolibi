@@ -1,0 +1,11 @@
+appId: com.steffen.kolibi
+---
+- runFlow: ../common/launch.yaml
+- tapOn:
+    point: "90%,11%"
+- extendedWaitUntil:
+    visible: "Einstellungen"
+    timeout: 15000
+- tapOn: "Einstellungen"
+- waitForAnimationToEnd:
+    timeout: 4000

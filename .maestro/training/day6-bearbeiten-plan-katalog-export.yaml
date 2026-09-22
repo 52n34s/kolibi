@@ -1,0 +1,327 @@
+# TAG 6 · Bearbeiten, Nachtragen, Plan, Katalog, Export
+#
+# TEILWEISE AUSFÜHRBAR. Ohne Fix des randomUUID-Blockers scheitern:
+#   - "Einheit nachtragen" (session-logic.ts:37)
+#   - Plan-Editor → Übungen hinzufügen (workout-template-edit.tsx:110)
+#   - Katalog → eigene Übung anlegen (exercise-edit.tsx:303, als
+#     "Speichern fehlgeschlagen." verschluckt)
+#   - Session-Detail → Satz/Übung hinzufügen (workout-session/[id].tsx:238,421)
+# Die Fortschritts- und Export-Blöcke laufen auch ohne Fix — mit leeren Daten,
+# solange keine Einheit gespeichert werden kann.
+appId: com.steffen.kolibi
+---
+- runFlow: common/launch.yaml
+
+# ==================== Fortschritt → Training (7 / 30 Tage) =================
+- tapOn:
+    id: "home.tab.history"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: "history.area.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "history.training.week"
+- assertVisible:
+    id: "history.training.bests"
+- assertVisible:
+    id: "history.training.volume"
+- assertVisible: "Letzte Einheiten"
+- assertVisible: "Übungen"
+- takeScreenshot: .maestro/screenshots/tag6/20-fortschritt-training-7tage
+# 30 Tage
+- tapOn:
+    id: "history.range.30"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: .maestro/screenshots/tag6/21-fortschritt-training-30tage
+
+# ==================== Übungsverlauf Klimmzüge ==============================
+- scrollUntilVisible:
+    element: "Klimmzüge"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Klimmzüge"
+- extendedWaitUntil:
+    visible: "Verlauf"
+    timeout: 15000
+- assertVisible: "Linie: bester Satz · hell: Summe"
+- assertVisible: "Einheiten"
+- takeScreenshot: .maestro/screenshots/tag6/22-uebungsverlauf-klimmzuege
+- back
+
+# ==================== Einheit von Tag 2 bearbeiten =========================
+- tapOn:
+    id: "history.range.7"
+- waitForAnimationToEnd:
+    timeout: 4000
+- scrollUntilVisible:
+    element: "Letzte Einheiten"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Push"
+- extendedWaitUntil:
+    visible:
+      id: "training.sessionDetail.date"
+    timeout: 15000
+- takeScreenshot: .maestro/screenshots/tag6/23-session-detail
+# Einen Satzwert ändern (Barren-Dips, Satz 1)
+- tapOn:
+    id: "training.sessionDetail.set.2.0"
+- extendedWaitUntil:
+    visible: "Satzwert"
+    timeout: 8000
+- eraseText
+- inputText: "7"
+- tapOn: "OK"
+# Datum auf 2026-09-18
+- tapOn:
+    id: "training.sessionDetail.date"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: .maestro/screenshots/tag6/24-datum-picker
+# (Datumsrad: 18.09.2026 wählen, dann bestätigen)
+- tapOn: "Fertig"
+# Intensität normal
+- tapOn:
+    id: "training.sessionDetail.intensity.normal"
+- tapOn: "Speichern"
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: .maestro/screenshots/tag6/25-session-gespeichert
+
+# ==================== Einheit nachtragen ===================================
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+# Mitte des Links liegt unter der Scan-Leiste (Befund B1) — linke Kante tippen.
+- tapOn:
+    point: "10%,88%"
+- extendedWaitUntil:
+    visible: "Welche Einheit?"
+    timeout: 15000
+- tapOn:
+    id: "training.backfill.template.Pl"
+- extendedWaitUntil:
+    visible:
+      id: "training.backfill.duration"
+    timeout: 10000
+- tapOn:
+    id: "training.backfill.date"
+- waitForAnimationToEnd:
+    timeout: 4000
+# (Datumsrad: 16.09.2026 wählen, dann bestätigen)
+- tapOn: "Fertig"
+- tapOn:
+    id: "training.backfill.duration"
+- eraseText
+- inputText: "45"
+- hideKeyboard
+- tapOn:
+    id: "training.backfill.intensity.normal"
+- tapOn:
+    id: "training.backfill.next"
+- extendedWaitUntil:
+    visible:
+      id: "training.backfill.save"
+    timeout: 15000
+- takeScreenshot: .maestro/screenshots/tag6/26-nachtragen-saetze
+- tapOn:
+    id: "training.backfill.save"
+- waitForAnimationToEnd:
+    timeout: 10000
+# Rotation darf sich durch den Nachtrag NICHT verschieben
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Push"
+- takeScreenshot: .maestro/screenshots/tag6/27-rotation-unveraendert
+
+# ==================== Katalog: eigene Übung anlegen ========================
+- tapOn:
+    point: "90%,11%"
+- extendedWaitUntil:
+    visible:
+      id: "goals.workoutPlan"
+    timeout: 15000
+- tapOn:
+    id: "goals.workoutPlan"
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.catalog"
+    timeout: 15000
+- tapOn:
+    id: "training.plan.catalog"
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.add"
+    timeout: 15000
+- tapOn:
+    id: "training.catalog.add"
+- extendedWaitUntil:
+    visible:
+      id: "training.exerciseEdit.name"
+    timeout: 15000
+- tapOn:
+    id: "training.exerciseEdit.name"
+- inputText: "Test-Übung"
+- hideKeyboard
+- tapOn:
+    id: "training.exerciseEdit.kind.time"
+- tapOn:
+    id: "training.exerciseEdit.perSide"
+# Foto aus der Mediathek (vorher via `xcrun simctl addmedia` eingespielt)
+- tapOn:
+    id: "training.exerciseEdit.image"
+- extendedWaitUntil:
+    visible: "Mediathek"
+    timeout: 8000
+- tapOn: "Mediathek"
+- waitForAnimationToEnd:
+    timeout: 8000
+- tapOn:
+    point: "20%,30%"
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: .maestro/screenshots/tag6/28-neue-uebung-mit-bild
+- tapOn:
+    id: "training.exerciseEdit.save"
+- waitForAnimationToEnd:
+    timeout: 12000
+- assertVisible: "Test-Übung"
+- takeScreenshot: .maestro/screenshots/tag6/29-katalog-mit-test-uebung
+
+# ==================== Plan-Editor: neue Einheit "Legs" =====================
+- back
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.add"
+    timeout: 15000
+- tapOn:
+    id: "training.plan.add"
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.name"
+    timeout: 15000
+- tapOn:
+    id: "training.templateEdit.name"
+- inputText: "Legs"
+- hideKeyboard
+# Kürzel muss automatisch vorbelegt sein
+- assertVisible:
+    id: "training.templateEdit.shortLabel"
+    text: "L"
+- tapOn:
+    id: "training.templateEdit.color.amber"
+- tapOn:
+    id: "training.templateEdit.weekday.6"
+- tapOn:
+    id: "training.templateEdit.addExercises"
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.search"
+    timeout: 15000
+- tapOn: "Test-Übung"
+- tapOn:
+    id: "training.catalog.item.bulgarian_split_squat"
+- tapOn:
+    point: "50%,89%"
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.save"
+    timeout: 15000
+# Bulgarian Split Squats: Bereich 8–12
+- tapOn:
+    id: "training.templateEdit.exercise.1.range"
+- tapOn:
+    id: "training.templateEdit.exercise.1.min"
+- eraseText
+- inputText: "8"
+- tapOn:
+    id: "training.templateEdit.exercise.1.max"
+- eraseText
+- inputText: "12"
+- hideKeyboard
+- takeScreenshot: .maestro/screenshots/tag6/30-neue-einheit-legs
+- tapOn:
+    id: "training.templateEdit.save"
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.item.L"
+    timeout: 15000
+- takeScreenshot: .maestro/screenshots/tag6/31-plan-mit-legs
+# Training-Tab muss Legs zeigen
+- back
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Legs"
+- takeScreenshot: .maestro/screenshots/tag6/32-training-tab-mit-legs
+
+# ==================== Aufräumen: Legs und Test-Übung archivieren ===========
+- tapOn:
+    point: "90%,11%"
+- extendedWaitUntil:
+    visible:
+      id: "goals.workoutPlan"
+    timeout: 15000
+- tapOn:
+    id: "goals.workoutPlan"
+- tapOn:
+    id: "training.plan.item.L"
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.delete"
+    timeout: 15000
+- tapOn:
+    id: "training.templateEdit.delete"
+- tapOn: "Löschen"
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.catalog"
+    timeout: 15000
+- tapOn:
+    id: "training.plan.catalog"
+- extendedWaitUntil:
+    visible: "Test-Übung"
+    timeout: 15000
+- tapOn: "Test-Übung"
+- extendedWaitUntil:
+    visible:
+      id: "training.exerciseEdit.archive"
+    timeout: 15000
+- tapOn:
+    id: "training.exerciseEdit.archive"
+- tapOn: "Entfernen"
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: .maestro/screenshots/tag6/33-aufgeraeumt
+
+# ==================== Export: 7 Tage, alle Bereiche, Frage =================
+- tapOn:
+    id: "home.tab.history"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: "history.export"
+- extendedWaitUntil:
+    visible:
+      id: "export.share"
+    timeout: 20000
+- tapOn:
+    id: "export.days.7"
+- assertVisible:
+    id: "export.section.nutrition"
+- assertVisible:
+    id: "export.section.training"
+- assertVisible:
+    id: "export.section.body"
+- assertVisible:
+    id: "export.question"
+- waitForAnimationToEnd:
+    timeout: 6000
+- takeScreenshot: .maestro/screenshots/tag6/34-export

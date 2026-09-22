@@ -1,0 +1,5 @@
+appId: com.steffen.kolibi
+---
+- tapOn: "Bild erneut hochladen"
+- waitForAnimationToEnd:
+    timeout: 12000

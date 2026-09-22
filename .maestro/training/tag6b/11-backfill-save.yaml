@@ -1,0 +1,11 @@
+appId: com.steffen.kolibi
+---
+- scrollUntilVisible:
+    element:
+      id: "training.backfill.save"
+    direction: DOWN
+    timeout: 25000
+- tapOn:
+    id: "training.backfill.save"
+- waitForAnimationToEnd:
+    timeout: 12000

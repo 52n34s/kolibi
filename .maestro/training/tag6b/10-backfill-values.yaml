@@ -1,0 +1,17 @@
+appId: com.steffen.kolibi
+---
+# Zwei Werte ändern: Klimmzüge Satz 1 (3 -> 5), Chin-ups Satz 2 (3 -> 4)
+- tapOn:
+    id: "training.backfill.set.1.0"
+- eraseText
+- inputText: "5"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: "training.backfill.set.2.1"
+- eraseText
+- inputText: "4"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 2000

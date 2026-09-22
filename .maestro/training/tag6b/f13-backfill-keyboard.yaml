@@ -1,0 +1,34 @@
+appId: com.steffen.kolibi
+---
+- runFlow: ../common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "training.backfill.open"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "training.backfill.open"
+- extendedWaitUntil:
+    visible:
+      id: "training.backfill.template.Ps"
+    timeout: 15000
+- tapOn:
+    id: "training.backfill.template.Ps"
+- extendedWaitUntil:
+    visible:
+      id: "training.backfill.next"
+    timeout: 10000
+- tapOn:
+    id: "training.backfill.next"
+- extendedWaitUntil:
+    visible:
+      id: "training.backfill.set.0.0"
+    timeout: 15000
+- tapOn:
+    id: "training.backfill.set.0.0"
+- waitForAnimationToEnd:
+    timeout: 4000

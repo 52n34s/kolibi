@@ -1,0 +1,26 @@
+appId: com.steffen.kolibi
+---
+- runFlow: ../common/launch.yaml
+- tapOn:
+    id: "home.tab.history"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: "history.area.training"
+- waitForAnimationToEnd:
+    timeout: 6000
+- scrollUntilVisible:
+    element:
+      id: "history.training.session.7b98feb1-2882-4106-8174-a6b2c301ab41"
+    direction: DOWN
+    timeout: 25000
+- tapOn:
+    id: "history.training.session.7b98feb1-2882-4106-8174-a6b2c301ab41"
+- extendedWaitUntil:
+    visible:
+      id: "training.sessionDetail.date"
+    timeout: 20000
+- tapOn:
+    id: "training.sessionDetail.date"
+- waitForAnimationToEnd:
+    timeout: 4000

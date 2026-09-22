@@ -1,0 +1,4 @@
+# Maestro config for the Kolibi training-tab end-to-end run.
+# Screenshots land in .maestro/screenshots/<tag>/ (see flow-level env SHOT_DIR).
+flows:
+  - training/*.yaml

@@ -1,0 +1,17 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    point: "63%,37%"
+- extendedWaitUntil:
+    visible: "Aus Galerie wählen"
+    timeout: 8000
+- tapOn: "Aus Galerie wählen"
+- waitForAnimationToEnd:
+    timeout: 10000
+- tapOn:
+    point: "16%,24%"
+- waitForAnimationToEnd:
+    timeout: 6000
+- tapOn: "Choose"
+- waitForAnimationToEnd:
+    timeout: 12000

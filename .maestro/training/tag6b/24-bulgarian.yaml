@@ -1,0 +1,11 @@
+appId: com.steffen.kolibi
+---
+- scrollUntilVisible:
+    element:
+      id: "training.catalog.item.bulgarian_split_squat"
+    direction: DOWN
+    timeout: 25000
+- tapOn:
+    id: "training.catalog.item.bulgarian_split_squat"
+- waitForAnimationToEnd:
+    timeout: 2500

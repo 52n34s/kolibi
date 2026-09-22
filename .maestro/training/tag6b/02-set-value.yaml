@@ -1,0 +1,12 @@
+# Tag 6 · Prüfung 1b — einen Satzwert ändern (Liegestütze Satz 2: 7 -> 9)
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.sessionDetail.set.4aacee8c-6951-47fd-9177-b504addfb71a.1"
+- waitForAnimationToEnd:
+    timeout: 3000
+- eraseText
+- inputText: "9"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 4000

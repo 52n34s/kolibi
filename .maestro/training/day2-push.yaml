@@ -1,0 +1,186 @@
+# TAG 2 · Push · "Abweichen und korrigieren"
+#
+# Push (17 Sätze): 0 Y-T-W 1×6 · 1 Liegestütze auf Parallettes 3×8–12
+#   2 Barren-Dips 3×5–10 · 3 Bankdips 3×8–12 · 4 Pike Push-ups 3×6–10
+#   5 Hollow Hold 2×20–30 s · 6 L-Sit angehockt 2×10–20 s
+appId: com.steffen.kolibi
+---
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# --- Rotation: nach Pull & Legs muss Push dran sein ------------------------
+- assertVisible:
+    id: "training.next.card"
+- assertVisible: "Push"
+- takeScreenshot: .maestro/screenshots/tag2/01-naechstes-push
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+
+# --- Y-T-W: Satz 1 unverändert --------------------------------------------
+- runFlow: common/set-done.yaml
+
+# --- Liegestütze auf Parallettes ------------------------------------------
+- assertVisible: "Liegestütze auf Parallettes"
+# Satz 1: 8 → +1 +1 = 10
+- tapOn:
+    id: "training.input.plus"
+- tapOn:
+    id: "training.input.plus"
+- assertVisible:
+    id: "training.input.value"
+    text: "10"
+- runFlow: common/set-done.yaml
+# Satz 2: 8 → −1 = 7
+- tapOn:
+    id: "training.input.minus"
+- assertVisible:
+    id: "training.input.value"
+    text: "7"
+- runFlow: common/set-done.yaml
+# Satz 3: Direkteingabe 12
+- tapOn:
+    id: "training.input.value"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.valueInput"
+    timeout: 8000
+- eraseText
+- inputText: "12"
+- takeScreenshot: .maestro/screenshots/tag2/02-direkteingabe-tastatur
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: "training.input.value"
+      text: "12"
+    timeout: 8000
+- runFlow: common/set-done.yaml
+
+# --- Barren-Dips: alle drei Sätze +1 (5 → 6) ------------------------------
+- assertVisible: "Barren-Dips"
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: "training.input.plus"
+      - runFlow: common/set-done.yaml
+# Korrektur VOR Satz 3 — nach dem letzten Satz steht der Cursor schon
+# auf der naechsten Uebung und training.set.* zeigt auf deren Chips.
+- tapOn:
+    id: "training.set.1"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+      text: "Speichern"
+    timeout: 8000
+- tapOn:
+    id: "training.input.minus"
+- tapOn:
+    id: "training.input.minus"
+- assertVisible:
+    id: "training.input.value"
+    text: "4"
+- takeScreenshot: .maestro/screenshots/tag2/03-satz-korrigiert
+- tapOn:
+    id: "training.input.done"
+# Satz 3 ebenfalls mit +1
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+      text: "Satz fertig"
+    timeout: 10000
+- tapOn:
+    id: "training.input.plus"
+- runFlow: common/set-done.yaml
+
+# --- Bankdips: erster Satz, dann Pause pausieren/fortsetzen/+30 -----------
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 20000
+- tapOn:
+    id: "training.input.done"
+- extendedWaitUntil:
+    visible:
+      id: "training.timerBar.pause"
+    timeout: 15000
+- tapOn:
+    id: "training.timerBar.pause"
+- assertVisible:
+    id: "training.timerBar.resume"
+- takeScreenshot: .maestro/screenshots/tag2/04-pause-pausiert
+- tapOn:
+    id: "training.timerBar.resume"
+- tapOn:
+    id: "training.timerBar.plus30"
+- extendedWaitUntil:
+    visible:
+      id: "training.timerBar.time"
+      text: "Weiter geht's"
+    timeout: 120000
+- takeScreenshot: .maestro/screenshots/tag2/05-pause-abgelaufen
+- tapOn:
+    id: "training.timerBar.skip"
+# Bankdips Satz 2+3, Pike Push-ups 3
+- repeat:
+    times: 5
+    commands:
+      - runFlow: common/set-done.yaml
+
+# --- Hollow Hold: beide Sätze über die obere Grenze (30 s) ---------------
+- assertVisible: "Hollow Hold"
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: "training.hold.start"
+      - extendedWaitUntil:
+          visible:
+            id: "training.hold.time"
+            text: "00:31"
+          timeout: 50000
+      - tapOn:
+          id: "training.hold.stop"
+      - runFlow: common/hold-set-done.yaml
+
+# --- L-Sit angehockt: stoppen, dann ±5 s korrigieren ---------------------
+- assertVisible: "L-Sit angehockt"
+- tapOn:
+    id: "training.hold.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: "00:12"
+    timeout: 30000
+- tapOn:
+    id: "training.hold.stop"
+- tapOn:
+    id: "training.input.plus"
+- tapOn:
+    id: "training.input.minus"
+- takeScreenshot: .maestro/screenshots/tag2/06-lsit-korrigiert
+- runFlow: common/hold-set-done.yaml
+- tapOn:
+    id: "training.hold.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: "00:12"
+    timeout: 30000
+- tapOn:
+    id: "training.hold.stop"
+- tapOn:
+    id: "training.input.done"
+
+# --- Abschluss -----------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.intensity.hard"
+    timeout: 30000
+- takeScreenshot: .maestro/screenshots/tag2/07-zusammenfassung

@@ -1,0 +1,9 @@
+appId: com.steffen.kolibi
+---
+- assertVisible:
+    id: "training.templateEdit.name"
+- tapOn:
+    id: "training.templateEdit.name"
+- inputText: "Legs"
+- waitForAnimationToEnd:
+    timeout: 2500

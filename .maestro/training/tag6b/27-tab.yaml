@@ -1,0 +1,11 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.catalog.back"
+- waitForAnimationToEnd:
+    timeout: 4000
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 6000
+- assertVisible: "Legs"

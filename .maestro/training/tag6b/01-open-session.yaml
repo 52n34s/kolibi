@@ -1,0 +1,27 @@
+# Tag 6 · Prüfung 1a — Session vom 17.09. (Push) öffnen
+appId: com.steffen.kolibi
+---
+- runFlow: ../common/launch.yaml
+- tapOn:
+    id: "home.tab.history"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: "history.area.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: "history.range.7"
+- waitForAnimationToEnd:
+    timeout: 4000
+- scrollUntilVisible:
+    element:
+      id: "history.training.session.d62e30e6-87ac-4348-8f06-bcbffe61700a"
+    direction: DOWN
+    timeout: 25000
+- tapOn:
+    id: "history.training.session.d62e30e6-87ac-4348-8f06-bcbffe61700a"
+- extendedWaitUntil:
+    visible:
+      id: "training.sessionDetail.date"
+    timeout: 15000

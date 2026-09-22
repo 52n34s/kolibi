@@ -1,0 +1,104 @@
+# Alles, was OHNE eine gestartete Einheit prüfbar ist.
+# (Tag 1–5 und die Schreibteile von Tag 6 sind durch den randomUUID-Blocker
+#  nicht erreichbar — siehe blocker-repro.yaml.)
+appId: com.steffen.kolibi
+---
+- launchApp:
+    clearState: false
+    clearKeychain: false
+- extendedWaitUntil:
+    visible:
+      id: "home.tab.today"
+    timeout: 60000
+
+# --- Heute-Tab: Trainingszeile + Wochenpunkte (Ausgangslage) ----------------
+- assertVisible: "Training"
+- takeScreenshot: .maestro/screenshots/ausgangslage/01-heute-trainingszeile
+
+# --- Training-Tab: Idle-Ansicht ---------------------------------------------
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: "training.next.card"
+- assertVisible: "ALS NÄCHSTES"
+- assertVisible: "Pull & Legs"
+- assertVisible: "zuletzt: noch nie"
+- assertVisible: "10 Übungen · ca. 53 min"
+- assertVisible: "Ps · Push"
+- assertVisible: "7 Übungen · ca. 37 min"
+- takeScreenshot: .maestro/screenshots/ausgangslage/02-training-idle
+
+# --- Timer-Card auf 30 s (Default 120 s → 6 × −15) --------------------------
+- assertVisible:
+    id: "training.timerCard.time"
+    text: "02:00"
+- repeat:
+    times: 6
+    commands:
+      - tapOn:
+          id: "training.timerCard.minus15"
+- assertVisible:
+    id: "training.timerCard.time"
+    text: "00:30"
+- takeScreenshot: .maestro/screenshots/tag1/03-timercard-30s
+
+# --- 30 s überleben den App-Neustart ----------------------------------------
+- launchApp:
+    clearState: false
+    clearKeychain: false
+- extendedWaitUntil:
+    visible:
+      id: "home.tab.training"
+    timeout: 60000
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible:
+    id: "training.timerCard.time"
+    text: "00:30"
+- takeScreenshot: .maestro/screenshots/tag1/04-timercard-30s-nach-neustart
+
+# --- Pausentimer: Start / Pause / Fortsetzen / +30 / Stopp ------------------
+- tapOn:
+    id: "training.timerCard.start"
+- runFlow: common/allow-notifications.yaml
+- extendedWaitUntil:
+    visible:
+      id: "training.timerCard.pause"
+    timeout: 10000
+- takeScreenshot: .maestro/screenshots/tag1/14-timer-laeuft
+- tapOn:
+    id: "training.timerCard.pause"
+- assertVisible:
+    id: "training.timerCard.resume"
+- takeScreenshot: .maestro/screenshots/tag1/15-timer-pausiert
+- tapOn:
+    id: "training.timerCard.plus15"
+- tapOn:
+    id: "training.timerCard.resume"
+- assertVisible:
+    id: "training.timerCard.pause"
+- tapOn:
+    id: "training.timerCard.stop"
+- assertVisible:
+    id: "training.timerCard.start"
+
+# --- Standard-Pausendauer wieder auf 120 s zurückstellen -------------------
+- repeat:
+    times: 6
+    commands:
+      - tapOn:
+          id: "training.timerCard.plus15"
+- assertVisible:
+    id: "training.timerCard.time"
+    text: "02:00"
+
+# --- Fortschritt → Training --------------------------------------------------
+- tapOn:
+    id: "home.tab.history"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: .maestro/screenshots/tag6/10-fortschritt-training

@@ -1,0 +1,27 @@
+appId: com.steffen.kolibi
+---
+- runFlow: ../common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "training.idle.editPlan"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "training.idle.editPlan"
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.item.Ps"
+    timeout: 15000
+- tapOn:
+    id: "training.plan.item.Ps"
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.shortLabel"
+    timeout: 15000
+- assertVisible:
+    id: "training.templateEdit.shortLabel"
+    text: "Ps"

@@ -1,0 +1,6 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.sessionDetail.intensity.normal"
+- waitForAnimationToEnd:
+    timeout: 5000

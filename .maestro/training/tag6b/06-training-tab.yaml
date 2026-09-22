@@ -1,0 +1,6 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 6000

@@ -1,0 +1,15 @@
+# Der Dev-Build zeigt dauerhaft einen roten Toast
+# "[RevenueCat] configure failed: Error: Invalid API key" am unteren Rand.
+# Er liegt auf ~[10,800]-[392,822] und verschluckt Taps auf fixierte
+# Unten-Buttons (Katalog "Hinzufügen", Plan "Speichern"). Reines
+# Umgebungsproblem, aber es muss vor jeder Interaktion weg.
+appId: com.steffen.kolibi
+---
+- runFlow:
+    when:
+      visible: ".*RevenueCat.*"
+    commands:
+      - tapOn:
+          point: "96%,94%"
+      - waitForAnimationToEnd:
+          timeout: 2000

@@ -1,0 +1,219 @@
+# TAG 3 · Pull & Legs · "Störungen"
+#
+# NICHT AUSFÜHRBAR, solange der randomUUID-Blocker besteht (siehe blocker-repro.yaml).
+# Zusätzlich betroffen: "Satz hinzufügen" und "Übung hinzufügen" in der Übersicht
+# rufen ebenfalls session-logic.ts:37 auf.
+#
+# Pull & Legs: 0 Y-T-W · 1 Klimmzüge · 2 Chin-ups · 3 Barren-Rudern
+#   4 Rucksack-Rudern einarmig · 5 Rucksack-Curls · 6 Bulgarian Split Squats
+#   7 Einbeiniges Beckenheben · 8 Seitstütz · 9 Hängendes Knieheben
+appId: com.steffen.kolibi
+---
+- runFlow: common/launch.yaml
+- runFlow: common/open-training.yaml
+- assertVisible: "Pull & Legs"
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 20000
+
+# --- Klimmzüge: über die Übersicht einen vierten Satz anlegen ---------------
+- runFlow: common/set-done.yaml
+- assertVisible: "Klimmzüge"
+- tapOn:
+    id: "training.overview.open"
+- extendedWaitUntil:
+    visible: "Übungen"
+    timeout: 8000
+# Aktionen liegen jetzt hinter dem "Mehr"-Symbol der Zeile
+- tapOn:
+    id: "training.overview.exercise.1.more"
+- tapOn:
+    id: "training.overview.exercise.1.addSet"
+- takeScreenshot: .maestro/screenshots/tag3/01-klimmzuege-4-saetze
+# Übersicht per Close-Button schließen
+- tapOn:
+    id: "training.overview.closeButton"
+- assertVisible: "Übung 2/10 · Satz 1/4"
+- repeat:
+    times: 4
+    commands:
+      - runFlow: common/set-done.yaml
+
+# --- Übung 3 (Chin-ups): App hart neu starten -------------------------------
+- assertVisible: "Chin-ups"
+- runFlow: common/set-done.yaml
+- assertVisible: "Übung 3/10 · Satz 2/3"
+- takeScreenshot: .maestro/screenshots/tag3/02-vor-neustart
+- stopApp
+- launchApp:
+    clearState: false
+    clearKeychain: false
+- extendedWaitUntil:
+    visible:
+      id: "home.tab.training"
+    timeout: 60000
+- tapOn:
+    id: "home.tab.training"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 20000
+# Cursor muss auf demselben Satz stehen, erledigte Sätze müssen erhalten sein
+- assertVisible: "Übung 3/10 · Satz 2/3"
+- assertVisible: "Chin-ups"
+- takeScreenshot: .maestro/screenshots/tag3/03-nach-neustart
+
+# --- Laufende Pause: App in den Hintergrund, 20 s, zurück -------------------
+- runFlow: common/set-done.yaml
+- tapOn:
+    id: "training.input.done"
+- extendedWaitUntil:
+    visible:
+      id: "training.timerBar.time"
+    timeout: 10000
+- takeScreenshot: .maestro/screenshots/tag3/04-pause-vor-hintergrund
+- pressKey: Home
+- extendedWaitUntil:
+    notVisible:
+      id: "training.timerBar.time"
+    timeout: 10000
+# 20 s im Hintergrund warten
+- swipe:
+    start: "50%,50%"
+    end: "50%,50%"
+    duration: 20000
+- launchApp:
+    clearState: false
+    clearKeychain: false
+- extendedWaitUntil:
+    visible:
+      id: "training.timerBar.time"
+    timeout: 30000
+- takeScreenshot: .maestro/screenshots/tag3/05-pause-nach-hintergrund
+- tapOn:
+    id: "training.timerBar.skip"
+
+# --- Barren-Rudern (3) ------------------------------------------------------
+- repeat:
+    times: 3
+    commands:
+      - runFlow: common/set-done.yaml
+
+# --- Übersicht: Reihenfolge und Überspringen --------------------------------
+- tapOn:
+    id: "training.overview.open"
+- extendedWaitUntil:
+    visible: "Übungen"
+    timeout: 8000
+# Bulgarian Split Squats (Index 6) zweimal hoch → vor Rucksack-Rudern (Index 4)
+- tapOn:
+    id: "training.overview.exercise.6.more"
+- tapOn:
+    id: "training.overview.exercise.6.up"
+- tapOn:
+    id: "training.overview.exercise.5.more"
+- tapOn:
+    id: "training.overview.exercise.5.up"
+- takeScreenshot: .maestro/screenshots/tag3/06-uebersicht-umsortiert
+# Übersicht per Backdrop schließen
+- tapOn:
+    id: "training.overview.backdrop"
+- assertNotVisible: "Übungen"
+
+# Bulgarian Split Squats sind jetzt Übung 5
+- assertVisible: "Bulgarian Split Squats"
+- repeat:
+    times: 3
+    commands:
+      - runFlow: common/set-done.yaml
+- repeat:
+    times: 3
+    commands:
+      - runFlow: common/set-done.yaml
+
+# --- Rucksack-Curls überspringen --------------------------------------------
+- assertVisible: "Rucksack-Curls"
+- tapOn:
+    id: "training.overview.open"
+- extendedWaitUntil:
+    visible: "Übungen"
+    timeout: 8000
+- tapOn:
+    id: "training.overview.exercise.6.more"
+- tapOn:
+    id: "training.overview.exercise.6.skip"
+- assertNotVisible: "Rucksack-Curls"
+- takeScreenshot: .maestro/screenshots/tag3/07-rucksack-curls-uebersprungen
+
+# --- Einbeiniges Beckenheben (2), Seitstütz (2), Hängendes Knieheben (2) ----
+- repeat:
+    times: 2
+    commands:
+      - runFlow: common/set-done.yaml
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: "training.hold.start"
+      - extendedWaitUntil:
+          visible:
+            id: "training.hold.time"
+            text: "00:22"
+          timeout: 40000
+      - tapOn:
+          id: "training.hold.stop"
+      - tapOn:
+          id: "training.hold.switchSide"
+      - extendedWaitUntil:
+          visible:
+            id: "training.hold.time"
+            text: "00:24"
+          timeout: 40000
+      - tapOn:
+          id: "training.hold.stop"
+      - runFlow: common/set-done.yaml
+- repeat:
+    times: 2
+    commands:
+      - runFlow: common/set-done.yaml
+
+# --- Pike Push-ups nur für diese Session ergänzen ---------------------------
+- tapOn:
+    id: "training.overview.open"
+- extendedWaitUntil:
+    visible: "Übungen"
+    timeout: 8000
+- tapOn:
+    id: "training.overview.addExercise"
+- extendedWaitUntil:
+    visible: "Übung suchen"
+    timeout: 8000
+- inputText: "Pike"
+- tapOn: "Pike Push-ups"
+- extendedWaitUntil:
+    visible: "Pike Push-ups"
+    timeout: 10000
+- takeScreenshot: .maestro/screenshots/tag3/08-pike-pushups-ergaenzt
+- repeat:
+    times: 3
+    commands:
+      - runFlow: common/set-done.yaml
+
+# --- Abschluss: Pike Push-ups NICHT zur Vorlage, Intensität locker ----------
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.intensity.easy"
+    timeout: 20000
+- takeScreenshot: .maestro/screenshots/tag3/09-zusammenfassung
+- tapOn:
+    id: "training.summary.intensity.easy"
+- tapOn:
+    id: "training.summary.done"
+- extendedWaitUntil:
+    visible:
+      id: "training.next.card"
+    timeout: 30000
+- takeScreenshot: .maestro/screenshots/tag3/10-nach-abschluss

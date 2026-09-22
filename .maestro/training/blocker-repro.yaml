@@ -1,0 +1,188 @@
+# REGRESSION · globalThis.crypto.randomUUID() in Hermes
+#
+# War der Blocker des ersten Laufs: jeder Schreibpfad, der eine ID erzeugt,
+# starb an "Cannot read property 'randomUUID' of undefined".
+# Seit src/lib/id.ts gibt es newId(); dieser Flow fährt alle vier
+# Einstiegspunkte ab und besteht nur, wenn KEINER mehr abbricht.
+appId: com.steffen.kolibi
+---
+# --- 1) Einheit starten → session-logic.ts:37 -------------------------------
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+- assertNotVisible: "Cannot read property 'randomUUID' of undefined"
+- takeScreenshot: .maestro/screenshots/regression/01-start-session
+# Session wieder verwerfen, damit der Rest sauber startet
+- tapOn:
+    id: "training.active.finish"
+- extendedWaitUntil:
+    visible: "Verwerfen"
+    timeout: 10000
+- tapOn: "Verwerfen"
+- extendedWaitUntil:
+    visible:
+      id: "training.next.card"
+    timeout: 20000
+
+# --- 2) Einheit nachtragen → Weiter → session-logic.ts:37 -------------------
+- tapOn:
+    id: "training.backfill.open"
+- extendedWaitUntil:
+    visible: "Welche Einheit?"
+    timeout: 15000
+- tapOn:
+    id: "training.backfill.template.Pl"
+- extendedWaitUntil:
+    visible:
+      id: "training.backfill.next"
+    timeout: 15000
+- tapOn:
+    id: "training.backfill.next"
+# Die Satz-Felder existieren nur, wenn buildBackfillSession durchgelaufen ist
+- extendedWaitUntil:
+    visible:
+      id: "training.backfill.set.0.0"
+    timeout: 20000
+- assertVisible:
+    id: "training.backfill.set.1.2"
+- assertNotVisible: "Cannot read property 'randomUUID' of undefined"
+- takeScreenshot: .maestro/screenshots/regression/02-nachtragen
+- back
+
+# --- 3) Plan → Einheit → Übung hinzufügen → workout-template-edit.tsx:120 ---
+- runFlow: common/launch.yaml
+- tapOn:
+    point: "90%,11%"
+- extendedWaitUntil:
+    visible:
+      id: "goals.workoutPlan"
+    timeout: 20000
+- tapOn:
+    id: "goals.workoutPlan"
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.add"
+    timeout: 20000
+- tapOn:
+    id: "training.plan.add"
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.name"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "training.templateEdit.addExercises"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "training.templateEdit.addExercises"
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.confirmSelection"
+    timeout: 20000
+# 39 Katalog-Einträge — über die Suche filtern statt scrollen
+- tapOn:
+    id: "training.catalog.search"
+- inputText: "Bulgarian"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.item.bulgarian_split_squat"
+    timeout: 10000
+- tapOn:
+    id: "training.catalog.item.bulgarian_split_squat"
+- tapOn:
+    id: "training.catalog.confirmSelection"
+# Die Zeile entsteht nur, wenn exerciseToDraft eine ID minten konnte
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.exercise.0.sets"
+    timeout: 20000
+- assertNotVisible: "Cannot read property 'randomUUID' of undefined"
+- takeScreenshot: .maestro/screenshots/regression/03-plan-uebung
+- back
+
+# --- 4) Katalog → eigene Übung anlegen → exercise-edit.tsx:303 --------------
+#     Legt "Repro-Übung" an und archiviert sie sofort wieder, damit der
+#     Katalog für Tag 6 unberührt bleibt.
+- runFlow: common/launch.yaml
+- tapOn:
+    point: "90%,11%"
+- extendedWaitUntil:
+    visible:
+      id: "goals.workoutPlan"
+    timeout: 20000
+- tapOn:
+    id: "goals.workoutPlan"
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.catalog"
+    timeout: 20000
+- tapOn:
+    id: "training.plan.catalog"
+# "Übung hinzufügen" ist das Icon oben rechts, kein Button am unteren Rand.
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.add"
+    timeout: 20000
+- tapOn:
+    id: "training.catalog.add"
+- extendedWaitUntil:
+    visible:
+      id: "training.exerciseEdit.name"
+    timeout: 20000
+- tapOn:
+    id: "training.exerciseEdit.name"
+- inputText: "Repro-Übung"
+# Fokus über den Titel loslassen: hideKeyboard tippt in diesem Formular
+# gelegentlich direkt auf "Speichern" und löst ein Blind-Save aus.
+- tapOn: "Neue Übung"
+- extendedWaitUntil:
+    visible:
+      id: "training.exerciseEdit.save"
+    timeout: 10000
+- tapOn:
+    id: "training.exerciseEdit.save"
+# Erfolg = zurück in der Liste, KEIN "Speichern fehlgeschlagen."
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.add"
+    timeout: 25000
+- assertNotVisible: "Speichern fehlgeschlagen."
+- assertVisible: ".*Repro-Übung.*"
+- takeScreenshot: .maestro/screenshots/regression/04-uebung-angelegt
+
+# Aufräumen: Repro-Übung wieder archivieren.
+# Der Alert-Button heisst wie der Button auf dem Screen — im Alert ist er Index 0.
+- tapOn: ".*Repro-Übung.*"
+- extendedWaitUntil:
+    visible:
+      id: "training.exerciseEdit.archive"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "training.exerciseEdit.archive"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "training.exerciseEdit.archive"
+- extendedWaitUntil:
+    visible: "Übung entfernen?"
+    timeout: 10000
+- tapOn:
+    text: "Übung entfernen"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.add"
+    timeout: 20000
+- assertNotVisible: ".*Repro-Übung.*"
+- takeScreenshot: .maestro/screenshots/regression/05-aufgeraeumt

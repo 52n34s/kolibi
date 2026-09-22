@@ -1,0 +1,14 @@
+appId: com.steffen.kolibi
+---
+- tapOn: "Sätze anpassen (unteres Ziel vorbelegt)"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: "training.backfill.set.2.1"
+- eraseText
+- inputText: "4"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn: "Sätze anpassen (unteres Ziel vorbelegt)"
+- waitForAnimationToEnd:
+    timeout: 2000

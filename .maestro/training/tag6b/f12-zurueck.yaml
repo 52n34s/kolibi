@@ -1,0 +1,10 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.sessionDetail.date"
+- waitForAnimationToEnd:
+    timeout: 4000
+- tapOn:
+    point: "15%,80%"
+- waitForAnimationToEnd:
+    timeout: 5000

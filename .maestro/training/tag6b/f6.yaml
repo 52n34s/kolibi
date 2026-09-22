@@ -1,0 +1,9 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    point: "83%,39%"
+- waitForAnimationToEnd:
+    timeout: 8000
+- tapOn: "Choose"
+- waitForAnimationToEnd:
+    timeout: 15000

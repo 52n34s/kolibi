@@ -1,0 +1,6 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.backfill.set.1.0"
+- waitForAnimationToEnd:
+    timeout: 4000

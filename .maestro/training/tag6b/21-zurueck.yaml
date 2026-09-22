@@ -1,0 +1,9 @@
+appId: com.steffen.kolibi
+---
+- tapOn: "OK"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "training.catalog.back"
+- waitForAnimationToEnd:
+    timeout: 4000

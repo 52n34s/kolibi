@@ -1,0 +1,103 @@
+# TAG 4a "Verwerfen" + TAG 4b "normal durchspielen" · beide Push
+#
+# NICHT AUSFÜHRBAR, solange der randomUUID-Blocker besteht (siehe blocker-repro.yaml).
+#
+# 4a wird NICHT verschoben (die Einheit soll spurlos verschwinden),
+# 4b wird per Verschiebe-Regel auf 2026-09-21 gesetzt.
+appId: com.steffen.kolibi
+---
+# ============================ TAG 4a · Verwerfen ============================
+- runFlow: common/launch.yaml
+- runFlow: common/open-training.yaml
+- assertVisible: "Push"
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 20000
+# Drei Sätze loggen …
+- repeat:
+    times: 3
+    commands:
+      - runFlow: common/set-done.yaml
+- takeScreenshot: .maestro/screenshots/tag4a/01-drei-saetze
+# … und dann verwerfen
+- tapOn:
+    id: "training.active.finish"
+- extendedWaitUntil:
+    visible: "Einheit beenden?"
+    timeout: 8000
+- takeScreenshot: .maestro/screenshots/tag4a/02-beenden-dialog
+- tapOn: "Verwerfen"
+- extendedWaitUntil:
+    visible:
+      id: "training.next.card"
+    timeout: 20000
+- assertVisible: "zuletzt: noch nie"
+- takeScreenshot: .maestro/screenshots/tag4a/03-nach-verwerfen
+
+# ====================== TAG 4b · Push normal durchspielen ===================
+- assertVisible: "Push"
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 20000
+# Y-T-W (1) + Liegestütze (3) + Barren-Dips (3) + Bankdips (3) + Pike (3)
+- repeat:
+    times: 13
+    commands:
+      - runFlow: common/set-done.yaml
+# Hollow Hold (2) — Ziel 20–30 s, hier auf der unteren Grenze bleiben
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: "training.hold.start"
+      - extendedWaitUntil:
+          visible:
+            id: "training.hold.time"
+            text: "00:21"
+          timeout: 40000
+      - tapOn:
+          id: "training.hold.stop"
+      - runFlow: common/set-done.yaml
+# L-Sit (2) — letzter Satz führt in die Zusammenfassung
+- tapOn:
+    id: "training.hold.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: "00:11"
+    timeout: 30000
+- tapOn:
+    id: "training.hold.stop"
+- runFlow: common/set-done.yaml
+- tapOn:
+    id: "training.hold.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: "00:11"
+    timeout: 30000
+- tapOn:
+    id: "training.hold.stop"
+- tapOn:
+    id: "training.input.done"
+
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.intensity.normal"
+    timeout: 20000
+- takeScreenshot: .maestro/screenshots/tag4b/01-zusammenfassung
+- tapOn:
+    id: "training.summary.intensity.normal"
+- tapOn:
+    id: "training.summary.done"
+- extendedWaitUntil:
+    visible:
+      id: "training.next.card"
+    timeout: 30000
+- takeScreenshot: .maestro/screenshots/tag4b/02-nach-abschluss

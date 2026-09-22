@@ -1,0 +1,6 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.exerciseEdit.perSide"
+- waitForAnimationToEnd:
+    timeout: 2000

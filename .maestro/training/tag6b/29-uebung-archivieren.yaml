@@ -1,0 +1,22 @@
+appId: com.steffen.kolibi
+---
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.catalog"
+    timeout: 15000
+- tapOn:
+    id: "training.plan.catalog"
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.item.f8321640-caf2-4776-8e34-fe4e0917660d"
+    timeout: 15000
+- tapOn:
+    id: "training.catalog.item.f8321640-caf2-4776-8e34-fe4e0917660d"
+- extendedWaitUntil:
+    visible:
+      id: "training.exerciseEdit.archive"
+    timeout: 15000
+- tapOn:
+    id: "training.exerciseEdit.archive"
+- waitForAnimationToEnd:
+    timeout: 3000

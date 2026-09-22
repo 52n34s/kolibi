@@ -1,0 +1,34 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.idle.editPlan"
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.catalog"
+    timeout: 15000
+- tapOn:
+    id: "training.plan.catalog"
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.add"
+    timeout: 15000
+- tapOn:
+    id: "training.catalog.add"
+- extendedWaitUntil:
+    visible:
+      id: "training.exerciseEdit.name"
+    timeout: 15000
+- tapOn:
+    id: "training.exerciseEdit.name"
+- inputText: "Test-Übung"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: "training.exerciseEdit.kind.time"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "training.exerciseEdit.perSide"
+- waitForAnimationToEnd:
+    timeout: 1500

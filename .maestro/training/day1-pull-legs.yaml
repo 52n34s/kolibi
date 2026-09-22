@@ -1,0 +1,167 @@
+# TAG 1 · Pull & Legs · "Der Normalfall"
+# Alle Sätze nur mit "Satz fertig" (= untere Zielgrenze).
+# Pause nach Satz 1 komplett ablaufen lassen, danach überspringen.
+# Seitstütz über den Halte-Timer, ~22 s / ~25 s pro Seite.
+#
+# Pull & Legs (25 Sätze): 0 Y-T-W 1×6 · 1 Klimmzüge 3×3–8 · 2 Chin-ups 3×3–8
+#   3 Barren-Rudern 3×8–12 · 4 Rucksack-Rudern einarmig 3×10–15
+#   5 Rucksack-Curls 3×10–15 · 6 Bulgarian Split Squats 3×8–12
+#   7 Einbeiniges Beckenheben 2×10–15 · 8 Seitstütz 2×20–40 s
+#   9 Hängendes Knieheben 2×8–15
+appId: com.steffen.kolibi
+---
+- runFlow: common/launch.yaml
+
+# --- Heute-Tab: Trainingszeile + Wochenpunkte -------------------------------
+- assertVisible: "Training"
+- takeScreenshot: .maestro/screenshots/tag1/01-heute-trainingszeile
+
+# --- Training-Tab: "Als Nächstes" = Pull & Legs -----------------------------
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "training.next.card"
+- assertVisible: "ALS NÄCHSTES"
+- assertVisible: "Pull & Legs"
+- assertVisible: "zuletzt: noch nie"
+- takeScreenshot: .maestro/screenshots/tag1/02-training-idle
+
+# --- Timer-Card auf 45 s (Default 120 s → 5 × −15) -------------------------
+- assertVisible:
+    id: "training.timerCard.time"
+    text: "02:00"
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: "training.timerCard.minus15"
+- assertVisible:
+    id: "training.timerCard.time"
+    text: "00:45"
+- takeScreenshot: .maestro/screenshots/tag1/03-timercard-45s
+
+# --- 45 s müssen den App-Neustart überleben --------------------------------
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "training.timerCard.time"
+    text: "00:45"
+- takeScreenshot: .maestro/screenshots/tag1/04-timercard-45s-nach-neustart
+
+# --- Einheit starten --------------------------------------------------------
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+- assertVisible: "Übung 1/10 · Satz 1/1"
+- takeScreenshot: .maestro/screenshots/tag1/05-session-uebung1
+
+# --- Übungsbild: Viewer öffnen und daneben schließen ------------------------
+- tapOn:
+    point: "16%,36%"
+- extendedWaitUntil:
+    visible: "Bild schließen"
+    timeout: 10000
+- takeScreenshot: .maestro/screenshots/tag1/06-bildviewer
+- tapOn:
+    point: "50%,8%"
+- assertNotVisible: "Bild schließen"
+
+# --- Satz 1 (Y-T-W): Pause muss 45 s dauern, nicht 60 aus dem Katalog ------
+- tapOn:
+    id: "training.input.done"
+- extendedWaitUntil:
+    visible:
+      id: "training.timerBar.time"
+    timeout: 15000
+- takeScreenshot: .maestro/screenshots/tag1/07-pause-45s
+- extendedWaitUntil:
+    visible:
+      id: "training.timerBar.time"
+      text: "Weiter geht's"
+    timeout: 70000
+- takeScreenshot: .maestro/screenshots/tag1/08-pause-abgelaufen
+- tapOn:
+    id: "training.timerBar.skip"
+
+# --- Klimmzüge(3) Chin-ups(3) Barren-Rudern(3) Rucksack-Rudern(3)
+#     Rucksack-Curls(3) Bulgarian(3) Beckenheben(2) = 20 Sätze -------------
+- repeat:
+    times: 20
+    commands:
+      - runFlow: common/set-done.yaml
+
+# --- Seitstütz Satz 1: 22 s / 25 s pro Seite ------------------------------
+- assertVisible: "Seitstütz"
+- assertVisible:
+    id: "training.hold.start"
+- takeScreenshot: .maestro/screenshots/tag1/09-seitstuetz-holdtimer
+- tapOn:
+    id: "training.hold.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: "00:22"
+    timeout: 45000
+- tapOn:
+    id: "training.hold.stop"
+- tapOn:
+    id: "training.hold.switchSide"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: "00:25"
+    timeout: 45000
+- tapOn:
+    id: "training.hold.stop"
+- takeScreenshot: .maestro/screenshots/tag1/10-seitstuetz-beide-seiten
+- runFlow: common/set-done.yaml
+
+# --- Seitstütz Satz 2 ------------------------------------------------------
+- tapOn:
+    id: "training.hold.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: "00:21"
+    timeout: 45000
+- tapOn:
+    id: "training.hold.stop"
+- tapOn:
+    id: "training.hold.switchSide"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: "00:24"
+    timeout: 45000
+- tapOn:
+    id: "training.hold.stop"
+- runFlow: common/set-done.yaml
+
+# --- Hängendes Knieheben (2) → letzter Satz führt in die Zusammenfassung ---
+- runFlow: common/set-done.yaml
+- tapOn:
+    id: "training.input.done"
+
+# --- Abschluss: Intensität normal, Fertig ---------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.intensity.normal"
+    timeout: 25000
+- takeScreenshot: .maestro/screenshots/tag1/11-zusammenfassung
+- tapOn:
+    id: "training.summary.intensity.normal"
+- tapOn:
+    id: "training.summary.done"
+- extendedWaitUntil:
+    visible:
+      id: "training.next.card"
+    timeout: 40000
+- takeScreenshot: .maestro/screenshots/tag1/12-nach-abschluss

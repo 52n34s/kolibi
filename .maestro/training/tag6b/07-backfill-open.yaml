@@ -1,0 +1,18 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.backfill.open"
+- extendedWaitUntil:
+    visible:
+      id: "training.backfill.template.Pl"
+    timeout: 15000
+- tapOn:
+    id: "training.backfill.template.Pl"
+- extendedWaitUntil:
+    visible:
+      id: "training.backfill.duration"
+    timeout: 10000
+- tapOn:
+    id: "training.backfill.date"
+- waitForAnimationToEnd:
+    timeout: 4000

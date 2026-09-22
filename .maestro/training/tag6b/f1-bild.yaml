@@ -1,0 +1,37 @@
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "training.idle.editPlan"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "training.idle.editPlan"
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.catalog"
+    timeout: 15000
+- tapOn:
+    id: "training.plan.catalog"
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.item.cd873707-7dcc-45a9-8c43-3f8720a18ffb"
+    timeout: 15000
+- tapOn:
+    id: "training.catalog.item.cd873707-7dcc-45a9-8c43-3f8720a18ffb"
+- extendedWaitUntil:
+    visible:
+      id: "training.exerciseEdit.image"
+    timeout: 15000
+- tapOn:
+    id: "training.exerciseEdit.image"
+- extendedWaitUntil:
+    visible: "Mediathek"
+    timeout: 8000
+- tapOn: "Mediathek"
+- waitForAnimationToEnd:
+    timeout: 10000

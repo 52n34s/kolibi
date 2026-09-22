@@ -1,0 +1,5 @@
+appId: com.steffen.kolibi
+---
+- tapOn: "Bulgarian Split Squats"
+- waitForAnimationToEnd:
+    timeout: 2500
