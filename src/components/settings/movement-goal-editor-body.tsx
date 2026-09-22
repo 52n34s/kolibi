@@ -19,6 +19,11 @@ import {
 } from '@/lib/numeric-input';
 import { requestHealthPermissions } from '@/lib/health';
 import {
+  distanceKmToDisplay,
+  parseDistanceToKm,
+  useUnitSystem,
+} from '@/lib/measure-units';
+import {
   type MovementGoalPeriod,
   type MovementGoalType,
   updateMovementGoal,
@@ -36,14 +41,23 @@ const DEFAULT_PERIOD: Record<MovementGoalType, MovementGoalPeriod> = {
   distance_km: 'day',
 };
 
-const DEFAULT_VALUE: Record<MovementGoalType, Record<MovementGoalPeriod, string>> = {
-  steps: { day: '8000', week: '56000' },
-  running_km: { day: '3', week: '20' },
-  distance_km: { day: '6', week: '42' },
+/** Defaults are always stored as km (or step counts). */
+const DEFAULT_VALUE_KM: Record<MovementGoalType, Record<MovementGoalPeriod, number>> = {
+  steps: { day: 8000, week: 56000 },
+  running_km: { day: 3, week: 20 },
+  distance_km: { day: 6, week: 42 },
 };
 
-function defaultValueDraft(type: MovementGoalType, period: MovementGoalPeriod): string {
-  return DEFAULT_VALUE[type][period];
+function defaultValueDraft(
+  type: MovementGoalType,
+  period: MovementGoalPeriod,
+  unitSystem: 'metric' | 'imperial',
+): string {
+  const stored = DEFAULT_VALUE_KM[type][period];
+  if (type === 'steps') {
+    return String(stored);
+  }
+  return String(distanceKmToDisplay(stored, unitSystem));
 }
 
 function parseGoalValue(value: string): number | null {
@@ -60,14 +74,18 @@ function parseGoalValue(value: string): number | null {
   return parsed;
 }
 
-function formatStoredValue(value: number | null, type: MovementGoalType | null): string {
+function formatStoredValueForDraft(
+  value: number | null,
+  type: MovementGoalType | null,
+  unitSystem: 'metric' | 'imperial',
+): string {
   if (value == null) {
     return '';
   }
   if (type === 'steps') {
     return String(Math.round(value));
   }
-  return String(value);
+  return String(distanceKmToDisplay(value, unitSystem));
 }
 
 type MovementGoalEditorBodyProps = {
@@ -92,6 +110,7 @@ export function MovementGoalEditorBody({
   onActionsChange,
 }: MovementGoalEditorBodyProps) {
   const { t } = useTranslation();
+  const unitSystem = useUnitSystem();
   const queryClient = useQueryClient();
   const { data, isLoading, isError, refetch } = useProfileSettings(userId);
 
@@ -121,12 +140,15 @@ export function MovementGoalEditorBody({
     const storedPeriod = profile.movement_goal_period ?? DEFAULT_PERIOD[storedType];
     setTypeSelection(storedType);
     setPeriod(storedPeriod);
-    setValueDraft(formatStoredValue(profile.movement_goal_value, storedType));
+    setValueDraft(
+      formatStoredValueForDraft(profile.movement_goal_value, storedType, unitSystem),
+    );
     setValueIsCustom(profile.movement_goal_value != null);
   }, [
     data?.profile?.movement_goal_type,
     data?.profile?.movement_goal_value,
     data?.profile?.movement_goal_period,
+    unitSystem,
   ]);
 
   const parsedValue = useMemo(() => parseGoalValue(valueDraft), [valueDraft]);
@@ -152,7 +174,7 @@ export function MovementGoalEditorBody({
     const nextPeriod = DEFAULT_PERIOD[next];
     setPeriod(nextPeriod);
     if (!valueIsCustom) {
-      setValueDraft(defaultValueDraft(next, nextPeriod));
+      setValueDraft(defaultValueDraft(next, nextPeriod, unitSystem));
     }
   }
 
@@ -160,7 +182,7 @@ export function MovementGoalEditorBody({
     setInlineError(null);
     setPeriod(nextPeriod);
     if (typeSelection !== 'none' && !valueIsCustom) {
-      setValueDraft(defaultValueDraft(typeSelection, nextPeriod));
+      setValueDraft(defaultValueDraft(typeSelection, nextPeriod, unitSystem));
     }
   }
 
@@ -181,11 +203,18 @@ export function MovementGoalEditorBody({
           movementGoalPeriod: null,
         });
       } else {
+        const storedValue =
+          typeSelection === 'steps'
+            ? Math.round(parsedValue!)
+            : parseDistanceToKm({ value: valueDraft, unitSystem });
+        if (storedValue == null || !(storedValue > 0)) {
+          setInlineError(t('settings.movementGoal.blockedNonPositive'));
+          return;
+        }
         await updateMovementGoal({
           userId,
           movementGoalType: typeSelection,
-          movementGoalValue:
-            typeSelection === 'steps' ? Math.round(parsedValue!) : parsedValue!,
+          movementGoalValue: storedValue,
           movementGoalPeriod: period,
         });
       }
@@ -248,7 +277,16 @@ export function MovementGoalEditorBody({
   }
 
   const placeholder =
-    typeSelection !== 'none' ? defaultValueDraft(typeSelection, period) : undefined;
+    typeSelection !== 'none'
+      ? defaultValueDraft(typeSelection, period, unitSystem)
+      : undefined;
+
+  const valueLabel =
+    typeSelection === 'steps'
+      ? t('settings.movementGoal.valueLabelSteps')
+      : unitSystem === 'imperial'
+        ? t('settings.movementGoal.valueLabelMi')
+        : t('settings.movementGoal.valueLabelKm');
 
   return (
     <View className={hideActions ? undefined : 'px-4 py-4'}>
@@ -268,11 +306,7 @@ export function MovementGoalEditorBody({
 
       {typeSelection !== 'none' ? (
         <>
-          <Text className="mb-2 text-sm font-medium text-gray-700">
-            {typeSelection === 'steps'
-              ? t('settings.movementGoal.valueLabelSteps')
-              : t('settings.movementGoal.valueLabelKm')}
-          </Text>
+          <Text className="mb-2 text-sm font-medium text-gray-700">{valueLabel}</Text>
           <TextInput
             keyboardType={resolveNumericKeyboardType(
               allowDecimals ? 'decimal-pad' : 'number-pad',
