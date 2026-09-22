@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, BRAND_MINT, TEXT_SECONDARY } from '@/constants/brand';
 import { useTimerTick } from '@/hooks/use-timer-tick';
 import {
@@ -48,80 +49,88 @@ export function RestTimerBar() {
     status === 'finished' ? t('training.timer.goAhead') : formatTimerMmSs(left);
 
   return (
-    <View style={styles.bar}>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { flex: progress }]} />
-        <View style={{ flex: Math.max(0.0001, 1 - progress) }} />
-      </View>
-
-      <View style={styles.row}>
-        <Text testID="training.timerBar.time" style={styles.time}>
-          {timeLabel}
-        </Text>
-
-        <View style={styles.actions}>
-          {status !== 'finished' ? (
-            <Pressable
-              testID="training.timerBar.plus30"
-              accessibilityRole="button"
-              onPress={() => void addSeconds(30)}
-              style={styles.chip}>
-              <Text style={styles.chipText}>+30</Text>
-            </Pressable>
-          ) : null}
-
-          {status === 'running' ? (
-            <Pressable
-              testID="training.timerBar.pause"
-              accessibilityRole="button"
-              onPress={() => void pause()}
-              style={styles.chip}>
-              <Text style={styles.chipText}>{t('training.timer.pause')}</Text>
-            </Pressable>
-          ) : null}
-
-          {status === 'paused' ? (
-            <Pressable
-              testID="training.timerBar.resume"
-              accessibilityRole="button"
-              onPress={() => void resume()}
-              style={styles.chip}>
-              <Text style={styles.chipText}>{t('training.timer.resume')}</Text>
-            </Pressable>
-          ) : null}
-
-          {status === 'finished' ? (
-            <Pressable
-              testID="training.timerBar.skip"
-              accessibilityRole="button"
-              onPress={() => acknowledgeFinished()}
-              style={styles.chip}>
-              <Text style={styles.chipText}>{t('training.timer.start')}</Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              testID="training.timerBar.skip"
-              accessibilityRole="button"
-              onPress={() => void skip()}
-              style={styles.chip}>
-              <Text style={styles.chipText}>{t('training.timer.skip')}</Text>
-            </Pressable>
-          )}
+    <View style={styles.wrap}>
+      <GlassCard style={styles.card}>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { flex: Math.max(0.0001, progress) }]} />
+          <View style={{ flex: Math.max(0.0001, 1 - progress) }} />
         </View>
-      </View>
+
+        <View style={styles.row}>
+          <Text
+            testID="training.timerBar.time"
+            style={[styles.time, status === 'finished' && styles.timeFinished]}
+            numberOfLines={1}
+            adjustsFontSizeToFit>
+            {timeLabel}
+          </Text>
+
+          <View style={styles.actions}>
+            {status !== 'finished' ? (
+              <Pressable
+                testID="training.timerBar.plus30"
+                accessibilityRole="button"
+                onPress={() => void addSeconds(30)}
+                style={styles.chip}>
+                <Text style={styles.chipText}>+30</Text>
+              </Pressable>
+            ) : null}
+
+            {status === 'running' ? (
+              <Pressable
+                testID="training.timerBar.pause"
+                accessibilityRole="button"
+                onPress={() => void pause()}
+                style={styles.chip}>
+                <Text style={styles.chipText}>{t('training.timer.pause')}</Text>
+              </Pressable>
+            ) : null}
+
+            {status === 'paused' ? (
+              <Pressable
+                testID="training.timerBar.resume"
+                accessibilityRole="button"
+                onPress={() => void resume()}
+                style={styles.chip}>
+                <Text style={styles.chipText}>{t('training.timer.resume')}</Text>
+              </Pressable>
+            ) : null}
+
+            {status === 'finished' ? (
+              <Pressable
+                testID="training.timerBar.skip"
+                accessibilityRole="button"
+                onPress={() => acknowledgeFinished()}
+                style={styles.chip}>
+                <Text style={styles.chipText}>{t('training.timer.start')}</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                testID="training.timerBar.skip"
+                accessibilityRole="button"
+                onPress={() => void skip()}
+                style={styles.chip}>
+                <Text style={styles.chipText}>{t('training.timer.skip')}</Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
+      </GlassCard>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    paddingHorizontal: 16,
+  wrap: {
+    // Same horizontal inset as the exercise GlassCard (home tab: px-6).
+    // Bottom safe-area comes from the training tab container in home.tsx.
     paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(79, 70, 229, 0.18)',
-    gap: 8,
+  },
+  card: {
+    // Match TrainingActiveView exerciseCard padding; GlassCard supplies radius 16
+    // and colorScheme="light" (stays light under system dark mode).
+    padding: 16,
+    gap: 12,
   },
   progressTrack: {
     height: 3,
@@ -141,17 +150,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   time: {
-    fontSize: 22,
+    // Match TrainingSetInput value size so rest time reads as the primary figure.
+    fontSize: 48,
     fontWeight: '600',
     color: BRAND_INDIGO,
     fontVariant: ['tabular-nums'],
-    minWidth: 72,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  timeFinished: {
+    fontSize: 22,
   },
   actions: {
     flexDirection: 'row',
     gap: 8,
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
+    flexShrink: 0,
   },
   chip: {
     paddingHorizontal: 12,
