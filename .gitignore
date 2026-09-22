@@ -51,3 +51,6 @@ example
 targets/*/Assets.xcassets/
 supabase/.temp/
 qa/
+
+# Maestro E2E: keep flows, ignore screenshot dumps
+.maestro/screenshots/
