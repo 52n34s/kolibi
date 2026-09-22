@@ -35,8 +35,6 @@ import {
   toDisplay,
 } from '@/lib/units';
 import { isPartialNumericInput } from '@/lib/numeric-input';
-import type { UnitSystem } from '@/lib/unit-system';
-import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal, formatMacroGrams } from '@/utils/format';
 
 export type MealItemRowProps = {
@@ -371,29 +369,25 @@ function formatCollapsedNutrientsSummary(
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
-function getQuantityBarSuffix(
-  unit: MealItemUnit,
-  unitSystem: UnitSystem,
-  t: (key: string) => string,
-): string {
+function getQuantityBarSuffix(unit: MealItemUnit, t: (key: string) => string): string {
   if (unit === 'pcs') {
     return ` ${t('home.manualEntry.unitCount')}`;
-  }
-
-  if (unitSystem === 'imperial') {
-    return unit === 'ml' ? ' fl oz' : ' oz';
   }
 
   return unit === 'ml' ? ' ml' : ' g';
 }
 
-function formatQuantityBarValue(draftText: string, unit: MealItemUnit, unitSystem: UnitSystem, t: (key: string) => string): string {
+function formatQuantityBarValue(
+  draftText: string,
+  unit: MealItemUnit,
+  t: (key: string) => string,
+): string {
   const trimmed = draftText.trim();
   if (trimmed === '' || trimmed === '.') {
-    return `0${getQuantityBarSuffix(unit, unitSystem, t)}`;
+    return `0${getQuantityBarSuffix(unit, t)}`;
   }
 
-  return `${trimmed}${getQuantityBarSuffix(unit, unitSystem, t)}`;
+  return `${trimmed}${getQuantityBarSuffix(unit, t)}`;
 }
 
 function formatKcalBarValue(draftText: string): string {
@@ -425,18 +419,12 @@ export function MealItemRow({
 }: MealItemRowProps) {
   const { t, i18n } = useTranslation();
   const mealInputBarActions = useMealInputBarActions();
-  const unitSystem = useOnboardingStore((state) => state.unitSystem);
-  const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const [nameFocused, setNameFocused] = useState(false);
   const [nameDraft, setNameDraft] = useState(item.name);
   const [nutrientsExpanded, setNutrientsExpanded] = useState(false);
   const lastSentNameRef = useRef(item.name);
   const nameInputWrapRef = useRef<View>(null);
   const nameInputRef = useRef<TextInput>(null);
-
-  useEffect(() => {
-    initializeUnitSystem();
-  }, [initializeUnitSystem]);
 
   useEffect(() => {
     if (item.name === lastSentNameRef.current) {
@@ -476,30 +464,23 @@ export function MealItemRow({
     return () => cancelAnimationFrame(frame);
   }, [shouldFocusName, onNameFocusHandled]);
 
-  const displayQuantity = toDisplay(item.quantity, item.unit, unitSystem);
-  const quantityStep = getQuantityStep(item.unit, unitSystem);
-  const minDisplayQuantity = getMinDisplayQuantity(item.unit, unitSystem);
-  const allowDecimalQuantity = unitSystem === 'imperial' && item.unit !== 'pcs';
+  const displayQuantity = toDisplay(item.quantity, item.unit);
+  const quantityStep = getQuantityStep(item.unit);
+  const minDisplayQuantity = getMinDisplayQuantity(item.unit);
+  const allowDecimalQuantity = false;
   const productName = item.name.trim() || t('home.manualEntry.namePlaceholder');
   const pcsAvailable = isPcsUnitAvailable(item);
   const currentUnitSegment =
     item.unit === 'g' ? 'grams' : item.unit === 'ml' ? 'ml' : 'count';
 
-  const unitSegments =
-    unitSystem === 'imperial'
-      ? [
-          { id: 'grams', label: t('home.manualEntry.unitOz') },
-          { id: 'ml', label: t('home.manualEntry.unitFlOz') },
-          { id: 'count', label: t('home.manualEntry.unitCount') },
-        ]
-      : [
-          { id: 'grams', label: t('home.manualEntry.unitGrams') },
-          { id: 'ml', label: t('home.manualEntry.unitMl') },
-          { id: 'count', label: t('home.manualEntry.unitCount') },
-        ];
+  const unitSegments = [
+    { id: 'grams', label: t('home.manualEntry.unitGrams') },
+    { id: 'ml', label: t('home.manualEntry.unitMl') },
+    { id: 'count', label: t('home.manualEntry.unitCount') },
+  ];
 
   function handleQuantityDisplayChange(displayValue: number) {
-    const stored = fromDisplay(displayValue, item.unit, unitSystem);
+    const stored = fromDisplay(displayValue, item.unit);
     onChangeQuantity(item.id, stored);
   }
 
@@ -525,9 +506,7 @@ export function MealItemRow({
   }
 
   function handleQuantityDraftChange(draftText: string) {
-    mealInputBarActions?.updateDisplayValue(
-      formatQuantityBarValue(draftText, item.unit, unitSystem, t),
-    );
+    mealInputBarActions?.updateDisplayValue(formatQuantityBarValue(draftText, item.unit, t));
   }
 
   function handleKcalDraftChange(draftText: string) {
@@ -641,7 +620,7 @@ export function MealItemRow({
             onQuantityFieldFocus?.(item.id);
             activateField(
               'quantity',
-              formatQuantityBarValue(draftText, item.unit, unitSystem, t),
+              formatQuantityBarValue(draftText, item.unit, t),
             );
           }}
         />
