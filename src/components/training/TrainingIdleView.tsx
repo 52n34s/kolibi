@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -21,6 +22,7 @@ import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { localDateKey, shiftLocalDateKey } from '@/lib/day-window';
 import { pickNextTemplate } from '@/lib/workouts/next-template';
+import { resolveTrainingTabEnabled } from '@/lib/workouts/training-release';
 import type { WorkoutTemplate } from '@/lib/workouts/types';
 
 type TrainingIdleViewProps = {
@@ -44,14 +46,18 @@ function lastLoggedOnForTemplate(
   return best;
 }
 
+function openNewWorkout() {
+  router.push('/koli/workout-template-edit' as Href);
+}
+
 export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps) {
   const { t } = useTranslation();
   const todayKey = localDateKey();
   const startKey = shiftLocalDateKey(todayKey, -90);
   const templatesQuery = useWorkoutTemplates();
   const sessionsQuery = useWorkoutSessionsRange({ startKey, endKey: todayKey });
-  const { data: trainingTabEnabled = false } = useFeatureFlag('training_tab');
-  const showEditPlan = Boolean(trainingTabEnabled && onEditPlan);
+  const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
+  const showEditPlan = Boolean(resolveTrainingTabEnabled(trainingTabFlag) && onEditPlan);
   const [showProgressionOverlay, setShowProgressionOverlay] = useState(false);
 
   const templates = templatesQuery.data ?? [];
@@ -100,15 +106,25 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
       <ScrollView
         contentContainerStyle={styles.empty}
         showsVerticalScrollIndicator={false}>
-        <Text style={styles.emptyText}>{t('training.panel.emptyTemplates')}</Text>
-        {showEditPlan ? (
-          <Pressable
-            testID="training.idle.editPlan"
-            accessibilityRole="button"
-            onPress={onEditPlan}>
-            <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
-          </Pressable>
-        ) : null}
+        <Image
+          source={require('@/assets/images/koli-focused.png')}
+          style={styles.emptyKoli}
+          contentFit="contain"
+        />
+        <Text style={styles.emptyText}>{t('training.panel.emptyFirstWorkout')}</Text>
+        <Pressable
+          testID="training.idle.createFirst"
+          accessibilityRole="button"
+          onPress={openNewWorkout}
+          style={styles.emptyCtaPressable}>
+          <LinearGradient
+            colors={['#4F46E5', '#7CE7C7']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.emptyCtaGradient}>
+            <Text style={styles.startText}>{t('training.panel.createFirstWorkout')}</Text>
+          </LinearGradient>
+        </Pressable>
         <RestTimerCard />
       </ScrollView>
     );
@@ -212,13 +228,22 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
         </Pressable>
 
         {showEditPlan ? (
-          <Pressable
-            testID="training.idle.editPlan"
-            accessibilityRole="button"
-            onPress={onEditPlan}
-            style={styles.linkWrap}>
-            <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
-          </Pressable>
+          <View style={styles.planActions}>
+            <Pressable
+              testID="training.idle.newWorkout"
+              accessibilityRole="button"
+              onPress={openNewWorkout}
+              style={styles.linkWrap}>
+              <Text style={styles.link}>{t('training.panel.newWorkout')}</Text>
+            </Pressable>
+            <Pressable
+              testID="training.idle.editPlan"
+              accessibilityRole="button"
+              onPress={onEditPlan}
+              style={styles.linkWrap}>
+              <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
+            </Pressable>
+          </View>
         ) : null}
       </ScrollView>
 
@@ -242,13 +267,29 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   empty: {
+    alignItems: 'center',
     gap: 16,
     paddingVertical: 24,
+  },
+  emptyKoli: {
+    width: 120,
+    height: 120,
   },
   emptyText: {
     color: TEXT_SECONDARY,
     fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
+    paddingHorizontal: 8,
+  },
+  emptyCtaPressable: {
+    alignSelf: 'stretch',
+  },
+  emptyCtaGradient: {
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    borderRadius: 999,
+    alignItems: 'center',
   },
   nextCard: {
     padding: 20,
@@ -364,9 +405,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 13,
   },
+  planActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   linkWrap: {
     alignItems: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 8,
   },
   link: {
     color: BRAND_INDIGO,
