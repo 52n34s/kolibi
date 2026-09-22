@@ -42,5 +42,7 @@ export function buildExportLabels(t: TFunction): ExportLabels {
     carbs: t('export.markdown.carbs'),
     fat: t('export.markdown.fat'),
     fiber: t('export.markdown.fiber'),
+    progression: t('export.markdown.progression'),
+    progressionOpen: t('export.markdown.progressionOpen'),
   };
 }

@@ -71,6 +71,16 @@ export default function ExercisesCatalogScreen() {
     });
   }, [exercises, filter, i18n.language, query]);
 
+  const ladderTotals = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const exercise of exercises) {
+      if (exercise.ladderKey && exercise.userId == null) {
+        map.set(exercise.ladderKey, (map.get(exercise.ladderKey) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [exercises]);
+
   function handlePress(exercise: Exercise) {
     if (selectMode) {
       toggleId(exercise.id);
@@ -196,7 +206,12 @@ export default function ExercisesCatalogScreen() {
                       {name}
                     </Text>
                     <Text style={styles.meta} numberOfLines={1}>
-                      {target}
+                      {item.ladderKey && item.ladderStep != null
+                        ? `${t('training.progression.catalogLevel', {
+                            step: item.ladderStep,
+                            total: ladderTotals.get(item.ladderKey) ?? item.ladderStep,
+                          })} · ${target}`
+                        : target}
                     </Text>
                   </View>
                   {selectMode ? (

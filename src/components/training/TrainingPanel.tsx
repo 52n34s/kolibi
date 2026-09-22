@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
@@ -7,7 +7,7 @@ import { TrainingIdleView } from '@/components/training/TrainingIdleView';
 import { TrainingSummaryView } from '@/components/training/TrainingSummaryView';
 import { useTrainingKeepAwake } from '@/hooks/use-training-keep-awake';
 import { flushWorkoutSyncQueue } from '@/lib/workouts/sync-queue-runtime';
-import type { WorkoutTemplate } from '@/lib/workouts/types';
+import type { ActiveSession, WorkoutTemplate } from '@/lib/workouts/types';
 import { useWorkoutSessionStore } from '@/stores/workout-session-store';
 
 type TrainingPanelProps = {
@@ -18,6 +18,7 @@ export function TrainingPanel({ onEditPlan }: TrainingPanelProps) {
   const { i18n } = useTranslation();
   const active = useWorkoutSessionStore((s) => s.active);
   const startSession = useWorkoutSessionStore((s) => s.startSession);
+  const [retainedSummary, setRetainedSummary] = useState<ActiveSession | null>(null);
 
   const sessionActive = active?.phase === 'active';
   useTrainingKeepAwake(Boolean(sessionActive));
@@ -28,17 +29,36 @@ export function TrainingPanel({ onEditPlan }: TrainingPanelProps) {
     });
   }, []);
 
+  useEffect(() => {
+    if (active?.phase === 'summary') {
+      setRetainedSummary(active);
+    }
+    if (active?.phase === 'active') {
+      setRetainedSummary(null);
+    }
+  }, [active]);
+
   function handleStart(template: WorkoutTemplate) {
     startSession(template, { lang: i18n.language });
   }
 
+  const summarySession =
+    active?.phase === 'summary' ? active : retainedSummary != null && active == null
+      ? retainedSummary
+      : null;
+
   return (
     <View style={styles.root}>
-      {!active ? (
+      {!active && !summarySession ? (
         <TrainingIdleView onStart={handleStart} onEditPlan={onEditPlan} />
       ) : null}
       {active?.phase === 'active' ? <TrainingActiveView session={active} /> : null}
-      {active?.phase === 'summary' ? <TrainingSummaryView session={active} /> : null}
+      {summarySession ? (
+        <TrainingSummaryView
+          session={summarySession}
+          onDismiss={() => setRetainedSummary(null)}
+        />
+      ) : null}
     </View>
   );
 }

@@ -419,13 +419,13 @@
       "loadError": "Could not load this meal. Please try again."
     },
     "productLookup": {
-        "title": "Product lookup",
-        "scanAnother": "Scan another product",
-        "notFoundTitle": "Product not found",
-        "notFoundMessage": "This barcode is not in the Open Food Facts database.",
-        "errorTitle": "Lookup failed",
-        "errorMessage": "The product could not be loaded. Please try again.",
-        "iconLabel": "Product lookup"
+      "title": "Product lookup",
+      "scanAnother": "Scan another product",
+      "notFoundTitle": "Product not found",
+      "notFoundMessage": "This barcode is not in the Open Food Facts database.",
+      "errorTitle": "Lookup failed",
+      "errorMessage": "The product could not be loaded. Please try again.",
+      "iconLabel": "Product lookup"
     },
     "scan": {
       "buttonLabel": "Scan meal",
@@ -643,7 +643,7 @@
       "seconds": "Seconds",
       "prs": "PRs this workout",
       "prBeat": "New PR: {{name}} {{value}}",
-      "upperBoundHint": "Hit the upper limit – time for more",
+      "upperBoundHint": "Upper target hit — ready for more",
       "intensityTitle": "How hard was it?",
       "adoptTitle": "Adopt as new target?",
       "addToTemplate": "Add to template?",
@@ -789,6 +789,50 @@
       "exercisesRequired": "Add at least one exercise.",
       "activeSessionHint": "Changes apply to the next session only.",
       "goalHint": "Training goal set to {{count}}×/week."
+    },
+    "progression": {
+      "readyTitle": "Ready for more",
+      "adjustedTitle": "Nicely adjusted",
+      "accept": "Apply",
+      "later": "Later",
+      "ascentLine": "{{name}}: {{from}} → {{to}}",
+      "descentLine": "Solid base: keep going with {{name}}, {{target}}",
+      "applyError": "Your session is saved. We could not update the targets just now — you can adjust them later in your plan.",
+      "nextReady": "{{count}} exercises ready for more",
+      "nextReady_one": "{{count}} exercise ready for more",
+      "nextReady_other": "{{count}} exercises ready for more",
+      "saveChoices": "Save choices",
+      "firstOnLevel": "First session on level {{step}} — strong!",
+      "ladderLevel": "Level {{step}} of {{total}}",
+      "milestonesTitle": "Milestones",
+      "milestoneVariantUp": "New level · {{name}}",
+      "catalogLevel": "Level {{step}}/{{total}}",
+      "easier": "easier",
+      "harder": "harder",
+      "celebration": {
+        "title": "New level unlocked!",
+        "level": "{{name}} · Level {{step}} of {{total}}",
+        "subtitle1": "Your consistency is paying off.",
+        "subtitle2": "Strong — you earned this.",
+        "subtitle3": "Keep it up — level by level.",
+        "subtitle4": "Great to see you grow.",
+        "continue": "Continue"
+      },
+      "praise": {
+        "setsUp": "Room to grow: {{name}} now {{sets}} sets.",
+        "rangeUp": "Room to grow: {{name}} now {{range}}.",
+        "timeUp": "{{name}} now {{range}}.",
+        "loadUp": "Time for a heavier backpack."
+      },
+      "reason": {
+        "variantUp": "You are ready for the next variation.",
+        "variantDown": "Build a solid base with a matching variation.",
+        "setsUp": "One more set keeps you on track.",
+        "rangeUp": "Your rep range can grow.",
+        "rangeDown": "A calmer range keeps your form clean.",
+        "timeUp": "A few more seconds — you have this.",
+        "loadUp": "Load the backpack a bit heavier."
+      }
     }
   },
   "dayDetail": {
@@ -962,7 +1006,11 @@
       "fat": "F",
       "fiber": "Fi",
       "periodDay": "per day",
-      "periodWeek": "per week"
+      "periodWeek": "per week",
+      "progression": "Progression",
+      "progressionOpen": "Open suggestions",
+      "progressionEvent": "{{date}} · {{from}} → {{to}} (level {{step}}/{{total}})",
+      "progressionEventSimple": "{{date}} · {{name}} ({{kind}})"
     }
   },
   "history": {
@@ -1011,7 +1059,8 @@
       "sessionDetailTitle": "Session",
       "sessionDetailPlaceholder": "Detail coming soon ({{id}})",
       "exerciseProgressTitle": "Exercise progress",
-      "exerciseProgressPlaceholder": "Detail coming soon ({{id}})"
+      "exerciseProgressPlaceholder": "Detail coming soon ({{id}})",
+      "newLevel": "New level · {{name}}"
     },
     "balance": {
       "title": "Last 7 days",

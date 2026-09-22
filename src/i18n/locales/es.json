@@ -419,13 +419,13 @@
       "loadError": "No se pudo cargar esta comida. Inténtalo de nuevo."
     },
     "productLookup": {
-        "title": "Buscar producto",
-        "scanAnother": "Escanear otro producto",
-        "notFoundTitle": "Producto no encontrado",
-        "notFoundMessage": "Este código de barras no está en la base de datos de Open Food Facts.",
-        "errorTitle": "Consulta fallida",
-        "errorMessage": "No se pudo cargar el producto. Inténtalo de nuevo.",
-        "iconLabel": "Buscar producto"
+      "title": "Buscar producto",
+      "scanAnother": "Escanear otro producto",
+      "notFoundTitle": "Producto no encontrado",
+      "notFoundMessage": "Este código de barras no está en la base de datos de Open Food Facts.",
+      "errorTitle": "Consulta fallida",
+      "errorMessage": "No se pudo cargar el producto. Inténtalo de nuevo.",
+      "iconLabel": "Buscar producto"
     },
     "scan": {
       "buttonLabel": "Escanear comida",
@@ -643,7 +643,7 @@
       "seconds": "Segundos",
       "prs": "Récords de esta sesión",
       "prBeat": "Nuevo récord: {{name}} {{value}}",
-      "upperBoundHint": "Límite superior logrado – hora de subir",
+      "upperBoundHint": "Objetivo alto alcanzado — listo para más",
       "intensityTitle": "¿Qué tan duro fue?",
       "adoptTitle": "¿Adoptar como nuevo objetivo?",
       "addToTemplate": "¿Añadir a la plantilla?",
@@ -789,6 +789,50 @@
       "exercisesRequired": "Añade al menos un ejercicio.",
       "activeSessionHint": "Los cambios valen a partir de la próxima sesión.",
       "goalHint": "Objetivo de entrenamiento: {{count}}×/semana."
+    },
+    "progression": {
+      "readyTitle": "Listo para más",
+      "adjustedTitle": "Ajuste adecuado",
+      "accept": "Aplicar",
+      "later": "Más tarde",
+      "ascentLine": "{{name}}: {{from}} → {{to}}",
+      "descentLine": "Base sólida: sigue con {{name}}, {{target}}",
+      "applyError": "La sesión está guardada. No pudimos actualizar los objetivos ahora — puedes ajustarlos más tarde en el plan.",
+      "nextReady": "{{count}} ejercicios listos para más",
+      "nextReady_one": "{{count}} ejercicio listo para más",
+      "nextReady_other": "{{count}} ejercicios listos para más",
+      "saveChoices": "Guardar selección",
+      "firstOnLevel": "Primera sesión en el nivel {{step}} — ¡genial!",
+      "ladderLevel": "Nivel {{step}} de {{total}}",
+      "milestonesTitle": "Hitos",
+      "milestoneVariantUp": "Nuevo nivel · {{name}}",
+      "catalogLevel": "Nivel {{step}}/{{total}}",
+      "easier": "más fácil",
+      "harder": "más difícil",
+      "celebration": {
+        "title": "¡Nuevo nivel alcanzado!",
+        "level": "{{name}} · Nivel {{step}} de {{total}}",
+        "subtitle1": "Tu constancia da frutos.",
+        "subtitle2": "Fuerte — te lo has ganado.",
+        "subtitle3": "Sigue así — nivel a nivel.",
+        "subtitle4": "Qué bien verte crecer.",
+        "continue": "Continuar"
+      },
+      "praise": {
+        "setsUp": "Hay más: {{name}} ahora {{sets}} series.",
+        "rangeUp": "Hay más: {{name}} ahora {{range}}.",
+        "timeUp": "{{name}} ahora {{range}}.",
+        "loadUp": "Hora de una mochila más pesada."
+      },
+      "reason": {
+        "variantUp": "Estás listo para la siguiente variante.",
+        "variantDown": "Construye una base sólida con la variante adecuada.",
+        "setsUp": "Una serie más te mantiene en el camino.",
+        "rangeUp": "Tu rango de repeticiones puede crecer.",
+        "rangeDown": "Un rango más calmado mantiene tu técnica limpia.",
+        "timeUp": "Unos segundos más — lo tienes.",
+        "loadUp": "Carga un poco más la mochila."
+      }
     }
   },
   "dayDetail": {
@@ -962,7 +1006,11 @@
       "fat": "G",
       "fiber": "Fb",
       "periodDay": "por día",
-      "periodWeek": "por semana"
+      "periodWeek": "por semana",
+      "progression": "Progresión",
+      "progressionOpen": "Sugerencias abiertas",
+      "progressionEvent": "{{date}} · {{from}} → {{to}} (nivel {{step}}/{{total}})",
+      "progressionEventSimple": "{{date}} · {{name}} ({{kind}})"
     }
   },
   "history": {
@@ -1011,7 +1059,8 @@
       "sessionDetailTitle": "Sesión",
       "sessionDetailPlaceholder": "Detalle próximamente ({{id}})",
       "exerciseProgressTitle": "Progreso del ejercicio",
-      "exerciseProgressPlaceholder": "Detalle próximamente ({{id}})"
+      "exerciseProgressPlaceholder": "Detalle próximamente ({{id}})",
+      "newLevel": "Nuevo nivel · {{name}}"
     },
     "balance": {
       "title": "Últimos 7 días",

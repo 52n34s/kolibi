@@ -54,6 +54,8 @@ export type ExportLabels = {
   carbs: string;
   fat: string;
   fiber: string;
+  progression: string;
+  progressionOpen: string;
 };
 
 export type ExportTemplateExercise = {
@@ -144,6 +146,15 @@ export type ExportWeightEntry = {
   weightKg: number;
 };
 
+export type ExportProgressionEvent = {
+  dateLabel: string;
+  line: string;
+};
+
+export type ExportProgressionSuggestion = {
+  line: string;
+};
+
 export type ExportData = {
   context: ExportContext;
   nutritionDays: ExportNutritionDay[];
@@ -151,4 +162,6 @@ export type ExportData = {
   manualSessions: ExportManualSession[];
   runningDays: ExportRunningDay[];
   weightEntries: ExportWeightEntry[];
+  progressionEvents: ExportProgressionEvent[];
+  progressionOpen: ExportProgressionSuggestion[];
 };

@@ -18,7 +18,10 @@ import {
 import { ExerciseThumb } from '@/components/training/ExerciseThumb';
 import { exerciseStubFromSessionSet } from '@/components/training/exercise-stub';
 import { TEXT_SECONDARY } from '@/constants/brand';
+import { useProgressionEvents } from '@/hooks/use-progression-events';
+import { useExercises } from '@/hooks/use-exercises';
 import { parseDateOnly } from '@/lib/day-window';
+import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import {
   bestSetByExercise,
   exerciseBestSeries,
@@ -165,6 +168,26 @@ export function HistoryTrainingSection({
   const innerWidth = chartWidth - 32;
   const [showAllBests, setShowAllBests] = useState(false);
   const [volumeMetric, setVolumeMetric] = useState<'reps' | 'seconds'>('reps');
+  const { data: progressionEvents = [] } = useProgressionEvents({
+    since: `${rangeStartKey}T00:00:00.000Z`,
+  });
+  const { data: allExercises = [] } = useExercises();
+
+  const levelUps = useMemo(() => {
+    return progressionEvents
+      .filter((ev) => ev.status === 'accepted' && ev.kind === 'variant_up')
+      .map((ev) => {
+        const ex =
+          allExercises.find((row) => row.id === ev.toExerciseId) ??
+          allExercises.find((row) => row.id === ev.fromExerciseId);
+        return {
+          id: ev.id,
+          name: ex ? resolveExerciseName(ex, i18n.language) : (ev.toExerciseId ?? ''),
+          createdAt: ev.createdAt,
+        };
+      })
+      .filter((row) => row.name.length > 0);
+  }, [progressionEvents, allExercises, i18n.language]);
 
   const sessionsInRange = useMemo(
     () =>
@@ -387,7 +410,7 @@ export function HistoryTrainingSection({
         </View>
       </View>
 
-      {bests.length > 0 ? (
+      {bests.length > 0 || levelUps.length > 0 ? (
         <View
           testID="history.training.bests"
           style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
@@ -396,6 +419,14 @@ export function HistoryTrainingSection({
             <Text className="mb-3 text-sm font-semibold text-gray-900">
               {t('history.training.bestsTitle')}
             </Text>
+            {levelUps.map((row) => (
+              <Text
+                key={row.id}
+                className="py-2 text-sm font-semibold"
+                style={{ color: '#4F46E5' }}>
+                {t('history.training.newLevel', { name: row.name })}
+              </Text>
+            ))}
             {visibleBests.map((best) => (
               <BestRow key={best.exerciseId} best={best} t={t} />
             ))}

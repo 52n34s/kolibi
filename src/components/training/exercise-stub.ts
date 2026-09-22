@@ -11,12 +11,18 @@ export function exerciseStubFromActive(item: ActiveExercise): Exercise {
     perSide: item.perSide,
     defaultSets: item.targetSets,
     defaultReps: item.targetReps,
+    defaultRepsMax: item.targetRepsMax,
     defaultSeconds: item.targetSeconds,
+    defaultSecondsMax: item.targetSecondsMax,
     defaultRestSeconds: item.restSeconds,
     imageAsset: item.imageAsset,
     imagePath: item.imagePath,
     note: item.note,
     archivedAt: null,
+    ladderKey: null,
+    ladderStep: null,
+    progressionKind: 'none',
+    timeCapSeconds: null,
   };
 }
 
@@ -31,11 +37,17 @@ export function exerciseStubFromSessionSet(set: SessionSet): Exercise {
     perSide: set.perSide,
     defaultSets: 1,
     defaultReps: set.targetReps,
+    defaultRepsMax: set.targetRepsMax,
     defaultSeconds: set.targetSeconds,
+    defaultSecondsMax: set.targetSecondsMax,
     defaultRestSeconds: null,
     imageAsset: null,
     imagePath: null,
     note: null,
     archivedAt: null,
+    ladderKey: null,
+    ladderStep: null,
+    progressionKind: 'none',
+    timeCapSeconds: null,
   };
 }

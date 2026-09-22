@@ -32,6 +32,10 @@ export async function invalidateTrainingQueries(
     queryClient.invalidateQueries({
       queryKey: ['workout-session', userId],
     }),
+    queryClient.invalidateQueries({ queryKey: ['workout-ladder'] }),
+    queryClient.invalidateQueries({
+      queryKey: workoutQueryKeys.progressionEvents(userId),
+    }),
     queryClient.invalidateQueries({ queryKey: ['history', userId] }),
   ]);
 }

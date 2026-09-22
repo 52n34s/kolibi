@@ -15,6 +15,42 @@ export const UNIT_COLOR_KEYS: readonly UnitColorKey[] = [
 
 export type GymIntensity = 'easy' | 'normal' | 'hard';
 
+export type ProgressionKind = 'variant' | 'load' | 'none';
+
+export type ProgressionEventKind =
+  | 'variant_up'
+  | 'variant_down'
+  | 'sets_up'
+  | 'range_up'
+  | 'range_down'
+  | 'time_up'
+  | 'load_up';
+
+export type ProgressionEventStatus = 'accepted' | 'declined';
+
+/** Target snapshot stored on progression_events / used by suggestProgression. */
+export type ProgressionTarget = {
+  targetSets: number;
+  targetReps: number | null;
+  targetRepsMax: number | null;
+  targetSeconds: number | null;
+  targetSecondsMax: number | null;
+};
+
+export type ProgressionEvent = {
+  id: string;
+  userId: string;
+  templateId: string | null;
+  sessionId: string | null;
+  kind: ProgressionEventKind;
+  fromExerciseId: string | null;
+  toExerciseId: string | null;
+  fromTarget: ProgressionTarget;
+  toTarget: ProgressionTarget;
+  status: ProgressionEventStatus;
+  createdAt: string;
+};
+
 export type Exercise = {
   id: string;
   userId: string | null;
@@ -24,12 +60,18 @@ export type Exercise = {
   perSide: boolean;
   defaultSets: number;
   defaultReps: number | null;
+  defaultRepsMax: number | null;
   defaultSeconds: number | null;
+  defaultSecondsMax: number | null;
   defaultRestSeconds: number | null;
   imageAsset: string | null;
   imagePath: string | null;
   note: string | null;
   archivedAt: string | null;
+  ladderKey: string | null;
+  ladderStep: number | null;
+  progressionKind: ProgressionKind;
+  timeCapSeconds: number | null;
 };
 
 export type TemplateExercise = {
@@ -159,4 +201,24 @@ export function isExerciseKind(value: string): value is ExerciseKind {
 
 export function isGymIntensity(value: string): value is GymIntensity {
   return value === 'easy' || value === 'normal' || value === 'hard';
+}
+
+export function isProgressionKind(value: string): value is ProgressionKind {
+  return value === 'variant' || value === 'load' || value === 'none';
+}
+
+export function isProgressionEventKind(value: string): value is ProgressionEventKind {
+  return (
+    value === 'variant_up' ||
+    value === 'variant_down' ||
+    value === 'sets_up' ||
+    value === 'range_up' ||
+    value === 'range_down' ||
+    value === 'time_up' ||
+    value === 'load_up'
+  );
+}
+
+export function isProgressionEventStatus(value: string): value is ProgressionEventStatus {
+  return value === 'accepted' || value === 'declined';
 }

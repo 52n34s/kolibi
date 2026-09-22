@@ -1,9 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, router } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import {
+  IdleProgressionOverlay,
+  useDeferredProgressions,
+} from '@/components/training/IdleProgressionOverlay';
 import { RestTimerCard } from '@/components/training/RestTimerCard';
 import {
   countTemplateExercises,
@@ -48,6 +52,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
   const sessionsQuery = useWorkoutSessionsRange({ startKey, endKey: todayKey });
   const { data: trainingTabEnabled = false } = useFeatureFlag('training_tab');
   const showEditPlan = Boolean(trainingTabEnabled && onEditPlan);
+  const [showProgressionOverlay, setShowProgressionOverlay] = useState(false);
 
   const templates = templatesQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
@@ -56,6 +61,8 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
     () => pickNextTemplate(templates, sessions, todayKey),
     [templates, sessions, todayKey],
   );
+
+  const deferredProgressions = useDeferredProgressions(next);
 
   const others = useMemo(() => {
     if (!next) {
@@ -122,6 +129,19 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
           <Text style={styles.nextName}>{next.name}</Text>
           <Text style={styles.muted}>{lastLabel(next.id)}</Text>
           <Text style={styles.muted}>{metaLabel(next)}</Text>
+          {deferredProgressions.length > 0 ? (
+            <Pressable
+              testID="training.next.progression"
+              accessibilityRole="button"
+              onPress={() => setShowProgressionOverlay(true)}
+              style={styles.progressLine}>
+              <Text style={styles.progressLineText}>
+                {t('training.progression.nextReady', {
+                  count: deferredProgressions.length,
+                })}
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             testID="training.next.start"
             accessibilityRole="button"
@@ -193,6 +213,14 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
           <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
         </Pressable>
       ) : null}
+
+      {showProgressionOverlay && next ? (
+        <IdleProgressionOverlay
+          template={next}
+          rows={deferredProgressions}
+          onClose={() => setShowProgressionOverlay(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -260,6 +288,15 @@ const styles = StyleSheet.create({
   startPressable: {
     marginTop: 12,
     alignSelf: 'flex-start',
+  },
+  progressLine: {
+    marginTop: 4,
+    paddingVertical: 6,
+  },
+  progressLineText: {
+    color: BRAND_INDIGO,
+    fontWeight: '700',
+    fontSize: 14,
   },
   startGradient: {
     paddingHorizontal: 22,

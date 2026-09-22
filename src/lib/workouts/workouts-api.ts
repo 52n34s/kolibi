@@ -3,14 +3,23 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { Image } from 'react-native';
 
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
+import { sessionSetsToHistoryUnits } from '@/lib/workouts/progression-history';
+import type { ProgressionHistoryUnit } from '@/lib/workouts/progression';
 import { supabase } from '@/lib/supabase';
 import {
   isExerciseKind,
   isGymIntensity,
+  isProgressionEventKind,
+  isProgressionEventStatus,
+  isProgressionKind,
   isUnitColorKey,
   type Exercise,
   type ExerciseKind,
   type GymIntensity,
+  type ProgressionEvent,
+  type ProgressionEventKind,
+  type ProgressionEventStatus,
+  type ProgressionTarget,
   type SessionSet,
   type TemplateExercise,
   type UnitColorKey,
@@ -31,12 +40,18 @@ type ExerciseRow = {
   per_side: boolean;
   default_sets: number;
   default_reps: number | null;
+  default_reps_max: number | null;
   default_seconds: number | null;
+  default_seconds_max: number | null;
   default_rest_seconds: number | null;
   image_asset: string | null;
   image_path: string | null;
   note: string | null;
   archived_at: string | null;
+  ladder_key: string | null;
+  ladder_step: number | null;
+  progression_kind: string;
+  time_cap_seconds: number | null;
 };
 
 type TemplateRow = {
@@ -122,6 +137,9 @@ function mapExercise(row: ExerciseRow): Exercise {
   if (!isExerciseKind(row.kind)) {
     throw new Error(`Invalid exercise kind: ${row.kind}`);
   }
+  const progressionKind = isProgressionKind(row.progression_kind)
+    ? row.progression_kind
+    : 'variant';
   return {
     id: row.id,
     userId: row.user_id,
@@ -131,12 +149,18 @@ function mapExercise(row: ExerciseRow): Exercise {
     perSide: row.per_side,
     defaultSets: row.default_sets,
     defaultReps: row.default_reps,
+    defaultRepsMax: row.default_reps_max,
     defaultSeconds: row.default_seconds,
+    defaultSecondsMax: row.default_seconds_max,
     defaultRestSeconds: row.default_rest_seconds,
     imageAsset: row.image_asset,
     imagePath: row.image_path,
     note: row.note,
     archivedAt: row.archived_at,
+    ladderKey: row.ladder_key,
+    ladderStep: row.ladder_step,
+    progressionKind,
+    timeCapSeconds: row.time_cap_seconds,
   };
 }
 
@@ -197,7 +221,7 @@ function mapWorkoutSession(row: WorkoutSessionRow, sets: SessionSet[] = []): Wor
 }
 
 const EXERCISE_SELECT =
-  'id, user_id, catalog_slug, names, kind, per_side, default_sets, default_reps, default_seconds, default_rest_seconds, image_asset, image_path, note, archived_at';
+  'id, user_id, catalog_slug, names, kind, per_side, default_sets, default_reps, default_reps_max, default_seconds, default_seconds_max, default_rest_seconds, image_asset, image_path, note, archived_at, ladder_key, ladder_step, progression_kind, time_cap_seconds';
 
 export async function fetchExercises(): Promise<Exercise[]> {
   try {
@@ -975,6 +999,64 @@ export async function fetchExerciseHistory(
   }
 }
 
+export async function fetchExerciseHistoryUnits(
+  exerciseId: string,
+  limitSessions = 20,
+): Promise<ProgressionHistoryUnit[]> {
+  try {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from('session_sets')
+      .select(
+        `id, session_id, user_id, exercise_id, exercise_name, exercise_position, set_index, kind,
+         per_side, target_reps, target_reps_max, target_seconds, target_seconds_max, target_weight_kg,
+         reps, seconds, seconds_other_side, weight_kg, completed_at`,
+      )
+      .eq('user_id', userId)
+      .eq('exercise_id', exerciseId)
+      .order('completed_at', { ascending: false })
+      .limit(limitSessions * 12);
+
+    if (error) {
+      throw error;
+    }
+
+    const sets = ((data ?? []) as SessionSetRow[]).map(mapSessionSet);
+    const sessionIds: string[] = [];
+    const seen = new Set<string>();
+    for (const set of sets) {
+      if (!seen.has(set.sessionId)) {
+        seen.add(set.sessionId);
+        sessionIds.push(set.sessionId);
+      }
+      if (sessionIds.length >= limitSessions) {
+        break;
+      }
+    }
+
+    const intensityBySessionId: Record<string, GymIntensity | null> = {};
+    if (sessionIds.length > 0) {
+      const { data: sessions, error: sessionError } = await supabase
+        .from('workout_sessions')
+        .select('id, intensity')
+        .eq('user_id', userId)
+        .in('id', sessionIds);
+      if (sessionError) {
+        throw sessionError;
+      }
+      for (const row of (sessions ?? []) as { id: string; intensity: string | null }[]) {
+        intensityBySessionId[row.id] =
+          row.intensity != null && isGymIntensity(row.intensity) ? row.intensity : null;
+      }
+    }
+
+    const units = sessionSetsToHistoryUnits(sets, intensityBySessionId);
+    return units.filter((unit) => sessionIds.includes(unit.sessionId)).slice(0, limitSessions);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
 /**
  * Max single-set performance per exercise_id for sets logged before `beforeDateKey`
  * (exclusive). Slim columns only; aggregated client-side (no full SessionSet rows).
@@ -1070,6 +1152,157 @@ export async function deleteSessionSet(setId: string): Promise<void> {
     if (error) {
       throw error;
     }
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+type ProgressionEventRow = {
+  id: string;
+  user_id: string;
+  template_id: string | null;
+  session_id: string | null;
+  kind: string;
+  from_exercise_id: string | null;
+  to_exercise_id: string | null;
+  from_target: ProgressionTarget | null;
+  to_target: ProgressionTarget | null;
+  status: string;
+  created_at: string;
+};
+
+function mapProgressionTarget(value: unknown): ProgressionTarget {
+  const raw = (value ?? {}) as Partial<ProgressionTarget>;
+  return {
+    targetSets: typeof raw.targetSets === 'number' ? raw.targetSets : 0,
+    targetReps: raw.targetReps ?? null,
+    targetRepsMax: raw.targetRepsMax ?? null,
+    targetSeconds: raw.targetSeconds ?? null,
+    targetSecondsMax: raw.targetSecondsMax ?? null,
+  };
+}
+
+function mapProgressionEvent(row: ProgressionEventRow): ProgressionEvent {
+  if (!isProgressionEventKind(row.kind)) {
+    throw new Error(`Invalid progression event kind: ${row.kind}`);
+  }
+  if (!isProgressionEventStatus(row.status)) {
+    throw new Error(`Invalid progression event status: ${row.status}`);
+  }
+  return {
+    id: row.id,
+    userId: row.user_id,
+    templateId: row.template_id,
+    sessionId: row.session_id,
+    kind: row.kind,
+    fromExerciseId: row.from_exercise_id,
+    toExerciseId: row.to_exercise_id,
+    fromTarget: mapProgressionTarget(row.from_target),
+    toTarget: mapProgressionTarget(row.to_target),
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
+
+/** Catalog ladder rungs for a key, sorted by ladder_step ascending. */
+export async function fetchLadder(ladderKey: string): Promise<Exercise[]> {
+  try {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select(EXERCISE_SELECT)
+      .eq('ladder_key', ladderKey)
+      .is('user_id', null)
+      .is('archived_at', null)
+      .order('ladder_step', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+    return ((data ?? []) as ExerciseRow[]).map(mapExercise);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+export type InsertProgressionEventInput = {
+  templateId?: string | null;
+  sessionId?: string | null;
+  kind: ProgressionEventKind;
+  fromExerciseId?: string | null;
+  toExerciseId?: string | null;
+  fromTarget: ProgressionTarget;
+  toTarget: ProgressionTarget;
+  status: ProgressionEventStatus;
+};
+
+export async function insertProgressionEvent(
+  input: InsertProgressionEventInput,
+): Promise<ProgressionEvent> {
+  try {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from('progression_events')
+      .insert({
+        user_id: userId,
+        template_id: input.templateId ?? null,
+        session_id: input.sessionId ?? null,
+        kind: input.kind,
+        from_exercise_id: input.fromExerciseId ?? null,
+        to_exercise_id: input.toExerciseId ?? null,
+        from_target: input.fromTarget,
+        to_target: input.toTarget,
+        status: input.status,
+      })
+      .select(
+        'id, user_id, template_id, session_id, kind, from_exercise_id, to_exercise_id, from_target, to_target, status, created_at',
+      )
+      .single();
+
+    if (error) {
+      throw error;
+    }
+    return mapProgressionEvent(data as ProgressionEventRow);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+export type FetchProgressionEventsParams = {
+  templateId?: string;
+  exerciseId?: string;
+  since?: string;
+};
+
+export async function fetchProgressionEvents(
+  params: FetchProgressionEventsParams = {},
+): Promise<ProgressionEvent[]> {
+  try {
+    const userId = await requireUserId();
+    let query = supabase
+      .from('progression_events')
+      .select(
+        'id, user_id, template_id, session_id, kind, from_exercise_id, to_exercise_id, from_target, to_target, status, created_at',
+      )
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (params.templateId != null) {
+      query = query.eq('template_id', params.templateId);
+    }
+    if (params.exerciseId != null) {
+      query = query.or(
+        `from_exercise_id.eq.${params.exerciseId},to_exercise_id.eq.${params.exerciseId}`,
+      );
+    }
+    if (params.since != null) {
+      query = query.gte('created_at', params.since);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      throw error;
+    }
+    return ((data ?? []) as ProgressionEventRow[]).map(mapProgressionEvent);
   } catch (error) {
     captureAndThrow(error);
   }

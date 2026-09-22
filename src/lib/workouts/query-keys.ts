@@ -10,6 +10,9 @@ export const workoutQueryKeys = {
     ['workout-session', userId, sessionId] as const,
   exerciseBestsBefore: (userId: string, beforeKey: string) =>
     ['workout-exercise-bests-before', userId, beforeKey] as const,
+  ladder: (ladderKey: string) => ['workout-ladder', ladderKey] as const,
+  progressionEvents: (userId: string) =>
+    ['workout-progression-events', userId] as const,
 };
 
 /** Manual training_sessions rows (legacy logger / kcal). */

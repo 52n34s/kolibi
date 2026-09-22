@@ -54,7 +54,9 @@ function hasTrainingContent(data: ExportData): boolean {
   return (
     data.workoutSessions.length > 0 ||
     data.manualSessions.length > 0 ||
-    data.runningDays.length > 0
+    data.runningDays.length > 0 ||
+    data.progressionEvents.length > 0 ||
+    data.progressionOpen.length > 0
   );
 }
 
@@ -208,6 +210,20 @@ function buildTrainingSection(data: ExportData, labels: ExportLabels): string[] 
     lines.push(`### ${labels.runningKm}`);
     for (const row of data.runningDays) {
       lines.push(`- ${row.dateLabel}: ${fmtNum(row.km, labels.missing, 1)} km`);
+    }
+    lines.push('');
+  }
+
+  if (data.progressionEvents.length > 0 || data.progressionOpen.length > 0) {
+    lines.push(`## ${labels.progression}`, '');
+    for (const row of data.progressionEvents) {
+      lines.push(`- ${row.line}`);
+    }
+    if (data.progressionOpen.length > 0) {
+      lines.push(`### ${labels.progressionOpen}`);
+      for (const row of data.progressionOpen) {
+        lines.push(`- ${row.line}`);
+      }
     }
     lines.push('');
   }

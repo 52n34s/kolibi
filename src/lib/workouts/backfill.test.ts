@@ -12,12 +12,18 @@ function exercise(partial: Partial<Exercise> & Pick<Exercise, 'id' | 'kind'>): E
     perSide: false,
     defaultSets: 3,
     defaultReps: 8,
+    defaultRepsMax: null,
     defaultSeconds: null,
+    defaultSecondsMax: null,
     defaultRestSeconds: 60,
     imageAsset: null,
     imagePath: null,
     note: null,
     archivedAt: null,
+    ladderKey: null,
+    ladderStep: null,
+    progressionKind: 'none',
+    timeCapSeconds: null,
     ...partial,
   };
 }

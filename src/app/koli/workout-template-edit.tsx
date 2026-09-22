@@ -106,17 +106,27 @@ function draftFromTemplate(template: WorkoutTemplate): {
 
 function exerciseToDraft(exercise: Exercise): DraftExercise {
   const kindTime = exercise.kind === 'time';
+  const hasRepsRange =
+    !kindTime &&
+    exercise.defaultReps != null &&
+    exercise.defaultRepsMax != null &&
+    exercise.defaultRepsMax > exercise.defaultReps;
+  const hasTimeRange =
+    kindTime &&
+    exercise.defaultSeconds != null &&
+    exercise.defaultSecondsMax != null &&
+    exercise.defaultSecondsMax > exercise.defaultSeconds;
   return {
     key: globalThis.crypto.randomUUID(),
     exerciseId: exercise.id,
     exercise,
     targetSets: Math.max(1, exercise.defaultSets || 3),
     targetReps: kindTime ? null : (exercise.defaultReps ?? 10),
-    targetRepsMax: null,
+    targetRepsMax: hasRepsRange ? exercise.defaultRepsMax : null,
     targetSeconds: kindTime ? (exercise.defaultSeconds ?? 30) : null,
-    targetSecondsMax: null,
+    targetSecondsMax: hasTimeRange ? exercise.defaultSecondsMax : null,
     restSeconds: exercise.defaultRestSeconds,
-    rangeEnabled: false,
+    rangeEnabled: hasRepsRange || hasTimeRange,
   };
 }
 
@@ -265,6 +275,28 @@ export default function WorkoutTemplateEditScreen() {
     setExercises((current) =>
       current.map((row, i) => (i === index ? { ...row, ...patch } : row)),
     );
+  }
+
+  function shiftLadder(index: number, direction: -1 | 1) {
+    const row = exercises[index];
+    if (!row?.exercise.ladderKey || row.exercise.ladderStep == null) {
+      return;
+    }
+    const catalog = (exercisesQuery.data ?? []).filter(
+      (ex) => ex.userId == null && ex.ladderKey === row.exercise.ladderKey,
+    );
+    const next = catalog.find(
+      (ex) => ex.ladderStep === (row.exercise.ladderStep ?? 0) + direction,
+    );
+    if (!next) {
+      return;
+    }
+    const draft = exerciseToDraft(next);
+    updateExercise(index, {
+      ...draft,
+      key: row.key,
+      targetSets: row.targetSets,
+    });
   }
 
   function moveExercise(index: number, direction: -1 | 1) {
@@ -541,6 +573,25 @@ export default function WorkoutTemplateEditScreen() {
                       </Pressable>
                     </View>
                   </View>
+
+                  {row.exercise.ladderKey && row.exercise.ladderStep != null ? (
+                    <View style={styles.ladderActions}>
+                      <Pressable
+                        testID={`training.templateEdit.exercise.${index}.easier`}
+                        accessibilityRole="button"
+                        onPress={() => shiftLadder(index, -1)}
+                        style={styles.ladderBtn}>
+                        <Text style={styles.ladderBtnText}>{t('training.progression.easier')}</Text>
+                      </Pressable>
+                      <Pressable
+                        testID={`training.templateEdit.exercise.${index}.harder`}
+                        accessibilityRole="button"
+                        onPress={() => shiftLadder(index, 1)}
+                        style={styles.ladderBtn}>
+                        <Text style={styles.ladderBtnText}>{t('training.progression.harder')}</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
 
                   <Text style={styles.miniLabel}>{t('training.templateEdit.sets')}</Text>
                   <Stepper
@@ -820,6 +871,22 @@ const styles = StyleSheet.create({
   },
   exerciseArrows: {
     gap: 2,
+  },
+  ladderActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  ladderBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+  },
+  ladderBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: BRAND_INDIGO,
   },
   stepper: {
     flexDirection: 'row',

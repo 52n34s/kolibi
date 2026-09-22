@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Href, Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,7 @@ import { SettingsBackButton } from '@/components/settings/settings-back-button';
 import { ExerciseThumb } from '@/components/training/ExerciseThumb';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
+import { useLadder } from '@/hooks/use-ladder';
 import { localDateKey, parseDateOnly, shiftLocalDateKey } from '@/lib/day-window';
 import { formatAppDate } from '@/lib/onboarding';
 import {
@@ -30,9 +32,10 @@ import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { setPerformanceValue } from '@/lib/workouts/progress';
 import { workoutQueryKeys } from '@/lib/workouts/query-keys';
 import { formatActualSetValue } from '@/lib/workouts/session-detail-utils';
-import type { WorkoutSession } from '@/lib/workouts/types';
+import type { Exercise, WorkoutSession } from '@/lib/workouts/types';
 import {
   fetchExerciseById,
+  fetchProgressionEvents,
   fetchSessionsContainingExercise,
 } from '@/lib/workouts/workouts-api';
 import { useAuthStore } from '@/stores/auth-store';
@@ -148,9 +151,63 @@ export default function ExerciseProgressScreen() {
 
   const exercise = exerciseQuery.data ?? null;
   const sessions = sessionsQuery.data ?? [];
+  const ladderQuery = useLadder(exercise?.ladderKey);
+  const ladder = ladderQuery.data ?? [];
+
+  const [viewExerciseId, setViewExerciseId] = useState<string | null>(null);
+  const activeExerciseId = viewExerciseId ?? exerciseId ?? null;
+
+  const milestonesQuery = useQuery({
+    queryKey:
+      userId && exercise?.ladderKey
+        ? [...workoutQueryKeys.progressionEvents(userId), 'ladder', exercise.ladderKey]
+        : ['progression-milestones'],
+    enabled: Boolean(userId && exercise?.ladderKey),
+    queryFn: async () => {
+      const events = await fetchProgressionEvents({});
+      const ladderIds = new Set((ladderQuery.data ?? []).map((ex) => ex.id));
+      if (exerciseId) {
+        ladderIds.add(exerciseId);
+      }
+      return events.filter(
+        (ev) =>
+          ev.status === 'accepted' &&
+          (ladderIds.has(ev.fromExerciseId ?? '') || ladderIds.has(ev.toExerciseId ?? '')),
+      );
+    },
+  });
+
+  // When switching ladder step, load that exercise's sessions
+  const viewSessionsQuery = useQuery({
+    queryKey:
+      userId && activeExerciseId
+        ? [...workoutQueryKeys.exerciseHistory(userId, activeExerciseId), 'sessions', range, 'view']
+        : ['workout-exercise-sessions-view'],
+    enabled: Boolean(userId && activeExerciseId),
+    queryFn: () => fetchSessionsContainingExercise(activeExerciseId!, startKey),
+  });
+
+  const viewSessions =
+    activeExerciseId === exerciseId ? sessions : (viewSessionsQuery.data ?? []);
+  const reachedSteps = useMemo(() => {
+    const set = new Set<number>();
+    for (const ev of milestonesQuery.data ?? []) {
+      if (ev.kind !== 'variant_up' || !ev.toExerciseId) {
+        continue;
+      }
+      const step = ladder.find((ex) => ex.id === ev.toExerciseId)?.ladderStep;
+      if (step != null) {
+        set.add(step);
+      }
+    }
+    if (exercise?.ladderStep != null) {
+      set.add(exercise.ladderStep);
+    }
+    return set;
+  }, [milestonesQuery.data, ladder, exercise]);
 
   const chart = useMemo(() => {
-    const chronological = [...sessions].reverse();
+    const chronological = [...viewSessions].reverse();
     const bests: number[] = [];
     const sums: number[] = [];
     for (const session of chronological) {
@@ -162,9 +219,13 @@ export default function ExerciseProgressScreen() {
       sums.push(stats.sum);
     }
     return { bests, sums };
-  }, [sessions]);
+  }, [viewSessions]);
 
   const chartWidth = windowWidth - 48;
+  const displayExercise: Exercise | null =
+    activeExerciseId === exerciseId
+      ? exercise
+      : ladder.find((ex) => ex.id === activeExerciseId) ?? exercise;
 
   return (
     <HomeLayout>
@@ -187,16 +248,68 @@ export default function ExerciseProgressScreen() {
           <ActivityIndicator color={BRAND_INDIGO} />
         ) : null}
 
-        {exercise ? (
+        {displayExercise ? (
           <GlassCard style={styles.header}>
-            <ExerciseThumb exercise={exercise} size="lg" />
+            <ExerciseThumb exercise={displayExercise} size="lg" />
             <Text style={styles.name}>
-              {resolveExerciseName(exercise, i18n.language)}
+              {resolveExerciseName(displayExercise, i18n.language)}
             </Text>
-            {exercise.note ? (
-              <Text style={styles.note}>{exercise.note}</Text>
+            {displayExercise.ladderKey && displayExercise.ladderStep != null ? (
+              <Text style={styles.note}>
+                {t('training.progression.ladderLevel', {
+                  step: displayExercise.ladderStep,
+                  total: ladder.length || displayExercise.ladderStep,
+                })}
+              </Text>
+            ) : null}
+            {displayExercise.note ? (
+              <Text style={styles.note}>{displayExercise.note}</Text>
             ) : null}
           </GlassCard>
+        ) : null}
+
+        {ladder.length > 0 ? (
+          <GlassCard style={styles.ladderCard}>
+            {ladder.map((stepEx) => {
+              const active = stepEx.id === activeExerciseId;
+              const reached = reachedSteps.has(stepEx.ladderStep ?? -1);
+              return (
+                <Pressable
+                  key={stepEx.id}
+                  accessibilityRole="button"
+                  onPress={() => setViewExerciseId(stepEx.id)}
+                  style={[styles.ladderRow, active && styles.ladderRowActive]}>
+                  <ExerciseThumb exercise={stepEx} size="sm" onPressEnabled={false} />
+                  <Text style={styles.ladderName} numberOfLines={1}>
+                    {resolveExerciseName(stepEx, i18n.language)}
+                  </Text>
+                  {reached ? (
+                    <Ionicons name="checkmark-circle" size={20} color={BRAND_INDIGO} />
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </GlassCard>
+        ) : null}
+
+        {(milestonesQuery.data?.length ?? 0) > 0 ? (
+          <View style={{ gap: 8 }}>
+            <Text style={styles.sectionTitle}>{t('training.progression.milestonesTitle')}</Text>
+            {(milestonesQuery.data ?? []).map((ev) => {
+              const nameId = ev.toExerciseId ?? ev.fromExerciseId;
+              const nameEx = ladder.find((ex) => ex.id === nameId) ?? exercise;
+              const name = nameEx
+                ? resolveExerciseName(nameEx, i18n.language)
+                : nameId ?? '';
+              return (
+                <Text key={ev.id} style={styles.milestone}>
+                  {formatAppDate(new Date(ev.createdAt), i18n.language)}
+                  {' · '}
+                  {t('training.progression.milestoneVariantUp', { name })}
+                </Text>
+              );
+            })}
+          </View>
         ) : null}
 
         <PillSegmentSwitcher
@@ -225,7 +338,7 @@ export default function ExerciseProgressScreen() {
         )}
 
         <Text style={styles.sectionTitle}>{t('training.progress.sessionsTitle')}</Text>
-        {sessions.map((session) => {
+        {viewSessions.map((session) => {
           const stats = sessionBestAndSum(session);
           const setValues = session.sets.map(formatActualSetValue).join(', ');
           return (
@@ -272,6 +385,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: TEXT_SECONDARY,
     textAlign: 'center',
+  },
+  ladderCard: {
+    padding: 8,
+    gap: 4,
+  },
+  ladderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  ladderRowActive: {
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+  },
+  ladderName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E1B4B',
+  },
+  milestone: {
+    fontSize: 13,
+    color: TEXT_SECONDARY,
   },
   chartCard: {
     padding: 16,

@@ -1,6 +1,17 @@
 import type { ImageSource } from 'expo-image';
 
-/** Catalog slug → bundled illustration (16 seed exercises). */
+/**
+ * Catalog slug → bundled illustration (16 seed exercises).
+ *
+ * Missing illustration files (do NOT add until assets exist — ExerciseThumb
+ * falls back to the initial letter):
+ *   incline_push_up, push_up, archer_push_up, pseudo_planche_push_up,
+ *   elevated_pike_push_up, wall_handstand_push_up, straight_bar_dip,
+ *   negative_pull_up, archer_pull_up, inverted_row_bent_knees,
+ *   feet_elevated_inverted_row, archer_row, split_squat, pistol_squat_box,
+ *   pistol_squat, glute_bridge, single_leg_hip_thrust, side_plank_leg_raise,
+ *   tuck_hollow_hold, one_leg_l_sit, full_l_sit, hanging_leg_raise, toes_to_bar
+ */
 export const CATALOG_EXERCISE_IMAGES: Record<string, ImageSource> = {
   ytw_raise: require('@/assets/images/exercises/ytw_raise.webp'),
   pull_up: require('@/assets/images/exercises/pull_up.webp'),

@@ -45,6 +45,8 @@ const labels: ExportLabels = {
   carbs: 'K',
   fat: 'F',
   fiber: 'Bst',
+  progression: 'Progression',
+  progressionOpen: 'Offene Vorschläge',
 };
 
 function baseOptions(partial: Partial<ExportOptions> = {}): ExportOptions {
@@ -80,6 +82,8 @@ function emptyData(partial: Partial<ExportData> = {}): ExportData {
     manualSessions: [],
     runningDays: [],
     weightEntries: [],
+    progressionEvents: [],
+    progressionOpen: [],
     ...partial,
   };
 }

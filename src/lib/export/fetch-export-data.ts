@@ -20,7 +20,8 @@ import {
   groupSessionSets,
   sessionDurationFromTimestamps,
 } from '@/lib/workouts/session-detail-utils';
-import { fetchTemplates, fetchWorkoutSessionsInRange } from '@/lib/workouts/workouts-api';
+import { fetchTemplates, fetchWorkoutSessionsInRange, fetchProgressionEvents, fetchLadder, fetchExerciseHistoryUnits } from '@/lib/workouts/workouts-api';
+import { suggestProgression } from '@/lib/workouts/progression';
 import { fetchProfileSettings } from '@/lib/profile';
 import { supabase } from '@/lib/supabase';
 import {
@@ -436,6 +437,123 @@ export async function fetchExportData(params: {
     weightKg: Number(row.weight_kg),
   }));
 
+  let progressionEvents: ExportData['progressionEvents'] = [];
+  let progressionOpen: ExportData['progressionOpen'] = [];
+  if (sections.training) {
+    const events = await fetchProgressionEvents({
+      since: `${startKey}T00:00:00.000Z`,
+    });
+    const allEvents = await fetchProgressionEvents();
+    const accepted = events.filter((ev) => ev.status === 'accepted');
+    const exerciseById = new Map<string, (typeof templates)[0]['exercises'][0]['exercise']>();
+    for (const template of templates) {
+      for (const te of template.exercises) {
+        exerciseById.set(te.exerciseId, te.exercise);
+      }
+    }
+    const ladderCache = new Map<string, Awaited<ReturnType<typeof fetchLadder>>>();
+    async function ladderFor(key: string | null | undefined) {
+      if (key == null) {
+        return [];
+      }
+      const cached = ladderCache.get(key);
+      if (cached) {
+        return cached;
+      }
+      const ladder = await fetchLadder(key);
+      ladderCache.set(key, ladder);
+      for (const ex of ladder) {
+        exerciseById.set(ex.id, ex);
+      }
+      return ladder;
+    }
+
+    progressionEvents = [];
+    for (const ev of accepted) {
+      let fromEx = ev.fromExerciseId ? exerciseById.get(ev.fromExerciseId) : undefined;
+      let toEx = ev.toExerciseId ? exerciseById.get(ev.toExerciseId) : undefined;
+      if (toEx?.ladderKey) {
+        await ladderFor(toEx.ladderKey);
+        toEx = exerciseById.get(ev.toExerciseId!) ?? toEx;
+      }
+      if (fromEx?.ladderKey) {
+        await ladderFor(fromEx.ladderKey);
+        fromEx = exerciseById.get(ev.fromExerciseId!) ?? fromEx;
+      }
+      const fromName = fromEx ? resolveExerciseName(fromEx, lang) : ev.fromExerciseId ?? '';
+      const toName = toEx ? resolveExerciseName(toEx, lang) : ev.toExerciseId ?? '';
+      const step = toEx?.ladderStep;
+      const total =
+        toEx?.ladderKey != null
+          ? (await ladderFor(toEx.ladderKey)).length || step
+          : step;
+      const createdKey = localDateKey(new Date(ev.createdAt));
+      const day = parseDateOnly(createdKey).toLocaleDateString(lang, {
+        day: '2-digit',
+        month: '2-digit',
+      });
+      const line =
+        ev.kind === 'variant_up' && toName
+          ? t('export.markdown.progressionEvent', {
+              date: day,
+              from: fromName,
+              to: toName,
+              step: step ?? '',
+              total: total ?? '',
+            })
+          : t('export.markdown.progressionEventSimple', {
+              date: day,
+              name: toName || fromName,
+              kind: ev.kind,
+            });
+      progressionEvents.push({
+        dateLabel: day,
+        line,
+      });
+    }
+
+    for (const template of templates) {
+      const templateEvents = allEvents.filter((ev) => ev.templateId === template.id);
+      const ids = template.exercises.map((te) => te.exerciseId);
+      for (const te of template.exercises) {
+        if (te.exercise.progressionKind === 'none') {
+          continue;
+        }
+        const lastForExercise = templateEvents.filter(
+          (ev) =>
+            ev.fromExerciseId === te.exerciseId || ev.toExerciseId === te.exerciseId,
+        );
+        const last = lastForExercise[0];
+        if (last?.status !== 'declined') {
+          continue;
+        }
+        const ladder = await ladderFor(te.exercise.ladderKey);
+        const history = await fetchExerciseHistoryUnits(te.exerciseId);
+        const suggestion = suggestProgression({
+          exercise: te.exercise,
+          ladder,
+          currentTarget: {
+            targetSets: te.targetSets,
+            targetReps: te.targetReps,
+            targetRepsMax: te.targetRepsMax,
+            targetSeconds: te.targetSeconds,
+            targetSecondsMax: te.targetSecondsMax,
+          },
+          history,
+          templateExerciseIds: ids,
+          lastEvents: lastForExercise,
+        });
+        if (!suggestion) {
+          continue;
+        }
+        const name = resolveExerciseName(te.exercise, lang);
+        progressionOpen.push({
+          line: `${name}: ${t(suggestion.reasonKey, suggestion.reasonParams)}`,
+        });
+      }
+    }
+  }
+
   return {
     context: {
       goalTypeLabel: resolveGoalLabel(profile.goal_type, t),
@@ -462,5 +580,7 @@ export async function fetchExportData(params: {
     manualSessions: manualExport,
     runningDays,
     weightEntries,
+    progressionEvents,
+    progressionOpen,
   };
 }

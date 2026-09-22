@@ -419,13 +419,13 @@
       "loadError": "Die Mahlzeit konnte nicht geladen werden. Bitte erneut versuchen."
     },
     "productLookup": {
-        "title": "Produkt nachschlagen",
-        "scanAnother": "Weiteres Produkt scannen",
-        "notFoundTitle": "Produkt nicht gefunden",
-        "notFoundMessage": "Dieser Barcode ist nicht in der Open-Food-Facts-Datenbank.",
-        "errorTitle": "Abfrage fehlgeschlagen",
-        "errorMessage": "Das Produkt konnte nicht geladen werden. Bitte erneut versuchen.",
-        "iconLabel": "Produkt nachschlagen"
+      "title": "Produkt nachschlagen",
+      "scanAnother": "Weiteres Produkt scannen",
+      "notFoundTitle": "Produkt nicht gefunden",
+      "notFoundMessage": "Dieser Barcode ist nicht in der Open-Food-Facts-Datenbank.",
+      "errorTitle": "Abfrage fehlgeschlagen",
+      "errorMessage": "Das Produkt konnte nicht geladen werden. Bitte erneut versuchen.",
+      "iconLabel": "Produkt nachschlagen"
     },
     "scan": {
       "buttonLabel": "Mahlzeit scannen",
@@ -643,7 +643,7 @@
       "seconds": "Sekunden",
       "prs": "Bestwerte dieser Einheit",
       "prBeat": "Neuer Bestwert: {{name}} {{value}}",
-      "upperBoundHint": "Obere Grenze geschafft – Zeit für mehr",
+      "upperBoundHint": "Oberes Ziel erreicht – bereit für mehr",
       "intensityTitle": "Wie anstrengend war's?",
       "adoptTitle": "Als neues Ziel übernehmen?",
       "addToTemplate": "Zur Vorlage hinzufügen?",
@@ -789,6 +789,50 @@
       "exercisesRequired": "Bitte mindestens eine Übung hinzufügen.",
       "activeSessionHint": "Änderungen gelten erst für die nächste Session.",
       "goalHint": "Trainingsziel auf {{count}}×/Woche gesetzt."
+    },
+    "progression": {
+      "readyTitle": "Bereit für mehr",
+      "adjustedTitle": "Passend angepasst",
+      "accept": "Übernehmen",
+      "later": "Später",
+      "ascentLine": "{{name}}: {{from}} → {{to}}",
+      "descentLine": "Solide Basis: weiter mit {{name}}, {{target}}",
+      "applyError": "Die Einheit ist gespeichert. Die Zielanpassung konnten wir gerade nicht übernehmen – du kannst sie später im Plan nachziehen.",
+      "nextReady": "{{count}} Übungen bereit für mehr",
+      "nextReady_one": "{{count}} Übung bereit für mehr",
+      "nextReady_other": "{{count}} Übungen bereit für mehr",
+      "saveChoices": "Auswahl speichern",
+      "firstOnLevel": "Erste Einheit auf Stufe {{step}} – stark!",
+      "ladderLevel": "Stufe {{step}} von {{total}}",
+      "milestonesTitle": "Meilensteine",
+      "milestoneVariantUp": "Neue Stufe · {{name}}",
+      "catalogLevel": "Stufe {{step}}/{{total}}",
+      "easier": "leichter",
+      "harder": "schwerer",
+      "celebration": {
+        "title": "Neue Stufe erreicht!",
+        "level": "{{name}} · Stufe {{step}} von {{total}}",
+        "subtitle1": "Deine Konstanz zahlt sich aus.",
+        "subtitle2": "Stark – das hast du dir erarbeitet.",
+        "subtitle3": "Weiter so – Stufe für Stufe.",
+        "subtitle4": "Schön zu sehen, wie du wächst.",
+        "continue": "Weiter"
+      },
+      "praise": {
+        "setsUp": "Mehr drin: {{name}} ab jetzt {{sets}} Sätze.",
+        "rangeUp": "Mehr drin: {{name}} ab jetzt {{range}}.",
+        "timeUp": "{{name}} ab jetzt {{range}}.",
+        "loadUp": "Zeit für einen schwereren Rucksack."
+      },
+      "reason": {
+        "variantUp": "Du bist bereit für die nächste Variante.",
+        "variantDown": "Solide Basis aufbauen – mit der passenden Variante.",
+        "setsUp": "Ein Satz mehr hält dich in der richtigen Spur.",
+        "rangeUp": "Dein Wiederholungsbereich darf wachsen.",
+        "rangeDown": "Mit einem ruhigeren Bereich bleibst du sauber in der Technik.",
+        "timeUp": "Ein paar Sekunden mehr – du hast es drauf.",
+        "loadUp": "Rucksack schwerer beladen."
+      }
     }
   },
   "dayDetail": {
@@ -962,7 +1006,11 @@
       "fat": "F",
       "fiber": "Bst",
       "periodDay": "pro Tag",
-      "periodWeek": "pro Woche"
+      "periodWeek": "pro Woche",
+      "progression": "Progression",
+      "progressionOpen": "Offene Vorschläge",
+      "progressionEvent": "{{date}} · {{from}} → {{to}} (Stufe {{step}}/{{total}})",
+      "progressionEventSimple": "{{date}} · {{name}} ({{kind}})"
     }
   },
   "history": {
@@ -1011,7 +1059,8 @@
       "sessionDetailTitle": "Einheit",
       "sessionDetailPlaceholder": "Detail folgt ({{id}})",
       "exerciseProgressTitle": "Übungsfortschritt",
-      "exerciseProgressPlaceholder": "Detail folgt ({{id}})"
+      "exerciseProgressPlaceholder": "Detail folgt ({{id}})",
+      "newLevel": "Neue Stufe · {{name}}"
     },
     "balance": {
       "title": "Letzte 7 Tage",
