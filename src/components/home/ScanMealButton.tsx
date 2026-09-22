@@ -61,11 +61,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.42)',
   },
   blurOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255, 255, 255, 0.14)',
   },
   androidGlassOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255, 255, 255, 0.16)',
   },
   icon: {
