@@ -99,3 +99,25 @@ CREATE TYPE public.exercise_kind AS ENUM (
   'weighted',
   'time'
 );
+
+-- ---------------------------------------------------------------------------
+-- training_type
+-- Live public.training_sessions.training_type (manual logger activities).
+-- ---------------------------------------------------------------------------
+CREATE TYPE public.training_type AS ENUM (
+  'strength',
+  'yoga',
+  'swimming',
+  'cycling',
+  'other'
+);
+
+-- ---------------------------------------------------------------------------
+-- gym_intensity
+-- Live intensity enum on training_sessions / workout_sessions (talk-test).
+-- ---------------------------------------------------------------------------
+CREATE TYPE public.gym_intensity AS ENUM (
+  'easy',
+  'normal',
+  'hard'
+);

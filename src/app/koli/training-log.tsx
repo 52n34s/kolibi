@@ -36,6 +36,7 @@ import {
   type TrainingActivity,
   type TrainingIntensity,
 } from '@/lib/training-calories';
+import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import {
   deleteTrainingSessionById,
   fetchTrainingSessionsForDate,
@@ -129,18 +130,6 @@ export default function TrainingLogScreen() {
     setShowDatePicker(true);
   }, [changeLoggedOn, maxDate, minDate, selectedDate]);
 
-  async function invalidateTrainingQueries() {
-    if (!userId) {
-      return;
-    }
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['home-dashboard', userId] }),
-      queryClient.invalidateQueries({ queryKey: ['sport-energy-day-today', userId] }),
-      queryClient.invalidateQueries({ queryKey: ['training-sessions-week', userId] }),
-      queryClient.invalidateQueries({ queryKey: ['training-sessions-day', userId] }),
-    ]);
-  }
-
   async function handleSave() {
     if (!userId || isSaving || healthBlocked) {
       return;
@@ -151,7 +140,7 @@ export default function TrainingLogScreen() {
       return;
     }
 
-    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0 || durationMinutes > 600) {
+    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0 || durationMinutes > 300) {
       Alert.alert(t('settings.errors.title'), t('home.training.invalidDuration'));
       return;
     }
@@ -178,7 +167,7 @@ export default function TrainingLogScreen() {
         weightKg,
         manualKcal,
       });
-      await invalidateTrainingQueries();
+      await invalidateTrainingQueries(queryClient, userId);
       router.back();
     } catch (error) {
       console.error('[TrainingLog] save failed:', error);
@@ -204,7 +193,7 @@ export default function TrainingLogScreen() {
             setIsSaving(true);
             try {
               await deleteTrainingSessionById(userId, sessionRow.id);
-              await invalidateTrainingQueries();
+              await invalidateTrainingQueries(queryClient, userId);
             } catch (error) {
               console.error('[TrainingLog] delete failed:', error);
               Sentry.captureException(error);

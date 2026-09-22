@@ -21,3 +21,13 @@ export const GLASS_BORDER_TOP = 'rgba(255, 255, 255, 0.95)';
 export const CHIP_BORDER = 'rgba(79, 70, 229, 0.75)';
 /** Filled chip state. Deeper than GLASS_SURFACE, which is invisible at 1.1:1. */
 export const CHIP_SURFACE_SELECTED = 'rgba(79, 70, 229, 0.22)';
+
+/** Workout unit accent colors (templates / week dots). */
+export const TRAINING_UNIT_COLORS = {
+  indigo: '#4F46E5',
+  violet: '#8B5CF6',
+  sky: '#0EA5E9',
+  teal: '#14B8A6',
+  amber: '#F59E0B',
+  pink: '#EC4899',
+} as const;

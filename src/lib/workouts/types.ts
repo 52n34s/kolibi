@@ -1,0 +1,137 @@
+/** Domain types for the workout logger (camelCase ↔ DB snake_case in workouts-api). */
+
+export type ExerciseKind = 'reps' | 'weighted' | 'time';
+
+export type UnitColorKey = 'indigo' | 'violet' | 'sky' | 'teal' | 'amber' | 'pink';
+
+export const UNIT_COLOR_KEYS: readonly UnitColorKey[] = [
+  'indigo',
+  'violet',
+  'sky',
+  'teal',
+  'amber',
+  'pink',
+] as const;
+
+export type GymIntensity = 'easy' | 'normal' | 'hard';
+
+export type Exercise = {
+  id: string;
+  userId: string | null;
+  catalogSlug: string | null;
+  names: Record<string, string>;
+  kind: ExerciseKind;
+  perSide: boolean;
+  defaultSets: number;
+  defaultReps: number | null;
+  defaultSeconds: number | null;
+  defaultRestSeconds: number | null;
+  imageAsset: string | null;
+  imagePath: string | null;
+  note: string | null;
+  archivedAt: string | null;
+};
+
+export type TemplateExercise = {
+  id: string;
+  exerciseId: string;
+  exercise: Exercise;
+  position: number;
+  targetSets: number;
+  targetReps: number | null;
+  targetRepsMax: number | null;
+  targetSeconds: number | null;
+  targetSecondsMax: number | null;
+  targetWeightKg: number | null;
+  restSeconds: number | null;
+};
+
+export type WorkoutTemplate = {
+  id: string;
+  name: string;
+  shortLabel: string;
+  colorKey: UnitColorKey;
+  /** ISO weekdays: 1 = Monday … 7 = Sunday. */
+  weekdays: number[];
+  position: number;
+  exercises: TemplateExercise[];
+};
+
+export type WorkoutSession = {
+  id: string;
+  userId: string;
+  templateId: string | null;
+  templateName: string;
+  shortLabel: string;
+  colorKey: UnitColorKey;
+  loggedOn: string;
+  startedAt: string;
+  finishedAt: string | null;
+  intensity: GymIntensity | null;
+  trainingSessionId: string | null;
+  createdAt: string;
+  sets: SessionSet[];
+};
+
+export type SessionSet = {
+  id: string;
+  sessionId: string;
+  userId: string;
+  exerciseId: string | null;
+  exerciseName: string;
+  exercisePosition: number;
+  setIndex: number;
+  kind: ExerciseKind;
+  perSide: boolean;
+  targetReps: number | null;
+  targetRepsMax: number | null;
+  targetSeconds: number | null;
+  targetSecondsMax: number | null;
+  targetWeightKg: number | null;
+  reps: number | null;
+  seconds: number | null;
+  /** Other side when perSide time holds; seconds is the minimum of both. */
+  secondsOtherSide: number | null;
+  weightKg: number | null;
+  completedAt: string;
+};
+
+/** In-progress session snapshot (Zustand store). */
+export type ActiveSet = {
+  id: string;
+  /** Reps or seconds for the current set. */
+  value: number;
+  done: boolean;
+  completedAt: string | null;
+  secondsOtherSide: number | null;
+};
+
+export type ActiveExercise = {
+  exerciseId: string;
+  name: string;
+  kind: ExerciseKind;
+  perSide: boolean;
+  imageAsset: string | null;
+  imagePath: string | null;
+  note: string | null;
+  targetSets: number;
+  targetReps: number | null;
+  targetRepsMax: number | null;
+  targetSeconds: number | null;
+  targetSecondsMax: number | null;
+  targetWeightKg: number | null;
+  restSeconds: number | null;
+  sets: ActiveSet[];
+};
+
+export function isUnitColorKey(value: string): value is UnitColorKey {
+  return (UNIT_COLOR_KEYS as readonly string[]).includes(value);
+}
+
+export function isExerciseKind(value: string): value is ExerciseKind {
+  return value === 'reps' || value === 'weighted' || value === 'time';
+}
+
+export function isGymIntensity(value: string): value is GymIntensity {
+  return value === 'easy' || value === 'normal' || value === 'hard';
+}
