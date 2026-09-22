@@ -11,6 +11,7 @@ export type ExportOptions = {
   /** Inclusive YYYY-MM-DD */
   startKey: string;
   endKey: string;
+  unitSystem: 'metric' | 'imperial';
 };
 
 /** All user-visible strings for the markdown builder (from i18n). */
