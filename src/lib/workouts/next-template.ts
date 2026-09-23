@@ -18,6 +18,9 @@ type SessionLike = Pick<WorkoutSession, 'templateId' | 'loggedOn' | 'finishedAt'
  * 1) Unit scheduled for today that was not done today
  * 2) Else the unit after the most recently finished (by position, cyclic)
  * 3) Else the first by position
+ *
+ * Callers pass templates from fetchTemplates, which already excludes archived
+ * rows (`archived_at IS NULL`). No extra archive filter here.
  */
 export function pickNextTemplate(
   templates: readonly WorkoutTemplate[],
