@@ -73,7 +73,6 @@ import { useHealthConnectedPreference } from '@/hooks/use-health-connected-prefe
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
-import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { resolveDisplayWeight } from '@/lib/display-weight';
@@ -206,16 +205,14 @@ export default function HomeScreen() {
     period: movementGoalPeriod,
   });
   const { data: trainingSessionsWeek = [] } = useTrainingSessionsWeek(hasTrainingGoal);
-  const { data: workoutTemplates } = useWorkoutTemplates();
   const activeSession = useWorkoutSessionStore((state) => state.active);
-  const hasTemplates = (workoutTemplates?.length ?? 0) > 0;
   const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
   const trainingTabEnabled = resolveTrainingTabEnabled(trainingTabFlag);
   const weekKeys = useMemo(() => localWeekDateKeys(), []);
   const { data: workoutSessionsWeek = [] } = useWorkoutSessionsRange({
     startKey: weekKeys[0]!,
     endKey: weekKeys[6]!,
-    enabled: hasTrainingGoal || hasTemplates || Boolean(activeSession) || trainingTabEnabled,
+    enabled: hasTrainingGoal || Boolean(activeSession) || trainingTabEnabled,
   });
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
   const {
@@ -281,12 +278,12 @@ export default function HomeScreen() {
 
   const homeTabs = useMemo<HomeTab[]>(() => {
     const tabs: HomeTab[] = ['today', 'meals'];
-    if (trainingTabEnabled || hasTemplates || activeSession) {
+    if (trainingTabEnabled) {
       tabs.push('training');
     }
     tabs.push('history');
     return tabs;
-  }, [trainingTabEnabled, hasTemplates, activeSession]);
+  }, [trainingTabEnabled]);
 
   useEffect(() => {
     if (!homeTabs.includes(homeTab)) {
@@ -402,10 +399,14 @@ export default function HomeScreen() {
             return;
           }
         }
+        // Training is only a valid home tab while the feature is enabled.
+        if (tab === 'training' && !trainingTabEnabled) {
+          return;
+        }
         setHomeTab(tab);
       })();
     },
-    [gatePremiumAccess, isAnonymousUser, openPaywall],
+    [gatePremiumAccess, isAnonymousUser, openPaywall, trainingTabEnabled],
   );
 
   const homeTabSwipeGesture = useMemo(
@@ -563,7 +564,7 @@ export default function HomeScreen() {
         dividerAbove: rows.length > 0,
         weekDayDots: buildWeekDayMarkers(trainingSessionsWeek, workoutSessionsWeek),
         onPress: () => {
-          if (trainingTabEnabled || hasTemplates || activeSession) {
+          if (trainingTabEnabled) {
             switchHomeTab('training');
             return;
           }
@@ -585,8 +586,6 @@ export default function HomeScreen() {
     workoutSessionsWeek,
     hasTrainingGoal,
     trainingTabEnabled,
-    hasTemplates,
-    activeSession,
     hasMovementGoal,
     healthConnectedPreference,
     movementActual,
@@ -1492,7 +1491,7 @@ export default function HomeScreen() {
                         : t(`home.tabs.${tab}`),
                   }))}
                 />
-                {activeSession && homeTab !== 'training' ? (
+                {trainingTabEnabled && activeSession && homeTab !== 'training' ? (
                   <View className="mt-3">
                     <HomeActiveSessionBar onPress={() => switchHomeTab('training')} />
                   </View>

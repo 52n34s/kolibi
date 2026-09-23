@@ -132,10 +132,10 @@ import {
 import { loggedOnInRange } from '@/lib/history-training';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
 import { useExerciseBestsBefore } from '@/hooks/use-exercise-bests-before';
-import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
+import { useFeatureFlag } from '@/hooks/use-feature-flag';
+import { resolveTrainingTabEnabled } from '@/lib/workouts/training-release';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
-import { useWorkoutSessionStore } from '@/stores/workout-session-store';
 import { formatKcal } from '@/utils/format';
 
 function formatShortDayLabel(dateKey: string, locale: string): string {
@@ -238,11 +238,9 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
   const { data: beforeBests = {} } = useExerciseBestsBefore({
     beforeKey: historyRangeWindow.startKey,
   });
-  const { data: workoutTemplates = [] } = useWorkoutTemplates();
-  const activeSession = useWorkoutSessionStore((state) => state.active);
+  const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
   const canOpenTrainingTab =
-    Boolean(onOpenTrainingTab) &&
-    (workoutTemplates.length > 0 || activeSession != null);
+    Boolean(onOpenTrainingTab) && resolveTrainingTabEnabled(trainingTabFlag);
   /**
    * Live Home window only (`getMovementActual`), not a 7/30 series.
    * A range chart would need either 30 HealthKit queries or persisting
