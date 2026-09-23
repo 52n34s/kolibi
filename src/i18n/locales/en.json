@@ -235,7 +235,29 @@
       "notSpecified": "Not specified",
       "tapToSet": "Tap to set your goal",
       "emptyPrefix": "No calorie goal set · ",
-      "emptyAction": "Set now"
+      "emptyAction": "Set now",
+      "sportBreakdown": {
+        "baseline": "Everyday movement",
+        "title": "Burned today",
+        "suppressedHint": "Already covered by Apple Health",
+        "total": "Total"
+      },
+      "hkActivity": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "walking": "Walking",
+        "hiking": "Hiking",
+        "swimming": "Swimming",
+        "strength": "Strength",
+        "yoga": "Yoga",
+        "pilates": "Pilates",
+        "hiit": "HIIT",
+        "elliptical": "Elliptical",
+        "rowing": "Rowing",
+        "dance": "Dance",
+        "socialDance": "Dance",
+        "other": "Workout"
+      }
     },
     "nutrients": {
       "eaten": "Eaten",

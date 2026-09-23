@@ -235,7 +235,29 @@
       "notSpecified": "No especificado",
       "tapToSet": "Toca para establecer tu objetivo",
       "emptyPrefix": "Sin objetivo calórico · ",
-      "emptyAction": "Establecer ahora"
+      "emptyAction": "Establecer ahora",
+      "sportBreakdown": {
+        "baseline": "Movimiento diario",
+        "title": "Quemadas hoy",
+        "suppressedHint": "Ya incluido en Apple Health",
+        "total": "Total"
+      },
+      "hkActivity": {
+        "running": "Correr",
+        "cycling": "Ciclismo",
+        "walking": "Caminar",
+        "hiking": "Senderismo",
+        "swimming": "Natación",
+        "strength": "Fuerza",
+        "yoga": "Yoga",
+        "pilates": "Pilates",
+        "hiit": "HIIT",
+        "elliptical": "Elíptica",
+        "rowing": "Remo",
+        "dance": "Baile",
+        "socialDance": "Baile",
+        "other": "Entrenamiento"
+      }
     },
     "nutrients": {
       "eaten": "Consumido",

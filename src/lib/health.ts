@@ -26,13 +26,20 @@ import type { MovementGoalPeriod, MovementGoalType } from '@/lib/profile';
 import {
   MIN_SPORT_WORKOUT_DURATION_SECONDS,
   resolveSportIntensity,
-  SportIntensity,
-  type SportEnergySegment,
 } from '@/lib/sport-macro-scaling';
+import {
+  buildSportEnergyDay,
+  hkWorkoutActivityI18nKey,
+  type SportEnergyDay,
+  type SportEnergyHkWorkoutInput,
+  type SportEnergyTrainingSessionInput,
+} from '@/lib/sport-energy-day';
 import { mapTrainingIntensityToSportIntensity } from '@/lib/training-calories';
 import type { TrainingActivity } from '@/lib/training-calories';
 import { fetchTrainingSessionsForDate } from '@/lib/training-sessions';
 import { supabase } from '@/lib/supabase';
+import i18n from '@/i18n';
+import { isUnitColorKey } from '@/lib/workouts/types';
 import {
   getUserPreference,
   HEALTH_CONNECTED_PREFERENCE_KEY,
@@ -412,12 +419,7 @@ function heartRateToBpm(quantity: { unit: string; quantity: number } | undefined
   return quantity.quantity;
 }
 
-export type SportEnergyDay = {
-  /** Total Active Energy for the day (calorie hero / dynamic goal). */
-  totalActiveKcal: number;
-  /** Per-workout + residual everyday segments for macro scaling. */
-  segments: SportEnergySegment[];
-};
+export type { SportEnergyDay } from '@/lib/sport-energy-day';
 
 /**
  * Intensity-aware sport energy for today's macro scaling and dynamic calorie burn.
@@ -470,13 +472,12 @@ export async function getSportEnergyDay(params: {
       return null;
     }
 
-    const segments: SportEnergySegment[] = [];
-    let workoutKcalSum = 0;
-    const hkActivityTypesPresent = new Set<number>();
+    const hkWorkouts: SportEnergyHkWorkoutInput[] = [];
+    const hkActivityTypesPresent: number[] = [];
 
     for (const workout of workouts) {
       const activityType = Number(workout.workoutActivityType);
-      hkActivityTypesPresent.add(activityType);
+      hkActivityTypesPresent.push(activityType);
 
       const durationSec = quantityDurationSeconds(workout.duration);
       if (durationSec < MIN_SPORT_WORKOUT_DURATION_SECONDS) {
@@ -507,18 +508,17 @@ export async function getSportEnergyDay(params: {
         continue;
       }
 
-      segments.push({ kcal: roundedKcal, intensity });
-      workoutKcalSum += roundedKcal;
+      hkWorkouts.push({
+        activityType,
+        kcal: roundedKcal,
+        intensity,
+        label: i18n.t(hkWorkoutActivityI18nKey(activityType)),
+      });
     }
 
-    const residualKcal = Math.max(0, activeEnergy - workoutKcalSum);
-    if (residualKcal > 0) {
-      segments.push({ kcal: residualKcal, intensity: SportIntensity.LOW });
-    }
+    let sessionsPerWeek: number | null = null;
+    const trainingInputs: SportEnergyTrainingSessionInput[] = [];
 
-    let trainingKcalAdded = 0;
-    // Only when a weekly training goal is set; clearing training_sessions_per_week
-    // keeps training_sessions rows but excludes them from sport energy.
     if (params.userId) {
       try {
         const { data: trainingProfile, error: trainingProfileError } = await supabase
@@ -531,29 +531,38 @@ export async function getSportEnergyDay(params: {
           throw trainingProfileError;
         }
 
-        const sessionsPerWeek =
+        sessionsPerWeek =
           trainingProfile?.training_sessions_per_week == null
             ? null
             : Number(trainingProfile.training_sessions_per_week);
 
         if (sessionsPerWeek != null && Number.isFinite(sessionsPerWeek) && sessionsPerWeek >= 1) {
           const trainingSessions = await fetchTrainingSessionsForDate(params.userId, dateKey);
-          for (const trainingSession of trainingSessions) {
-            if (!(trainingSession.kcal > 0)) {
-              continue;
-            }
-            const matchingHkTypes = TRAINING_ACTIVITY_HK_TYPES[trainingSession.activity];
-            const hkAlreadyHasMatching = matchingHkTypes.some((type) =>
-              hkActivityTypesPresent.has(type),
+          let unitByTrainingSessionId = new Map<
+            string,
+            { name: string; shortLabel: string; colorKey: string }
+          >();
+          try {
+            unitByTrainingSessionId = await fetchWorkoutUnitLabelsByTrainingSessionId(
+              params.userId,
+              dateKey,
             );
-            // HealthKit wins per activity type only — other manual types still count.
-            if (hkAlreadyHasMatching) {
-              continue;
-            }
-            trainingKcalAdded += trainingSession.kcal;
-            segments.push({
+          } catch (unitLabelError) {
+            console.warn(
+              '[Health] workout unit labels for sport energy failed:',
+              unitLabelError,
+            );
+          }
+
+          for (const trainingSession of trainingSessions) {
+            const unit = unitByTrainingSessionId.get(trainingSession.id);
+            trainingInputs.push({
+              activity: trainingSession.activity,
               kcal: trainingSession.kcal,
               intensity: mapTrainingIntensityToSportIntensity(trainingSession.intensity),
+              label: unit?.name ?? i18n.t(`home.training.activity.${trainingSession.activity}`),
+              ...(unit?.shortLabel != null ? { shortLabel: unit.shortLabel } : {}),
+              ...(unit?.colorKey != null ? { colorKey: unit.colorKey } : {}),
             });
           }
         }
@@ -562,10 +571,14 @@ export async function getSportEnergyDay(params: {
       }
     }
 
-    return {
-      totalActiveKcal: activeEnergy + trainingKcalAdded,
-      segments,
-    };
+    return buildSportEnergyDay({
+      activeEnergyKcal: activeEnergy,
+      workouts: hkWorkouts,
+      hkActivityTypesPresent,
+      trainingSessions: trainingInputs,
+      sessionsPerWeek,
+      baselineLabel: i18n.t('home.calorieGoal.sportBreakdown.baseline'),
+    });
   } catch (error) {
     if (isHealthAuthorizationNotDetermined(error)) {
       console.warn(
@@ -578,6 +591,42 @@ export async function getSportEnergyDay(params: {
     console.warn('[Health] read sport energy day failed:', error);
     return null;
   }
+}
+
+async function fetchWorkoutUnitLabelsByTrainingSessionId(
+  userId: string,
+  loggedOn: string,
+): Promise<Map<string, { name: string; shortLabel: string; colorKey: string }>> {
+  const map = new Map<string, { name: string; shortLabel: string; colorKey: string }>();
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select('training_session_id, template_name, short_label, color_key')
+    .eq('user_id', userId)
+    .eq('logged_on', loggedOn)
+    .not('training_session_id', 'is', null);
+
+  if (error) {
+    throw error;
+  }
+
+  for (const row of data ?? []) {
+    const trainingSessionId =
+      typeof row.training_session_id === 'string' ? row.training_session_id : null;
+    if (trainingSessionId == null || map.has(trainingSessionId)) {
+      continue;
+    }
+    const colorKey =
+      typeof row.color_key === 'string' && isUnitColorKey(row.color_key)
+        ? row.color_key
+        : 'indigo';
+    map.set(trainingSessionId, {
+      name: typeof row.template_name === 'string' ? row.template_name : '',
+      shortLabel: typeof row.short_label === 'string' ? row.short_label : '',
+      colorKey,
+    });
+  }
+
+  return map;
 }
 
 /**

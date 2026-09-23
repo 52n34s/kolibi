@@ -235,7 +235,29 @@
       "notSpecified": "Nicht angegeben",
       "tapToSet": "Tippen, um dein Ziel festzulegen",
       "emptyPrefix": "Kein Kalorienziel gesetzt · ",
-      "emptyAction": "Jetzt festlegen"
+      "emptyAction": "Jetzt festlegen",
+      "sportBreakdown": {
+        "baseline": "Alltagsbewegung",
+        "title": "Verbrannt heute",
+        "suppressedHint": "Bereits in Apple Health enthalten",
+        "total": "Summe"
+      },
+      "hkActivity": {
+        "running": "Laufen",
+        "cycling": "Radfahren",
+        "walking": "Gehen",
+        "hiking": "Wandern",
+        "swimming": "Schwimmen",
+        "strength": "Krafttraining",
+        "yoga": "Yoga",
+        "pilates": "Pilates",
+        "hiit": "HIIT",
+        "elliptical": "Crosstrainer",
+        "rowing": "Rudern",
+        "dance": "Tanzen",
+        "socialDance": "Tanzen",
+        "other": "Training"
+      }
     },
     "nutrients": {
       "eaten": "Gegessen",
