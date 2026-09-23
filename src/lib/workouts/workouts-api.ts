@@ -557,6 +557,27 @@ export async function archiveTemplate(templateId: string): Promise<void> {
   }
 }
 
+/** Hard-delete templates (and cascaded template_exercises). Used for starter-plan rollback. */
+export async function deleteWorkoutTemplatesByIds(templateIds: string[]): Promise<void> {
+  if (templateIds.length === 0) {
+    return;
+  }
+  try {
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from('workout_templates')
+      .delete()
+      .eq('user_id', userId)
+      .in('id', templateIds);
+
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
 export async function reorderTemplates(orderedIds: string[]): Promise<void> {
   try {
     const userId = await requireUserId();

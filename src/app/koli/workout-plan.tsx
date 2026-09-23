@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
-import { Image } from 'expo-image';
 import { Href, Stack, router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
+import { StarterPlanPicker } from '@/components/training/StarterPlanPicker';
 import { GlassCard } from '@/components/ui/glass-card';
 import {
   BRAND_INDIGO,
@@ -121,13 +121,9 @@ export default function WorkoutPlanScreen() {
           <ActivityIndicator size="large" color={BRAND_INDIGO} />
         ) : ordered.length === 0 ? (
           <View style={styles.empty}>
-            <Image
-              source={require('@/assets/images/koli-focused.png')}
-              style={styles.koli}
-              contentFit="contain"
+            <StarterPlanPicker
+              onCustom={() => router.push('/koli/workout-template-edit' as Href)}
             />
-            <Text style={styles.emptyTitle}>{t('training.plan.emptyTitle')}</Text>
-            <Text style={styles.emptyBody}>{t('training.plan.emptyBody')}</Text>
           </View>
         ) : (
           <View style={styles.list}>
@@ -234,25 +230,8 @@ export default function WorkoutPlanScreen() {
 
 const styles = StyleSheet.create({
   empty: {
-    alignItems: 'center',
     gap: 12,
-    paddingVertical: 24,
-  },
-  koli: {
-    width: 120,
-    height: 120,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E1B4B',
-    textAlign: 'center',
-  },
-  emptyBody: {
-    fontSize: 15,
-    color: TEXT_SECONDARY,
-    textAlign: 'center',
-    lineHeight: 22,
+    paddingVertical: 12,
   },
   list: {
     gap: 12,

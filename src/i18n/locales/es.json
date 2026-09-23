@@ -643,6 +643,12 @@
       "holdTarget": "Objetivo desde {{seconds}} s"
     },
     "starterPlans": {
+      "chooseTitle": "Tu punto de partida",
+      "chooseIntro": "Tres planes listos para empezar — primero ves qué incluye, luego lo adoptas.",
+      "sessionMeta": "{{label}}: {{exercises}} ejercicios · ~{{minutes}} min",
+      "apply": "Usar este plan",
+      "applyFailed": "No se pudo crear el plan. Inténtalo de nuevo.",
+      "previewFailed": "No se pudo cargar la vista previa. Inténtalo de nuevo.",
       "fullBody": {
         "title": "Cuerpo completo",
         "subtitle": "2× por semana · Principiante",
@@ -665,7 +671,7 @@
         "sessionLower": "Tren inferior"
       },
       "custom": {
-        "title": "Plan propio",
+        "title": "Crear tu propio plan",
         "subtitle": "Monta tus propias sesiones"
       }
     },

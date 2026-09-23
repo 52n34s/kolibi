@@ -643,6 +643,12 @@
       "holdTarget": "Target from {{seconds}} s"
     },
     "starterPlans": {
+      "chooseTitle": "Your starting point",
+      "chooseIntro": "Three ready-made plans to begin — preview first, then take one on.",
+      "sessionMeta": "{{label}}: {{exercises}} exercises · ~{{minutes}} min",
+      "apply": "Use this plan",
+      "applyFailed": "Couldn’t create the plan. Please try again.",
+      "previewFailed": "Couldn’t load the preview. Please try again.",
       "fullBody": {
         "title": "Full body",
         "subtitle": "2× per week · Beginner",
@@ -665,7 +671,7 @@
         "sessionLower": "Lower body"
       },
       "custom": {
-        "title": "Custom plan",
+        "title": "Build your own plan",
         "subtitle": "Build your own workouts"
       }
     },

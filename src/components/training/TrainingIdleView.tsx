@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -10,6 +9,7 @@ import {
   useDeferredProgressions,
 } from '@/components/training/IdleProgressionOverlay';
 import { RestTimerCard } from '@/components/training/RestTimerCard';
+import { StarterPlanPicker } from '@/components/training/StarterPlanPicker';
 import {
   countTemplateExercises,
   daysSinceLoggedOn,
@@ -106,25 +106,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
       <ScrollView
         contentContainerStyle={styles.empty}
         showsVerticalScrollIndicator={false}>
-        <Image
-          source={require('@/assets/images/koli-focused.png')}
-          style={styles.emptyKoli}
-          contentFit="contain"
-        />
-        <Text style={styles.emptyText}>{t('training.panel.emptyFirstWorkout')}</Text>
-        <Pressable
-          testID="training.idle.createFirst"
-          accessibilityRole="button"
-          onPress={openNewWorkout}
-          style={styles.emptyCtaPressable}>
-          <LinearGradient
-            colors={['#4F46E5', '#7CE7C7']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.emptyCtaGradient}>
-            <Text style={styles.startText}>{t('training.panel.createFirstWorkout')}</Text>
-          </LinearGradient>
-        </Pressable>
+        <StarterPlanPicker onCustom={openNewWorkout} />
         <RestTimerCard />
       </ScrollView>
     );
@@ -267,29 +249,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   empty: {
-    alignItems: 'center',
     gap: 16,
     paddingVertical: 24,
-  },
-  emptyKoli: {
-    width: 120,
-    height: 120,
-  },
-  emptyText: {
-    color: TEXT_SECONDARY,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-    paddingHorizontal: 8,
-  },
-  emptyCtaPressable: {
-    alignSelf: 'stretch',
-  },
-  emptyCtaGradient: {
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    borderRadius: 999,
-    alignItems: 'center',
   },
   nextCard: {
     padding: 20,

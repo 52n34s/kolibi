@@ -643,6 +643,12 @@
       "holdTarget": "Ziel ab {{seconds}} s"
     },
     "starterPlans": {
+      "chooseTitle": "Dein Einstieg",
+      "chooseIntro": "Drei fertige Pläne für den Start – du siehst zuerst, was drin ist, und übernimmst dann.",
+      "sessionMeta": "{{label}}: {{exercises}} Übungen · ~{{minutes}} min",
+      "apply": "Plan übernehmen",
+      "applyFailed": "Plan konnte nicht angelegt werden. Bitte erneut versuchen.",
+      "previewFailed": "Vorschau konnte nicht geladen werden. Bitte erneut versuchen.",
       "fullBody": {
         "title": "Ganzkörper",
         "subtitle": "2× pro Woche · Einsteiger",
@@ -665,7 +671,7 @@
         "sessionLower": "Unterkörper"
       },
       "custom": {
-        "title": "Eigener Plan",
+        "title": "Eigenen Plan anlegen",
         "subtitle": "Einheiten selbst zusammenstellen"
       }
     },

@@ -166,6 +166,16 @@ export function collectStarterPlanSlugs(plan: StarterPlan): string[] {
   return slugs;
 }
 
+/** Same estimate as template minutes: ~45s work + 90s rest per set. */
+export function estimateStarterSessionMinutes(session: StarterPlanSession): number {
+  let seconds = 0;
+  for (const exercise of session.exercises) {
+    const sets = Math.max(1, exercise.sets);
+    seconds += sets * (45 + 90);
+  }
+  return Math.max(1, Math.round(seconds / 60));
+}
+
 export class StarterPlanMissingSlugsError extends Error {
   readonly missingSlugs: readonly string[];
 
