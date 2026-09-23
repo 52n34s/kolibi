@@ -17,7 +17,7 @@
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
     "signup": {
-      "freeBadge": "Try 3 days free",
+      "freeBadge": "Free trial if eligible",
       "convertBadge": "Unlock progress and goals now",
       "withEmail": "Sign up with email",
       "emailTitle": "Sign up with email",
@@ -217,6 +217,11 @@
       "mealsShort": "Meals",
       "training": "Training",
       "history": "Progress"
+    },
+    "productLock": {
+      "title": "Kolibi Premium required",
+      "message": "Your subscription is inactive. Subscribe to keep using Kolibi, or manage your account below.",
+      "manageAccount": "Account & subscription"
     },
     "activeSessionBar": {
       "label": "Workout in progress · {{shortLabel}} · {{time}}"
@@ -577,11 +582,11 @@
         }
       },
       "comingSoonTitle": "Coming soon",
-      "comingSoonMessage": "The scan flow is not available yet."
+      "comingSoonMessage": "This feature is not available yet."
     },
     "settings": {
-      "comingSoonTitle": "Settings coming soon",
-      "comingSoonMessage": "Calorie goal settings will be available here soon."
+      "comingSoonTitle": "Settings",
+      "comingSoonMessage": "Open Koli to manage calorie goals and account settings."
     },
     "errors": {
       "loadFailed": "Could not load your dashboard. Please try again.",
@@ -1073,8 +1078,8 @@
       "recentTitle": "Recent sessions",
       "exercisesTitle": "Exercises",
       "durationMinutes": "{{minutes}} min",
-      "targetActualReps": "{{actual}}/{{target}} reps",
-      "targetActualSeconds": "{{actual}}/{{target}} s",
+      "targetActualReps": "{{actual}} reps",
+      "targetActualSeconds": "{{actual}} s",
       "sessionDetailTitle": "Session",
       "sessionDetailPlaceholder": "Detail coming soon ({{id}})",
       "exerciseProgressTitle": "Exercise progress",
@@ -1584,8 +1589,9 @@
     "done": "Done"
   },
   "paywall": {
-    "title": "Staying on track just got easy",
-    "description": "Photo scan, barcode lookup, and meal tracking — all in Kolibi Premium.",
+    "title": "Get stronger, level by level.",
+    "description": "Photo scan, a training plan with levels and goals that adapt to your training. All in Kolibi Premium.",
+    "planIncludesAll": "Every plan includes everything: nutrition, training and insights.",
     "autoRenew": "Renews automatically until you cancel.",
     "autoRenewMonthly": "Automatically renews every month until you cancel.",
     "autoRenewQuarterly": "Automatically renews every 3 months until you cancel.",
@@ -1621,13 +1627,17 @@
     "purchaseSuccessNote": "If something's missing, just write me.",
     "purchaseSuccessContinue": "Let's go",
     "valuePitch": {
-      "headline": "Now you know where your calories come from",
-      "photo": "Snap a photo, done — tracking in seconds",
-      "ingredients": "Finally see where the calories actually are",
-      "health": "Syncs with Apple Health",
-      "privacy": "Your data stays yours — no ads, no tracking",
+      "headline": "Your plan for training and nutrition is ready.",
+      "headlineTrains": "Your plan for training and nutrition is ready.",
+      "headlineNutrition": "Your nutrition plan is ready.",
+      "photo": "One photo, and your meal is logged",
+      "training": "Your training plan with rest timer and levels",
+      "adapt": "Calories and macros adjust to your training",
+      "ingredients": "Kolibi tells you what your nutrition is missing",
+      "health": "Goals that calculate themselves, with Apple Health",
+      "privacy": "Account data hosted in the EU, GDPR-compliant",
       "names": "Steffen",
-      "note": "I wanted to lose weight myself and couldn't find an app where tracking was actually fast. So I built Kolibi.",
+      "note": "I train with my own bodyweight and wanted training and nutrition in one place. So I built Kolibi.",
       "continue": "Continue"
     }
   },

@@ -1,31 +1,52 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 
-const VALUE_POINTS = [
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+type ValuePoint = {
+  key: string;
+  icon: IoniconName;
+};
+
+const VALUE_POINTS_TRAINS: ValuePoint[] = [
+  { key: 'paywall.valuePitch.photo', icon: 'camera-outline' },
+  { key: 'paywall.valuePitch.training', icon: 'barbell-outline' },
+  { key: 'paywall.valuePitch.adapt', icon: 'flash-outline' },
+  { key: 'paywall.valuePitch.privacy', icon: 'shield-checkmark-outline' },
+];
+
+const VALUE_POINTS_NUTRITION: ValuePoint[] = [
   { key: 'paywall.valuePitch.photo', icon: 'camera-outline' },
   { key: 'paywall.valuePitch.ingredients', icon: 'eye-outline' },
   { key: 'paywall.valuePitch.health', icon: 'heart-outline' },
   { key: 'paywall.valuePitch.privacy', icon: 'shield-checkmark-outline' },
-] as const;
+];
 
 type TrialValuePitchProps = {
   onContinue: () => void;
+  /** When false, show nutrition-only bullets. Defaults to true. */
+  trains?: boolean;
 };
 
-export function TrialValuePitch({ onContinue }: TrialValuePitchProps) {
+export function TrialValuePitch({ onContinue, trains = true }: TrialValuePitchProps) {
   const { t } = useTranslation();
+  const points = trains ? VALUE_POINTS_TRAINS : VALUE_POINTS_NUTRITION;
+  const headlineKey = trains
+    ? 'paywall.valuePitch.headlineTrains'
+    : 'paywall.valuePitch.headlineNutrition';
 
   return (
     <>
       <Text className="text-center text-2xl font-bold leading-8 text-gray-900">
-        {t('paywall.valuePitch.headline')}
+        {t(headlineKey)}
       </Text>
 
       <View className="mt-6 gap-3">
-        {VALUE_POINTS.map((point) => (
+        {points.map((point) => (
           <View key={point.key} className="flex-row items-start">
             <Ionicons
               name={point.icon}

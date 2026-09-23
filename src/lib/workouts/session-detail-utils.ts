@@ -18,7 +18,7 @@ export type SessionExerciseGroup = {
 export function groupSessionSets(session: WorkoutSession): SessionExerciseGroup[] {
   const byKey = new Map<string, SessionExerciseGroup>();
   for (const set of session.sets) {
-    const key = set.exerciseId ?? `name:${set.exerciseName}:${set.exercisePosition}`;
+    const key = set.exerciseId != null ? set.exerciseId : `name:${set.exerciseName}`;
     const existing = byKey.get(key);
     if (existing) {
       existing.sets.push(set);

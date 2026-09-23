@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
@@ -10,11 +10,13 @@ import {
   KoliSegmentSwitcher,
   type KoliSegment,
 } from '@/components/koli/koli-segment-switcher';
+import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import {
   SettingsAreaPanel,
   type SettingsSubSegment,
 } from '@/components/settings/settings-area-panel';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
+import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
 
 function resolveInitialSegment(segment: string | string[] | undefined): KoliSegment {
   const value = Array.isArray(segment) ? segment[0] : segment;
@@ -42,13 +44,31 @@ export default function KoliScreen() {
     settingsSubSegment?: string;
   }>();
   const { contentTopPadding } = useMeshScreenInsets();
+  const { isAnonymousUser, userId, gatePremiumAccess } = useGatePremiumAccess();
   const [activeSegment, setActiveSegment] = useState<KoliSegment>(() =>
     resolveInitialSegment(segment),
   );
+  const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
     setActiveSegment(resolveInitialSegment(segment));
   }, [segment]);
+
+  const switchSegment = useCallback(
+    (next: KoliSegment) => {
+      void (async () => {
+        if (next === 'goals' && !isAnonymousUser) {
+          if (!(await gatePremiumAccess())) {
+            setShowPaywall(true);
+            setActiveSegment('settings');
+            return;
+          }
+        }
+        setActiveSegment(next);
+      })();
+    },
+    [gatePremiumAccess, isAnonymousUser],
+  );
 
   return (
     <HomeLayout>
@@ -67,7 +87,7 @@ export default function KoliScreen() {
               <KoliHeaderTitle accessibilityLabel={t('koli.title')} />
             </View>
           </View>
-          <KoliSegmentSwitcher value={activeSegment} onChange={setActiveSegment} />
+          <KoliSegmentSwitcher value={activeSegment} onChange={switchSegment} />
         </View>
 
         <View className="mt-4 flex-1">
@@ -78,6 +98,13 @@ export default function KoliScreen() {
           )}
         </View>
       </View>
+
+      <PaywallSheet
+        visible={showPaywall}
+        userId={userId}
+        onClose={() => setShowPaywall(false)}
+        withValuePitch
+      />
     </HomeLayout>
   );
 }

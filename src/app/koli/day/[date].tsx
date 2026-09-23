@@ -18,7 +18,7 @@ import { ManualMealEntrySheet } from '@/components/scan/ManualMealEntrySheet';
 import { MealEditSheet } from '@/components/scan/MealEditSheet';
 import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
-import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
+import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
 import {
   isDayEditable,
   isLocalDateKeyInFuture,
@@ -34,7 +34,6 @@ import {
   updateMealWithItems,
   type TodayMeal,
 } from '@/lib/meals';
-import { fetchHasPremiumAccess } from '@/lib/subscription';
 import type { EditableMealItem } from '@/services/mealVision/types';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -74,7 +73,7 @@ export default function DayDetailScreen() {
   const date = resolveDateParam(params.date);
   const session = useAuthStore((state) => state.session);
   const userId = session?.user?.id;
-  const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
+  const { gatePremiumAccess } = useGatePremiumAccess();
 
   const [sheetMode, setSheetMode] = useState<DaySheetMode>({ kind: 'none' });
   const [pendingSheet, setPendingSheet] = useState<DaySheetMode | null>(null);
@@ -144,23 +143,6 @@ export default function DayDetailScreen() {
       setSheetMode(next);
     }
   }, [pendingSheet]);
-
-  const gatePremiumAccess = useCallback(async (): Promise<boolean> => {
-    if (!userId) {
-      return false;
-    }
-
-    if (isPremiumEntitlementActive) {
-      return true;
-    }
-
-    try {
-      return (await fetchHasPremiumAccess(userId)) === true;
-    } catch (gateError) {
-      console.error('[DayDetail] premium access check failed:', gateError);
-      return false;
-    }
-  }, [isPremiumEntitlementActive, userId]);
 
   async function invalidateDayQueries() {
     if (!userId) {
@@ -237,6 +219,11 @@ export default function DayDetailScreen() {
 
   async function handleMealDelete(mealId: string) {
     if (!userId) {
+      return;
+    }
+
+    if (!(await gatePremiumAccess())) {
+      openSheet({ kind: 'paywall' });
       return;
     }
 

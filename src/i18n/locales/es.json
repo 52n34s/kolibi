@@ -17,7 +17,7 @@
     "noAccount": "¿No tienes una cuenta?",
     "haveAccount": "¿Ya tienes una cuenta?",
     "signup": {
-      "freeBadge": "Prueba 3 días gratis",
+      "freeBadge": "Prueba gratis si eres elegible",
       "convertBadge": "Desbloquea progreso y objetivos",
       "withEmail": "Registrarse con correo",
       "emailTitle": "Registrarse con correo",
@@ -217,6 +217,11 @@
       "mealsShort": "Comidas",
       "training": "Entreno",
       "history": "Progreso"
+    },
+    "productLock": {
+      "title": "Se requiere Kolibi Premium",
+      "message": "Tu suscripción no está activa. Suscríbete para seguir usando Kolibi, o gestiona tu cuenta abajo.",
+      "manageAccount": "Cuenta y suscripción"
     },
     "activeSessionBar": {
       "label": "Entreno en curso · {{shortLabel}} · {{time}}"
@@ -577,11 +582,11 @@
         }
       },
       "comingSoonTitle": "Próximamente",
-      "comingSoonMessage": "El flujo de escaneo aún no está disponible."
+      "comingSoonMessage": "Esta función aún no está disponible."
     },
     "settings": {
-      "comingSoonTitle": "Ajustes próximamente",
-      "comingSoonMessage": "Los ajustes del objetivo calórico estarán disponibles aquí pronto."
+      "comingSoonTitle": "Ajustes",
+      "comingSoonMessage": "Abre Koli para gestionar objetivos calóricos y la cuenta."
     },
     "errors": {
       "loadFailed": "No se pudo cargar tu panel. Inténtalo de nuevo.",
@@ -606,8 +611,8 @@
       "notification": "Pausa terminada – siguiente serie",
       "goAhead": "Adelante",
       "start": "Inicio",
-      "pause": "Pausa",
-      "resume": "Continuar",
+      "pause": "Detener",
+      "resume": "Seguir",
       "stop": "Parar",
       "skip": "Saltar",
       "switchSide": "Cambiar de lado",
@@ -1073,8 +1078,8 @@
       "recentTitle": "Últimas sesiones",
       "exercisesTitle": "Ejercicios",
       "durationMinutes": "{{minutes}} min",
-      "targetActualReps": "{{actual}}/{{target}} rep.",
-      "targetActualSeconds": "{{actual}}/{{target}} s",
+      "targetActualReps": "{{actual}} rep.",
+      "targetActualSeconds": "{{actual}} s",
       "sessionDetailTitle": "Sesión",
       "sessionDetailPlaceholder": "Detalle próximamente ({{id}})",
       "exerciseProgressTitle": "Progreso del ejercicio",
@@ -1584,8 +1589,9 @@
     "done": "Listo"
   },
   "paywall": {
-    "title": "Seguir con ello ahora es fácil",
-    "description": "Escaneo de fotos, código de barras y seguimiento — todo en Kolibi Premium.",
+    "title": "Más fuerte, nivel a nivel.",
+    "description": "Escaneo por foto, plan de entrenamiento con niveles y objetivos que se adaptan a tu entrenamiento. Todo en Kolibi Premium.",
+    "planIncludesAll": "Cada plan lo incluye todo: nutrición, entrenamiento y análisis.",
     "autoRenew": "Se renueva automáticamente hasta que canceles.",
     "autoRenewMonthly": "Se renueva automáticamente cada mes hasta que canceles.",
     "autoRenewQuarterly": "Se renueva automáticamente cada 3 meses hasta que canceles.",
@@ -1621,13 +1627,17 @@
     "purchaseSuccessNote": "Si te falta algo, escríbeme sin más.",
     "purchaseSuccessContinue": "Vamos",
     "valuePitch": {
-      "headline": "Ahora sabes de dónde vienen tus calorías",
-      "photo": "Haz una foto y listo — registro en segundos",
-      "ingredients": "Por fin ves dónde están realmente las calorías",
-      "health": "Se sincroniza con Apple Health",
-      "privacy": "Tus datos se quedan en Europa — RGPD",
+      "headline": "Tu plan de entrenamiento y nutrición está listo.",
+      "headlineTrains": "Tu plan de entrenamiento y nutrición está listo.",
+      "headlineNutrition": "Tu plan de nutrición está listo.",
+      "photo": "Una foto, y tu comida queda registrada",
+      "training": "Tu plan de entrenamiento con temporizador y niveles",
+      "adapt": "Calorías y macros se ajustan a tu entrenamiento",
+      "ingredients": "Kolibi te dice lo que le falta a tu nutrición",
+      "health": "Objetivos que se calculan solos, con Apple Health",
+      "privacy": "Datos de cuenta alojados en la UE, conforme al RGPD",
       "names": "Steffen",
-      "note": "Yo mismo quería adelgazar y no encontré ninguna app en la que registrar comidas fuera rápido. Así que desarrollé Kolibi.",
+      "note": "Entreno con mi propio peso corporal y quería ver entrenamiento y nutrición en un solo lugar. Así que creé Kolibi.",
       "continue": "Continuar"
     }
   },

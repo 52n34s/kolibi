@@ -14,7 +14,7 @@ import { GlassSheetSurface } from '@/components/shared/GlassSheetSurface';
 import { BRAND_INDIGO, TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
 import { useExercises } from '@/hooks/use-exercises';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
-import { resolveExerciseName } from '@/lib/workouts/exercise-name';
+import { resolveExerciseName, displayActiveExerciseName } from '@/lib/workouts/exercise-name';
 import type { ActiveSession, Exercise } from '@/lib/workouts/types';
 
 type TrainingOverviewSheetProps = {
@@ -173,7 +173,9 @@ export function TrainingOverviewSheet({
                             onJump(index, 0);
                             onClose();
                           }}>
-                          <Text style={styles.rowName}>{item.name}</Text>
+                          <Text style={styles.rowName}>
+                            {displayActiveExerciseName(item, i18n.language)}
+                          </Text>
                           <Text style={styles.rowStatus}>{status}</Text>
                         </Pressable>
                         <Pressable

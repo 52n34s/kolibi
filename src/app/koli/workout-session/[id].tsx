@@ -42,7 +42,7 @@ import { newId } from '@/lib/id';
 import { formatAppDate } from '@/lib/onboarding';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import { updateTrainingSession } from '@/lib/training-sessions';
-import { resolveExerciseName } from '@/lib/workouts/exercise-name';
+import { displayExerciseName, resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { formatTargetRange } from '@/lib/workouts/format-target';
 import {
   finishedAtFromDuration,
@@ -103,6 +103,10 @@ export default function WorkoutSessionDetailScreen() {
     () => (session ? groupSessionSets(session) : []),
     [session],
   );
+  const exercisesById = useMemo(() => {
+    const map = new Map((exercisesQuery.data ?? []).map((ex) => [ex.id, ex]));
+    return map;
+  }, [exercisesQuery.data]);
 
   const durationMinutes = session
     ? durationDraft != null
@@ -715,7 +719,15 @@ export default function WorkoutSessionDetailScreen() {
                 <ExerciseThumb exercise={stub} size="sm" onPressEnabled={false} />
                 <View style={styles.exerciseText}>
                   <Text style={styles.exerciseName} numberOfLines={1}>
-                    {group.exerciseName}
+                    {displayExerciseName({
+                      exerciseId: group.exerciseId,
+                      storedName: group.exerciseName,
+                      exercise:
+                        group.exerciseId != null
+                          ? exercisesById.get(group.exerciseId)
+                          : undefined,
+                      lang: i18n.language,
+                    })}
                   </Text>
                   <Text style={styles.muted}>
                     {t('training.sessionDetail.targetToActual', {

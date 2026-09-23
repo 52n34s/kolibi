@@ -1,7 +1,8 @@
 import type { ExerciseKind, SessionSet, UnitColorKey, WorkoutSession } from '@/lib/workouts/types';
 
 export type BestSet = {
-  exerciseId: string;
+  /** Null when the set had no exercise_id (grouped by stored name). */
+  exerciseId: string | null;
   exerciseName: string;
   kind: ExerciseKind;
   /** Best single-set value (reps or seconds; per-side time uses min of both sides). */
@@ -59,27 +60,30 @@ export function setPerformanceValue(set: SessionSet): number | null {
   return set.reps;
 }
 
+function bestSetGroupKey(set: SessionSet): string {
+  return set.exerciseId != null ? `id:${set.exerciseId}` : `name:${set.exerciseName}`;
+}
+
 /**
- * Best completed set per exercise_id.
+ * Best completed set per exercise_id (catalog/custom with id).
+ * Sets without exercise_id are grouped by exercise_name only.
  * reps → max reps; time → max seconds; perSide time → max of min(sideA, sideB).
  */
 export function bestSetByExercise(sets: readonly SessionSet[]): BestSet[] {
   const best = new Map<string, BestSet>();
   for (const set of sets) {
-    if (set.exerciseId == null) {
-      continue;
-    }
     const value = setPerformanceValue(set);
     if (value == null) {
       continue;
     }
-    const prev = best.get(set.exerciseId);
+    const key = bestSetGroupKey(set);
+    const prev = best.get(key);
     if (
       prev == null ||
       value > prev.value ||
       (value === prev.value && set.completedAt > prev.completedAt)
     ) {
-      best.set(set.exerciseId, {
+      best.set(key, {
         exerciseId: set.exerciseId,
         exerciseName: set.exerciseName,
         kind: set.kind,
@@ -107,6 +111,9 @@ export function personalBests(
   const rangeBests = bestSetByExercise(rangeSets);
   const improvements: PersonalBest[] = [];
   for (const best of rangeBests) {
+    if (best.exerciseId == null) {
+      continue;
+    }
     const previous = before.get(best.exerciseId);
     if (previous == null || !(previous > 0)) {
       continue;
@@ -220,10 +227,15 @@ export function targetVsActual(session: WorkoutSession): TargetVsActual {
 /** Best set value series for sparkline (oldest → newest by completedAt). */
 export function exerciseBestSeries(
   sets: readonly SessionSet[],
-  exerciseId: string,
+  exerciseId: string | null,
+  exerciseName?: string,
 ): number[] {
   const filtered = sets
-    .filter((set) => set.exerciseId === exerciseId)
+    .filter((set) =>
+      exerciseId != null
+        ? set.exerciseId === exerciseId
+        : set.exerciseId == null && set.exerciseName === exerciseName,
+    )
     .slice()
     .sort((a, b) => a.completedAt.localeCompare(b.completedAt));
 

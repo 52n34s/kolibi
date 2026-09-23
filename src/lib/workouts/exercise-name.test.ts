@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { exerciseLabelOrFallback, resolveExerciseName } from './exercise-name.ts';
+import {
+  displayActiveExerciseName,
+  displayExerciseName,
+  exerciseLabelOrFallback,
+  isCatalogExercise,
+  resolveExerciseName,
+} from './exercise-name.ts';
 
 describe('resolveExerciseName', () => {
   it('prefers the requested language', () => {
@@ -19,6 +25,78 @@ describe('resolveExerciseName', () => {
 
   it('returns empty string when names are empty', () => {
     assert.equal(resolveExerciseName({ names: {} }, 'de'), '');
+  });
+});
+
+describe('isCatalogExercise / displayExerciseName', () => {
+  it('resolves catalog names in the current language', () => {
+    const catalog = {
+      userId: null,
+      catalogSlug: 'pull_up',
+      names: { de: 'Klimmzüge', en: 'Pull-ups', es: 'Dominadas' },
+    };
+    assert.equal(isCatalogExercise(catalog), true);
+    assert.equal(
+      displayExerciseName({
+        exerciseId: 'ex1',
+        storedName: 'Klimmzüge',
+        exercise: catalog,
+        lang: 'en',
+      }),
+      'Pull-ups',
+    );
+  });
+
+  it('keeps the stored name for custom exercises', () => {
+    const custom = {
+      userId: 'user-1',
+      catalogSlug: null,
+      names: { de: 'Meine Übung' },
+    };
+    assert.equal(isCatalogExercise(custom), false);
+    assert.equal(
+      displayExerciseName({
+        exerciseId: 'ex2',
+        storedName: 'Meine Übung',
+        exercise: custom,
+        lang: 'en',
+      }),
+      'Meine Übung',
+    );
+  });
+
+  it('keeps the stored name when exercise_id is missing', () => {
+    assert.equal(
+      displayExerciseName({
+        exerciseId: null,
+        storedName: 'Legacy Name',
+        exercise: undefined,
+        lang: 'en',
+      }),
+      'Legacy Name',
+    );
+  });
+});
+
+describe('displayActiveExerciseName', () => {
+  it('re-resolves catalog names when the language changes', () => {
+    const item = {
+      name: 'Klimmzüge',
+      names: { de: 'Klimmzüge', en: 'Pull-ups', es: 'Dominadas' },
+      catalogSlug: 'pull_up',
+    };
+    assert.equal(displayActiveExerciseName(item, 'en'), 'Pull-ups');
+    assert.equal(displayActiveExerciseName(item, 'es'), 'Dominadas');
+  });
+
+  it('keeps the snapshot name for custom exercises', () => {
+    assert.equal(
+      displayActiveExerciseName(
+        { name: 'Eigen', names: { de: 'Eigen' }, catalogSlug: null },
+        'en',
+      ),
+      'Eigen',
+    );
   });
 });
 

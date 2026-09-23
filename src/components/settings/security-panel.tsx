@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Href, router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -151,9 +152,7 @@ export function SecurityPanel({ onOpenProfile }: SecurityPanelProps) {
         </View>
         <SettingsRow
           label={t('settings.security.dataRights.export')}
-          value={t('settings.security.dataRights.comingSoon')}
-          dimmed
-          showChevron={false}
+          onPress={() => router.push('/koli/export' as Href)}
         />
         <SettingsRow
           label={t('settings.deleteAccount.action')}

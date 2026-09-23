@@ -16,6 +16,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
 import { useTimerTick } from '@/hooks/use-timer-tick';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
+import { displayActiveExerciseName } from '@/lib/workouts/exercise-name';
 import { useWorkoutSyncStatus } from '@/lib/workouts/sync-queue-runtime';
 import type { ActiveSession, Exercise } from '@/lib/workouts/types';
 import { useRestTimerStore } from '@/stores/rest-timer-store';
@@ -36,7 +37,7 @@ function syncIcon(status: 'synced' | 'pending' | 'offline') {
 }
 
 export function TrainingActiveView({ session }: TrainingActiveViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [overviewOpen, setOverviewOpen] = useState(false);
 
   const adjustCurrent = useWorkoutSessionStore((s) => s.adjustCurrent);
@@ -200,7 +201,9 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
           <View style={styles.exerciseTop}>
             <ExerciseThumb exercise={exerciseStubFromActive(item)} size="lg" />
             <View style={styles.exerciseMeta}>
-              <Text style={styles.exerciseName}>{item.name}</Text>
+              <Text style={styles.exerciseName}>
+                {displayActiveExerciseName(item, i18n.language)}
+              </Text>
               {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
               <Text style={styles.target}>{targetLabel}</Text>
             </View>

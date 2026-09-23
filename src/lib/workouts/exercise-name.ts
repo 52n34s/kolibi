@@ -1,4 +1,4 @@
-import type { Exercise } from '@/lib/workouts/types';
+import type { ActiveExercise, Exercise } from '@/lib/workouts/types';
 
 /** Resolve a localized exercise name with fallbacks. */
 export function resolveExerciseName(
@@ -26,6 +26,54 @@ export function resolveExerciseName(
   return '';
 }
 
+/** Catalog rows have no owner (or an explicit catalog slug). */
+export function isCatalogExercise(
+  exercise: Pick<Exercise, 'catalogSlug' | 'userId'>,
+): boolean {
+  return exercise.catalogSlug != null || exercise.userId == null;
+}
+
+/**
+ * Display name for a session set / history row.
+ * Catalog → resolve in current language; custom / missing → stored snapshot name.
+ */
+export function displayExerciseName(params: {
+  exerciseId: string | null | undefined;
+  storedName: string;
+  exercise: Pick<Exercise, 'names' | 'catalogSlug' | 'userId'> | null | undefined;
+  lang: string;
+}): string {
+  const stored = params.storedName.trim();
+  if (params.exerciseId && params.exercise && isCatalogExercise(params.exercise)) {
+    const resolved = resolveExerciseName(params.exercise, params.lang).trim();
+    return resolved.length > 0 ? resolved : stored;
+  }
+  return stored;
+}
+
+/**
+ * Display name for an in-progress session item.
+ * Catalog exercises re-resolve on every render so a mid-session language switch updates.
+ */
+export function displayActiveExerciseName(
+  item: Pick<ActiveExercise, 'name' | 'names' | 'catalogSlug'>,
+  lang: string,
+): string {
+  const stored = item.name.trim();
+  const names = item.names ?? {};
+  const isCatalog = item.catalogSlug != null;
+  if (isCatalog) {
+    const resolved = resolveExerciseName({ names }, lang).trim();
+    return resolved.length > 0 ? resolved : stored;
+  }
+  // Legacy MMKV snapshots without catalogSlug: multi-locale names ⇒ treat as catalog.
+  const localeKeys = Object.keys(names).filter((k) => ['de', 'en', 'es'].includes(k));
+  if (localeKeys.length > 1) {
+    const resolved = resolveExerciseName({ names }, lang).trim();
+    return resolved.length > 0 ? resolved : stored;
+  }
+  return stored;
+}
 
 /**
  * A name for an exercise that may not be loaded.

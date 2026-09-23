@@ -592,6 +592,10 @@ export function PaywallSheet({
                       )}
                     </View>
 
+                    <Text className="mt-4 text-center text-xs leading-5 text-gray-500">
+                      {t('paywall.planIncludesAll')}
+                    </Text>
+
                     <View style={styles.footnoteSlot}>
                       {selectedFootnote != null ? (
                         <Text className="text-center text-xs leading-5 text-gray-500">

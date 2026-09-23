@@ -65,9 +65,10 @@ import {
 } from '@/components/home/weight-progress-card';
 import { WeightInputSheet } from '@/components/home/weight-update-sheet';
 import { PaywallSheet } from '@/components/paywall/PaywallSheet';
+import { RegisteredHomeProductLock } from '@/components/premium/RegisteredHomeProductLock';
+import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useTrialStatus } from '@/hooks/use-premium-access';
-import { useRevenueCatPremiumEntitlement } from '@/hooks/use-revenuecat-premium-entitlement';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
@@ -120,7 +121,6 @@ import {
 import { trackAnonymousLimitReached, trackAnonymousScanCompleted } from '@/lib/analytics';
 import { navigateToSignIn } from '@/lib/auth';
 import { consumePaywallAfterSignup } from '@/lib/pending-paywall';
-import { fetchHasPremiumAccess } from '@/lib/subscription';
 import { MEAL_SOURCE, type MealSource } from '@/lib/meal-sources';
 import { deleteMealPhotoUris, prepareMealPhotoUri } from '@/lib/meal-photo';
 import { pickMealPhotosFromGallery } from '@/lib/pick-meal-gallery';
@@ -218,7 +218,12 @@ export default function HomeScreen() {
     enabled: hasTrainingGoal || hasTemplates || Boolean(activeSession) || trainingTabEnabled,
   });
   const { isInTrial, daysLeft: trialDaysLeft } = useTrialStatus(userId);
-  const { isPremiumEntitlementActive } = useRevenueCatPremiumEntitlement();
+  const {
+    isAnonymousUser,
+    isRegisteredProductLocked,
+    isProductAccessLoading,
+    gatePremiumAccess,
+  } = useGatePremiumAccess();
   const { data: scanAllowance } = useQuery({
     queryKey: userId ? scanAllowanceQueryKey(userId) : ['scan-allowance'],
     enabled: !!userId,
@@ -231,7 +236,6 @@ export default function HomeScreen() {
       return checkScanAllowance(userId);
     },
   });
-  const isAnonymousUser = session?.user?.is_anonymous === true;
 
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallWithValuePitch, setPaywallWithValuePitch] = useState(false);
@@ -275,10 +279,6 @@ export default function HomeScreen() {
   const [isSavingMealEdit, setIsSavingMealEdit] = useState(false);
   const [isDeletingMeal, setIsDeletingMeal] = useState(false);
 
-  const switchHomeTab = useCallback((tab: HomeTab) => {
-    setHomeTab(tab);
-  }, []);
-
   const homeTabs = useMemo<HomeTab[]>(() => {
     const tabs: HomeTab[] = ['today', 'meals'];
     if (trainingTabEnabled || hasTemplates || activeSession) {
@@ -297,30 +297,12 @@ export default function HomeScreen() {
   const homeTabIndex = homeTabs.indexOf(homeTab);
   // The scan bar belongs to the food flow. On the training tab it covered
   // "Einheit nachtragen" and "Plan bearbeiten", so it stays hidden there.
-  const hideScanButtons = homeTab === 'training';
-
-  const homeTabSwipeGesture = useMemo(
-    () =>
-      Gesture.Pan()
-        .activeOffsetX([-24, 24])
-        .failOffsetY([-16, 16])
-        .onEnd((event) => {
-          'worklet';
-          const distance = 56;
-          const flick = 450;
-          const swipeLeft =
-            event.translationX < -distance || event.velocityX < -flick;
-          const swipeRight =
-            event.translationX > distance || event.velocityX > flick;
-
-          if (swipeLeft && homeTabIndex >= 0 && homeTabIndex < homeTabs.length - 1) {
-            runOnJS(switchHomeTab)(homeTabs[homeTabIndex + 1]!);
-          } else if (swipeRight && homeTabIndex > 0) {
-            runOnJS(switchHomeTab)(homeTabs[homeTabIndex - 1]!);
-          }
-        }),
-    [homeTabIndex, homeTabs, switchHomeTab],
-  );
+  // Registered users without entitlement never see capture controls.
+  const hideScanButtons =
+    isRegisteredProductLocked ||
+    isProductAccessLoading ||
+    homeTab === 'training' ||
+    homeTab === 'history';
 
   const secureStore = useMemo(() => createChunkedSecureStoreAdapter(), []);
 
@@ -392,31 +374,6 @@ export default function HomeScreen() {
     flushPendingPaywall();
   }, [flushPendingPaywall]);
 
-  const gatePremiumAccess = useCallback(async (): Promise<boolean> => {
-    if (!userId) {
-      return false;
-    }
-
-    // RevenueCat entitlement is the immediate source of truth after purchase/restore.
-    // DB has_premium_access() lags behind the webhook and may still be cached as false.
-    if (isPremiumEntitlementActive) {
-      return true;
-    }
-
-    try {
-      const hasAccess = await queryClient.ensureQueryData({
-        queryKey: ['has-premium-access', userId, isAnonymousUser],
-        queryFn: () => fetchHasPremiumAccess(userId),
-        staleTime: 60 * 1000,
-      });
-
-      return hasAccess === true;
-    } catch (gateError) {
-      console.error('[Home] premium access check failed:', gateError);
-      return false;
-    }
-  }, [isPremiumEntitlementActive, queryClient, userId]);
-
   /** Front gate for signed-in users: block capture UI and show paywall immediately.
    *  Anonymous users are an account problem, not a billing problem — send them to signup. */
   const requirePremiumAccessToCapture = useCallback(async (): Promise<boolean> => {
@@ -434,6 +391,46 @@ export default function HomeScreen() {
     return false;
   }, [gatePremiumAccess, isAnonymousUser, openPaywall]);
 
+  const switchHomeTab = useCallback(
+    (tab: HomeTab) => {
+      void (async () => {
+        // Registered users without entitlement cannot use any product tab.
+        // Anonymous users keep tab access (scan limits are handled separately).
+        if (!isAnonymousUser) {
+          if (!(await gatePremiumAccess())) {
+            openPaywall({ withValuePitch: true });
+            return;
+          }
+        }
+        setHomeTab(tab);
+      })();
+    },
+    [gatePremiumAccess, isAnonymousUser, openPaywall],
+  );
+
+  const homeTabSwipeGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-24, 24])
+        .failOffsetY([-16, 16])
+        .onEnd((event) => {
+          'worklet';
+          const distance = 56;
+          const flick = 450;
+          const swipeLeft =
+            event.translationX < -distance || event.velocityX < -flick;
+          const swipeRight =
+            event.translationX > distance || event.velocityX > flick;
+
+          if (swipeLeft && homeTabIndex >= 0 && homeTabIndex < homeTabs.length - 1) {
+            runOnJS(switchHomeTab)(homeTabs[homeTabIndex + 1]!);
+          } else if (swipeRight && homeTabIndex > 0) {
+            runOnJS(switchHomeTab)(homeTabs[homeTabIndex - 1]!);
+          }
+        }),
+    [homeTabIndex, homeTabs, switchHomeTab],
+  );
+
   const openPaywallBecauseScanLimit = useCallback(() => {
     trackAnonymousLimitReached();
     openPaywall({ withValuePitch: true });
@@ -448,6 +445,19 @@ export default function HomeScreen() {
       openPaywall({ withValuePitch: true });
     }
   }, [session, isAnonymousUser, openPaywall]);
+
+  // If entitlement lapses, leave product tabs and surface the paywall.
+  useEffect(() => {
+    if (isAnonymousUser) {
+      return;
+    }
+    if (!isRegisteredProductLocked) {
+      return;
+    }
+
+    setHomeTab('today');
+    openPaywall({ withValuePitch: true });
+  }, [isAnonymousUser, isRegisteredProductLocked, openPaywall]);
 
   useEffect(() => {
     return () => {
@@ -554,10 +564,16 @@ export default function HomeScreen() {
         weekDayDots: buildWeekDayMarkers(trainingSessionsWeek, workoutSessionsWeek),
         onPress: () => {
           if (trainingTabEnabled || hasTemplates || activeSession) {
-            setHomeTab('training');
+            switchHomeTab('training');
             return;
           }
-          router.push('/koli/training-log' as Href);
+          void (async () => {
+            if (!isAnonymousUser && !(await gatePremiumAccess())) {
+              openPaywall({ withValuePitch: true });
+              return;
+            }
+            router.push('/koli/training-log' as Href);
+          })();
         },
       });
     }
@@ -578,6 +594,10 @@ export default function HomeScreen() {
     movementGoalValue,
     unitSystem,
     t,
+    switchHomeTab,
+    isAnonymousUser,
+    gatePremiumAccess,
+    openPaywall,
   ]);
 
   const latestWeightKg = data?.latestWeight?.weight_kg ?? null;
@@ -762,6 +782,11 @@ export default function HomeScreen() {
 
   async function saveCurrentWeight(loggedOn: string) {
     if (!userId) {
+      return;
+    }
+
+    if (!isAnonymousUser && !(await gatePremiumAccess())) {
+      openPaywall({ withValuePitch: true });
       return;
     }
 
@@ -1342,6 +1367,11 @@ export default function HomeScreen() {
       return;
     }
 
+    if (!isAnonymousUser && !(await gatePremiumAccess())) {
+      openPaywall({ withValuePitch: true });
+      return;
+    }
+
     setIsDeletingMeal(true);
 
     try {
@@ -1392,14 +1422,35 @@ export default function HomeScreen() {
         ) : null
       }>
       <View className="absolute right-6 z-10 flex-row gap-2" style={{ top: contentTopPadding }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('home.productLookup.iconLabel')} onPress={openProductLookup}>
-          <View style={getGlassPillStyle(40)}>
-            <Ionicons name="search-outline" size={22} color="#4F46E5" />
-          </View>
-        </Pressable>
-        <HistoryKoliButton accessibilityLabel={t('koli.title')} />
+        {!isRegisteredProductLocked && !isProductAccessLoading ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={t('home.productLookup.iconLabel')} onPress={openProductLookup}>
+            <View style={getGlassPillStyle(40)}>
+              <Ionicons name="search-outline" size={22} color="#4F46E5" />
+            </View>
+          </Pressable>
+        ) : null}
+        <HistoryKoliButton
+          accessibilityLabel={t('koli.title')}
+          href={
+            isRegisteredProductLocked
+              ? ({
+                  pathname: '/koli',
+                  params: { segment: 'settings', settingsSubSegment: 'plan' },
+                } as Href)
+              : ('/koli' as Href)
+          }
+        />
       </View>
       <View className="flex-1">
+        {isRegisteredProductLocked || isProductAccessLoading ? (
+          <View className="flex-1 px-6" style={{ paddingTop: contentTopPadding }}>
+            <Text className="mb-4 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
+            <RegisteredHomeProductLock
+              isLoading={isProductAccessLoading}
+              onSubscribe={() => openPaywall({ withValuePitch: true })}
+            />
+          </View>
+        ) : (
         <GestureDetector gesture={homeTabSwipeGesture}>
           <View className="flex-1">
             <View className="px-6" style={{ paddingTop: contentTopPadding }}>
@@ -1430,7 +1481,7 @@ export default function HomeScreen() {
               <View className="mb-5">
                 <PillSegmentSwitcher
                   value={homeTab}
-                  onChange={setHomeTab}
+                  onChange={switchHomeTab}
                   compact={homeTabs.length >= 4}
                   segments={homeTabs.map((tab) => ({
                     id: tab,
@@ -1443,7 +1494,7 @@ export default function HomeScreen() {
                 />
                 {activeSession && homeTab !== 'training' ? (
                   <View className="mt-3">
-                    <HomeActiveSessionBar onPress={() => setHomeTab('training')} />
+                    <HomeActiveSessionBar onPress={() => switchHomeTab('training')} />
                   </View>
                 ) : null}
               </View>
@@ -1452,7 +1503,7 @@ export default function HomeScreen() {
             {homeTab === 'history' ? (
               <HistoryPanel
                 onOpenWeightSheet={openCurrentWeightSheet}
-                onOpenTrainingTab={() => setHomeTab('training')}
+                onOpenTrainingTab={() => switchHomeTab('training')}
               />
             ) : homeTab === 'training' ? (
               // No scan-bar padding here — the bar is hidden on this tab.
@@ -1513,6 +1564,7 @@ export default function HomeScreen() {
             )}
           </View>
         </GestureDetector>
+        )}
 
         {!hideScanButtons ? (
         <View

@@ -4,9 +4,12 @@ import type { ActiveExercise, Exercise, SessionSet } from '@/lib/workouts/types'
 export function exerciseStubFromActive(item: ActiveExercise): Exercise {
   return {
     id: item.exerciseId,
-    userId: null,
-    catalogSlug: null,
-    names: { de: item.name },
+    userId: item.catalogSlug != null ? null : 'local',
+    catalogSlug: item.catalogSlug ?? null,
+    names:
+      item.names && Object.keys(item.names).length > 0
+        ? item.names
+        : { de: item.name },
     kind: item.kind,
     perSide: item.perSide,
     defaultSets: item.targetSets,

@@ -19,7 +19,10 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, BRAND_MINT, TEXT_SECONDARY } from '@/constants/brand';
 import { adoptTargetFromMedian } from '@/lib/workouts/adopt-target';
 import { openExerciseNames } from '@/lib/workouts/session-logic';
-import { resolveExerciseName } from '@/lib/workouts/exercise-name';
+import {
+  displayActiveExerciseName,
+  resolveExerciseName,
+} from '@/lib/workouts/exercise-name';
 import { allSetsHitUpperBound } from '@/lib/workouts/format-target';
 import { applyProgression } from '@/lib/workouts/apply-progression';
 import { activeItemToHistoryUnit } from '@/lib/workouts/progression-history';
@@ -31,6 +34,7 @@ import {
 } from '@/lib/workouts/progression-ui';
 import { workoutQueryKeys } from '@/lib/workouts/query-keys';
 import type {
+  ActiveExercise,
   ActiveSession,
   Exercise,
   GymIntensity,
@@ -95,6 +99,8 @@ function bestSessionValue(values: number[]): number | null {
 
 export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewProps) {
   const { t, i18n } = useTranslation();
+  const labelOf = (item: ActiveExercise) =>
+    displayActiveExerciseName(item, i18n.language);
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.session?.user?.id);
   const finishSession = useWorkoutSessionStore((s) => s.finishSession);
@@ -341,12 +347,12 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         return;
       }
       rows.push({
-        name: item.name,
+        name: labelOf(item),
         value: item.kind === 'time' ? `${sessionBest} s` : String(sessionBest),
       });
     });
     return rows;
-  }, [historyQueries, session.items]);
+  }, [historyQueries, session.items, i18n.language]);
 
   const adoptCandidates = useMemo(
     () =>
@@ -509,7 +515,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         if (row.suggestion.kind === 'variant_up' && row.suggestion.level) {
           celeb = {
             kind: 'variant',
-            name: row.toName ?? row.item.name,
+            name: row.toName ?? labelOf(row.item),
             step: row.suggestion.level.toStep,
             total: row.suggestion.level.total,
           };
@@ -529,7 +535,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
                   : 'training.progression.praise.loadUp';
           celeb = {
             kind: 'praise',
-            name: row.item.name,
+            name: labelOf(row.item),
             praiseKey,
           };
         }
@@ -743,14 +749,14 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           <Text style={styles.blockTitle}>{t('training.progression.readyTitle')}</Text>
           {upperBoundReady.map(({ item }) => (
             <Text key={`upper-${item.exerciseId}`} style={styles.upperHint}>
-              {item.name}: {t('training.panel.upperBoundHint')}
+              {labelOf(item)}: {t('training.panel.upperBoundHint')}
             </Text>
           ))}
           {ascentRows.map((row) => (
             <ProgressionSuggestionCard
               key={`asc-${row.index}`}
               exerciseIndex={row.index}
-              name={row.item.name}
+              name={labelOf(row.item)}
               toName={row.toName}
               exercise={row.exercise}
               suggestion={row.suggestion}
@@ -771,7 +777,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
             <ProgressionSuggestionCard
               key={`desc-${row.index}`}
               exerciseIndex={row.index}
-              name={row.item.name}
+              name={labelOf(row.item)}
               toName={row.toName}
               exercise={row.exercise}
               suggestion={row.suggestion}
@@ -801,7 +807,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
                 style={styles.checkRow}>
                 <View style={[styles.checkbox, checked && styles.checkboxOn]} />
                 <Text style={styles.checkText}>
-                  {item.name}
+                  {labelOf(item)}
                   {median != null ? ` → ${median}` : ''}
                 </Text>
               </Pressable>
@@ -826,7 +832,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
                 style={styles.checkRow}>
                 <View style={[styles.checkbox, checked && styles.checkboxOn]} />
                 <Text style={styles.checkText}>
-                  {item.name}: {t('training.panel.addToTemplate')}
+                  {labelOf(item)}: {t('training.panel.addToTemplate')}
                 </Text>
               </Pressable>
             );

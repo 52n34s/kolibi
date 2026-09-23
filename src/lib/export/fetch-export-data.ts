@@ -17,6 +17,7 @@ import {
 import { fetchMealsForLocalDate } from '@/lib/meals';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
 import {
+  displayExerciseName,
   exerciseLabelOrFallback,
   resolveExerciseName,
 } from '@/lib/workouts/exercise-name';
@@ -25,6 +26,7 @@ import {
   sessionDurationFromTimestamps,
 } from '@/lib/workouts/session-detail-utils';
 import { fetchTemplates, fetchWorkoutSessionsInRange, fetchProgressionEvents, fetchLadder, fetchExercisesByIds, fetchExerciseHistoryUnits } from '@/lib/workouts/workouts-api';
+import type { Exercise } from '@/lib/workouts/types';
 import { suggestProgression } from '@/lib/workouts/progression';
 import { fetchProfileSettings } from '@/lib/profile';
 import { supabase } from '@/lib/supabase';
@@ -408,6 +410,22 @@ export async function fetchExportData(params: {
     };
   });
 
+  const exportExerciseIds = [
+    ...new Set(
+      (workoutSessions ?? []).flatMap((session) =>
+        session.sets
+          .map((set) => set.exerciseId)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    ),
+  ];
+  const exportExercisesById = new Map<string, Exercise>();
+  if (exportExerciseIds.length > 0) {
+    for (const ex of await fetchExercisesByIds(exportExerciseIds)) {
+      exportExercisesById.set(ex.id, ex);
+    }
+  }
+
   const workoutExport = (workoutSessions ?? []).map((session) => {
     const groups = groupSessionSets(session);
     return {
@@ -418,7 +436,13 @@ export async function fetchExportData(params: {
         ? t(`home.training.intensity.${session.intensity}.label`)
         : null,
       rows: groups.map((group) => ({
-        exercise: group.exerciseName,
+        exercise: displayExerciseName({
+          exerciseId: group.exerciseId,
+          storedName: group.exerciseName,
+          exercise:
+            group.exerciseId != null ? exportExercisesById.get(group.exerciseId) : undefined,
+          lang,
+        }),
         target: formatExerciseTarget({
           sets: group.sets.length,
           kind: group.kind,

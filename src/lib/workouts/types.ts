@@ -150,7 +150,12 @@ export type ActiveSet = {
 
 export type ActiveExercise = {
   exerciseId: string;
+  /** Snapshot name at session start (also written to session_sets). */
   name: string;
+  /** Full locale map for catalog re-resolve on language change. Optional for legacy MMKV. */
+  names?: Record<string, string>;
+  /** Non-null ⇒ catalog exercise; re-resolve via resolveExerciseName. Optional for legacy MMKV. */
+  catalogSlug?: string | null;
   kind: ExerciseKind;
   perSide: boolean;
   imageAsset: string | null;

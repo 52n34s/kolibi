@@ -91,9 +91,65 @@ describe('bestSetByExercise', () => {
         exerciseName: 'B',
       }),
     ]);
-    const byId = Object.fromEntries(bests.map((b) => [b.exerciseId, b.value]));
+    const byId = Object.fromEntries(
+      bests.filter((b) => b.exerciseId != null).map((b) => [b.exerciseId!, b.value]),
+    );
     assert.equal(byId.a, 10);
     assert.equal(byId.b, 34);
+  });
+
+  it('groups the same catalog exercise_id even when stored names differ', () => {
+    const bests = bestSetByExercise([
+      set({
+        id: '1',
+        kind: 'reps',
+        reps: 8,
+        exerciseId: 'pull',
+        exerciseName: 'Pull-ups',
+        completedAt: '2026-09-20T10:00:00.000Z',
+      }),
+      set({
+        id: '2',
+        kind: 'reps',
+        reps: 12,
+        exerciseId: 'pull',
+        exerciseName: 'Klimmzüge',
+        completedAt: '2026-09-21T10:00:00.000Z',
+      }),
+    ]);
+    assert.equal(bests.length, 1);
+    assert.equal(bests[0]!.exerciseId, 'pull');
+    assert.equal(bests[0]!.value, 12);
+  });
+
+  it('groups sets without exercise_id by stored name', () => {
+    const bests = bestSetByExercise([
+      set({
+        id: '1',
+        kind: 'reps',
+        reps: 5,
+        exerciseId: null,
+        exerciseName: 'Custom',
+      }),
+      set({
+        id: '2',
+        kind: 'reps',
+        reps: 9,
+        exerciseId: null,
+        exerciseName: 'Custom',
+      }),
+      set({
+        id: '3',
+        kind: 'reps',
+        reps: 3,
+        exerciseId: null,
+        exerciseName: 'Other',
+      }),
+    ]);
+    assert.equal(bests.length, 2);
+    const custom = bests.find((b) => b.exerciseName === 'Custom');
+    assert.equal(custom?.value, 9);
+    assert.equal(custom?.exerciseId, null);
   });
 });
 

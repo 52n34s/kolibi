@@ -64,6 +64,8 @@ function snapshotFromTemplateExercise(te: TemplateExercise, lang: string): Activ
   const base: ActiveExercise = {
     exerciseId: te.exerciseId,
     name: resolveExerciseName(exercise, lang),
+    names: { ...(exercise.names ?? {}) },
+    catalogSlug: exercise.catalogSlug,
     kind: exercise.kind,
     perSide: exercise.perSide,
     imageAsset: exercise.imageAsset,
@@ -125,6 +127,8 @@ export function buildActiveExerciseFromCatalog(
   const base: ActiveExercise = {
     exerciseId: exercise.id,
     name: resolveExerciseName(exercise, lang),
+    names: { ...(exercise.names ?? {}) },
+    catalogSlug: exercise.catalogSlug,
     kind: exercise.kind,
     perSide: exercise.perSide,
     imageAsset: exercise.imageAsset,

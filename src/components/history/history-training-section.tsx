@@ -22,7 +22,7 @@ import { useProgressionEvents } from '@/hooks/use-progression-events';
 import { useExercises } from '@/hooks/use-exercises';
 import { parseDateOnly } from '@/lib/day-window';
 import { formatDistanceKm, useUnitSystem } from '@/lib/measure-units';
-import { resolveExerciseName } from '@/lib/workouts/exercise-name';
+import { displayExerciseName, resolveExerciseName } from '@/lib/workouts/exercise-name';
 import {
   bestSetByExercise,
   exerciseBestSeries,
@@ -134,16 +134,14 @@ function formatTargetActual(
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): string | null {
   const tv = targetVsActual(session);
-  if (tv.targetReps > 0 || tv.actualReps > 0) {
+  if (tv.actualReps > 0) {
     return t('history.training.targetActualReps', {
       actual: tv.actualReps,
-      target: tv.targetReps,
     });
   }
-  if (tv.targetSeconds > 0 || tv.actualSeconds > 0) {
+  if (tv.actualSeconds > 0) {
     return t('history.training.targetActualSeconds', {
       actual: tv.actualSeconds,
-      target: tv.targetSeconds,
     });
   }
   return null;
@@ -240,10 +238,22 @@ export function HistoryTrainingSection({
     [sessionsInRange],
   );
 
-  const bests = useMemo(
-    () => personalBests(rangeSets, beforeBests),
-    [rangeSets, beforeBests],
-  );
+  const exercisesById = useMemo(() => {
+    const map = new Map(allExercises.map((ex) => [ex.id, ex]));
+    return map;
+  }, [allExercises]);
+
+  const bests = useMemo(() => {
+    return personalBests(rangeSets, beforeBests).map((best) => ({
+      ...best,
+      exerciseName: displayExerciseName({
+        exerciseId: best.exerciseId,
+        storedName: best.exerciseName,
+        exercise: best.exerciseId != null ? exercisesById.get(best.exerciseId) : undefined,
+        lang: i18n.language,
+      }),
+    }));
+  }, [rangeSets, beforeBests, exercisesById, i18n.language]);
 
   const visibleBests = showAllBests ? bests : bests.slice(0, 3);
 
@@ -258,7 +268,10 @@ export function HistoryTrainingSection({
 
   const volumeBars: VolumeBar[] = useMemo(() => {
     if (rangeDays === 7) {
-      return sessionVolumes.map((vol) => ({
+      const oldestFirst = [...sessionVolumes].sort((a, b) =>
+        a.loggedOn.localeCompare(b.loggedOn),
+      );
+      return oldestFirst.map((vol) => ({
         segments: [
           {
             value: activeVolumeMetric === 'reps' ? vol.reps : vol.seconds,
@@ -281,7 +294,10 @@ export function HistoryTrainingSection({
 
   const volumeXLabels = useMemo(() => {
     if (rangeDays === 7) {
-      return sessionVolumes.map((vol) => formatShortDayLabel(vol.loggedOn, i18n.language));
+      const oldestFirst = [...sessionVolumes].sort((a, b) =>
+        a.loggedOn.localeCompare(b.loggedOn),
+      );
+      return oldestFirst.map((vol) => formatShortDayLabel(vol.loggedOn, i18n.language));
     }
     const oldestFirst = [...weekVolumes].sort((a, b) =>
       a.weekStart.localeCompare(b.weekStart),
@@ -291,15 +307,28 @@ export function HistoryTrainingSection({
 
   const exerciseRows = useMemo(() => {
     const bestsInRange = bestSetByExercise(rangeSets);
-    return bestsInRange.map((best) => ({
-      best,
-      series: exerciseBestSeries(rangeSets, best.exerciseId),
-      stub: exerciseStubFromSessionSet(
-        rangeSets.find((set) => set.exerciseId === best.exerciseId) ??
-          rangeSets[0]!,
-      ),
-    }));
-  }, [rangeSets]);
+    return bestsInRange.map((best) => {
+      const catalog =
+        best.exerciseId != null ? exercisesById.get(best.exerciseId) : undefined;
+      const displayName = displayExerciseName({
+        exerciseId: best.exerciseId,
+        storedName: best.exerciseName,
+        exercise: catalog,
+        lang: i18n.language,
+      });
+      return {
+        best: { ...best, exerciseName: displayName },
+        series: exerciseBestSeries(rangeSets, best.exerciseId, best.exerciseName),
+        stub: exerciseStubFromSessionSet(
+          rangeSets.find((set) =>
+            best.exerciseId != null
+              ? set.exerciseId === best.exerciseId
+              : set.exerciseId == null && set.exerciseName === best.exerciseName,
+          ) ?? rangeSets[0]!,
+        ),
+      };
+    });
+  }, [rangeSets, exercisesById, i18n.language]);
 
   const sessionValue =
     sessionsGoal != null && sessionsGoal > 0
@@ -430,7 +459,11 @@ export function HistoryTrainingSection({
               </Text>
             ))}
             {visibleBests.map((best) => (
-              <BestRow key={best.exerciseId} best={best} t={t} />
+              <BestRow
+                key={best.exerciseId ?? `name:${best.exerciseName}`}
+                best={best}
+                t={t}
+              />
             ))}
             {bests.length > 3 ? (
               <Pressable
@@ -556,21 +589,10 @@ export function HistoryTrainingSection({
             className="mb-8">
             <View className="px-2 py-1">
               {exerciseRows.map((row) => {
-                if (row.best.exerciseId == null) {
-                  return null;
-                }
-                return (
-                  <Pressable
-                    key={row.best.exerciseId}
-                    testID={`history.training.exercise.${row.best.exerciseId}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={row.best.exerciseName}
-                    onPress={() =>
-                      router.push(
-                        `/koli/exercise-progress/${row.best.exerciseId}` as Href,
-                      )
-                    }
-                    className="flex-row items-center gap-3 px-3 py-3">
+                const rowKey =
+                  row.best.exerciseId ?? `name:${row.best.exerciseName}`;
+                const body = (
+                  <>
                     <ExerciseThumb exercise={row.stub} size="sm" onPressEnabled={false} />
                     <View className="min-w-0 flex-1">
                       <Text className="text-sm font-medium text-gray-900" numberOfLines={1}>
@@ -581,6 +603,31 @@ export function HistoryTrainingSection({
                       </Text>
                     </View>
                     <MiniSparkline values={row.series} />
+                  </>
+                );
+                if (row.best.exerciseId == null) {
+                  return (
+                    <View
+                      key={rowKey}
+                      testID={`history.training.exercise.name.${row.best.exerciseName}`}
+                      className="flex-row items-center gap-3 px-3 py-3">
+                      {body}
+                    </View>
+                  );
+                }
+                return (
+                  <Pressable
+                    key={rowKey}
+                    testID={`history.training.exercise.${row.best.exerciseId}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={row.best.exerciseName}
+                    onPress={() =>
+                      router.push(
+                        `/koli/exercise-progress/${row.best.exerciseId}` as Href,
+                      )
+                    }
+                    className="flex-row items-center gap-3 px-3 py-3">
+                    {body}
                   </Pressable>
                 );
               })}
@@ -613,7 +660,7 @@ function BestRow({
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const stub = exerciseStubFromSessionSet({
-    id: best.exerciseId,
+    id: best.exerciseId ?? best.exerciseName,
     sessionId: '',
     userId: '',
     exerciseId: best.exerciseId,
