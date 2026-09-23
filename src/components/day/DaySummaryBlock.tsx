@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Href, router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { HomeProgressRows, type HomeProgressRowItem } from '@/components/home/home-progress-rows';
 import type { NutrientTileState } from '@/components/home/nutrient-tile';
+import { SportEnergyBreakdownSheet } from '@/components/day/SportEnergyBreakdownSheet';
 import {
   getOnboardingIdleCardStyle,
   getOnboardingSecondarySurfaceStyle,
@@ -89,6 +90,7 @@ type DaySummaryBlockProps = {
 export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
   const { t } = useTranslation();
   const lastWidgetSnapshotJsonRef = useRef<string | null>(null);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   const {
     userId,
     isToday,
@@ -443,6 +445,23 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
   }
 
   if (calorieGoalDisplay) {
+    const canOpenBreakdown =
+      calorieGoalDisplay.mode === 'dynamic' &&
+      sportEnergyDay != null &&
+      sportEnergyDay.breakdown.some((item) => item.kcal > 0);
+
+    const referenceText =
+      calorieGoalDisplay.mode === 'dynamic'
+        ? t('home.calorieGoal.dynamicDailyGoalReference', {
+            total: formatKcal(
+              calorieGoalDisplay.dailyGoal + (calorieGoalDisplay.activeEnergyBurned ?? 0),
+            ),
+            burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
+          })
+        : t('home.calorieGoal.dailyGoalReference', {
+            goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
+          });
+
     return (
       <View style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
         <View className="px-5 py-6">
@@ -463,24 +482,35 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
               {t('home.calorieGoal.overGoal')}
             </Text>
           ) : null}
-          <Text
-            className={`text-center text-sm text-gray-500 ${calorieGoalDisplay.showOverLabel ? 'mt-1' : 'mt-2'}`}>
-            {calorieGoalDisplay.mode === 'dynamic'
-              ? t('home.calorieGoal.dynamicDailyGoalReference', {
-                  total: formatKcal(
-                    calorieGoalDisplay.dailyGoal +
-                      (calorieGoalDisplay.activeEnergyBurned ?? 0),
-                  ),
-                  burned: formatKcal(calorieGoalDisplay.activeEnergyBurned ?? 0),
-                })
-              : t('home.calorieGoal.dailyGoalReference', {
-                  goal: formatKcal(calorieGoalDisplay.dailyGoalContextValue),
-                })}
-          </Text>
+          {canOpenBreakdown ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('home.calorieGoal.sportBreakdown.title')}
+              onPress={() => setBreakdownOpen(true)}
+              hitSlop={8}
+              style={({ pressed }) => [
+                { marginTop: calorieGoalDisplay.showOverLabel ? 4 : 8 },
+                pressed && { opacity: 0.7 },
+              ]}>
+              <Text className="text-center text-sm text-gray-500">{referenceText}</Text>
+            </Pressable>
+          ) : (
+            <Text
+              className={`text-center text-sm text-gray-500 ${calorieGoalDisplay.showOverLabel ? 'mt-1' : 'mt-2'}`}>
+              {referenceText}
+            </Text>
+          )}
           <View className="mt-5">
             <HomeProgressRows rows={calorieMacroRows} />
           </View>
         </View>
+        {sportEnergyDay != null ? (
+          <SportEnergyBreakdownSheet
+            visible={breakdownOpen}
+            onClose={() => setBreakdownOpen(false)}
+            sportEnergyDay={sportEnergyDay}
+          />
+        ) : null}
       </View>
     );
   }
