@@ -10,6 +10,7 @@ import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { applyProgression } from '@/lib/workouts/apply-progression';
 import { suggestProgression, type ProgressionSuggestion } from '@/lib/workouts/progression';
 import { workoutQueryKeys } from '@/lib/workouts/query-keys';
+import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import type { Exercise, ProgressionEvent, WorkoutTemplate } from '@/lib/workouts/types';
 import {
   fetchExerciseHistoryUnits,
@@ -225,12 +226,7 @@ export function IdleProgressionOverlay({
       }
 
       if (userId) {
-        await queryClient.invalidateQueries({
-          queryKey: workoutQueryKeys.templates(userId),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: workoutQueryKeys.progressionEvents(userId),
-        });
+        await invalidateTrainingQueries(queryClient, userId);
       }
       onClose();
     } catch (err) {

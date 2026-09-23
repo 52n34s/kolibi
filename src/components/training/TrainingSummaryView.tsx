@@ -33,6 +33,7 @@ import {
   pickCelebrationSubtitleKey,
 } from '@/lib/workouts/progression-ui';
 import { workoutQueryKeys } from '@/lib/workouts/query-keys';
+import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import type {
   ActiveExercise,
   ActiveSession,
@@ -589,12 +590,9 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       try {
         await persistAdoptAndAdds();
         await persistProgressions(sessionId);
-        await queryClient.invalidateQueries({
-          queryKey: userId ? workoutQueryKeys.progressionEvents(userId) : ['workout-progression-events'],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: userId ? workoutQueryKeys.templates(userId) : ['workout-templates'],
-        });
+        if (userId) {
+          await invalidateTrainingQueries(queryClient, userId);
+        }
       } catch (progressErr) {
         Sentry.captureException(progressErr);
         setProgressError(t('training.progression.applyError'));
