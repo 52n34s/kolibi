@@ -620,6 +620,33 @@
       "perSide": "por lado",
       "holdTarget": "Objetivo desde {{seconds}} s"
     },
+    "starterPlans": {
+      "fullBody": {
+        "title": "Cuerpo completo",
+        "subtitle": "2× por semana · Principiante",
+        "equipment": "Una mesa estable o una barra de dominadas",
+        "sessionFullBody": "Cuerpo completo"
+      },
+      "ppl": {
+        "title": "Push / Pull / Legs",
+        "subtitle": "3× por semana",
+        "equipment": "Barra de dominadas, paralelas o banco, y una superficie elevada",
+        "sessionPush": "Push",
+        "sessionPull": "Pull",
+        "sessionLegs": "Legs"
+      },
+      "upperLower": {
+        "title": "Tren superior / inferior",
+        "subtitle": "4× por semana",
+        "equipment": "Barra de dominadas y una superficie elevada",
+        "sessionUpper": "Tren superior",
+        "sessionLower": "Tren inferior"
+      },
+      "custom": {
+        "title": "Plan propio",
+        "subtitle": "Monta tus propias sesiones"
+      }
+    },
     "panel": {
       "nextTitle": "A continuación",
       "lastToday": "última: hoy",

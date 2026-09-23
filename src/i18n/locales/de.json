@@ -620,6 +620,33 @@
       "perSide": "pro Seite",
       "holdTarget": "Ziel ab {{seconds}} s"
     },
+    "starterPlans": {
+      "fullBody": {
+        "title": "Ganzkörper",
+        "subtitle": "2× pro Woche · Einsteiger",
+        "equipment": "Stabiler Tisch oder Klimmzugstange",
+        "sessionFullBody": "Ganzkörper"
+      },
+      "ppl": {
+        "title": "Push / Pull / Legs",
+        "subtitle": "3× pro Woche",
+        "equipment": "Klimmzugstange, Barren oder Bank, erhöhte Fläche",
+        "sessionPush": "Push",
+        "sessionPull": "Pull",
+        "sessionLegs": "Legs"
+      },
+      "upperLower": {
+        "title": "Oberkörper / Unterkörper",
+        "subtitle": "4× pro Woche",
+        "equipment": "Klimmzugstange, erhöhte Fläche",
+        "sessionUpper": "Oberkörper",
+        "sessionLower": "Unterkörper"
+      },
+      "custom": {
+        "title": "Eigener Plan",
+        "subtitle": "Einheiten selbst zusammenstellen"
+      }
+    },
     "panel": {
       "nextTitle": "Als Nächstes",
       "lastToday": "zuletzt: heute",

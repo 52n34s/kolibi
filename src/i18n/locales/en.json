@@ -620,6 +620,33 @@
       "perSide": "per side",
       "holdTarget": "Target from {{seconds}} s"
     },
+    "starterPlans": {
+      "fullBody": {
+        "title": "Full body",
+        "subtitle": "2× per week · Beginner",
+        "equipment": "A sturdy table or pull-up bar",
+        "sessionFullBody": "Full body"
+      },
+      "ppl": {
+        "title": "Push / Pull / Legs",
+        "subtitle": "3× per week",
+        "equipment": "Pull-up bar, parallettes or bench, and an elevated surface",
+        "sessionPush": "Push",
+        "sessionPull": "Pull",
+        "sessionLegs": "Legs"
+      },
+      "upperLower": {
+        "title": "Upper / Lower",
+        "subtitle": "4× per week",
+        "equipment": "Pull-up bar and an elevated surface",
+        "sessionUpper": "Upper body",
+        "sessionLower": "Lower body"
+      },
+      "custom": {
+        "title": "Custom plan",
+        "subtitle": "Build your own workouts"
+      }
+    },
     "panel": {
       "nextTitle": "Up next",
       "lastToday": "last: today",
