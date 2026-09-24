@@ -9,6 +9,7 @@ import {
   buildLevelSticker,
   buildRecapSticker,
   buildSessionSticker,
+  exerciseMilestone,
   formatGain,
   formatSetsCompact,
   ladderPosition,
@@ -16,6 +17,9 @@ import {
   topSessionExercises,
 } from './sticker-data.ts';
 import type { Exercise, ProgressionEvent, SessionSet, WorkoutSession } from '../workouts/types.ts';
+import { trainingCardSessionCount } from '../workouts/week-day-markers.ts';
+
+const NO_CARD = { rangeStartKey: '2026-09-18', todayKey: '2026-09-24', manualSessions: [], workoutSessions: [] };
 
 function set(partial: Partial<SessionSet> & Pick<SessionSet, 'id'>): SessionSet {
   return {
@@ -144,12 +148,12 @@ describe('buildExerciseSticker', () => {
       perSide: false,
       values: [12, 12, 10],
       ladder: PUSH_LADDER,
-      isNewBest: true,
+      milestone: 'newBest',
     });
     assert.equal(sticker.name, 'Push-ups');
     assert.deepEqual(sticker.level, { step: 2, total: 3 });
     assert.equal(formatSetsCompact(sticker.values, sticker.exerciseKind), '12 · 12 · 10');
-    assert.equal(sticker.isNewBest, true);
+    assert.equal(sticker.milestone, 'newBest');
   });
 
   it('keeps per-side time and drops empty sets', () => {
@@ -161,7 +165,7 @@ describe('buildExerciseSticker', () => {
       perSide: true,
       values: [30, 0, 30],
       ladder: [],
-      isNewBest: false,
+      milestone: null,
     });
     assert.equal(sticker.perSide, true);
     assert.equal(formatSetsCompact(sticker.values, sticker.exerciseKind), '2 × 30 s');
@@ -176,11 +180,38 @@ describe('buildExerciseSticker', () => {
       perSide: false,
       values: [15],
       ladder: PUSH_LADDER,
-      isNewBest: false,
+      milestone: null,
     });
     assert.equal(sticker.name, 'Mein Zirkel');
     assert.equal(sticker.level, null);
     assert.deepEqual(availableStickerOptions(sticker), ['showBest']);
+  });
+});
+
+describe('exerciseMilestone', () => {
+  it('marks a first execution as first time, not as a personal best', () => {
+    assert.equal(exerciseMilestone({ sessionBest: 8, priorBest: null, historyLoaded: true }), 'firstTime');
+    const sticker = buildExerciseSticker({
+      exercise: null,
+      fallbackName: 'Dips',
+      lang: 'de',
+      exerciseKind: 'reps',
+      perSide: false,
+      values: [8, 7],
+      ladder: [],
+      milestone: exerciseMilestone({ sessionBest: 8, priorBest: null, historyLoaded: true }),
+    });
+    assert.equal(sticker.milestone, 'firstTime');
+  });
+
+  it('marks only a beaten earlier best as a personal best', () => {
+    assert.equal(exerciseMilestone({ sessionBest: 9, priorBest: 8, historyLoaded: true }), 'newBest');
+    assert.equal(exerciseMilestone({ sessionBest: 8, priorBest: 8, historyLoaded: true }), null);
+  });
+
+  it('claims nothing while the history loads or without a completed set', () => {
+    assert.equal(exerciseMilestone({ sessionBest: 8, priorBest: null, historyLoaded: false }), null);
+    assert.equal(exerciseMilestone({ sessionBest: null, priorBest: 5, historyLoaded: true }), null);
   });
 });
 
@@ -306,12 +337,12 @@ describe('buildRecapSticker', () => {
           set({ id: '3', kind: 'time', exerciseId: 'plank', seconds: 60, completedAt: 'z' }),
         ]),
       ],
+      card: NO_CARD,
       beforeBests: { ex1: 5 },
       events: [event({}), event({ id: 'e2', status: 'declined' }), event({ id: 'e3', kind: 'sets_up' })],
       proteinHitDays: 4,
       nameOf: () => 'Klimmzüge',
     });
-    assert.equal(recap.sessions, 1);
     assert.equal(recap.totalReps, 13);
     assert.equal(recap.bestsCount, 1);
     assert.equal(recap.levelsCount, 1);
@@ -322,6 +353,7 @@ describe('buildRecapSticker', () => {
   it('handles a week without sessions and drops the protein line at 0', () => {
     const recap = buildRecapSticker('week', {
       sessions: [],
+      card: NO_CARD,
       beforeBests: {},
       events: [],
       proteinHitDays: 0,
@@ -347,6 +379,7 @@ describe('buildRecapSticker', () => {
         session('s1', [set({ id: '1', exerciseName: 'Klimmzüge', reps: 6, completedAt: 'a' })]),
         session('s2', [set({ id: '2', exerciseName: 'Pull-ups', reps: 8, completedAt: 'b' })]),
       ],
+      card: NO_CARD,
       beforeBests: { ex1: 5 },
       events: [],
       proteinHitDays: 3,
@@ -356,6 +389,39 @@ describe('buildRecapSticker', () => {
     assert.deepEqual(recap.biggestGain, { name: 'Klimmzüge', exerciseKind: 'reps', from: 5, to: 8 });
     assert.deepEqual(availableStickerOptions(recap), ['showBiggestGain', 'showProtein']);
   });
+});
+
+describe('recap sessions match the sessions card', () => {
+  // Thu 2026-09-24; the 7-day range starts Fri 2026-09-18.
+  const workouts = [
+    { ...session('w1', []), loggedOn: '2026-09-24' },
+    { ...session('w2', []), loggedOn: '2026-09-24' }, // second unit, same day
+    { ...session('w3', []), loggedOn: '2026-09-22' },
+    { ...session('w4', []), loggedOn: '2026-09-19' }, // in range, last week
+  ];
+  const manual = [
+    { loggedOn: '2026-09-22' }, // same day as w3
+    { loggedOn: '2026-09-23' },
+    { loggedOn: '2026-09-14' }, // lookback only
+  ];
+
+  for (const rangeDays of [7, 30] as const) {
+    it(`uses the card's number for ${rangeDays} days`, () => {
+      const rangeStartKey = rangeDays === 7 ? '2026-09-18' : '2026-08-26';
+      const card = { rangeStartKey, todayKey: '2026-09-24', manualSessions: manual, workoutSessions: workouts };
+      const cardCount = trainingCardSessionCount({ rangeDays, ...card });
+      const recap = buildRecapSticker(rangeDays === 30 ? 'month' : 'week', {
+        sessions: workouts,
+        card,
+        beforeBests: {},
+        events: [],
+        proteinHitDays: 0,
+        nameOf: (best) => best.exerciseName,
+      });
+      assert.equal(recap.sessions, cardCount);
+      assert.equal(cardCount, rangeDays === 7 ? 3 : 5);
+    });
+  }
 });
 
 describe('topSessionExercises', () => {
