@@ -1785,6 +1785,17 @@
       "text": "Als Text exportieren",
       "cancel": "Abbrechen"
     },
-    "perSide": "pro Seite"
+    "perSide": "pro Seite",
+    "progress": {
+      "title": "Mein Fortschritt",
+      "weeksAgo_one": "Vor {{count}} Woche",
+      "weeksAgo_other": "Vor {{count}} Wochen",
+      "sinceStart": "Seit Beginn",
+      "today": "Heute",
+      "periodWeeks_one": "{{count}} Woche",
+      "periodWeeks_other": "{{count}} Wochen",
+      "notEnough": "Für einen Fortschritts-Sticker braucht es mindestens zwei Einheiten dieser Übung.",
+      "share": "Fortschritt bei {{name}} teilen"
+    }
   }
 }
