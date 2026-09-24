@@ -327,6 +327,8 @@ Ergebnis in `expo config --type introspect`: Übrig sind `NSCameraUsageDescripti
 
 ### 4. Einheiten im Rückblick wie die Wochenkarte
 
+> Überholt: Seit 2026-09-26 stammen alle Kennzahlen des Rückblicks aus einem rollierenden Fenster, siehe unten.
+
 - **Neue gemeinsame Funktion `trainingCardSessionCount` in `src/lib/workouts/week-day-markers.ts`:** Sie zählt verschiedene Trainingstage, geplante und manuelle Einheiten zusammen.
   - Bei 7 Tagen gilt die laufende Kalenderwoche (Montag bis Sonntag).
   - Bei 30 Tagen gelten alle Wochenzeilen der Karte ab dem Montag vor Beginn des Zeitraums.
@@ -371,3 +373,94 @@ Die PNGs kommen wie zuvor von einer temporären QA-Seite mit Beispieldaten auf d
 - „Als Bild sichern“ auf einem echten Android-Gerät mit Android 13 oder neuer testen (ohne Lese-Berechtigung) sowie auf Android 12 oder älter.
 - Nach dem nächsten Build die Galerie-Auswahl (Mahlzeit, Übung, Profilbild) auf Android 12 oder älter kurz gegenprüfen.
 - Die übrigen Punkte aus „Was für 1.4 noch fehlt“ bleiben: SVG, Version 1.4.0, EAS-Build, Gerätetest, Merges.
+
+## Nachtrag 2026-09-26: Rückblick über ein rollierendes Fenster
+
+| Hash | Commit |
+|---|---|
+| `6b67c29` | history: name the protein-goal rule so the recap can reuse it |
+| `a4c24b6` | share: recap figures from one rolling 7- or 30-day window |
+| `1e3e031` | test: every recap figure comes from the same window, incl. a Monday |
+| `f90d024` | history: feed the recap raw inputs for its rolling window |
+| `7765b86` | workouts: the recap no longer shares the sessions card count |
+
+- **Fenster:** „Meine Woche“ umfasst die letzten 7 Tage einschließlich heute, „Mein Monat“ die letzten 30 (`recapWindow`). Das entspricht dem Fenster des Fortschritt-Tabs (`rangeWindowKeys`).
+- **Einheiten:** geplante Einheiten im Fenster plus manuell erfasste Trainings. Beim Beenden einer Einheit entsteht zusätzlich eine per `trainingSessionId` verknüpfte `training_sessions`-Zeile. Die zählt nicht doppelt.
+- **Wiederholungen, Bestwerte, größter Fortschritt:** nur Sätze aus dem Fenster. Verglichen wird mit dem Bestwert vor Beginn des Fensters.
+- **Neue Stufen:** nur angenommene Stufenaufstiege, die innerhalb des Fensters nach lokalem Datum angelegt wurden. Die Abfrage startet jetzt um lokale Mitternacht (`localDayStartIso`) statt um Mitternacht UTC, das bisher die ersten ein bis zwei Stunden des ersten Tages verlor.
+- **Protein-Tage:** Tage im Fenster mit erreichtem Ziel, heute eingeschlossen. `summary.proteinHitDays` lässt heute absichtlich aus. Deshalb zählt der Rückblick selbst, mit derselben Regel (`isProteinGoalHit`, aus `buildHistorySummaryStats` herausgezogen, Verhalten dort unverändert).
+- **Wochenkarte:** unverändert. `trainingCardSessionCount` bleibt allein für sie.
+- **Test:** Montag, der 28.09.; die Woche reicht vom 22. bis 28.09.
+  - Einheiten vom Samstag und Sonntag der Vorwoche zählen, der Montag davor nicht.
+  - Abgedeckt sind die verknüpfte Trainingszeile, ein manueller Lauf, ein Stufenaufstieg zu Beginn des Fensters und einer kurz davor, Protein einschließlich heute und ein älterer, höherer Satz, der nur im Monat zählt.
+  - Er läuft für Woche und Monat.
+- **Ergebnis:** 502 von 502 Tests grün, tsc wie auf `main`.
+
+## Nachtrag 2026-09-26: Fortschritts-Sticker („progress“)
+
+| Hash | Commit |
+|---|---|
+| `b561707` | workouts: load all sets of a ladder with their session day, paged |
+| `1f3c732` | workouts: query key for exercise progress |
+| `431dd20` | share: progress sticker data with periods, default and ladder steps |
+| `b35ff61` | test: progress sticker over time, level change, time, per side, few sessions |
+| `03fc95d` | analytics: progress as share_sticker_created type |
+| `ac8af04` | i18n: progress sticker texts (de) |
+| `4e06c5d` | i18n: progress sticker texts (en) |
+| `61fbd3a` | i18n: progress sticker texts (es) |
+| `9feb829` | share: expose the content scale to sticker parts |
+| `2194347` | share: progress sticker with curve and ladder |
+| `292c40f` | share: render the progress sticker |
+| `35f3810` | share: period switch, story card and hint for progress stickers |
+| `cbdc347` | history: share progress from the exercise list |
+
+- **Ergebnis:** `npm test` ergibt 510 von 510 grün, tsc zeigt dieselben 15 Fehler wie `main`.
+
+### Umsetzung
+
+- **Daten:** Neue, rein lesende Funktion `fetchExerciseProgressUnits(exerciseIds)`. Sie lädt alle Sätze der Übung, bei einer Leiter aller ihrer Stufen, und dazu `logged_on` der Einheit. Geladen wird seitenweise zu je 1000 Zeilen, damit „seit Beginn“ nicht am Zeilenlimit von Supabase abgeschnitten wird. Keine Datenbankänderung.
+- **`buildProgressSticker`** (rein, getestet):
+  - Die Übung wird über die `exercise_id` bestimmt. Bei einer Leiter gehören alle Katalogstufen derselben `ladder_key` dazu (`progressExerciseIds`).
+  - Der Name kommt über `resolveExerciseName` in der aktuellen Sprache.
+  - Ein Punkt pro Einheit: der beste Satz. Enthält eine Einheit zwei Stufen, zählt die höhere.
+  - Start ist der beste Satz der ersten Einheit im Zeitraum, der aktuelle Wert der beste Satz der letzten.
+  - Bei Zeit-Übungen gelten Sekunden, bei „pro Seite“ die schwächere Seite, mit Hinweis.
+  - Gewicht wird nie verwendet: Die Werte kommen aus `setPerformanceValue`, also nur aus Wiederholungen und Sekunden.
+- **Stufenwechsel:** Sind Start und aktueller Wert verschiedene Stufen der Leiter, zeigt der Sticker „Stufe 1 von 4 → Stufe 3 von 4“ statt Wiederholungen verschiedener Übungen. Darunter stehen die Leiter und „Startstufe → aktuelle Stufe“ mit Namen.
+- **Kurve:** `react-native-svg` ohne Achsen, der Endpunkt ist betont. Bei einem Stufenwechsel bekommt jede Stufe ein eigenes Höhenband (`progressCurveLevels`, getestet), und ihre Linienstücke werden nicht verbunden. So liegt eine höhere Stufe auch dann höher, wenn die schwerere Übung weniger Wiederholungen hat.
+- **Unter 2 Einheiten** in allen Zeiträumen gibt es keinen Sticker. Das Sheet zeigt dann den Hinweis „Für einen Fortschritts-Sticker braucht es mindestens zwei Einheiten dieser Übung.“
+- **Sheet:** Umschalter für den Zeitraum mit nur den verfügbaren Zeiträumen, dazu Sticker oder Story-Karte (1080 × 1920) wie beim Rückblick.
+- **Einstieg:** Teilen-Symbol in jeder Zeile der Übungsliste im Fortschritt-Tab, nur bei Zeilen mit `exercise_id`. Während die Historie lädt, zeigt das Symbol einen Spinner.
+- **PostHog:** `share_sticker_created` mit `type: "progress"`.
+- **Texte:** `share.progress.*` in DE/EN/ES. Plural-Schlüssel (`weeksAgo_one/_other`, `periodWeeks_one/_other`) wie bei der Protein-Zeile. Die Stufe nutzt das vorhandene `share.level`.
+
+### Auslegungen, bitte prüfen
+
+1. **Standard-Zeitraum:** Die Zeiträume sind ineinander geschachtelt. „Der längste mit mindestens 3 Einheiten“ wäre wörtlich fast immer „seit Beginn“. Deshalb gilt:
+   - Standard ist der längste der Zeiträume 12, 8 oder 4 Wochen mit mindestens 3 Einheiten.
+   - Gibt es keinen, gilt „seit Beginn“.
+2. **Wochen-Zeitraum:** Ein Zeitraum wie „12 Wochen“ wird nur angeboten, wenn die Historie der Übung weiter zurückreicht als sein Beginn. Sonst stünde „Vor 12 Wochen“ über einem Startwert von vor 5 Wochen. „Seit Beginn“ gibt es immer, sofern mindestens 2 Einheiten da sind.
+3. **Name:** Der Sticker trägt den Namen der zuletzt trainierten Übung, bei einer Leiter also der aktuellen Stufe. Das gilt auch, wenn man in der Liste die frühere Stufe antippt.
+4. **„Heute“:** Die Beschriftung steht über dem Wert der letzten Einheit, auch wenn die ein paar Tage zurückliegt.
+5. **Story-Karte:** Bei einem Stufenwechsel füllt der Inhalt 75 % der Höhe, ohne Stufenwechsel 47 %, weil der Inhalt kürzer ist. Die Skalierung ist dieselbe wie beim Rückblick (1,5-fach). Titel und Stufenzeile sind einzeilig und werden bei Bedarf leicht verkleinert.
+
+### Prüfung im Simulator
+
+Die PNGs stehen in `~/Desktop/kolibi-sticker-check/`, gerendert über eine temporäre QA-Seite. Die Beispieldaten laufen durch den echten `buildProgressSticker`. Die Seite ist wieder entfernt und nicht committed.
+
+| Datei | Größe | Ecke Alpha | voll transparent |
+|---|---|---|---|
+| progress-light / -dark | 1080×881 | 0 | 85 % / 93 % |
+| progress-level-light / -dark | 1080×1229 | 0 | 78 % / 89 % |
+| progress-story-light / -dark | 1080×1920 | 255 (gewollt deckend) | Inhalt 47 % der Höhe, mittig |
+| progress-level-story-light / -dark | 1080×1920 | 255 (gewollt deckend) | Inhalt 75 % der Höhe, mittig |
+
+- **Beim Anschauen gefunden und behoben:**
+  - Die Kurve lief auf der Story-Karte aus dem Bild. Sie behält jetzt die Inhaltsbreite.
+  - „Vor 12 Wochen“ wurde abgeschnitten.
+  - Die Stufen-Pille lief über den Rand. Die Stufenwerte stehen jetzt untereinander.
+- **Simulator:**
+  - Auf dem iPhone 17 Pro war Kolibi nicht mehr installiert, vermutlich durch die parallele carpincho-Sitzung. Ich habe den vorhandenen Debug-Build wieder installiert, ohne neu zu bauen.
+  - Dabei blieb dort die Nachfrage „In Kolibi öffnen?“ über carpincho stehen. Taps kamen nicht an, ich konnte sie nicht schließen. Bitte dort einmal „Abbrechen“ tippen.
+  - Die PNGs stammen deshalb vom eigenen iPhone-17-Simulator.
+- **Nicht angeklickt:** Umschalter für den Zeitraum, Hinweis-Zustand und Teilen-Symbol in der Liste. Sie sind nur kompiliert und typgeprüft, die Logik dahinter ist getestet.
