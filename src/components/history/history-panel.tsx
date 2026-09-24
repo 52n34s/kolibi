@@ -37,7 +37,12 @@ import { useTrainingSessionsRange } from '@/hooks/use-training-sessions-range';
 import { useExercises } from '@/hooks/use-exercises';
 import { useProgressionEvents } from '@/hooks/use-progression-events';
 import { ShareStickerSheet } from '@/components/share/ShareStickerSheet';
-import { buildRecapSticker, type StickerData } from '@/lib/share/sticker-data';
+import {
+  buildRecapSticker,
+  localDayStartIso,
+  recapWindow,
+  type StickerData,
+} from '@/lib/share/sticker-data';
 import { displayExerciseName } from '@/lib/workouts/exercise-name';
 import {
   useBalanceSupplementHistory,
@@ -65,6 +70,7 @@ import {
   filterWeightLogsInRange,
   getLatestWeightKg,
   getLatestWaistCm,
+  isProteinGoalHit,
   waistChangeInRange,
   weighSpanDaysInLastMonth,
   weightChangeInRange,
@@ -245,8 +251,9 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
   const { data: beforeBests = {} } = useExerciseBestsBefore({
     beforeKey: historyRangeWindow.startKey,
   });
+  // From local midnight of the window start; the recap filters by local day.
   const { data: progressionEvents = [] } = useProgressionEvents({
-    since: `${historyRangeWindow.startKey}T00:00:00.000Z`,
+    since: localDayStartIso(recapWindow(rangeDays === 30 ? 'month' : 'week', todayKey).startKey),
   });
   const { data: allExercises = [] } = useExercises();
   const [recapSticker, setRecapSticker] = useState<StickerData | null>(null);
@@ -1509,21 +1516,17 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
   function openRecapSticker() {
     const exercisesById = new Map(allExercises.map((ex) => [ex.id, ex]));
     setRecapSticker(
-      // "30 Tage" is "Mein Monat" on the card.
+      // Rolling window: "7 Tage" is "Meine Woche", "30 Tage" is "Mein Monat".
       buildRecapSticker(rangeDays === 30 ? 'month' : 'week', {
-        sessions: workoutSessions.filter(
-          (session) =>
-            session.loggedOn >= historyRangeWindow.startKey && session.loggedOn <= todayKey,
-        ),
-        card: {
-          rangeStartKey: historyRangeWindow.startKey,
-          todayKey,
-          manualSessions: trainingSessions,
-          workoutSessions,
-        },
+        todayKey,
+        workoutSessions,
+        manualSessions: trainingSessions,
         beforeBests,
         events: progressionEvents,
-        proteinHitDays: summary?.proteinHitDays ?? 0,
+        proteinDays: (data?.days ?? []).map((day) => ({
+          date: day.date,
+          hit: isProteinGoalHit(day),
+        })),
         nameOf: (best) =>
           displayExerciseName({
             exerciseId: best.exerciseId,
