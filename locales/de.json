@@ -4,8 +4,6 @@
     "NSPhotoLibraryUsageDescription": "Erlaube Kolibi den Zugriff auf deine Fotos, um ein Profilbild festzulegen.",
     "NSPhotoLibraryAddUsageDescription": "Kolibi speichert deine Sticker in deinen Fotos.",
     "NSHealthShareUsageDescription": "Kolibi liest aus Apple Health Aktivenergie, Herzfrequenz, Schritte, Gehstrecke/Laufstrecke, Taillenumfang, Körperfettanteil, magere Körpermasse und Workouts, damit Tages- und Bewegungsziele deine Aktivität berücksichtigen können.",
-    "NSHealthUpdateUsageDescription": "Kolibi schreibt deinen erfassten Taillenumfang nach Apple Health, damit er dort zusammen mit deinen anderen Gesundheitsdaten sichtbar ist.",
-    "NSFaceIDUsageDescription": "Erlaube Kolibi den Zugriff auf deine Face-ID-Daten.",
-    "NSMicrophoneUsageDescription": "Erlaube Kolibi den Zugriff auf dein Mikrofon."
+    "NSHealthUpdateUsageDescription": "Kolibi schreibt deinen erfassten Taillenumfang nach Apple Health, damit er dort zusammen mit deinen anderen Gesundheitsdaten sichtbar ist."
   }
 }
