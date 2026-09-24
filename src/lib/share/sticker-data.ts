@@ -714,3 +714,30 @@ export function progressCurveLevels(points: readonly ProgressPoint[]): number[] 
     return (bandOf.get(step)! + (steps.length > 1 ? 0.1 + within * 0.6 : within)) * band;
   });
 }
+
+/**
+ * Target share of the card height for the content's layout box. Line heights
+ * pad the box, so the visible content lands at about 65–70 %.
+ */
+export const STORY_FILL_TARGET = 0.7;
+/** Never smaller than the sticker, never more than twice its size. */
+export const STORY_SCALE_MIN = 1;
+export const STORY_SCALE_MAX = 2;
+
+/**
+ * Next content scale for a story card, from the content height measured at
+ * `scale`. Text wraps differently at other sizes, so the card re-measures and
+ * calls this again until the change is negligible.
+ */
+export function nextStoryScale(params: {
+  scale: number;
+  contentHeight: number;
+  cardHeight: number;
+}): number {
+  if (!(params.contentHeight > 0)) {
+    return params.scale;
+  }
+  const target = params.cardHeight * STORY_FILL_TARGET;
+  const next = (params.scale * target) / params.contentHeight;
+  return Math.min(STORY_SCALE_MAX, Math.max(STORY_SCALE_MIN, next));
+}
