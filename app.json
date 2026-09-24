@@ -52,7 +52,14 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.steffen.kolibi"
+      "package": "com.steffen.kolibi",
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION"
+      ]
     },
     "locales": {
       "de": "./locales/de.json",
@@ -95,7 +102,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow Kolibi to access your photos to set a profile picture.",
-          "cameraPermission": "Allow Kolibi to access your camera to take photos of your meals, scan barcodes, and set a profile picture."
+          "cameraPermission": "Allow Kolibi to access your camera to take photos of your meals, scan barcodes, and set a profile picture.",
+          "microphonePermission": false
         }
       ],
       [
@@ -103,11 +111,10 @@
         {
           "savePhotosPermission": "Kolibi saves your stickers to your photo library.",
           "isAccessMediaLocationEnabled": false,
-          "granularPermissions": [
-            "photo"
-          ]
+          "granularPermissions": []
         }
       ],
+      "./plugins/with-add-only-media-permissions.js",
       [
         "expo-camera",
         {
@@ -120,7 +127,12 @@
       "./plugins/with-ios-modular-headers.js",
       "@bacons/apple-targets",
       "expo-asset",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       [
         "@sentry/react-native/expo",
         {
