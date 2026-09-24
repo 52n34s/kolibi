@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { Href, router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { MiniSparkline } from '@/components/history/mini-sparkline';
@@ -28,8 +30,13 @@ import {
   bestSessionSets,
   buildExerciseSticker,
   buildLevelSticker,
+  buildProgressSticker,
+  progressExerciseIds,
   type StickerData,
 } from '@/lib/share/sticker-data';
+import { workoutQueryKeys } from '@/lib/workouts/query-keys';
+import { fetchExerciseProgressUnits } from '@/lib/workouts/workouts-api';
+import { useAuthStore } from '@/stores/auth-store';
 import { formatDistanceKm, useUnitSystem } from '@/lib/measure-units';
 import { displayExerciseName, resolveExerciseName } from '@/lib/workouts/exercise-name';
 import {
@@ -156,6 +163,38 @@ export function HistoryTrainingSection({
   const { data: allExercises = [] } = useExercises();
 
   const [sticker, setSticker] = useState<StickerData | null>(null);
+  const [loadingProgressId, setLoadingProgressId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.session?.user?.id);
+
+  /** Loads the whole history of the exercise (all rungs of its ladder), then opens the sheet. */
+  async function openProgressSticker(exerciseId: string) {
+    if (!userId || loadingProgressId) {
+      return;
+    }
+    const ids = progressExerciseIds(exerciseId, allExercises);
+    setLoadingProgressId(exerciseId);
+    try {
+      const units = await queryClient.fetchQuery({
+        queryKey: workoutQueryKeys.exerciseProgress(userId, ids),
+        staleTime: 5 * 60 * 1000,
+        queryFn: () => fetchExerciseProgressUnits(ids),
+      });
+      setSticker(
+        buildProgressSticker({
+          exerciseId,
+          exercises: allExercises,
+          units,
+          todayKey,
+          lang: i18n.language,
+        }),
+      );
+    } catch (error) {
+      Sentry.captureException(error);
+    } finally {
+      setLoadingProgressId(null);
+    }
+  }
 
   const levelUps = useMemo(() => {
     return acceptedLevelUps(progressionEvents)
@@ -619,6 +658,14 @@ export function HistoryTrainingSection({
                       </Text>
                     </View>
                     <MiniSparkline values={row.series} />
+                    {row.best.exerciseId != null ? (
+                      <ShareIconButton
+                        testID={`history.training.shareProgress.${row.best.exerciseId}`}
+                        label={t('share.progress.share', { name: row.best.exerciseName })}
+                        busy={loadingProgressId === row.best.exerciseId}
+                        onPress={() => void openProgressSticker(row.best.exerciseId!)}
+                      />
+                    ) : null}
                   </>
                 );
                 if (row.best.exerciseId == null) {
@@ -664,7 +711,7 @@ export function HistoryTrainingSection({
           </View>
         </View>
       ) : null}
-      <ShareStickerSheet data={sticker} onClose={() => setSticker(null)} />
+      <ShareStickerSheet data={sticker} onClose={() => setSticker(null)} allowStory />
     </>
   );
 }
@@ -673,10 +720,12 @@ function ShareIconButton({
   testID,
   label,
   onPress,
+  busy = false,
 }: {
   testID: string;
   label: string;
   onPress: () => void;
+  busy?: boolean;
 }) {
   return (
     <Pressable
@@ -687,7 +736,11 @@ function ShareIconButton({
       onPress={onPress}
       className="h-8 w-8 items-center justify-center rounded-full"
       style={{ backgroundColor: 'rgba(79,70,229,0.1)' }}>
-      <Ionicons name="share-outline" size={16} color={BRAND_INDIGO} />
+      {busy ? (
+        <ActivityIndicator size="small" color={BRAND_INDIGO} />
+      ) : (
+        <Ionicons name="share-outline" size={16} color={BRAND_INDIGO} />
+      )}
     </Pressable>
   );
 }
