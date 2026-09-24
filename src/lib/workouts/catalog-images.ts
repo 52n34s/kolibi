@@ -4,12 +4,13 @@ import type { ImageSource } from 'expo-image';
  * Catalog slug → bundled illustration.
  *
  * Grouped by progression ladder in ladder order, so a missing step is visible
- * at a glance. Every one of the 39 seed exercises has an illustration;
+ * at a glance. Every catalog exercise has an illustration;
  * ExerciseThumb falls back to the initial letter for anything not listed here
  * (own exercises without a photo).
  */
 export const CATALOG_EXERCISE_IMAGES: Record<string, ImageSource> = {
   // push_horizontal
+  wall_push_up: require('@/assets/images/exercises/wall_push_up.webp'),
   incline_push_up: require('@/assets/images/exercises/incline_push_up.webp'),
   push_up: require('@/assets/images/exercises/push_up.webp'),
   parallette_push_up: require('@/assets/images/exercises/parallette_push_up.webp'),
@@ -17,17 +18,22 @@ export const CATALOG_EXERCISE_IMAGES: Record<string, ImageSource> = {
   pseudo_planche_push_up: require('@/assets/images/exercises/pseudo_planche_push_up.webp'),
 
   // push_vertical
+  elevated_hands_pike_push_up: require('@/assets/images/exercises/elevated_hands_pike_push_up.webp'),
   pike_push_up: require('@/assets/images/exercises/pike_push_up.webp'),
   elevated_pike_push_up: require('@/assets/images/exercises/elevated_pike_push_up.webp'),
   wall_handstand_push_up: require('@/assets/images/exercises/wall_handstand_push_up.webp'),
 
   // dip
+  bench_dip_bent_knees: require('@/assets/images/exercises/bench_dip_bent_knees.webp'),
   bench_dip: require('@/assets/images/exercises/bench_dip.webp'),
   parallel_bar_dip: require('@/assets/images/exercises/parallel_bar_dip.webp'),
   straight_bar_dip: require('@/assets/images/exercises/straight_bar_dip.webp'),
 
   // pull_vertical
+  dead_hang: require('@/assets/images/exercises/dead_hang.webp'),
+  active_hang: require('@/assets/images/exercises/active_hang.webp'),
   negative_pull_up: require('@/assets/images/exercises/negative_pull_up.webp'),
+  chin_up: require('@/assets/images/exercises/chin_up.webp'),
   pull_up: require('@/assets/images/exercises/pull_up.webp'),
   archer_pull_up: require('@/assets/images/exercises/archer_pull_up.webp'),
 
@@ -38,6 +44,8 @@ export const CATALOG_EXERCISE_IMAGES: Record<string, ImageSource> = {
   archer_row: require('@/assets/images/exercises/archer_row.webp'),
 
   // squat_single
+  box_squat: require('@/assets/images/exercises/box_squat.webp'),
+  bodyweight_squat: require('@/assets/images/exercises/bodyweight_squat.webp'),
   split_squat: require('@/assets/images/exercises/split_squat.webp'),
   bulgarian_split_squat: require('@/assets/images/exercises/bulgarian_split_squat.webp'),
   pistol_squat_box: require('@/assets/images/exercises/pistol_squat_box.webp'),
@@ -49,6 +57,7 @@ export const CATALOG_EXERCISE_IMAGES: Record<string, ImageSource> = {
   single_leg_hip_thrust: require('@/assets/images/exercises/single_leg_hip_thrust.webp'),
 
   // side_plank
+  side_plank_knees: require('@/assets/images/exercises/side_plank_knees.webp'),
   side_plank: require('@/assets/images/exercises/side_plank.webp'),
   side_plank_leg_raise: require('@/assets/images/exercises/side_plank_leg_raise.webp'),
 
@@ -62,13 +71,13 @@ export const CATALOG_EXERCISE_IMAGES: Record<string, ImageSource> = {
   full_l_sit: require('@/assets/images/exercises/full_l_sit.webp'),
 
   // hanging
+  lying_leg_raise: require('@/assets/images/exercises/lying_leg_raise.webp'),
   hanging_knee_raise: require('@/assets/images/exercises/hanging_knee_raise.webp'),
   hanging_leg_raise: require('@/assets/images/exercises/hanging_leg_raise.webp'),
   toes_to_bar: require('@/assets/images/exercises/toes_to_bar.webp'),
 
   // no ladder
   ytw_raise: require('@/assets/images/exercises/ytw_raise.webp'),
-  chin_up: require('@/assets/images/exercises/chin_up.webp'),
   backpack_row_single_arm: require('@/assets/images/exercises/backpack_row_single_arm.webp'),
   backpack_curl: require('@/assets/images/exercises/backpack_curl.webp'),
 };
