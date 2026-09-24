@@ -24,7 +24,9 @@ import {
   buildExerciseSticker,
   buildLevelSticker,
   buildSessionSticker,
+  exerciseMilestone,
   formatSetsCompact,
+  type ExerciseMilestone,
   type ExerciseStickerData,
   type LevelStickerData,
   type SessionStickerData,
@@ -366,16 +368,24 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     return hints;
   }, [session.items, exerciseQueries, historyUnitQueries, allEvents, t]);
 
+  // First executions get "Zum ersten Mal", not a best: there is nothing to beat.
+  const milestones = useMemo(
+    (): ExerciseMilestone[] =>
+      session.items.map((item, index) =>
+        exerciseMilestone({
+          sessionBest: bestSessionValue(doneSetValues(item)),
+          priorBest: bestPriorValue(historyQueries[index]?.data ?? [], item.kind),
+          historyLoaded: historyQueries[index]?.isSuccess === true,
+        }),
+      ),
+    [historyQueries, session.items],
+  );
+
   const prs = useMemo(() => {
     const rows: { index: number; name: string; value: string }[] = [];
     session.items.forEach((item, index) => {
-      const values = doneSetValues(item);
-      const sessionBest = bestSessionValue(values);
-      if (sessionBest == null) {
-        return;
-      }
-      const prior = bestPriorValue(historyQueries[index]?.data ?? [], item.kind);
-      if (prior != null && sessionBest <= prior) {
+      const sessionBest = bestSessionValue(doneSetValues(item));
+      if (sessionBest == null || milestones[index] !== 'newBest') {
         return;
       }
       rows.push({
@@ -385,7 +395,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       });
     });
     return rows;
-  }, [historyQueries, session.items, i18n.language]);
+  }, [milestones, session.items, i18n.language]);
 
   const exerciseRows = session.items
     .map((item, index) => ({
@@ -406,9 +416,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       perSide: item.perSide,
       values: doneSetValues(item),
       ladder: exercise?.ladderKey != null ? (laddersByKey.get(exercise.ladderKey) ?? []) : [],
-      // Only once the history has loaded — before that every set looks like a best.
-      isNewBest:
-        historyQueries[index]?.isSuccess === true && prs.some((pr) => pr.index === index),
+      milestone: milestones[index] ?? null,
     });
   }
 
@@ -949,9 +957,16 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           <Text style={styles.blockTitle}>{t('share.exercisesTitle')}</Text>
           {exerciseRows.map(({ item, index, sets }) => (
             <View key={`${item.exerciseId}-${index}`} style={styles.exerciseRow}>
-              <Text style={styles.exerciseName} numberOfLines={1}>
-                {labelOf(item)}
-              </Text>
+              <View style={styles.exerciseNameCol}>
+                <Text style={styles.exerciseName} numberOfLines={1}>
+                  {labelOf(item)}
+                </Text>
+                {milestones[index] ? (
+                  <Text style={styles.exerciseMilestone}>
+                    {milestones[index] === 'newBest' ? t('share.newBest') : t('share.firstTime')}
+                  </Text>
+                ) : null}
+              </View>
               <Text style={styles.exerciseSets}>{sets}</Text>
               <Pressable
                 testID={`training.summary.shareExercise.${index}`}
@@ -1248,10 +1263,19 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 4,
   },
-  exerciseName: {
+  exerciseNameCol: {
     flex: 1,
+    minWidth: 0,
+  },
+  exerciseName: {
     fontSize: 14,
     color: '#1E1B4B',
+  },
+  exerciseMilestone: {
+    marginTop: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: BRAND_INDIGO,
   },
   exerciseSets: {
     fontSize: 14,
