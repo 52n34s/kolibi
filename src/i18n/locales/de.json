@@ -1751,6 +1751,7 @@
       "showProtein": "Protein-Ziel"
     },
     "newBest": "Neuer Bestwert",
+    "firstTime": "Zum ersten Mal",
     "newLevel": "Neue Stufe",
     "level": "Stufe {{n}} von {{total}}",
     "previousLevel": "vorher: {{name}}",
