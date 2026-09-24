@@ -1785,6 +1785,17 @@
       "text": "Exportar como texto",
       "cancel": "Cancelar"
     },
-    "perSide": "por lado"
+    "perSide": "por lado",
+    "progress": {
+      "title": "Mi progreso",
+      "weeksAgo_one": "Hace {{count}} semana",
+      "weeksAgo_other": "Hace {{count}} semanas",
+      "sinceStart": "Desde el inicio",
+      "today": "Hoy",
+      "periodWeeks_one": "{{count}} semana",
+      "periodWeeks_other": "{{count}} semanas",
+      "notEnough": "Para un sticker de progreso hacen falta al menos dos sesiones de este ejercicio.",
+      "share": "Compartir progreso de {{name}}"
+    }
   }
 }
