@@ -701,6 +701,9 @@
       "createFirstWorkout": "Crea tu primera sesión",
       "emptyFirstWorkout": "Crea tu primera sesión. Kolibi suma tu entrenamiento directamente a tus calorías y macros.",
       "emptyTemplates": "Aún no hay plantillas de entrenamiento",
+      "emptyArchivedTitle": "Tu plan está archivado",
+      "emptyArchivedBody": "Puedes restaurarlo en el editor del plan, en «Archivado».",
+      "emptyArchivedOpenPlan": "Ir al plan",
       "exerciseProgress": "Ejercicio {{current}}/{{total}} · Serie {{set}}/{{sets}}",
       "overview": "Resumen",
       "overviewTitle": "Ejercicios",
@@ -849,7 +852,12 @@
       "emptyTitle": "Aún no hay plan",
       "emptyBody": "Crea unidades — p. ej. Push, Pull, Legs — y empieza desde la pestaña Entrenamiento.",
       "loadFailed": "No se pudo cargar el plan.",
-      "reorderFailed": "No se pudo guardar el orden."
+      "reorderFailed": "No se pudo guardar el orden.",
+      "archivedTitle": "Archivado",
+      "archivedMeta_one": "{{count}} ejercicio",
+      "archivedMeta_other": "{{count}} ejercicios",
+      "restore": "Restaurar",
+      "restoreFailed": "No se pudo restaurar."
     },
     "templateEdit": {
       "createTitle": "Nueva unidad",
@@ -873,10 +881,10 @@
       "addExercises": "Añadir ejercicios",
       "save": "Guardar",
       "saveFailed": "No se pudo guardar.",
-      "delete": "Eliminar unidad",
-      "deleteTitle": "¿Eliminar unidad?",
-      "deleteMessage": "La unidad se archivará y desaparecerá del plan.",
-      "deleteFailed": "No se pudo eliminar.",
+      "archive": "Archivar unidad",
+      "archiveTitle": "¿Archivar unidad?",
+      "archiveMessage": "La unidad sale del plan. Tu historial de entrenamientos se conserva, y puedes restaurarla en cualquier momento.",
+      "archiveFailed": "No se pudo archivar.",
       "exercisesRequired": "Añade al menos un ejercicio.",
       "activeSessionHint": "Los cambios valen a partir de la próxima sesión.",
       "goalHint": "Objetivo de entrenamiento: {{count}}×/semana."

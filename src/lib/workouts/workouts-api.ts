@@ -420,67 +420,92 @@ export async function fetchTemplates(): Promise<WorkoutTemplate[]> {
       throw error;
     }
 
-    const templateRows = (templates ?? []) as TemplateRow[];
-    if (templateRows.length === 0) {
-      return [];
-    }
-
-    const templateIds = templateRows.map((row) => row.id);
-    const { data: teRows, error: teError } = await supabase
-      .from('template_exercises')
-      .select(
-        `id, template_id, exercise_id, position, target_sets, target_reps, target_reps_max,
-         target_seconds, target_seconds_max, target_weight_kg, rest_seconds,
-         exercises (${EXERCISE_SELECT})`,
-      )
-      .in('template_id', templateIds)
-      .order('position', { ascending: true });
-
-    if (teError) {
-      throw teError;
-    }
-
-    const byTemplate = new Map<string, TemplateExercise[]>();
-    for (const raw of (teRows ?? []) as TemplateExerciseRow[]) {
-      const exerciseRow = nestExercise(raw.exercises);
-      if (!exerciseRow) {
-        continue;
-      }
-      const exercise = mapExercise(exerciseRow);
-      const item: TemplateExercise = {
-        id: raw.id,
-        exerciseId: raw.exercise_id,
-        exercise,
-        position: raw.position,
-        targetSets: raw.target_sets,
-        targetReps: raw.target_reps,
-        targetRepsMax: raw.target_reps_max,
-        targetSeconds: raw.target_seconds,
-        targetSecondsMax: raw.target_seconds_max,
-        targetWeightKg:
-          raw.target_weight_kg == null ? null : Number(raw.target_weight_kg),
-        restSeconds: raw.rest_seconds,
-      };
-      const list = byTemplate.get(raw.template_id) ?? [];
-      list.push(item);
-      byTemplate.set(raw.template_id, list);
-    }
-
-    return templateRows.map((row) => {
-      const colorKey: UnitColorKey = isUnitColorKey(row.color_key) ? row.color_key : 'indigo';
-      return {
-        id: row.id,
-        name: row.name,
-        shortLabel: row.short_label,
-        colorKey,
-        weekdays: row.weekdays ?? [],
-        position: row.position,
-        exercises: byTemplate.get(row.id) ?? [],
-      };
-    });
+    return mapTemplatesWithExercises((templates ?? []) as TemplateRow[]);
   } catch (error) {
     captureAndThrow(error);
   }
+}
+
+/** Soft-archived units, newest archive first. */
+export async function fetchArchivedTemplates(): Promise<WorkoutTemplate[]> {
+  try {
+    const userId = await requireUserId();
+    const { data: templates, error } = await supabase
+      .from('workout_templates')
+      .select('id, name, short_label, color_key, weekdays, position, archived_at')
+      .eq('user_id', userId)
+      .not('archived_at', 'is', null)
+      .order('archived_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return mapTemplatesWithExercises((templates ?? []) as TemplateRow[]);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+async function mapTemplatesWithExercises(templateRows: TemplateRow[]): Promise<WorkoutTemplate[]> {
+  if (templateRows.length === 0) {
+    return [];
+  }
+
+  const templateIds = templateRows.map((row) => row.id);
+  const { data: teRows, error: teError } = await supabase
+    .from('template_exercises')
+    .select(
+      `id, template_id, exercise_id, position, target_sets, target_reps, target_reps_max,
+       target_seconds, target_seconds_max, target_weight_kg, rest_seconds,
+       exercises (${EXERCISE_SELECT})`,
+    )
+    .in('template_id', templateIds)
+    .order('position', { ascending: true });
+
+  if (teError) {
+    throw teError;
+  }
+
+  const byTemplate = new Map<string, TemplateExercise[]>();
+  for (const raw of (teRows ?? []) as TemplateExerciseRow[]) {
+    const exerciseRow = nestExercise(raw.exercises);
+    if (!exerciseRow) {
+      continue;
+    }
+    const exercise = mapExercise(exerciseRow);
+    const item: TemplateExercise = {
+      id: raw.id,
+      exerciseId: raw.exercise_id,
+      exercise,
+      position: raw.position,
+      targetSets: raw.target_sets,
+      targetReps: raw.target_reps,
+      targetRepsMax: raw.target_reps_max,
+      targetSeconds: raw.target_seconds,
+      targetSecondsMax: raw.target_seconds_max,
+      targetWeightKg:
+        raw.target_weight_kg == null ? null : Number(raw.target_weight_kg),
+      restSeconds: raw.rest_seconds,
+    };
+    const list = byTemplate.get(raw.template_id) ?? [];
+    list.push(item);
+    byTemplate.set(raw.template_id, list);
+  }
+
+  return templateRows.map((row) => {
+    const colorKey: UnitColorKey = isUnitColorKey(row.color_key) ? row.color_key : 'indigo';
+    return {
+      id: row.id,
+      name: row.name,
+      shortLabel: row.short_label,
+      colorKey,
+      weekdays: row.weekdays ?? [],
+      position: row.position,
+      archivedAt: row.archived_at,
+      exercises: byTemplate.get(row.id) ?? [],
+    };
+  });
 }
 
 export type SaveTemplateExerciseInput = {
@@ -546,6 +571,47 @@ export async function archiveTemplate(templateId: string): Promise<void> {
     const { error } = await supabase
       .from('workout_templates')
       .update({ archived_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', templateId)
+      .eq('user_id', userId);
+
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+/**
+ * Soft-restore: clear archived_at and append at the end of the active list.
+ * Does not change training_sessions_per_week.
+ */
+export async function restoreTemplate(templateId: string): Promise<void> {
+  try {
+    const userId = await requireUserId();
+    const { data: activeRows, error: activeError } = await supabase
+      .from('workout_templates')
+      .select('position')
+      .eq('user_id', userId)
+      .is('archived_at', null)
+      .order('position', { ascending: false })
+      .limit(1);
+
+    if (activeError) {
+      throw activeError;
+    }
+
+    const maxPosition =
+      activeRows != null && activeRows.length > 0 ? Number(activeRows[0]!.position) : -1;
+    const nextPosition = Number.isFinite(maxPosition) ? maxPosition + 1 : 0;
+
+    const { error } = await supabase
+      .from('workout_templates')
+      .update({
+        archived_at: null,
+        position: nextPosition,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', templateId)
       .eq('user_id', userId);
 

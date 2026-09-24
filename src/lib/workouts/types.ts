@@ -96,6 +96,8 @@ export type WorkoutTemplate = {
   /** ISO weekdays: 1 = Monday … 7 = Sunday. */
   weekdays: number[];
   position: number;
+  /** Soft-archive timestamp; `fetchTemplates` only returns rows with null. */
+  archivedAt: string | null;
   exercises: TemplateExercise[];
 };
 

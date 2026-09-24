@@ -406,25 +406,25 @@ export default function WorkoutTemplateEditScreen() {
     }
   }
 
-  function handleDelete() {
+  function handleArchive() {
     if (!paramId) {
       return;
     }
     Alert.alert(
-      t('training.templateEdit.deleteTitle'),
-      t('training.templateEdit.deleteMessage'),
+      t('training.templateEdit.archiveTitle'),
+      t('training.templateEdit.archiveMessage'),
       [
         { text: t('settings.common.cancel'), style: 'cancel' },
         {
-          text: t('training.templateEdit.delete'),
+          text: t('training.templateEdit.archive'),
           style: 'destructive',
-          onPress: () => void doDelete(),
+          onPress: () => void doArchive(),
         },
       ],
     );
   }
 
-  async function doDelete() {
+  async function doArchive() {
     if (!paramId) {
       return;
     }
@@ -437,7 +437,7 @@ export default function WorkoutTemplateEditScreen() {
       router.replace(PLAN_HREF);
     } catch (error) {
       Sentry.captureException(error);
-      Alert.alert(t('settings.errors.title'), t('training.templateEdit.deleteFailed'));
+      Alert.alert(t('settings.errors.title'), t('training.templateEdit.archiveFailed'));
     } finally {
       setSaving(false);
     }
@@ -765,11 +765,11 @@ export default function WorkoutTemplateEditScreen() {
             </Pressable>
             {paramId ? (
               <Pressable
-                testID="training.templateEdit.delete"
+                testID="training.templateEdit.archive"
                 accessibilityRole="button"
                 disabled={saving}
-                onPress={handleDelete}>
-                <Text style={styles.deleteText}>{t('training.templateEdit.delete')}</Text>
+                onPress={handleArchive}>
+                <Text style={styles.deleteText}>{t('training.templateEdit.archive')}</Text>
               </Pressable>
             ) : null}
           </View>

@@ -17,6 +17,7 @@ import {
 } from '@/components/training/training-panel-utils';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, TEXT_SECONDARY, TRAINING_UNIT_COLORS } from '@/constants/brand';
+import { useArchivedWorkoutTemplates } from '@/hooks/use-archived-workout-templates';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
@@ -50,17 +51,23 @@ function openNewWorkout() {
   router.push('/koli/workout-template-edit' as Href);
 }
 
+function openPlanEditor() {
+  router.push('/koli/workout-plan' as Href);
+}
+
 export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps) {
   const { t } = useTranslation();
   const todayKey = localDateKey();
   const startKey = shiftLocalDateKey(todayKey, -90);
   const templatesQuery = useWorkoutTemplates();
+  const archivedQuery = useArchivedWorkoutTemplates();
   const sessionsQuery = useWorkoutSessionsRange({ startKey, endKey: todayKey });
   const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
   const showEditPlan = Boolean(resolveTrainingTabEnabled(trainingTabFlag) && onEditPlan);
   const [showProgressionOverlay, setShowProgressionOverlay] = useState(false);
 
   const templates = templatesQuery.data ?? [];
+  const archived = archivedQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
 
   const next = useMemo(
@@ -102,6 +109,29 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
   }
 
   if (templates.length === 0) {
+    if (archived.length > 0) {
+      return (
+        <ScrollView
+          contentContainerStyle={styles.empty}
+          showsVerticalScrollIndicator={false}>
+          <GlassCard style={styles.archivedHintCard}>
+            <Text style={styles.archivedHintTitle}>{t('training.panel.emptyArchivedTitle')}</Text>
+            <Text style={styles.archivedHintBody}>{t('training.panel.emptyArchivedBody')}</Text>
+            <Pressable
+              testID="training.idle.openArchivedPlan"
+              accessibilityRole="button"
+              onPress={onEditPlan ?? openPlanEditor}
+              style={styles.archivedHintBtn}>
+              <Text style={styles.archivedHintBtnText}>
+                {t('training.panel.emptyArchivedOpenPlan')}
+              </Text>
+            </Pressable>
+          </GlassCard>
+          <RestTimerCard />
+        </ScrollView>
+      );
+    }
+
     return (
       <ScrollView
         contentContainerStyle={styles.empty}
@@ -251,6 +281,33 @@ const styles = StyleSheet.create({
   empty: {
     gap: 16,
     paddingVertical: 24,
+  },
+  archivedHintCard: {
+    padding: 20,
+    gap: 10,
+  },
+  archivedHintTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E1B4B',
+  },
+  archivedHintBody: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: TEXT_SECONDARY,
+  },
+  archivedHintBtn: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: BRAND_INDIGO,
+  },
+  archivedHintBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
   },
   nextCard: {
     padding: 20,

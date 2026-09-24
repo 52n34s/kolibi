@@ -24,6 +24,9 @@ export async function invalidateTrainingQueries(
     queryClient.invalidateQueries({ queryKey: workoutQueryKeys.exercises(userId) }),
     queryClient.invalidateQueries({ queryKey: workoutQueryKeys.templates(userId) }),
     queryClient.invalidateQueries({
+      queryKey: workoutQueryKeys.archivedTemplates(userId),
+    }),
+    queryClient.invalidateQueries({
       queryKey: ['workout-sessions-range', userId],
     }),
     queryClient.invalidateQueries({

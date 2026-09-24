@@ -701,6 +701,9 @@
       "createFirstWorkout": "Erste Einheit anlegen",
       "emptyFirstWorkout": "Leg deine erste Einheit an. Kolibi rechnet dein Training direkt in Kalorien und Makros ein.",
       "emptyTemplates": "Noch keine Trainingsvorlagen",
+      "emptyArchivedTitle": "Dein Plan ist archiviert",
+      "emptyArchivedBody": "Wiederherstellen findest du im Plan-Editor unter „Archiviert“.",
+      "emptyArchivedOpenPlan": "Zum Plan",
       "exerciseProgress": "Übung {{current}}/{{total}} · Satz {{set}}/{{sets}}",
       "overview": "Übersicht",
       "overviewTitle": "Übungen",
@@ -849,7 +852,12 @@
       "emptyTitle": "Noch kein Plan",
       "emptyBody": "Lege Einheiten an – z. B. Push, Pull, Legs – und starte sie vom Home-Tab Training.",
       "loadFailed": "Plan konnte nicht geladen werden.",
-      "reorderFailed": "Reihenfolge speichern fehlgeschlagen."
+      "reorderFailed": "Reihenfolge speichern fehlgeschlagen.",
+      "archivedTitle": "Archiviert",
+      "archivedMeta_one": "{{count}} Übung",
+      "archivedMeta_other": "{{count}} Übungen",
+      "restore": "Wiederherstellen",
+      "restoreFailed": "Wiederherstellen fehlgeschlagen."
     },
     "templateEdit": {
       "createTitle": "Neue Einheit",
@@ -873,10 +881,10 @@
       "addExercises": "Übungen hinzufügen",
       "save": "Speichern",
       "saveFailed": "Speichern fehlgeschlagen.",
-      "delete": "Einheit löschen",
-      "deleteTitle": "Einheit löschen?",
-      "deleteMessage": "Die Einheit wird archiviert und erscheint nicht mehr im Plan.",
-      "deleteFailed": "Löschen fehlgeschlagen.",
+      "archive": "Einheit archivieren",
+      "archiveTitle": "Einheit archivieren?",
+      "archiveMessage": "Die Einheit verschwindet aus dem Plan. Deine Trainingsgeschichte bleibt erhalten, und du kannst die Einheit jederzeit wiederherstellen.",
+      "archiveFailed": "Archivieren fehlgeschlagen.",
       "exercisesRequired": "Bitte mindestens eine Übung hinzufügen.",
       "activeSessionHint": "Änderungen gelten erst für die nächste Session.",
       "goalHint": "Trainingsziel auf {{count}}×/Woche gesetzt."

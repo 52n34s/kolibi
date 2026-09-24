@@ -275,11 +275,11 @@ appId: com.steffen.kolibi
     id: "training.plan.item.L"
 - extendedWaitUntil:
     visible:
-      id: "training.templateEdit.delete"
+      id: "training.templateEdit.archive"
     timeout: 15000
 - tapOn:
-    id: "training.templateEdit.delete"
-- tapOn: "Löschen"
+    id: "training.templateEdit.archive"
+- tapOn: "Einheit archivieren"
 - extendedWaitUntil:
     visible:
       id: "training.plan.catalog"

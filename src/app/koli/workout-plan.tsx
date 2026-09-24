@@ -23,11 +23,12 @@ import {
   TEXT_SECONDARY,
   TRAINING_UNIT_COLORS,
 } from '@/constants/brand';
+import { useArchivedWorkoutTemplates } from '@/hooks/use-archived-workout-templates';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import { clampRestSeconds, DEFAULT_REST_SECONDS } from '@/lib/training/rest-timer';
 import type { WorkoutTemplate } from '@/lib/workouts/types';
-import { reorderTemplates } from '@/lib/workouts/workouts-api';
+import { reorderTemplates, restoreTemplate } from '@/lib/workouts/workouts-api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRestTimerStore } from '@/stores/rest-timer-store';
 
@@ -51,7 +52,10 @@ export default function WorkoutPlanScreen() {
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.session?.user?.id);
   const { data: templates = [], isLoading, isError, refetch } = useWorkoutTemplates();
+  const archivedQuery = useArchivedWorkoutTemplates();
+  const archived = archivedQuery.data ?? [];
   const [reordering, setReordering] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const idleDurationSec = useRestTimerStore((s) => s.idleDurationSec);
   const setIdleDurationSec = useRestTimerStore((s) => s.setIdleDurationSec);
@@ -86,6 +90,24 @@ export default function WorkoutPlanScreen() {
     }
   }
 
+  async function handleRestore(templateId: string) {
+    if (restoringId) {
+      return;
+    }
+    setRestoringId(templateId);
+    try {
+      await restoreTemplate(templateId);
+      if (userId) {
+        await invalidateTrainingQueries(queryClient, userId);
+      }
+    } catch (error) {
+      Sentry.captureException(error);
+      Alert.alert(t('settings.errors.title'), t('training.plan.restoreFailed'));
+    } finally {
+      setRestoringId(null);
+    }
+  }
+
   function adjustRest(delta: number) {
     setIdleDurationSec(restSec + delta);
   }
@@ -95,6 +117,9 @@ export default function WorkoutPlanScreen() {
     const days = formatWeekdays(template.weekdays, t);
     return t('training.plan.unitMeta', { count, days });
   }
+
+  const showStarterPicker = ordered.length === 0 && archived.length === 0;
+  const loading = isLoading || (archivedQuery.isLoading && !archivedQuery.isFetched);
 
   return (
     <HomeLayout>
@@ -117,73 +142,126 @@ export default function WorkoutPlanScreen() {
           <Text className="text-center text-base text-gray-600">
             {t('training.plan.loadFailed')}
           </Text>
-        ) : isLoading ? (
+        ) : loading ? (
           <ActivityIndicator size="large" color={BRAND_INDIGO} />
-        ) : ordered.length === 0 ? (
-          <View style={styles.empty}>
-            <StarterPlanPicker
-              onCustom={() => router.push('/koli/workout-template-edit' as Href)}
-            />
-          </View>
         ) : (
-          <View style={styles.list}>
-            {ordered.map((template, index) => (
-              <GlassCard
-                key={template.id}
-                testID={`training.plan.item.${template.shortLabel}`}
-                style={styles.card}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() =>
-                    router.push(
-                      `/koli/workout-template-edit?id=${encodeURIComponent(template.id)}` as Href,
-                    )
-                  }
-                  style={styles.cardMain}>
-                  <View style={styles.cardHeader}>
-                    <View
-                      style={[
-                        styles.dot,
-                        {
-                          backgroundColor:
-                            TRAINING_UNIT_COLORS[template.colorKey] ?? BRAND_INDIGO,
-                        },
-                      ]}
-                    />
-                    <Text style={styles.short}>{template.shortLabel}</Text>
-                  </View>
-                  <Text style={styles.name}>{template.name}</Text>
-                  <Text style={styles.meta}>{metaLine(template)}</Text>
-                </Pressable>
-                <View style={styles.arrows}>
-                  <Pressable
-                    testID={`training.plan.item.${template.shortLabel}.up`}
-                    accessibilityRole="button"
-                    disabled={index === 0 || reordering}
-                    onPress={() => void move(index, -1)}
-                    style={styles.arrowBtn}>
-                    <Ionicons
-                      name="chevron-up"
-                      size={20}
-                      color={index === 0 ? '#D1D5DB' : BRAND_INDIGO}
-                    />
-                  </Pressable>
-                  <Pressable
-                    testID={`training.plan.item.${template.shortLabel}.down`}
-                    accessibilityRole="button"
-                    disabled={index >= ordered.length - 1 || reordering}
-                    onPress={() => void move(index, 1)}
-                    style={styles.arrowBtn}>
-                    <Ionicons
-                      name="chevron-down"
-                      size={20}
-                      color={index >= ordered.length - 1 ? '#D1D5DB' : BRAND_INDIGO}
-                    />
-                  </Pressable>
+          <>
+            {showStarterPicker ? (
+              <View style={styles.empty}>
+                <StarterPlanPicker
+                  onCustom={() => router.push('/koli/workout-template-edit' as Href)}
+                />
+              </View>
+            ) : ordered.length === 0 ? (
+              <Text style={styles.archivedEmptyHint}>{t('training.plan.emptyBody')}</Text>
+            ) : (
+              <View style={styles.list}>
+                {ordered.map((template, index) => (
+                  <GlassCard
+                    key={template.id}
+                    testID={`training.plan.item.${template.shortLabel}`}
+                    style={styles.card}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() =>
+                        router.push(
+                          `/koli/workout-template-edit?id=${encodeURIComponent(template.id)}` as Href,
+                        )
+                      }
+                      style={styles.cardMain}>
+                      <View style={styles.cardHeader}>
+                        <View
+                          style={[
+                            styles.dot,
+                            {
+                              backgroundColor:
+                                TRAINING_UNIT_COLORS[template.colorKey] ?? BRAND_INDIGO,
+                            },
+                          ]}
+                        />
+                        <Text style={styles.short}>{template.shortLabel}</Text>
+                      </View>
+                      <Text style={styles.name}>{template.name}</Text>
+                      <Text style={styles.meta}>{metaLine(template)}</Text>
+                    </Pressable>
+                    <View style={styles.arrows}>
+                      <Pressable
+                        testID={`training.plan.item.${template.shortLabel}.up`}
+                        accessibilityRole="button"
+                        disabled={index === 0 || reordering}
+                        onPress={() => void move(index, -1)}
+                        style={styles.arrowBtn}>
+                        <Ionicons
+                          name="chevron-up"
+                          size={20}
+                          color={index === 0 ? '#D1D5DB' : BRAND_INDIGO}
+                        />
+                      </Pressable>
+                      <Pressable
+                        testID={`training.plan.item.${template.shortLabel}.down`}
+                        accessibilityRole="button"
+                        disabled={index >= ordered.length - 1 || reordering}
+                        onPress={() => void move(index, 1)}
+                        style={styles.arrowBtn}>
+                        <Ionicons
+                          name="chevron-down"
+                          size={20}
+                          color={index >= ordered.length - 1 ? '#D1D5DB' : BRAND_INDIGO}
+                        />
+                      </Pressable>
+                    </View>
+                  </GlassCard>
+                ))}
+              </View>
+            )}
+
+            {archived.length > 0 ? (
+              <View style={styles.archivedBlock}>
+                <Text style={styles.archivedTitle}>{t('training.plan.archivedTitle')}</Text>
+                <View style={styles.list}>
+                  {archived.map((template) => (
+                    <GlassCard
+                      key={template.id}
+                      testID={`training.plan.archived.${template.shortLabel}`}
+                      style={styles.archivedCard}>
+                      <View style={styles.cardMain}>
+                        <View style={styles.cardHeader}>
+                          <View
+                            style={[
+                              styles.dot,
+                              {
+                                backgroundColor:
+                                  TRAINING_UNIT_COLORS[template.colorKey] ?? BRAND_INDIGO,
+                              },
+                            ]}
+                          />
+                          <Text style={styles.short}>{template.shortLabel}</Text>
+                        </View>
+                        <Text style={styles.name}>{template.name}</Text>
+                        <Text style={styles.meta}>
+                          {t('training.plan.archivedMeta', {
+                            count: template.exercises.length,
+                          })}
+                        </Text>
+                      </View>
+                      <Pressable
+                        testID={`training.plan.archived.${template.shortLabel}.restore`}
+                        accessibilityRole="button"
+                        disabled={restoringId != null}
+                        onPress={() => void handleRestore(template.id)}
+                        style={styles.restoreBtn}>
+                        {restoringId === template.id ? (
+                          <ActivityIndicator color={BRAND_INDIGO} />
+                        ) : (
+                          <Text style={styles.restoreText}>{t('training.plan.restore')}</Text>
+                        )}
+                      </Pressable>
+                    </GlassCard>
+                  ))}
                 </View>
-              </GlassCard>
-            ))}
-          </View>
+              </View>
+            ) : null}
+          </>
         )}
 
         <Pressable
@@ -233,15 +311,36 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
   },
+  archivedEmptyHint: {
+    marginBottom: 16,
+    fontSize: 15,
+    lineHeight: 22,
+    color: TEXT_SECONDARY,
+  },
   list: {
     gap: 12,
     marginBottom: 16,
+  },
+  archivedBlock: {
+    marginBottom: 8,
+  },
+  archivedTitle: {
+    marginBottom: 10,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E1B4B',
   },
   card: {
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  archivedCard: {
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   cardMain: {
     flex: 1,
@@ -276,6 +375,19 @@ const styles = StyleSheet.create({
   },
   arrowBtn: {
     padding: 6,
+  },
+  restoreBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minWidth: 108,
+    alignItems: 'center',
+    borderRadius: 999,
+    backgroundColor: 'rgba(79, 70, 229, 0.12)',
+  },
+  restoreText: {
+    color: BRAND_INDIGO,
+    fontWeight: '700',
+    fontSize: 14,
   },
   primary: {
     marginTop: 8,

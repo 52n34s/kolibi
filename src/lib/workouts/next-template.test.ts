@@ -12,6 +12,7 @@ function template(
     colorKey: partial.colorKey ?? 'indigo',
     weekdays: partial.weekdays ?? [],
     exercises: partial.exercises ?? [],
+    archivedAt: null,
     ...partial,
   };
 }

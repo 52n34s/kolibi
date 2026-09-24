@@ -701,6 +701,9 @@
       "createFirstWorkout": "Create your first workout",
       "emptyFirstWorkout": "Create your first workout. Kolibi counts your training straight into your calories and macros.",
       "emptyTemplates": "No workout templates yet",
+      "emptyArchivedTitle": "Your plan is archived",
+      "emptyArchivedBody": "Restore it in the plan editor under “Archived”.",
+      "emptyArchivedOpenPlan": "Open plan",
       "exerciseProgress": "Exercise {{current}}/{{total}} · Set {{set}}/{{sets}}",
       "overview": "Overview",
       "overviewTitle": "Exercises",
@@ -849,7 +852,12 @@
       "emptyTitle": "No plan yet",
       "emptyBody": "Create units — e.g. Push, Pull, Legs — and start them from the Training home tab.",
       "loadFailed": "Couldn’t load the plan.",
-      "reorderFailed": "Couldn’t save order."
+      "reorderFailed": "Couldn’t save order.",
+      "archivedTitle": "Archived",
+      "archivedMeta_one": "{{count}} exercise",
+      "archivedMeta_other": "{{count}} exercises",
+      "restore": "Restore",
+      "restoreFailed": "Couldn’t restore."
     },
     "templateEdit": {
       "createTitle": "New unit",
@@ -873,10 +881,10 @@
       "addExercises": "Add exercises",
       "save": "Save",
       "saveFailed": "Couldn’t save.",
-      "delete": "Delete unit",
-      "deleteTitle": "Delete unit?",
-      "deleteMessage": "The unit will be archived and removed from the plan.",
-      "deleteFailed": "Couldn’t delete.",
+      "archive": "Archive unit",
+      "archiveTitle": "Archive unit?",
+      "archiveMessage": "The unit leaves your plan. Your training history stays, and you can restore it anytime.",
+      "archiveFailed": "Couldn’t archive.",
       "exercisesRequired": "Add at least one exercise.",
       "activeSessionHint": "Changes apply to the next session only.",
       "goalHint": "Training goal set to {{count}}×/week."
