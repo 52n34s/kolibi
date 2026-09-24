@@ -1515,6 +1515,12 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
           (session) =>
             session.loggedOn >= historyRangeWindow.startKey && session.loggedOn <= todayKey,
         ),
+        card: {
+          rangeStartKey: historyRangeWindow.startKey,
+          todayKey,
+          manualSessions: trainingSessions,
+          workoutSessions,
+        },
         beforeBests,
         events: progressionEvents,
         proteinHitDays: summary?.proteinHitDays ?? 0,
