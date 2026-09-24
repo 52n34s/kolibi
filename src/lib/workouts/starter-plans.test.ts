@@ -8,24 +8,28 @@ import {
 } from './starter-plans.ts';
 
 /**
- * Catalog shape needed for starter-plan validation (from seed + progression
- * migrations). Keep in sync when ladders change.
+ * Catalog shape needed for starter-plan validation (seed + progression +
+ * beginner_ladder_steps). Keep in sync when ladders change.
+ *
+ * Starter plans still reference the former bottom rungs (e.g. negative_pull_up);
+ * which step a new user should start on is decided separately — do not require
+ * ladder_step === 1 here.
  */
 const CATALOG: Record<
   string,
   { ladderKey: string | null; ladderStep: number | null; kind: 'reps' | 'time' }
 > = {
-  incline_push_up: { ladderKey: 'push_horizontal', ladderStep: 1, kind: 'reps' },
+  incline_push_up: { ladderKey: 'push_horizontal', ladderStep: 2, kind: 'reps' },
   inverted_row_bent_knees: { ladderKey: 'row', ladderStep: 1, kind: 'reps' },
-  split_squat: { ladderKey: 'squat_single', ladderStep: 1, kind: 'reps' },
+  split_squat: { ladderKey: 'squat_single', ladderStep: 3, kind: 'reps' },
   glute_bridge: { ladderKey: 'bridge', ladderStep: 1, kind: 'reps' },
-  side_plank: { ladderKey: 'side_plank', ladderStep: 1, kind: 'time' },
-  pike_push_up: { ladderKey: 'push_vertical', ladderStep: 1, kind: 'reps' },
-  bench_dip: { ladderKey: 'dip', ladderStep: 1, kind: 'reps' },
+  side_plank: { ladderKey: 'side_plank', ladderStep: 2, kind: 'time' },
+  pike_push_up: { ladderKey: 'push_vertical', ladderStep: 2, kind: 'reps' },
+  bench_dip: { ladderKey: 'dip', ladderStep: 2, kind: 'reps' },
   tuck_hollow_hold: { ladderKey: 'hollow', ladderStep: 1, kind: 'time' },
-  negative_pull_up: { ladderKey: 'pull_vertical', ladderStep: 1, kind: 'reps' },
+  negative_pull_up: { ladderKey: 'pull_vertical', ladderStep: 3, kind: 'reps' },
   ytw_raise: { ladderKey: null, ladderStep: null, kind: 'reps' },
-  hanging_knee_raise: { ladderKey: 'hanging', ladderStep: 1, kind: 'reps' },
+  hanging_knee_raise: { ladderKey: 'hanging', ladderStep: 2, kind: 'reps' },
 };
 
 function assertPlanShape(plan: StarterPlan) {
@@ -51,10 +55,9 @@ function assertPlanShape(plan: StarterPlan) {
       const catalog = CATALOG[exercise.slug];
       assert.ok(catalog, `${plan.id}: unknown slug ${exercise.slug}`);
       if (catalog.ladderKey != null) {
-        assert.equal(
-          catalog.ladderStep,
-          1,
-          `${plan.id}/${exercise.slug}: expected ladder_step 1`,
+        assert.ok(
+          catalog.ladderStep != null && catalog.ladderStep >= 1,
+          `${plan.id}/${exercise.slug}: expected ladder_step >= 1`,
         );
       } else {
         assert.equal(catalog.ladderStep, null);
@@ -71,7 +74,7 @@ describe('STARTER_PLANS', () => {
     assert.equal(new Set(ids).size, 3);
   });
 
-  it('references only known bottom-rung catalog slugs with valid ranges', () => {
+  it('references only known catalog slugs with valid ranges', () => {
     for (const plan of STARTER_PLANS) {
       assertPlanShape(plan);
     }
