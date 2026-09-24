@@ -66,7 +66,8 @@ export function RecapSticker({ data, variant, options, format = 'sticker' }: Rec
             </StickerText>
             <StickerText
               style={[s.sub, { color: palette.text }, palette.shadow]}
-              numberOfLines={1}>
+              numberOfLines={1}
+              adjustsFontSizeToFit>
               {formatGain(data.biggestGain)}
             </StickerText>
           </StickerStack>
