@@ -41,12 +41,13 @@ export async function captureSticker(
     throw new Error('Sticker view has no size yet');
   }
   const ratio = PixelRatio.get();
-  const targetWidth = width / ratio;
+  // Round in pixels, so a 640 pt story card comes out at exactly 1920 px.
+  const heightPx = Math.round((layout.height * width) / layout.width);
   return captureRef(ref, {
     format: 'png',
     result: 'tmpfile',
-    width: targetWidth,
-    height: (layout.height * targetWidth) / layout.width,
+    width: width / ratio,
+    height: heightPx / ratio,
   });
 }
 
