@@ -4,8 +4,6 @@
     "NSPhotoLibraryUsageDescription": "Permite que Kolibi acceda a tus fotos para establecer una foto de perfil.",
     "NSPhotoLibraryAddUsageDescription": "Kolibi guarda tus stickers en tu fototeca.",
     "NSHealthShareUsageDescription": "Kolibi lee de Apple Health la energía activa, la frecuencia cardíaca, los pasos, la distancia caminando/corriendo, el perímetro de cintura, el porcentaje de grasa corporal, la masa corporal magra y los entrenamientos, para que tus objetivos diarios y de movimiento puedan tener en cuenta tu actividad.",
-    "NSHealthUpdateUsageDescription": "Kolibi guarda en Apple Health el perímetro de cintura que registras, para que se vea allí junto con tus demás datos de salud.",
-    "NSFaceIDUsageDescription": "Permite que Kolibi acceda a tus datos biométricos de Face ID.",
-    "NSMicrophoneUsageDescription": "Permite que Kolibi acceda a tu micrófono."
+    "NSHealthUpdateUsageDescription": "Kolibi guarda en Apple Health el perímetro de cintura que registras, para que se vea allí junto con tus demás datos de salud."
   }
 }
