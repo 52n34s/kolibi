@@ -1,10 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
   type StyleProp,
   type TextProps,
   type TextStyle,
@@ -13,7 +14,12 @@ import {
 
 import { StickerBrand } from '@/components/share/StickerBrand';
 import { BRAND_INDIGO, BRAND_INDIGO_DEEP, BRAND_MINT } from '@/constants/brand';
-import type { LadderPosition, StickerFormat, StickerVariant } from '@/lib/share/sticker-data';
+import {
+  nextStoryScale,
+  type LadderPosition,
+  type StickerFormat,
+  type StickerVariant,
+} from '@/lib/share/sticker-data';
 import { STICKER_LAYOUT_WIDTH, STORY_LAYOUT_HEIGHT } from '@/lib/share/sticker-export';
 
 export const ANTHRACITE = '#1F2328';
@@ -45,8 +51,12 @@ export const STICKER_PALETTES: Record<StickerVariant, StickerPalette> = {
   },
 };
 
-/** The story card shows the same content 1.5× larger (about two thirds of its height). */
+/** First guess for the story card; `StoryFrame` then fits the content to the card. */
 export const STORY_CONTENT_SCALE = 1.5;
+/** Re-measure passes before the fit stops (wrapping can make it oscillate). */
+const STORY_FIT_PASSES = 6;
+/** Changes below this are not worth another layout pass. */
+const STORY_FIT_TOLERANCE = 0.02;
 
 const StickerScaleContext = createContext(1);
 
@@ -109,20 +119,7 @@ export function StickerFrame({
 }) {
   const palette = STICKER_PALETTES[variant];
   if (format === 'story') {
-    return (
-      <LinearGradient
-        colors={STORY_BACKGROUNDS[variant]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.story}>
-        <StickerScaleContext.Provider value={STORY_CONTENT_SCALE}>
-          {children}
-        </StickerScaleContext.Provider>
-        <View style={styles.storyBrand}>
-          <StickerBrand color={palette.muted} textShadow={palette.shadow} />
-        </View>
-      </LinearGradient>
-    );
+    return <StoryFrame variant={variant}>{children}</StoryFrame>;
   }
   return (
     <View style={styles.sticker}>
@@ -131,6 +128,52 @@ export function StickerFrame({
         <StickerBrand color={palette.muted} textShadow={palette.shadow} />
       </View>
     </View>
+  );
+}
+
+/**
+ * 1080 × 1920 card on the brand background. The content is scaled until it
+ * fills about two thirds of the height, whatever the sticker type — between
+ * 1× and 2× the sticker size.
+ */
+function StoryFrame({ variant, children }: { variant: StickerVariant; children: ReactNode }) {
+  const palette = STICKER_PALETTES[variant];
+  const [scale, setScale] = useState<number>(STORY_CONTENT_SCALE);
+  const passes = useRef(0);
+
+  function onContentLayout(event: LayoutChangeEvent) {
+    const next = nextStoryScale({
+      scale,
+      contentHeight: event.nativeEvent.layout.height,
+      cardHeight: STORY_LAYOUT_HEIGHT,
+    });
+    if (Math.abs(next - scale) / scale <= STORY_FIT_TOLERANCE) {
+      passes.current = 0;
+      return;
+    }
+    if (passes.current >= STORY_FIT_PASSES) {
+      return;
+    }
+    passes.current += 1;
+    setScale(next);
+  }
+
+  return (
+    <LinearGradient
+      colors={STORY_BACKGROUNDS[variant]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.story}>
+      <View onLayout={onContentLayout}>
+        {/* Remount per scale: iOS shrink-to-fit text keeps a stale size otherwise. */}
+        <View key={scale}>
+          <StickerScaleContext.Provider value={scale}>{children}</StickerScaleContext.Provider>
+        </View>
+      </View>
+      <View style={styles.storyBrand}>
+        <StickerBrand color={palette.muted} textShadow={palette.shadow} />
+      </View>
+    </LinearGradient>
   );
 }
 
@@ -199,6 +242,11 @@ export function StickerLevelLine({
   );
 }
 
+/** Half the content width minus a little air: the room of one stat value. */
+const STAT_VALUE_WIDTH = (STICKER_LAYOUT_WIDTH - 48) / 2 - 8;
+/** Width of a heavy tabular digit in em (generous, so a value never clips). */
+const DIGIT_EM = 0.66;
+
 export function StickerStat({
   label,
   value,
@@ -208,9 +256,22 @@ export function StickerStat({
   value: string;
   palette: StickerPalette;
 }) {
+  const scale = useStickerScale();
+  // Shrink long values ourselves instead of adjustsFontSizeToFit, which kept
+  // stale sizes on iOS while the story card re-fits.
+  const base = styles.statValue.fontSize;
+  const fitted = Math.min(base * scale, STAT_VALUE_WIDTH / (Math.max(1, value.length) * DIGIT_EM));
+  const fontSize = fitted / scale;
   return (
     <View style={styles.stat}>
-      <StickerText style={[styles.statValue, { color: palette.text }, palette.shadow]}>
+      <StickerText
+        style={[
+          styles.statValue,
+          { fontSize, lineHeight: fontSize * (styles.statValue.lineHeight / base) },
+          { color: palette.text },
+          palette.shadow,
+        ]}
+        numberOfLines={1}>
         {value}
       </StickerText>
       <StickerText
