@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
 
 import {
   STICKER_PALETTES,
   StickerBadge,
   StickerFrame,
+  StickerStack,
   StickerLevelLine,
   StickerText,
   stickerStyles as s,
@@ -22,7 +22,7 @@ export function LevelSticker({ data, variant, options }: LevelStickerProps) {
   const palette = STICKER_PALETTES[variant];
   return (
     <StickerFrame variant={variant}>
-      <View style={s.stack}>
+      <StickerStack style={s.stack}>
         <StickerBadge label={t('share.newLevel')} />
         <StickerText style={[s.title, { color: palette.text }, palette.shadow]} numberOfLines={2}>
           {data.name}
@@ -35,7 +35,7 @@ export function LevelSticker({ data, variant, options }: LevelStickerProps) {
             {t('share.previousLevel', { name: data.previousName })}
           </StickerText>
         ) : null}
-      </View>
+      </StickerStack>
     </StickerFrame>
   );
 }
