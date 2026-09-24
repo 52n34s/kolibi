@@ -14,6 +14,7 @@ import {
   formatGain,
   formatSetsCompact,
   ladderPosition,
+  nextStoryScale,
   progressCurveLevels,
   progressExerciseIds,
   recapWindow,
@@ -625,5 +626,20 @@ describe('progressCurveLevels', () => {
     assert.ok(levels[2] > levels[1]);
     assert.ok(levels[3] > levels[2]);
     assert.ok(levels.every((level) => level >= 0 && level <= 1));
+  });
+});
+
+describe('nextStoryScale', () => {
+  it('scales the content toward two thirds of the card', () => {
+    // 640 pt card, target 448 pt: content of 224 pt at 1× doubles.
+    assert.equal(nextStoryScale({ scale: 1, contentHeight: 224, cardHeight: 640 }), 2);
+    assert.equal(nextStoryScale({ scale: 1.5, contentHeight: 448, cardHeight: 640 }), 1.5);
+    assert.equal(nextStoryScale({ scale: 1.5, contentHeight: 480, cardHeight: 640 }), 1.4);
+  });
+
+  it('stays between 1× and 2×', () => {
+    assert.equal(nextStoryScale({ scale: 1, contentHeight: 100, cardHeight: 640 }), 2);
+    assert.equal(nextStoryScale({ scale: 1, contentHeight: 600, cardHeight: 640 }), 1);
+    assert.equal(nextStoryScale({ scale: 1.2, contentHeight: 0, cardHeight: 640 }), 1.2);
   });
 });
