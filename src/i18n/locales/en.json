@@ -708,6 +708,7 @@
       "skip": "Skip",
       "addSet": "Add set",
       "removeSet": "Remove set",
+      "removeSetConfirm": "Remove?",
       "moreActions": "More actions",
       "addExercise": "Add exercise",
       "searchExercise": "Search exercise",

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -39,6 +39,7 @@ function syncIcon(status: 'synced' | 'pending' | 'offline') {
 export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   const { t, i18n } = useTranslation();
   const [overviewOpen, setOverviewOpen] = useState(false);
+  const [pendingDeleteSetId, setPendingDeleteSetId] = useState<string | null>(null);
 
   const adjustCurrent = useWorkoutSessionStore((s) => s.adjustCurrent);
   const setCurrent = useWorkoutSessionStore((s) => s.setCurrent);
@@ -47,6 +48,7 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   const editDoneSet = useWorkoutSessionStore((s) => s.editDoneSet);
   const addSet = useWorkoutSessionStore((s) => s.addSet);
   const removeLastSet = useWorkoutSessionStore((s) => s.removeLastSet);
+  const removeOpenTrailingSet = useWorkoutSessionStore((s) => s.removeOpenTrailingSet);
   const skipExercise = useWorkoutSessionStore((s) => s.skipExercise);
   const moveExercise = useWorkoutSessionStore((s) => s.moveExercise);
   const jumpTo = useWorkoutSessionStore((s) => s.jumpTo);
@@ -64,6 +66,10 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   const progress = countDoneSets(session);
   const progressRatio = progress.total > 0 ? progress.done / progress.total : 0;
   const isEditingDone = Boolean(currentSet?.done);
+
+  useEffect(() => {
+    setPendingDeleteSetId(null);
+  }, [exerciseIndex]);
 
   function handleAdjust(delta: number) {
     if (!item || !currentSet) {
@@ -212,6 +218,9 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
           <View style={styles.setList}>
             {item.sets.map((set, index) => {
               const isCurrent = index === setIndex;
+              const pendingDelete = pendingDeleteSetId === set.id;
+              const canRequestDelete =
+                !set.done && index === item.sets.length - 1 && item.sets.length > 1;
               const label =
                 item.perSide && item.kind === 'time' && set.secondsOtherSide != null
                   ? `${set.value} / ${set.secondsOtherSide} s`
@@ -228,24 +237,54 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
                   key={set.id}
                   testID={`training.set.${index}`}
                   accessibilityRole="button"
-                  onPress={() => jumpTo(exerciseIndex, index)}
+                  onPress={() => {
+                    if (pendingDelete) {
+                      removeOpenTrailingSet(exerciseIndex, index);
+                      setPendingDeleteSetId(null);
+                      return;
+                    }
+                    setPendingDeleteSetId(null);
+                    jumpTo(exerciseIndex, index);
+                  }}
+                  onLongPress={() => {
+                    if (!canRequestDelete) {
+                      return;
+                    }
+                    setPendingDeleteSetId(set.id);
+                  }}
+                  delayLongPress={400}
                   style={[
                     styles.setChip,
                     set.done && styles.setDone,
-                    isCurrent && styles.setCurrent,
-                    !set.done && !isCurrent && styles.setUpcoming,
+                    isCurrent && !pendingDelete && styles.setCurrent,
+                    !set.done && !isCurrent && !pendingDelete && styles.setUpcoming,
+                    pendingDelete && styles.setPendingDelete,
                   ]}>
                   <Text
                     style={[
                       styles.setChipText,
-                      !set.done && !isCurrent && styles.setUpcomingText,
-                      isCurrent && styles.setCurrentText,
+                      !set.done && !isCurrent && !pendingDelete && styles.setUpcomingText,
+                      isCurrent && !pendingDelete && styles.setCurrentText,
+                      pendingDelete && styles.setPendingDeleteText,
                     ]}>
-                    {index + 1}: {label}
+                    {pendingDelete
+                      ? t('training.panel.removeSetConfirm')
+                      : `${index + 1}: ${label}`}
                   </Text>
                 </Pressable>
               );
             })}
+            <Pressable
+              testID="training.set.add"
+              accessibilityRole="button"
+              accessibilityLabel={t('training.panel.addSet')}
+              onPress={() => {
+                setPendingDeleteSetId(null);
+                addSet(exerciseIndex);
+              }}
+              style={[styles.setChip, styles.setAddChip]}>
+              <Text style={[styles.setChipText, styles.setAddChipText]}>+</Text>
+            </Pressable>
           </View>
         </GlassCard>
 
@@ -427,5 +466,23 @@ const styles = StyleSheet.create({
   },
   setCurrentText: {
     color: BRAND_INDIGO,
+  },
+  setPendingDelete: {
+    backgroundColor: 'rgba(220, 38, 38, 0.14)',
+    borderWidth: 1,
+    borderColor: '#DC2626',
+    opacity: 1,
+  },
+  setPendingDeleteText: {
+    color: '#DC2626',
+  },
+  setAddChip: {
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  setAddChipText: {
+    color: BRAND_INDIGO,
+    fontSize: 18,
+    fontWeight: '700',
   },
 });

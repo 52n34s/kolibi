@@ -357,6 +357,53 @@ export function removeLastSet(
   return { session: { ...session, items, cursor, phase }, deletedSetId };
 }
 
+export type RemoveOpenTrailingSetResult = {
+  session: ActiveSession;
+  removed: boolean;
+};
+
+/**
+ * Chip-bar delete path: drop only an open trailing set when more than one set
+ * exists. Never touches a done set and never enqueues a server delete — unlike
+ * `removeLastSet` (overview), which can delete a completed last set.
+ */
+export function removeOpenTrailingSet(
+  session: ActiveSession,
+  exerciseIndex: number,
+  setIndex: number,
+): RemoveOpenTrailingSetResult {
+  const item = session.items[exerciseIndex];
+  if (!item || item.sets.length <= 1) {
+    return { session, removed: false };
+  }
+  const set = item.sets[setIndex];
+  if (!set || set.done || setIndex !== item.sets.length - 1) {
+    return { session, removed: false };
+  }
+
+  const items = session.items.map((ex, ei) => {
+    if (ei !== exerciseIndex) {
+      return ex;
+    }
+    return { ...ex, sets: ex.sets.slice(0, -1) };
+  });
+
+  let cursor = session.cursor;
+  if (cursor.exerciseIndex === exerciseIndex && cursor.setIndex >= items[exerciseIndex]!.sets.length) {
+    cursor = {
+      exerciseIndex,
+      setIndex: Math.max(0, items[exerciseIndex]!.sets.length - 1),
+    };
+  }
+
+  let phase = session.phase;
+  if (phase === 'summary' && items.some(hasOpenSets)) {
+    phase = 'active';
+  }
+
+  return { session: { ...session, items, cursor, phase }, removed: true };
+}
+
 /**
  * Mark an exercise as skipped and move on. It stays out of the rotation until
  * the user jumps back to it from the overview.

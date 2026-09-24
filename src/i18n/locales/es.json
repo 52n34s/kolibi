@@ -708,6 +708,7 @@
       "skip": "Saltar",
       "addSet": "Añadir serie",
       "removeSet": "Quitar serie",
+      "removeSetConfirm": "¿Borrar?",
       "moreActions": "Más acciones",
       "addExercise": "Añadir ejercicio",
       "searchExercise": "Buscar ejercicio",

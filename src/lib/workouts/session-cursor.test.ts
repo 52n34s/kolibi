@@ -14,6 +14,7 @@ import {
   moveExercise,
   openExerciseNames,
   removeLastSet,
+  removeOpenTrailingSet,
   setCurrent,
   setCurrentSides,
   skipExercise,
@@ -258,6 +259,49 @@ describe('cursor', () => {
     const removedDone = removeLastSet(d2.session, 0);
     assert.ok(removedDone.deletedSetId);
     assert.equal(removedDone.session.items[0]?.sets.length, 1);
+  });
+
+  it('addSet appends a chip set prefilled with the lower-bound target', () => {
+    let session = twoExerciseSession();
+    assert.equal(session.items[0]?.sets.length, 2);
+    assert.equal(session.items[0]?.targetReps, 8);
+
+    session = addSet(session, 0);
+    const added = session.items[0]?.sets[2];
+    assert.ok(added);
+    assert.equal(added.done, false);
+    assert.equal(added.value, 8);
+    assert.equal(session.items[0]?.sets.length, 3);
+  });
+
+  it('removeOpenTrailingSet only drops an open last set when more than one exists', () => {
+    let session = addSet(twoExerciseSession(), 0);
+    assert.equal(session.items[0]?.sets.length, 3);
+
+    // Long-press on a done chip → no-op
+    const afterDone = completeCurrentSet(session, '2026-09-22T09:01:00.000Z');
+    assert.ok(afterDone);
+    const noopDone = removeOpenTrailingSet(afterDone.session, 0, 0);
+    assert.equal(noopDone.removed, false);
+    assert.equal(noopDone.session.items[0]?.sets.length, 3);
+
+    // Long-press on a non-trailing open set → no-op
+    const noopMiddle = removeOpenTrailingSet(afterDone.session, 0, 1);
+    assert.equal(noopMiddle.removed, false);
+
+    // Trailing open set with length > 1 → removed, no server delete id
+    const removed = removeOpenTrailingSet(afterDone.session, 0, 2);
+    assert.equal(removed.removed, true);
+    assert.equal(removed.session.items[0]?.sets.length, 2);
+
+    // Sole remaining set (even if open) → no-op
+    let sole = twoExerciseSession();
+    sole = removeLastSet(sole, 0).session;
+    assert.equal(sole.items[0]?.sets.length, 1);
+    assert.equal(sole.items[0]?.sets[0]?.done, false);
+    const noopSole = removeOpenTrailingSet(sole, 0, 0);
+    assert.equal(noopSole.removed, false);
+    assert.equal(noopSole.session.items[0]?.sets.length, 1);
   });
 
   it('addExerciseToSession appends with addedInSession', () => {

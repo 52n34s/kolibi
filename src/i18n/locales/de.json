@@ -708,6 +708,7 @@
       "skip": "Überspringen",
       "addSet": "Satz hinzufügen",
       "removeSet": "Satz entfernen",
+      "removeSetConfirm": "Löschen?",
       "moreActions": "Weitere Aktionen",
       "addExercise": "Übung hinzufügen",
       "searchExercise": "Übung suchen",

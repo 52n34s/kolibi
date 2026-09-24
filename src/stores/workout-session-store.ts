@@ -20,6 +20,7 @@ import {
   jumpTo as jumpToLogic,
   moveExercise as moveExerciseLogic,
   removeLastSet as removeLastSetLogic,
+  removeOpenTrailingSet as removeOpenTrailingSetLogic,
   setCurrent as setCurrentLogic,
   setCurrentSides as setCurrentSidesLogic,
   skipExercise as skipExerciseLogic,
@@ -61,6 +62,8 @@ type WorkoutSessionState = {
   completeCurrentSet: () => CompleteResult | null;
   addSet: (exerciseIndex: number) => void;
   removeLastSet: (exerciseIndex: number) => void;
+  /** Chip-bar only: open trailing set, length > 1. No-op otherwise; no server delete. */
+  removeOpenTrailingSet: (exerciseIndex: number, setIndex: number) => void;
   skipExercise: (exerciseIndex: number) => void;
   moveExercise: (from: number, to: number) => void;
   jumpTo: (exerciseIndex: number, setIndex: number) => void;
@@ -198,6 +201,15 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
           enqueueDeleteSet(deletedSetId, active.userId);
           triggerFlush();
         }
+      },
+
+      removeOpenTrailingSet: (exerciseIndex, setIndex) => {
+        const active = get().active;
+        if (!active) {
+          return;
+        }
+        const { session } = removeOpenTrailingSetLogic(active, exerciseIndex, setIndex);
+        set({ active: session });
       },
 
       skipExercise: (exerciseIndex) => {
