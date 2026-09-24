@@ -37,6 +37,11 @@ type ProgressStickerProps = {
 /** Sticker side padding (sticker-parts) on both sides. */
 const CONTENT_WIDTH = STICKER_LAYOUT_WIDTH - 48;
 const CURVE_HEIGHT = 64;
+/**
+ * Without a level change the story card has little else to show; the curve
+ * takes the room instead of the text growing past 2×.
+ */
+const STORY_CURVE_FACTOR = 2.2;
 const CURVE_PAD = 8;
 
 export function ProgressSticker({ data, variant, options, format = 'sticker' }: ProgressStickerProps) {
@@ -137,7 +142,11 @@ export function ProgressSticker({ data, variant, options, format = 'sticker' }: 
           </StickerText>
         ) : null}
 
-        <ProgressCurve view={view} palette={palette} />
+        <ProgressCurve
+          view={view}
+          palette={palette}
+          heightFactor={format === 'story' && !view.levelChanged ? STORY_CURVE_FACTOR : 1}
+        />
 
         {options.showLevel && view.levelChanged && view.current.step != null && data.ladderTotal != null ? (
           <StickerStack style={styles.levelBlock}>
@@ -159,11 +168,19 @@ export function ProgressSticker({ data, variant, options, format = 'sticker' }: 
  * Best set per session, no axes. On a ladder each rung gets its own segment:
  * reps of two different exercises are not joined into one line.
  */
-function ProgressCurve({ view, palette }: { view: ProgressView; palette: StickerPalette }) {
+function ProgressCurve({
+  view,
+  palette,
+  heightFactor,
+}: {
+  view: ProgressView;
+  palette: StickerPalette;
+  heightFactor: number;
+}) {
   const scale = useStickerScale();
   // Full content width on both formats; only height and strokes scale.
   const width = CONTENT_WIDTH;
-  const height = CURVE_HEIGHT * scale;
+  const height = CURVE_HEIGHT * scale * heightFactor;
   const pad = CURVE_PAD * scale;
   const levels = progressCurveLevels(view.points);
   const flat = levels.every((level) => level === levels[0]);
