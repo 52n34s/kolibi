@@ -7,12 +7,15 @@ import {
   biggestGain,
   buildExerciseSticker,
   buildLevelSticker,
+  buildProgressSticker,
   buildRecapSticker,
   buildSessionSticker,
   exerciseMilestone,
   formatGain,
   formatSetsCompact,
   ladderPosition,
+  progressCurveLevels,
+  progressExerciseIds,
   recapWindow,
   stickerAnalyticsType,
   topSessionExercises,
@@ -475,5 +478,152 @@ describe('topSessionExercises', () => {
       top.map((row) => row.name),
       ['B', 'A', 'C'],
     );
+  });
+});
+
+describe('buildProgressSticker', () => {
+  const TODAY_P = '2026-09-28';
+  const ex = (partial: Partial<Exercise> & Pick<Exercise, 'id'>): Exercise => ({
+    userId: null,
+    catalogSlug: null,
+    names: { de: partial.id, en: partial.id },
+    kind: 'reps',
+    perSide: false,
+    defaultSets: 3,
+    defaultReps: 8,
+    defaultRepsMax: null,
+    defaultSeconds: null,
+    defaultSecondsMax: null,
+    defaultRestSeconds: null,
+    imageAsset: null,
+    imagePath: null,
+    note: null,
+    archivedAt: null,
+    ladderKey: null,
+    ladderStep: null,
+    progressionKind: 'reps' as Exercise['progressionKind'],
+    timeCapSeconds: null,
+    ...partial,
+  });
+  const EXERCISES: Exercise[] = [
+    ex({ id: 'pull', names: { de: 'Klimmzüge', en: 'Pull-ups' } }),
+    ex({ id: 'knee', names: { de: 'Knie-Liegestütze', en: 'Knee push-ups' }, ladderKey: 'push', ladderStep: 1 }),
+    ex({ id: 'push', names: { de: 'Liegestütze', en: 'Push-ups' }, ladderKey: 'push', ladderStep: 2 }),
+    ex({ id: 'diamond', names: { de: 'Diamant-Liegestütze', en: 'Diamond push-ups' }, ladderKey: 'push', ladderStep: 3 }),
+    ex({ id: 'plank', names: { de: 'Unterarmstütz', en: 'Plank' }, kind: 'time' }),
+    ex({ id: 'side', names: { de: 'Seitstütz', en: 'Side plank' }, kind: 'time', perSide: true }),
+  ];
+  const unit = (id: string, loggedOn: string, sets: Partial<SessionSet>[]) => ({
+    sessionId: id,
+    loggedOn,
+    sets: sets.map((partial, index) =>
+      set({ id: `${id}-${index}`, sessionId: id, setIndex: index, completedAt: `${loggedOn}T10:00:00.000Z`, ...partial }),
+    ),
+  });
+  const build = (exerciseId: string, units: ReturnType<typeof unit>[], lang = 'de') =>
+    buildProgressSticker({ exerciseId, exercises: EXERCISES, units, todayKey: TODAY_P, lang });
+
+  it('follows the same exercise over time, best set per session, never the load', () => {
+    const sticker = build('pull', [
+      unit('u4', '2026-09-25', [{ exerciseId: 'pull', reps: 8 }, { exerciseId: 'pull', reps: 7, weightKg: 20 }]),
+      unit('u1', '2026-05-01', [{ exerciseId: 'pull', reps: 4 }]), // before 12 weeks: history reaches back
+      unit('u2', '2026-07-20', [{ exerciseId: 'pull', reps: 5, weightKg: 10 }]),
+      unit('u3', '2026-09-05', [{ exerciseId: 'pull', reps: 6 }, { exerciseId: 'dips', reps: 20 }]),
+    ]);
+    assert.equal(sticker.name, 'Klimmzüge');
+    assert.equal(sticker.period, '12w'); // longest period with ≥ 3 sessions
+    const view = sticker.views['12w']!;
+    assert.deepEqual(view.points.map((p) => p.value), [5, 6, 8]);
+    assert.equal(view.start.value, 5);
+    assert.equal(view.current.value, 8);
+    assert.equal(view.levelChanged, false);
+    assert.deepEqual(sticker.views.all!.points.map((p) => [p.dateKey, p.value]), [
+      ['2026-05-01', 4],
+      ['2026-07-20', 5],
+      ['2026-09-05', 6],
+      ['2026-09-25', 8],
+    ]);
+    assert.deepEqual(sticker.views['4w']!.points.map((p) => p.value), [6, 8]);
+    assert.equal(stickerAnalyticsType(sticker), 'progress');
+  });
+
+  it('shows the level when the rung changed instead of comparing reps', () => {
+    const sticker = build('knee', [
+      unit('a', '2026-05-10', [{ exerciseId: 'knee', reps: 12 }]),
+      unit('b', '2026-07-10', [{ exerciseId: 'knee', reps: 15 }]),
+      unit('c', '2026-08-20', [{ exerciseId: 'knee', reps: 16 }, { exerciseId: 'push', reps: 5 }]),
+      unit('d', '2026-09-26', [{ exerciseId: 'push', reps: 8 }]),
+    ]);
+    assert.deepEqual(progressExerciseIds('knee', EXERCISES).sort(), ['diamond', 'knee', 'push']);
+    const view = sticker.views[sticker.period]!;
+    assert.equal(sticker.period, '12w');
+    assert.equal(sticker.name, 'Liegestütze'); // current rung
+    assert.equal(sticker.ladderTotal, 3);
+    assert.equal(view.levelChanged, true);
+    assert.deepEqual([view.start.step, view.start.exerciseName], [1, 'Knie-Liegestütze']);
+    assert.deepEqual([view.current.step, view.current.exerciseName], [2, 'Liegestütze']);
+    // The session with both rungs counts the higher one.
+    assert.deepEqual(view.points.map((p) => [p.step, p.value]), [[1, 15], [2, 5], [2, 8]]);
+    assert.deepEqual(availableStickerOptions(sticker), ['showLevel']);
+  });
+
+  it('uses seconds for time exercises', () => {
+    const sticker = build('plank', [
+      unit('a', '2026-09-01', [{ exerciseId: 'plank', kind: 'time', seconds: 30 }]),
+      unit('b', '2026-09-20', [{ exerciseId: 'plank', kind: 'time', seconds: 45 }, { exerciseId: 'plank', kind: 'time', seconds: 40 }]),
+    ], 'en');
+    assert.equal(sticker.name, 'Plank');
+    assert.equal(sticker.exerciseKind, 'time');
+    const view = sticker.views[sticker.period]!;
+    assert.deepEqual([view.start.value, view.current.value], [30, 45]);
+  });
+
+  it('keeps per-side time as the weaker side and flags it', () => {
+    const sticker = build('side', [
+      unit('a', '2026-09-02', [{ exerciseId: 'side', kind: 'time', perSide: true, seconds: 30, secondsOtherSide: 25 }]),
+      unit('b', '2026-09-23', [{ exerciseId: 'side', kind: 'time', perSide: true, seconds: 40, secondsOtherSide: 42 }]),
+    ]);
+    assert.equal(sticker.perSide, true);
+    const view = sticker.views[sticker.period]!;
+    assert.deepEqual([view.start.value, view.current.value], [25, 40]);
+  });
+
+  it('has no view with fewer than two sessions', () => {
+    const sticker = build('pull', [unit('a', '2026-09-20', [{ exerciseId: 'pull', reps: 6 }])]);
+    assert.deepEqual(sticker.views, {});
+    assert.equal(build('pull', []).name, 'Klimmzüge');
+  });
+
+  it('offers only "seit Beginn" when the history is younger than every week period', () => {
+    // First session 20 days ago: "4 weeks ago" would claim a start that is younger.
+    const sticker = build('pull', [
+      unit('a', '2026-09-08', [{ exerciseId: 'pull', reps: 5 }]),
+      unit('b', '2026-09-15', [{ exerciseId: 'pull', reps: 6 }]),
+      unit('c', '2026-09-27', [{ exerciseId: 'pull', reps: 7 }]),
+    ]);
+    assert.deepEqual(Object.keys(sticker.views), ['all']);
+    assert.equal(sticker.period, 'all');
+    assert.deepEqual([sticker.views.all!.start.value, sticker.views.all!.current.value], [5, 7]);
+  });
+});
+
+describe('progressCurveLevels', () => {
+  const point = (value: number, step: number | null) => ({
+    dateKey: '2026-09-01',
+    value,
+    exerciseId: String(step),
+    exerciseName: '',
+    step,
+  });
+
+  it('follows the best set within one exercise', () => {
+    assert.deepEqual(progressCurveLevels([point(5, null), point(10, null), point(7.5, null)]), [0, 1, 0.5]);
+  });
+
+  it('puts a higher rung above a lower one even with fewer reps', () => {
+    const levels = progressCurveLevels([point(15, 1), point(18, 1), point(5, 2), point(8, 2)]);
+    assert.ok(levels[2] > levels[1]);
+    assert.ok(levels[3] > levels[2]);
+    assert.ok(levels.every((level) => level >= 0 && level <= 1));
   });
 });
