@@ -1785,6 +1785,17 @@
       "text": "Export as text",
       "cancel": "Cancel"
     },
-    "perSide": "per side"
+    "perSide": "per side",
+    "progress": {
+      "title": "My progress",
+      "weeksAgo_one": "{{count}} week ago",
+      "weeksAgo_other": "{{count}} weeks ago",
+      "sinceStart": "Since start",
+      "today": "Today",
+      "periodWeeks_one": "{{count}} week",
+      "periodWeeks_other": "{{count}} weeks",
+      "notEnough": "A progress sticker needs at least two sessions of this exercise.",
+      "share": "Share progress for {{name}}"
+    }
   }
 }
