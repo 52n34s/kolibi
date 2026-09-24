@@ -1725,5 +1725,65 @@
     "overYear": "Target weight in more than a year",
     "notLosing": "With these settings you will not lose weight.",
     "notGaining": "With these settings you will not gain weight."
+  },
+  "share": {
+    "title": "Share as sticker",
+    "actions": {
+      "save": "Save image",
+      "copy": "Copy",
+      "share": "Share"
+    },
+    "variant": {
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "format": {
+      "sticker": "Sticker",
+      "story": "Story card"
+    },
+    "options": {
+      "showBest": "Best set",
+      "showLevel": "Level",
+      "showPrevious": "Previous level",
+      "showDate": "Date",
+      "showTopExercises": "Top exercises",
+      "showBiggestGain": "Biggest gain",
+      "showProtein": "Protein goal"
+    },
+    "newBest": "New personal best",
+    "newLevel": "New level",
+    "level": "Level {{n}} of {{total}}",
+    "previousLevel": "before: {{name}}",
+    "bestSet": "Best set: {{value}}",
+    "myWeek": "My week",
+    "myMonth": "My month",
+    "minutes": "{{n}} min",
+    "biggestGain": "Biggest gain",
+    "protein_one": "Protein goal hit on {{count}} day",
+    "protein_other": "Protein goal hit on {{count}} days",
+    "stats": {
+      "sessions": "Sessions",
+      "reps": "Reps",
+      "seconds": "Seconds",
+      "bests": "Personal bests",
+      "levels": "New levels",
+      "duration": "Duration"
+    },
+    "status": {
+      "saved": "Saved",
+      "copied": "Copied",
+      "permissionDenied": "Kolibi isn’t allowed to save to your photos.",
+      "failed": "That didn’t work. Please try again."
+    },
+    "openSettings": "Open Settings",
+    "exercisesTitle": "Exercises",
+    "shareExercise": "Share {{name}}",
+    "shareLevel": "Share new level {{name}}",
+    "menu": {
+      "image": "Share as image",
+      "text": "Export as text",
+      "cancel": "Cancel"
+    },
+    "perSide": "per side"
   }
 }
