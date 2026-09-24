@@ -648,6 +648,9 @@
       "saveAsStandardHint": "Sets the standard rest for exercises that use it in your plan.",
       "switchSide": "Switch side",
       "holdStop": "Stop",
+      "holdReset": "Reset",
+      "holdResetConfirmTitle": "Reset hold time?",
+      "holdResetConfirm": "The time so far will be lost.",
       "perSide": "per side",
       "holdTarget": "Target from {{seconds}} s"
     },

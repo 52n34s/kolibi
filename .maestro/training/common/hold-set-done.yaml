@@ -1,8 +1,8 @@
 # Zeit-Sätze abschliessen.
 #
-# "Satz fertig" MUSS unmittelbar nach dem Halte-Stopp kommen: TrainingSetInput
-# setzt timeReady im Effekt wieder auf false, sobald sich set.value ändert
-# (Befund B7). Wer erst wartet, sieht nur noch den Halte-Timer.
+# Nach dem Halte-Stopp erscheint "Satz fertig": die Hold-Phase bleibt auf
+# ready und wird nur bei set.id-Wechsel zurückgesetzt (nicht bei set.value).
+# Anhalten/Weiter ändern die Phase ohne Übernahme; erst Stopp schreibt den Wert.
 appId: com.steffen.kolibi
 ---
 - tapOn:

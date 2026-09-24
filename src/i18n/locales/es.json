@@ -648,6 +648,9 @@
       "saveAsStandardHint": "Define la pausa estándar de los ejercicios que la usan en tu plan.",
       "switchSide": "Cambiar de lado",
       "holdStop": "Parar",
+      "holdReset": "Reiniciar",
+      "holdResetConfirmTitle": "¿Reiniciar el tiempo de la sujeción?",
+      "holdResetConfirm": "Se perderá el tiempo acumulado.",
       "perSide": "por lado",
       "holdTarget": "Objetivo desde {{seconds}} s"
     },

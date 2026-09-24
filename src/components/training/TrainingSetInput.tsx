@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -12,9 +13,13 @@ import { HoldTimer } from '@/components/training/HoldTimer';
 import { BRAND_INDIGO } from '@/constants/brand';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import {
+  holdResetNeedsConfirm,
   initialHoldPhase,
   isHoldReady,
+  pauseHold,
   readyValues,
+  resetHold,
+  resumeHold,
   startHold,
   stopHold,
   switchSide,
@@ -96,6 +101,25 @@ export function TrainingSetInput({
     }
   }
 
+  function applyHoldReset() {
+    setHoldPhase(resetHold(holdPhase));
+  }
+
+  function handleHoldReset() {
+    if (holdResetNeedsConfirm(holdPhase, Date.now())) {
+      Alert.alert(t('training.timer.holdResetConfirmTitle'), t('training.timer.holdResetConfirm'), [
+        { text: t('settings.common.cancel'), style: 'cancel' },
+        {
+          text: t('training.timer.holdReset'),
+          style: 'destructive',
+          onPress: applyHoldReset,
+        },
+      ]);
+      return;
+    }
+    applyHoldReset();
+  }
+
   const showHold = item.kind === 'time' && !isEditingDone && !isHoldReady(holdPhase);
 
   return (
@@ -107,7 +131,10 @@ export function TrainingSetInput({
           targetSecondsMax={item.targetSecondsMax}
           perSide={item.perSide}
           onStart={() => setHoldPhase(startHold(holdPhase, Date.now()))}
+          onPause={() => setHoldPhase(pauseHold(holdPhase, Date.now()))}
+          onResume={() => setHoldPhase(resumeHold(holdPhase, Date.now()))}
           onStop={handleHoldStop}
+          onReset={handleHoldReset}
           onSwitchSide={() => setHoldPhase(switchSide(holdPhase, Date.now()))}
         />
       ) : (

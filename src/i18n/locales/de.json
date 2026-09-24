@@ -648,6 +648,9 @@
       "saveAsStandardHint": "Übernimmt die Standard-Pause für Übungen, die sie im Plan nutzen.",
       "switchSide": "Seite wechseln",
       "holdStop": "Stopp",
+      "holdReset": "Zurücksetzen",
+      "holdResetConfirmTitle": "Haltezeit zurücksetzen?",
+      "holdResetConfirm": "Die bisherige Zeit geht verloren.",
       "perSide": "pro Seite",
       "holdTarget": "Ziel ab {{seconds}} s"
     },

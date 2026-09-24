@@ -8,7 +8,9 @@ import { useTimerTick } from '@/hooks/use-timer-tick';
 import { formatHoldMmSs } from '@/lib/training/rest-timer';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
 import {
+  canShowHoldReset,
   holdElapsedMs,
+  isHoldPaused,
   isHoldRunning,
   type HoldPhase,
 } from '@/lib/workouts/hold-phase';
@@ -25,7 +27,10 @@ type HoldTimerProps = {
   targetSecondsMax?: number | null;
   perSide?: boolean;
   onStart: () => void;
+  onPause: () => void;
+  onResume: () => void;
   onStop: () => void;
+  onReset: () => void;
   onSwitchSide: () => void;
 };
 
@@ -35,16 +40,21 @@ export function HoldTimer({
   targetSecondsMax = null,
   perSide = false,
   onStart,
+  onPause,
+  onResume,
   onStop,
+  onReset,
   onSwitchSide,
 }: HoldTimerProps) {
   const { t } = useTranslation();
 
   const running = isHoldRunning(phase);
+  const paused = isHoldPaused(phase);
   const awaitingOtherSide = phase.status === 'awaitingOtherSide';
   const now = useTimerTick(running);
   const elapsed = holdElapsedMs(phase, now);
   const elapsedSec = Math.floor(elapsed / 1000);
+  const showReset = canShowHoldReset(phase, now);
 
   const lower = targetSeconds != null && targetSeconds > 0 ? targetSeconds : null;
   const atOrPastLower = lower != null && elapsedSec >= lower;
@@ -106,7 +116,7 @@ export function HoldTimer({
       ) : null}
 
       <View style={styles.actions}>
-        {!running && !awaitingOtherSide ? (
+        {!running && !paused && !awaitingOtherSide ? (
           <Pressable
             testID="training.hold.start"
             accessibilityRole="button"
@@ -117,16 +127,44 @@ export function HoldTimer({
         ) : null}
 
         {running ? (
-          <Pressable
-            testID="training.hold.stop"
-            accessibilityRole="button"
-            onPress={onStop}
-            style={styles.primary}>
-            <Text style={styles.primaryText}>{t('training.timer.holdStop')}</Text>
-          </Pressable>
+          <>
+            <Pressable
+              testID="training.hold.pause"
+              accessibilityRole="button"
+              onPress={onPause}
+              style={styles.secondary}>
+              <Text style={styles.secondaryText}>{t('training.timer.pause')}</Text>
+            </Pressable>
+            <Pressable
+              testID="training.hold.stop"
+              accessibilityRole="button"
+              onPress={onStop}
+              style={styles.primary}>
+              <Text style={styles.primaryText}>{t('training.timer.holdStop')}</Text>
+            </Pressable>
+          </>
         ) : null}
 
-        {awaitingOtherSide && !running ? (
+        {paused ? (
+          <>
+            <Pressable
+              testID="training.hold.resume"
+              accessibilityRole="button"
+              onPress={onResume}
+              style={styles.secondary}>
+              <Text style={styles.secondaryText}>{t('training.timer.resume')}</Text>
+            </Pressable>
+            <Pressable
+              testID="training.hold.stop"
+              accessibilityRole="button"
+              onPress={onStop}
+              style={styles.primary}>
+              <Text style={styles.primaryText}>{t('training.timer.holdStop')}</Text>
+            </Pressable>
+          </>
+        ) : null}
+
+        {awaitingOtherSide && !running && !paused ? (
           <Pressable
             testID="training.hold.switchSide"
             accessibilityRole="button"
@@ -136,6 +174,16 @@ export function HoldTimer({
           </Pressable>
         ) : null}
       </View>
+
+      {showReset ? (
+        <Pressable
+          testID="training.hold.reset"
+          accessibilityRole="button"
+          onPress={onReset}
+          style={styles.reset}>
+          <Text style={styles.resetText}>{t('training.timer.holdReset')}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -171,6 +219,8 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 12,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   primary: {
     paddingHorizontal: 24,
@@ -181,5 +231,24 @@ const styles = StyleSheet.create({
   primaryText: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  secondary: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(79, 70, 229, 0.12)',
+  },
+  secondaryText: {
+    color: BRAND_INDIGO,
+    fontWeight: '600',
+  },
+  reset: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  resetText: {
+    color: TEXT_SECONDARY,
+    fontSize: 15,
+    fontWeight: '500',
   },
 });
