@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
 
 import {
   STICKER_PALETTES,
   StickerFrame,
+  StickerStack,
   StickerStat,
   StickerStatGrid,
   StickerText,
@@ -28,8 +28,8 @@ export function SessionSticker({ data, variant, options }: SessionStickerProps) 
   const palette = STICKER_PALETTES[variant];
   return (
     <StickerFrame variant={variant}>
-      <View style={s.stack}>
-        <View>
+      <StickerStack style={s.stack}>
+        <StickerStack>
           <StickerText style={[s.title, { color: palette.text }, palette.shadow]} numberOfLines={2}>
             {data.name}
           </StickerText>
@@ -38,7 +38,7 @@ export function SessionSticker({ data, variant, options }: SessionStickerProps) 
               {formatStickerDate(data.dateKey, i18n.language)}
             </StickerText>
           ) : null}
-        </View>
+        </StickerStack>
         <StickerStatGrid>
           <StickerStat
             label={t('share.stats.duration')}
@@ -75,9 +75,9 @@ export function SessionSticker({ data, variant, options }: SessionStickerProps) 
           ) : null}
         </StickerStatGrid>
         {options.showTopExercises && data.topExercises.length > 0 ? (
-          <View style={s.list}>
+          <StickerStack style={s.list}>
             {data.topExercises.map((row) => (
-              <View key={row.name} style={s.listRow}>
+              <StickerStack key={row.name} style={s.listRow}>
                 <StickerText
                   style={[s.listName, { color: palette.text }, palette.shadow]}
                   numberOfLines={1}>
@@ -86,11 +86,11 @@ export function SessionSticker({ data, variant, options }: SessionStickerProps) 
                 <StickerText style={[s.listValue, { color: palette.text }, palette.shadow]}>
                   {formatStickerValue(row.best, row.exerciseKind)}
                 </StickerText>
-              </View>
+              </StickerStack>
             ))}
-          </View>
+          </StickerStack>
         ) : null}
-      </View>
+      </StickerStack>
     </StickerFrame>
   );
 }
