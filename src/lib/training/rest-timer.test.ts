@@ -11,7 +11,9 @@ import {
   formatHoldMmSs,
   formatTimerMmSs,
   remainingMs,
+  restDurationWheelValues,
   restProgress,
+  snapRestSeconds,
   type RestTimerClockState,
 } from './rest-timer.ts';
 
@@ -129,5 +131,23 @@ describe('clampRestSeconds', () => {
     assert.equal(value, REST_MIN_SECONDS);
     // …and back up lands on a clean multiple again, not 16.
     assert.equal(clampRestSeconds(value + 15), 30);
+  });
+});
+
+describe('snapRestSeconds', () => {
+  it('snaps to the nearest 15 s step inside the band', () => {
+    assert.equal(snapRestSeconds(82), 75);
+    assert.equal(snapRestSeconds(83), 90);
+    assert.equal(snapRestSeconds(7), REST_MIN_SECONDS);
+    assert.equal(snapRestSeconds(700), REST_MAX_SECONDS);
+  });
+});
+
+describe('restDurationWheelValues', () => {
+  it('lists 15 s steps from the floor to the ceiling', () => {
+    const values = restDurationWheelValues();
+    assert.equal(values[0], REST_MIN_SECONDS);
+    assert.equal(values[values.length - 1], REST_MAX_SECONDS);
+    assert.equal(values.length, (REST_MAX_SECONDS - REST_MIN_SECONDS) / 15 + 1);
   });
 });

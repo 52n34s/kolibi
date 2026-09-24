@@ -47,6 +47,16 @@ type RestTimerState = {
 
   getLastDurationSec: () => number;
   setIdleDurationSec: (sec: number) => void;
+  /**
+   * Persist as the shared standard rest (`training.rest_seconds_last`).
+   * Does not change an active countdown.
+   */
+  saveAsStandard: (sec: number) => void;
+  /**
+   * Restart the active rest (running or paused) with `sec` remaining.
+   * Does not write the standard. `sec <= 0` finishes the rest like a natural expiry.
+   */
+  restartActiveDuration: (sec: number) => Promise<void>;
   start: (sec?: number) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
@@ -89,6 +99,48 @@ export const useRestTimerStore = create<RestTimerState>()(
         const next = clampRestSeconds(sec);
         writeLastDurationSec(next);
         set({ idleDurationSec: next, durationSec: next });
+      },
+
+      saveAsStandard: (sec) => {
+        const next = clampRestSeconds(sec);
+        writeLastDurationSec(next);
+        set({ idleDurationSec: next });
+      },
+
+      restartActiveDuration: async (sec) => {
+        const state = get();
+        if (state.status !== 'running' && state.status !== 'paused') {
+          return;
+        }
+        const durationSec = Math.max(0, Math.round(sec));
+        await cancelCurrentNotification(state.notificationId);
+        if (durationSec <= 0) {
+          set({
+            status: 'finished',
+            endsAt: null,
+            remainingOnPause: null,
+            notificationId: null,
+          });
+          return;
+        }
+        if (state.status === 'paused') {
+          set({
+            remainingOnPause: durationSec * 1000,
+            durationSec,
+            notificationId: null,
+          });
+          return;
+        }
+        const now = Date.now();
+        const endsAt = now + durationSec * 1000;
+        const notificationId = await scheduleRestNotification(endsAt);
+        set({
+          status: 'running',
+          endsAt,
+          remainingOnPause: null,
+          durationSec,
+          notificationId,
+        });
       },
 
       start: async (sec) => {
@@ -176,6 +228,16 @@ export const useRestTimerStore = create<RestTimerState>()(
 
         if (state.status === 'paused') {
           const remainingOnPause = addSecondsToRemaining(state.remainingOnPause ?? 0, delta);
+          // Active rest may hit 0 (15 s floor is only for the saved standard).
+          if (remainingOnPause <= 0) {
+            set({
+              status: 'finished',
+              endsAt: null,
+              remainingOnPause: null,
+              notificationId: null,
+            });
+            return;
+          }
           set({ remainingOnPause });
           return;
         }

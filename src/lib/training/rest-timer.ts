@@ -27,6 +27,24 @@ export function clampRestSeconds(seconds: number): number {
   return Math.min(REST_MAX_SECONDS, Math.max(REST_MIN_SECONDS, Math.round(seconds)));
 }
 
+/** Nearest 15 s step inside the shared standard band (for the rest duration wheel). */
+export function snapRestSeconds(seconds: number): number {
+  if (!Number.isFinite(seconds)) {
+    return DEFAULT_REST_SECONDS;
+  }
+  const stepped = Math.round(seconds / 15) * 15;
+  return clampRestSeconds(stepped);
+}
+
+/** 15, 30, …, 600 — values shown on the active-rest duration wheel. */
+export function restDurationWheelValues(): number[] {
+  const values: number[] = [];
+  for (let sec = REST_MIN_SECONDS; sec <= REST_MAX_SECONDS; sec += 15) {
+    values.push(sec);
+  }
+  return values;
+}
+
 /** Remaining rest time; always derived from endsAt (or remainingOnPause when paused). */
 export function remainingMs(state: RestTimerClockState, now: number): number {
   if (state.status === 'paused') {
