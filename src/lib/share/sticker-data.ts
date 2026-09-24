@@ -1,6 +1,5 @@
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { personalBests, setPerformanceValue, type PersonalBest } from '@/lib/workouts/progress';
-import { trainingCardSessionCount } from '@/lib/workouts/week-day-markers';
 import type {
   Exercise,
   ExerciseKind,
@@ -388,32 +387,73 @@ export function biggestGain(
   return pick;
 }
 
+function parseKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1);
+}
+
+function toKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export const RECAP_PERIOD_DAYS: Record<RecapPeriod, number> = { week: 7, month: 30 };
+
+/**
+ * Rolling window of a recap: "Meine Woche" is the last 7 days including today,
+ * "Mein Monat" the last 30. Every figure on the recap comes from this window.
+ */
+export function recapWindow(
+  period: RecapPeriod,
+  todayKey: string,
+): { startKey: string; endKey: string } {
+  const start = parseKey(todayKey);
+  start.setDate(start.getDate() - (RECAP_PERIOD_DAYS[period] - 1));
+  return { startKey: toKey(start), endKey: todayKey };
+}
+
+/** Local midnight of a date key as an ISO timestamp (for `since` queries). */
+export function localDayStartIso(key: string): string {
+  return parseKey(key).toISOString();
+}
+
+function inWindow(key: string, window: { startKey: string; endKey: string }): boolean {
+  return key >= window.startKey && key <= window.endKey;
+}
+
 export function buildRecapSticker(
   period: RecapPeriod,
   params: {
-    /** Workout sessions inside the period (reps and bests come from these). */
-    sessions: readonly WorkoutSession[];
+    todayKey: string;
+    /** Workout sessions; only those logged inside the window count. */
+    workoutSessions: readonly WorkoutSession[];
     /**
-     * The inputs of the sessions card on the progress tab. "Einheiten" is its
-     * number: training days, manual sessions and workouts merged.
+     * training_sessions rows. Finishing a workout writes one and links it via
+     * `trainingSessionId`; those are the workout itself and are not counted twice.
      */
-    card: {
-      rangeStartKey: string;
-      todayKey: string;
-      manualSessions: readonly { loggedOn: string }[];
-      workoutSessions: readonly { loggedOn: string }[];
-    };
-    /** Best value per exercise_id before the period (`useExerciseBestsBefore`). */
+    manualSessions: readonly { id: string; loggedOn: string }[];
+    /** Best value per exercise_id before the window start (`useExerciseBestsBefore`). */
     beforeBests: Readonly<Record<string, number>>;
-    /** Progression events since the period start. */
+    /** Progression events; only those created inside the window count. */
     events: readonly ProgressionEvent[];
-    /** `summary.proteinHitDays` of the progress tab. */
-    proteinHitDays: number;
+    /** One row per day with whether the protein goal was hit (today included). */
+    proteinDays: readonly { date: string; hit: boolean }[];
     /** Localized display name for a best (catalog names follow the app language). */
     nameOf: (best: PersonalBest) => string;
   },
 ): RecapStickerData {
-  const sets = params.sessions.flatMap((session) => session.sets);
+  const window = recapWindow(period, params.todayKey);
+  const workouts = params.workoutSessions.filter((session) => inWindow(session.loggedOn, window));
+  const linked = new Set(
+    params.workoutSessions.map((session) => session.trainingSessionId).filter(Boolean),
+  );
+  const manual = params.manualSessions.filter(
+    (session) => !linked.has(session.id) && inWindow(session.loggedOn, window),
+  );
+
+  const sets = workouts.flatMap((session) => session.sets);
   let totalReps = 0;
   for (const set of sets) {
     if (set.kind !== 'time' && set.reps != null && set.reps > 0) {
@@ -425,18 +465,22 @@ export function buildRecapSticker(
     ...best,
     exerciseName: params.nameOf(best),
   }));
+  const levelUps = acceptedLevelUps(params.events).filter((ev) =>
+    inWindow(toKey(new Date(ev.createdAt)), window),
+  );
+  const proteinHitDays = new Set(
+    params.proteinDays.filter((day) => day.hit && inWindow(day.date, window)).map((day) => day.date),
+  ).size;
+
   return {
     kind: 'recap',
     period,
-    sessions: trainingCardSessionCount({
-      rangeDays: period === 'month' ? 30 : 7,
-      ...params.card,
-    }),
+    sessions: workouts.length + manual.length,
     totalReps,
     bestsCount: bests.length,
-    levelsCount: acceptedLevelUps(params.events).length,
+    levelsCount: levelUps.length,
     biggestGain: biggestGain(bests),
-    proteinHitDays: Math.max(0, Math.floor(params.proteinHitDays)),
+    proteinHitDays,
   };
 }
 
