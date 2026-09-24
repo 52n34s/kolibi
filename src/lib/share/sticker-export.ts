@@ -52,7 +52,7 @@ export async function captureSticker(
 
 /** Adds the PNG to Photos with add-only access (no read access to the library). */
 export async function saveStickerToPhotos(fileUri: string): Promise<SaveStickerResult> {
-  const permission = await MediaLibrary.requestPermissionsAsync(true, ['photo']);
+  const permission = await MediaLibrary.requestPermissionsAsync(true);
   if (!permission.granted) {
     return 'permission_denied';
   }
