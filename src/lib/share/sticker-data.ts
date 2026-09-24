@@ -1,5 +1,6 @@
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { personalBests, setPerformanceValue, type PersonalBest } from '@/lib/workouts/progress';
+import { trainingCardSessionCount } from '@/lib/workouts/week-day-markers';
 import type {
   Exercise,
   ExerciseKind,
@@ -24,6 +25,12 @@ export type RecapPeriod = 'week' | 'month';
 
 export type LadderPosition = { step: number; total: number };
 
+/**
+ * Badge on an exercise sticker. A first execution is not a personal best:
+ * there is nothing to beat yet.
+ */
+export type ExerciseMilestone = 'newBest' | 'firstTime' | null;
+
 export type ExerciseStickerData = {
   kind: 'exercise';
   name: string;
@@ -32,7 +39,7 @@ export type ExerciseStickerData = {
   /** Reps (reps / weighted) or seconds (time) per completed set, in order. */
   values: number[];
   level: LadderPosition | null;
-  isNewBest: boolean;
+  milestone: ExerciseMilestone;
 };
 
 export type LevelStickerData = {
@@ -198,6 +205,24 @@ export function ladderPosition(
   return { step: exercise.ladderStep, total };
 }
 
+/**
+ * `priorBest` is the best earlier value of this exercise (null: never done).
+ * Nothing is claimed while the history is still loading.
+ */
+export function exerciseMilestone(params: {
+  sessionBest: number | null;
+  priorBest: number | null;
+  historyLoaded: boolean;
+}): ExerciseMilestone {
+  if (!params.historyLoaded || params.sessionBest == null || !(params.sessionBest > 0)) {
+    return null;
+  }
+  if (params.priorBest == null || !(params.priorBest > 0)) {
+    return 'firstTime';
+  }
+  return params.sessionBest > params.priorBest ? 'newBest' : null;
+}
+
 function nameOrFallback(
   exercise: Pick<Exercise, 'names'> | null | undefined,
   lang: string,
@@ -216,7 +241,7 @@ export function buildExerciseSticker(params: {
   perSide: boolean;
   values: readonly number[];
   ladder: readonly LadderRow[];
-  isNewBest: boolean;
+  milestone: ExerciseMilestone;
 }): ExerciseStickerData {
   return {
     kind: 'exercise',
@@ -225,7 +250,7 @@ export function buildExerciseSticker(params: {
     perSide: params.perSide,
     values: params.values.filter((v) => Number.isFinite(v) && v > 0),
     level: ladderPosition(params.exercise, params.ladder),
-    isNewBest: params.isNewBest,
+    milestone: params.milestone,
   };
 }
 
@@ -366,8 +391,18 @@ export function biggestGain(
 export function buildRecapSticker(
   period: RecapPeriod,
   params: {
-    /** Workout sessions inside the period. */
+    /** Workout sessions inside the period (reps and bests come from these). */
     sessions: readonly WorkoutSession[];
+    /**
+     * The inputs of the sessions card on the progress tab. "Einheiten" is its
+     * number: training days, manual sessions and workouts merged.
+     */
+    card: {
+      rangeStartKey: string;
+      todayKey: string;
+      manualSessions: readonly { loggedOn: string }[];
+      workoutSessions: readonly { loggedOn: string }[];
+    };
     /** Best value per exercise_id before the period (`useExerciseBestsBefore`). */
     beforeBests: Readonly<Record<string, number>>;
     /** Progression events since the period start. */
@@ -393,7 +428,10 @@ export function buildRecapSticker(
   return {
     kind: 'recap',
     period,
-    sessions: params.sessions.length,
+    sessions: trainingCardSessionCount({
+      rangeDays: period === 'month' ? 30 : 7,
+      ...params.card,
+    }),
     totalReps,
     bestsCount: bests.length,
     levelsCount: acceptedLevelUps(params.events).length,
