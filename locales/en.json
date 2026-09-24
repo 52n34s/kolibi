@@ -4,8 +4,6 @@
     "NSPhotoLibraryUsageDescription": "Allow Kolibi to access your photos to set a profile picture.",
     "NSPhotoLibraryAddUsageDescription": "Kolibi saves your stickers to your photo library.",
     "NSHealthShareUsageDescription": "Kolibi reads active energy, heart rate, steps, walking/running distance, waist circumference, body fat percentage, lean body mass and workouts from Apple Health so that your daily and movement goals can take your activity into account.",
-    "NSHealthUpdateUsageDescription": "Kolibi writes your logged waist circumference to Apple Health so that it is visible there together with your other health data.",
-    "NSFaceIDUsageDescription": "Allow Kolibi to access your Face ID biometric data.",
-    "NSMicrophoneUsageDescription": "Allow Kolibi to access your microphone."
+    "NSHealthUpdateUsageDescription": "Kolibi writes your logged waist circumference to Apple Health so that it is visible there together with your other health data."
   }
 }
