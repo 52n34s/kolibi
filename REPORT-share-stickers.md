@@ -464,3 +464,48 @@ Die PNGs stehen in `~/Desktop/kolibi-sticker-check/`, gerendert über eine tempo
   - Dabei blieb dort die Nachfrage „In Kolibi öffnen?“ über carpincho stehen. Taps kamen nicht an, ich konnte sie nicht schließen. Bitte dort einmal „Abbrechen“ tippen.
   - Die PNGs stammen deshalb vom eigenen iPhone-17-Simulator.
 - **Nicht angeklickt:** Umschalter für den Zeitraum, Hinweis-Zustand und Teilen-Symbol in der Liste. Sie sind nur kompiliert und typgeprüft, die Logik dahinter ist getestet.
+
+## Nachtrag 2026-09-26: Story-Karten einheitlich gefüllt
+
+| Hash | Commit |
+|---|---|
+| `ee2543e` | share: story scale that fills about two thirds of the card, 1x to 2x |
+| `2fdb9bd` | test: story scale target and bounds |
+| `24a7507` | share: story card fits its content; stat values sized to fit |
+| `60ec34d` | share: biggest-gain line stays on one line on the story card |
+| `73c4dd3` | share: taller progress curve on the story card without a level change |
+
+- **Ergebnis:** `npm test` ergibt 512 von 512 grün, tsc zeigt dieselben 15 Fehler wie `main`.
+
+### Umsetzung
+
+- **Einpassung:** Die Story-Karte (`StoryFrame` in `sticker-parts.tsx`) misst die Höhe ihres Inhalts und passt die Skalierung an, bis der Inhalt die Zielhöhe erreicht.
+  - Rechenregel: `nextStoryScale` in `sticker-data.ts`, getestet.
+  - Die Skalierung ist auf 1- bis 2-fach der Sticker-Größe begrenzt.
+  - Weil Text bei anderer Größe anders umbricht, misst die Karte bis zu sechsmal nach, bis die Änderung unter 2 % liegt.
+- **Zielwert:** Der Layout-Kasten des Inhalts soll 70 % der Kartenhöhe füllen. Die Zeilenhöhen machen den Kasten etwas größer als den sichtbaren Inhalt, dieser landet deshalb bei 65 bis 70 %.
+- **Keine Umbrüche in Titeln und Werten:**
+  - Titel und Vergleichswerte sind einzeilig und werden bei Bedarf verkleinert.
+  - Neu einzeilig ist auch die Zeile zum größten Fortschritt.
+  - Die Kennzahlen (Einheiten, Wiederholungen …) bekommen ihre Schriftgröße jetzt berechnet: So groß, dass der längste Wert in die halbe Inhaltsbreite passt.
+  - Grund für das Berechnen: Mit der iOS-Verkleinerung (`adjustsFontSizeToFit`) verschwanden bei „Mein Monat“ in Hell die Werte „3“ und „1“. Die Verkleinerung behielt während der Anpassung einen veralteten Stand. Der Fehler war in zwei Durchläufen gleich und ist mit dem Berechnen behoben.
+  - Außerdem wird der Inhalt bei jeder neuen Skalierung frisch aufgebaut.
+- **Fortschritt ohne Stufenwechsel:** Die Kurve ist auf der Story-Karte 2,2-mal so hoch (`STORY_CURVE_FACTOR`). Der kurze Text muss so nicht über 2-fach wachsen.
+- **Stabilität:** Zwei Exporte hintereinander sind pixelgleich.
+
+### Füllgrad je Variante
+
+Gemessen mit PIL an der sichtbaren Tinte zwischen oberster und unterster Inhaltszeile, ohne die Marke unten rechts.
+
+| Story-Karte | Hell | Dunkel | Mitte gegenüber Bildmitte |
+|---|---|---|---|
+| Rückblick Woche (`recap-story`) | 66,9 % | 66,9 % | +10 px |
+| Rückblick Monat (`recap-month-story`) | 67,8 % | 67,8 % | +1 px |
+| Fortschritt, dieselbe Übung (`progress-story`) | 67,4 % | 67,4 % | −4 px |
+| Fortschritt, Stufenwechsel (`progress-level-story`) | 68,6 % | 68,6 % | +4 px |
+| Rückblick kurz, ohne Fortschritt und Protein (`recap-short-story`) | 28,5 % | 28,5 % | +44 px |
+
+- **Kurzer Rückblick:** Er steht an der Obergrenze 2-fach. Mit nur Titel und zwei Kennzahlen reicht selbst die doppelte Größe nicht für zwei Drittel. Die Obergrenze hat Vorrang, so war es vorgegeben.
+- **Normale Sticker:** Maße und Transparenz sind unverändert (zum Beispiel `recap-light` 1080×1082 mit 77 % voll transparent, `progress-light` 1080×881 mit 85 %).
+- **Welche Typen:** Story-Karten gibt es wie bisher nur beim Rückblick und beim Fortschritt. Die Einpassung sitzt aber allgemein im Rahmen der Story-Karte. Sollen Übung, Stufe und Einheit ebenfalls eine Story-Karte bekommen, wäre das nur das Freischalten im Sheet.
+- **Dateien:** Die PNGs liegen in `~/Desktop/kolibi-sticker-check/`, gerendert auf dem eigenen iPhone-17-Simulator über die temporäre QA-Seite. Die Seite ist wieder entfernt und nicht committed. In diesem Durchgang neu exportiert sind Rückblick und Fortschritt. Die Dateien für Übung, Stufe und Einheit stammen aus dem vorigen Export, diese Änderung betrifft sie nicht.
