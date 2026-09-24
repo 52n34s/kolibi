@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
 
 import {
   STICKER_PALETTES,
   StickerFrame,
+  StickerStack,
   StickerStat,
   StickerStatGrid,
   StickerText,
@@ -30,8 +30,11 @@ export function RecapSticker({ data, variant, options, format = 'sticker' }: Rec
   const palette = STICKER_PALETTES[variant];
   return (
     <StickerFrame variant={variant} format={format}>
-      <View style={s.stack}>
-        <StickerText style={[s.recapTitle, { color: palette.text }, palette.shadow]}>
+      <StickerStack style={s.stack}>
+        <StickerText
+          style={[s.recapTitle, { color: palette.text }, palette.shadow]}
+          numberOfLines={1}
+          adjustsFontSizeToFit>
           {data.period === 'month' ? t('share.myMonth') : t('share.myWeek')}
         </StickerText>
         <StickerStatGrid>
@@ -57,7 +60,7 @@ export function RecapSticker({ data, variant, options, format = 'sticker' }: Rec
           ) : null}
         </StickerStatGrid>
         {options.showBiggestGain && data.biggestGain ? (
-          <View>
+          <StickerStack>
             <StickerText style={[s.small, { color: palette.muted }, palette.shadow]}>
               {t('share.biggestGain')}
             </StickerText>
@@ -66,14 +69,14 @@ export function RecapSticker({ data, variant, options, format = 'sticker' }: Rec
               numberOfLines={1}>
               {formatGain(data.biggestGain)}
             </StickerText>
-          </View>
+          </StickerStack>
         ) : null}
         {options.showProtein && data.proteinHitDays > 0 ? (
           <StickerText style={[s.sub, { color: palette.muted }, palette.shadow]}>
             {t('share.protein', { count: data.proteinHitDays })}
           </StickerText>
         ) : null}
-      </View>
+      </StickerStack>
     </StickerFrame>
   );
 }
