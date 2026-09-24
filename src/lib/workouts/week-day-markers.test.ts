@@ -4,6 +4,8 @@ import { describe, it } from 'node:test';
 import {
   buildWeekDayMarkers,
   countDistinctTrainingDaysMerged,
+  trainingCardDayKeys,
+  trainingCardSessionCount,
 } from './week-day-markers.ts';
 
 describe('buildWeekDayMarkers', () => {
@@ -41,6 +43,38 @@ describe('countDistinctTrainingDaysMerged', () => {
         [{ loggedOn: '2026-09-22' }, { loggedOn: '2026-09-23' }],
       ),
       3,
+    );
+  });
+});
+
+describe('trainingCardSessionCount', () => {
+  const manual = [{ loggedOn: '2026-09-22' }, { loggedOn: '2026-09-14' }];
+  const workouts = [{ loggedOn: '2026-09-22' }, { loggedOn: '2026-09-24' }, { loggedOn: '2026-09-19' }];
+
+  it('counts distinct days of the current Mon–Sun week for 7 days', () => {
+    assert.equal(
+      trainingCardSessionCount({
+        rangeDays: 7,
+        rangeStartKey: '2026-09-18',
+        todayKey: '2026-09-24',
+        manualSessions: manual,
+        workoutSessions: workouts,
+      }),
+      2,
+    );
+  });
+
+  it('covers every displayed week row for 30 days', () => {
+    assert.equal(trainingCardDayKeys({ rangeDays: 30, rangeStartKey: '2026-08-26', todayKey: '2026-09-24' })[0], '2026-09-21');
+    assert.equal(
+      trainingCardSessionCount({
+        rangeDays: 30,
+        rangeStartKey: '2026-08-26',
+        todayKey: '2026-09-24',
+        manualSessions: manual,
+        workoutSessions: workouts,
+      }),
+      4,
     );
   });
 });
