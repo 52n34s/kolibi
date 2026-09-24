@@ -34,6 +34,7 @@ import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { newId } from '@/lib/id';
 import { updateTrainingSessionsPerWeek } from '@/lib/profile';
+import { shouldSeedWeeklyGoal } from '@/lib/should-seed-weekly-goal';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { suggestShortLabel } from '@/lib/workouts/short-label';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
@@ -375,7 +376,7 @@ export default function WorkoutTemplateEditScreen() {
 
       const currentGoal = profileData?.profile?.training_sessions_per_week ?? null;
       let suggestedGoal: number | null = null;
-      if (userId && (currentGoal == null || !(currentGoal >= 1))) {
+      if (userId && shouldSeedWeeklyGoal(currentGoal)) {
         const templates = templatesQuery.data ?? [];
         const distinct = countDistinctWeekdays(
           templates.filter((row) => row.id !== paramId),

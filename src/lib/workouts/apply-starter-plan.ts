@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react-native';
 
 import i18n from '@/i18n';
 import { fetchProfileSettings, updateTrainingSessionsPerWeek } from '@/lib/profile';
+import { shouldSeedWeeklyGoal } from '@/lib/should-seed-weekly-goal';
 import { supabase } from '@/lib/supabase';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import {
@@ -98,7 +99,8 @@ function targetsForExercise(
 
 /**
  * Materialise a starter package as the user's workout_templates (position order),
- * set training_sessions_per_week when still null, then invalidate training queries.
+ * set training_sessions_per_week when still unset (null or 0), then invalidate
+ * training queries.
  *
  * Missing catalog slugs abort with nothing created. If a later save fails, already
  * created templates are hard-deleted so the empty-state picker stays reachable.
@@ -149,7 +151,7 @@ export async function applyStarterPlan(
     }
 
     const profile = await fetchProfileSettings(params.userId);
-    if (profile.training_sessions_per_week == null) {
+    if (shouldSeedWeeklyGoal(profile.training_sessions_per_week)) {
       await updateTrainingSessionsPerWeek({
         userId: params.userId,
         sessionsPerWeek: plan.sessionsPerWeek,
