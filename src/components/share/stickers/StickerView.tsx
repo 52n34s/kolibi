@@ -1,5 +1,6 @@
 import { ExerciseSticker } from '@/components/share/stickers/ExerciseSticker';
 import { LevelSticker } from '@/components/share/stickers/LevelSticker';
+import { ProgressSticker } from '@/components/share/stickers/ProgressSticker';
 import { RecapSticker } from '@/components/share/stickers/RecapSticker';
 import { SessionSticker } from '@/components/share/stickers/SessionSticker';
 import type {
@@ -13,7 +14,7 @@ type StickerViewProps = {
   data: StickerData;
   variant: StickerVariant;
   options: StickerOptions;
-  /** Only recaps come as a story card. */
+  /** Recaps and progress stickers also come as a story card. */
   format?: StickerFormat;
 };
 
@@ -27,5 +28,7 @@ export function StickerView({ data, variant, options, format }: StickerViewProps
       return <SessionSticker data={data} variant={variant} options={options} />;
     case 'recap':
       return <RecapSticker data={data} variant={variant} options={options} format={format} />;
+    case 'progress':
+      return <ProgressSticker data={data} variant={variant} options={options} format={format} />;
   }
 }
