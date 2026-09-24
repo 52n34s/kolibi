@@ -645,7 +645,7 @@
       "editValue": "{{seconds}} s",
       "editApply": "Aplicar",
       "saveAsStandard": "Usar como estándar",
-      "saveAsStandardHint": "Aplica a ejercicios con pausa estándar — igual que en tu plan.",
+      "saveAsStandardHint": "Define la pausa estándar de los ejercicios que la usan en tu plan.",
       "switchSide": "Cambiar de lado",
       "holdStop": "Parar",
       "perSide": "por lado",

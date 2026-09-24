@@ -645,7 +645,7 @@
       "editValue": "{{seconds}} s",
       "editApply": "Übernehmen",
       "saveAsStandard": "Als Standard übernehmen",
-      "saveAsStandardHint": "Gilt für Übungen mit Standard-Pause – so wie im Plan eingestellt.",
+      "saveAsStandardHint": "Übernimmt die Standard-Pause für Übungen, die sie im Plan nutzen.",
       "switchSide": "Seite wechseln",
       "holdStop": "Stopp",
       "perSide": "pro Seite",

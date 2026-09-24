@@ -645,7 +645,7 @@
       "editValue": "{{seconds}} s",
       "editApply": "Apply",
       "saveAsStandard": "Use as standard",
-      "saveAsStandardHint": "Applies to exercises with standard rest — the same setting as in your plan.",
+      "saveAsStandardHint": "Sets the standard rest for exercises that use it in your plan.",
       "switchSide": "Switch side",
       "holdStop": "Stop",
       "perSide": "per side",
