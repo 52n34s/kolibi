@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Href, router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -15,12 +16,20 @@ import {
   getOnboardingIdleCardStyle,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
+import { ShareStickerSheet } from '@/components/share/ShareStickerSheet';
 import { ExerciseThumb } from '@/components/training/ExerciseThumb';
 import { exerciseStubFromSessionSet } from '@/components/training/exercise-stub';
-import { TEXT_SECONDARY } from '@/constants/brand';
+import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 import { useProgressionEvents } from '@/hooks/use-progression-events';
 import { useExercises } from '@/hooks/use-exercises';
 import { parseDateOnly } from '@/lib/day-window';
+import {
+  acceptedLevelUps,
+  bestSessionSets,
+  buildExerciseSticker,
+  buildLevelSticker,
+  type StickerData,
+} from '@/lib/share/sticker-data';
 import { formatDistanceKm, useUnitSystem } from '@/lib/measure-units';
 import { displayExerciseName, resolveExerciseName } from '@/lib/workouts/exercise-name';
 import {
@@ -172,17 +181,24 @@ export function HistoryTrainingSection({
   });
   const { data: allExercises = [] } = useExercises();
 
+  const [sticker, setSticker] = useState<StickerData | null>(null);
+
   const levelUps = useMemo(() => {
-    return progressionEvents
-      .filter((ev) => ev.status === 'accepted' && ev.kind === 'variant_up')
+    return acceptedLevelUps(progressionEvents)
       .map((ev) => {
-        const ex =
-          allExercises.find((row) => row.id === ev.toExerciseId) ??
-          allExercises.find((row) => row.id === ev.fromExerciseId);
+        const toEx = allExercises.find((row) => row.id === ev.toExerciseId);
+        const fromEx = allExercises.find((row) => row.id === ev.fromExerciseId);
+        const ex = toEx ?? fromEx;
         return {
           id: ev.id,
           name: ex ? resolveExerciseName(ex, i18n.language) : (ev.toExerciseId ?? ''),
           createdAt: ev.createdAt,
+          sticker: buildLevelSticker({
+            toExercise: toEx,
+            fromExercise: fromEx,
+            lang: i18n.language,
+            ladder: allExercises,
+          }),
         };
       })
       .filter((row) => row.name.length > 0);
@@ -450,19 +466,46 @@ export function HistoryTrainingSection({
             <Text className="mb-3 text-sm font-semibold text-gray-900">
               {t('history.training.bestsTitle')}
             </Text>
-            {levelUps.map((row) => (
-              <Text
-                key={row.id}
-                className="py-2 text-sm font-semibold"
-                style={{ color: '#4F46E5' }}>
-                {t('history.training.newLevel', { name: row.name })}
-              </Text>
-            ))}
+            {levelUps.map((row) => {
+              const levelSticker = row.sticker;
+              return (
+                <View key={row.id} className="flex-row items-center gap-3 py-2">
+                  <Text
+                    className="min-w-0 flex-1 text-sm font-semibold"
+                    style={{ color: '#4F46E5' }}>
+                    {t('history.training.newLevel', { name: row.name })}
+                  </Text>
+                  {levelSticker ? (
+                    <ShareIconButton
+                      testID={`history.training.shareLevel.${row.id}`}
+                      label={t('share.shareLevel', { name: row.name })}
+                      onPress={() => setSticker(levelSticker)}
+                    />
+                  ) : null}
+                </View>
+              );
+            })}
             {visibleBests.map((best) => (
               <BestRow
                 key={best.exerciseId ?? `name:${best.exerciseName}`}
                 best={best}
                 t={t}
+                onShare={() => {
+                  const sets = bestSessionSets(sessionsInRange, best);
+                  setSticker(
+                    buildExerciseSticker({
+                      exercise:
+                        best.exerciseId != null ? exercisesById.get(best.exerciseId) : undefined,
+                      fallbackName: best.exerciseName,
+                      lang: i18n.language,
+                      exerciseKind: best.kind,
+                      perSide: sets.perSide,
+                      values: sets.values,
+                      ladder: allExercises,
+                      isNewBest: true,
+                    }),
+                  );
+                }}
               />
             ))}
             {bests.length > 3 ? (
@@ -648,16 +691,42 @@ export function HistoryTrainingSection({
           </View>
         </View>
       ) : null}
+      <ShareStickerSheet data={sticker} onClose={() => setSticker(null)} />
     </>
+  );
+}
+
+function ShareIconButton({
+  testID,
+  label,
+  onPress,
+}: {
+  testID: string;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={8}
+      onPress={onPress}
+      className="h-8 w-8 items-center justify-center rounded-full"
+      style={{ backgroundColor: 'rgba(79,70,229,0.1)' }}>
+      <Ionicons name="share-outline" size={16} color={BRAND_INDIGO} />
+    </Pressable>
   );
 }
 
 function BestRow({
   best,
   t,
+  onShare,
 }: {
   best: PersonalBest;
   t: (key: string, opts?: Record<string, unknown>) => string;
+  onShare: () => void;
 }) {
   const stub = exerciseStubFromSessionSet({
     id: best.exerciseId ?? best.exerciseName,
@@ -692,6 +761,11 @@ function BestRow({
           {formatBestImprovement(best, t)}
         </Text>
       </View>
+      <ShareIconButton
+        testID={`history.training.shareBest.${best.exerciseId ?? best.exerciseName}`}
+        label={t('share.shareExercise', { name: best.exerciseName })}
+        onPress={onShare}
+      />
     </View>
   );
 }
