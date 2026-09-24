@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
 
 import {
   STICKER_PALETTES,
   StickerBadge,
   StickerFrame,
+  StickerStack,
   StickerLevelLine,
   StickerText,
   stickerStyles as s,
@@ -30,14 +30,21 @@ export function ExerciseSticker({ data, variant, options }: ExerciseStickerProps
   const best = bestOf(data.values);
   return (
     <StickerFrame variant={variant}>
-      <View style={s.stack}>
-        {data.isNewBest ? <StickerBadge label={t('share.newBest')} /> : null}
+      <StickerStack style={s.stack}>
+        {data.milestone ? (
+          <StickerBadge
+            label={data.milestone === 'newBest' ? t('share.newBest') : t('share.firstTime')}
+          />
+        ) : null}
         <StickerText style={[s.title, { color: palette.text }, palette.shadow]} numberOfLines={2}>
           {data.name}
         </StickerText>
         {data.values.length > 0 ? (
-          <View>
-            <StickerText style={[s.hero, { color: palette.text }, palette.shadow]}>
+          <StickerStack>
+            <StickerText
+              style={[s.hero, { color: palette.text }, palette.shadow]}
+              numberOfLines={1}
+              adjustsFontSizeToFit>
               {formatSetsCompact(data.values, data.exerciseKind)}
             </StickerText>
             {data.perSide ? (
@@ -45,7 +52,7 @@ export function ExerciseSticker({ data, variant, options }: ExerciseStickerProps
                 {t('share.perSide')}
               </StickerText>
             ) : null}
-          </View>
+          </StickerStack>
         ) : null}
         {options.showBest && best != null ? (
           <StickerText style={[s.sub, { color: palette.muted }, palette.shadow]}>
@@ -55,7 +62,7 @@ export function ExerciseSticker({ data, variant, options }: ExerciseStickerProps
         {options.showLevel && data.level ? (
           <StickerLevelLine level={data.level} palette={palette} />
         ) : null}
-      </View>
+      </StickerStack>
     </StickerFrame>
   );
 }
