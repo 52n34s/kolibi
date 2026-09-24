@@ -66,6 +66,11 @@ const SCALED_KEYS = [
   'textShadowRadius',
 ] as const;
 
+/** Content scale of the surrounding frame: 1 on stickers, larger on the story card. */
+export function useStickerScale(): number {
+  return useContext(StickerScaleContext);
+}
+
 /** Multiplies the size keys of a style by the sticker's content scale. */
 function useScaledStyle<T extends ViewStyle | TextStyle>(style: StyleProp<T>): T {
   const scale = useContext(StickerScaleContext);
