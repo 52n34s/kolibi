@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react-native';
 import { useQueryClient, useQueries } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { ProgressionSuggestionCard } from '@/components/training/ProgressionSuggestionCard';
 import {
+  countDoneSets,
   doneSetValues,
   exerciseStats,
   istDiffersFromTarget,
@@ -18,13 +19,14 @@ import {
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, BRAND_MINT, TEXT_SECONDARY } from '@/constants/brand';
 import { adoptTargetFromMedian } from '@/lib/workouts/adopt-target';
-import { openExerciseNames } from '@/lib/workouts/session-logic';
+import { openExerciseNames, sessionDurationMinutes } from '@/lib/workouts/session-logic';
 import {
   displayActiveExerciseName,
   resolveExerciseName,
 } from '@/lib/workouts/exercise-name';
 import { allSetsHitUpperBound } from '@/lib/workouts/format-target';
 import { applyProgression } from '@/lib/workouts/apply-progression';
+import { suggestGymIntensityFromSetPace } from '@/lib/workouts/intensity-pace';
 import { activeItemToHistoryUnit } from '@/lib/workouts/progression-history';
 import { suggestProgression, type ProgressionSuggestion } from '@/lib/workouts/progression';
 import {
@@ -128,6 +130,21 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
   const setDecisions = (
     updater: (prev: Record<number, Decision>) => Record<number, Decision>,
   ) => updateSummaryDraft({ decisions: updater(decisions) });
+
+  useEffect(() => {
+    if (intensity != null) {
+      return;
+    }
+    const suggested = suggestGymIntensityFromSetPace({
+      durationMinutes: sessionDurationMinutes(session),
+      doneSetCount: countDoneSets(session).done,
+    });
+    if (suggested != null) {
+      setIntensity(suggested);
+    }
+    // Prefill once when the summary opens without a choice yet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session identity + empty intensity
+  }, [session.sessionId, intensity]);
 
   const openNames = openExerciseNames(session);
   const [saving, setSaving] = useState(false);
@@ -728,9 +745,6 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
               <Text style={styles.intensityLabel}>
                 {t(`home.training.intensity.${key}.label`)}
               </Text>
-              <Text style={styles.intensityHint}>
-                {t(`home.training.intensity.${key}.hint`)}
-              </Text>
             </Pressable>
           );
         })}
@@ -1064,10 +1078,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#1E1B4B',
-  },
-  intensityHint: {
-    fontSize: 13,
-    color: TEXT_SECONDARY,
   },
   checkRow: {
     flexDirection: 'row',

@@ -302,16 +302,13 @@
       "intensityLabel": "Intensity",
       "intensity": {
         "easy": {
-          "label": "Easy",
-          "hint": "You could talk normally between efforts"
+          "label": "You could talk normally between efforts"
         },
         "normal": {
-          "label": "Normal",
-          "hint": "Slightly out of breath, talking in sentences"
+          "label": "Slightly out of breath, talking in sentences"
         },
         "hard": {
-          "label": "Hard",
-          "hint": "Hardly a full sentence between efforts"
+          "label": "Hardly a full sentence between efforts"
         }
       },
       "kcalPreview": "About {{kcal}} kcal (excluding resting metabolism)",
@@ -733,7 +730,7 @@
       "prs": "PRs this workout",
       "prBeat": "New PR: {{name}} {{value}}",
       "upperBoundHint": "Upper target hit — ready for more",
-      "intensityTitle": "How hard was it?",
+      "intensityTitle": "How was your breathing? It sets your estimated burn.",
       "adoptTitle": "Adopt as new target?",
       "addToTemplate": "Add to template?",
       "done": "Done",

@@ -351,9 +351,6 @@ export default function TrainingLogScreen() {
                       }`}>
                       {t(`home.training.intensity.${id}.label`)}
                     </Text>
-                    <Text className="mt-1 text-sm text-gray-500">
-                      {t(`home.training.intensity.${id}.hint`)}
-                    </Text>
                   </Pressable>
                 );
               })}

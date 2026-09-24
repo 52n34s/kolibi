@@ -302,16 +302,13 @@
       "intensityLabel": "Intensität",
       "intensity": {
         "easy": {
-          "label": "Locker",
-          "hint": "Konntest dich zwischendurch normal unterhalten"
+          "label": "Konntest dich zwischendurch normal unterhalten"
         },
         "normal": {
-          "label": "Normal",
-          "hint": "Kurz außer Atem, Gespräch in Sätzen"
+          "label": "Kurz außer Atem, Gespräch in Sätzen"
         },
         "hard": {
-          "label": "Hart",
-          "hint": "Kaum ein ganzer Satz zwischendurch"
+          "label": "Kaum ein ganzer Satz zwischendurch"
         }
       },
       "kcalPreview": "Geschätzt {{kcal}} kcal (ohne Ruheumsatz)",
@@ -733,7 +730,7 @@
       "prs": "Bestwerte dieser Einheit",
       "prBeat": "Neuer Bestwert: {{name}} {{value}}",
       "upperBoundHint": "Oberes Ziel erreicht – bereit für mehr",
-      "intensityTitle": "Wie anstrengend war's?",
+      "intensityTitle": "Wie war deine Atmung? Das bestimmt deinen geschätzten Verbrauch.",
       "adoptTitle": "Als neues Ziel übernehmen?",
       "addToTemplate": "Zur Vorlage hinzufügen?",
       "done": "Fertig",

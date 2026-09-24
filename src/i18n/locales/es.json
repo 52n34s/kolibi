@@ -302,16 +302,13 @@
       "intensityLabel": "Intensidad",
       "intensity": {
         "easy": {
-          "label": "Suave",
-          "hint": "Podías hablar con normalidad entre esfuerzos"
+          "label": "Podías hablar con normalidad entre esfuerzos"
         },
         "normal": {
-          "label": "Normal",
-          "hint": "Un poco sin aliento, hablando en frases"
+          "label": "Un poco sin aliento, hablando en frases"
         },
         "hard": {
-          "label": "Fuerte",
-          "hint": "Casi no cabía una frase entera"
+          "label": "Casi no cabía una frase entera"
         }
       },
       "kcalPreview": "Unos {{kcal}} kcal (sin metabolismo en reposo)",
@@ -733,7 +730,7 @@
       "prs": "Récords de esta sesión",
       "prBeat": "Nuevo récord: {{name}} {{value}}",
       "upperBoundHint": "Objetivo alto alcanzado — listo para más",
-      "intensityTitle": "¿Qué tan duro fue?",
+      "intensityTitle": "¿Cómo era tu respiración? Determina tu gasto estimado.",
       "adoptTitle": "¿Adoptar como nuevo objetivo?",
       "addToTemplate": "¿Añadir a la plantilla?",
       "done": "Listo",
