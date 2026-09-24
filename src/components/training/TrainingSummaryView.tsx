@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 import { useQueryClient, useQueries } from '@tanstack/react-query';
 import { Image } from 'expo-image';
@@ -18,6 +19,17 @@ import {
 } from '@/components/training/training-panel-utils';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, BRAND_MINT, TEXT_SECONDARY } from '@/constants/brand';
+import { ShareStickerSheet } from '@/components/share/ShareStickerSheet';
+import {
+  buildExerciseSticker,
+  buildLevelSticker,
+  buildSessionSticker,
+  formatSetsCompact,
+  type ExerciseStickerData,
+  type LevelStickerData,
+  type SessionStickerData,
+  type StickerData,
+} from '@/lib/share/sticker-data';
 import { adoptTargetFromMedian } from '@/lib/workouts/adopt-target';
 import { openExerciseNames, sessionDurationMinutes } from '@/lib/workouts/session-logic';
 import {
@@ -156,8 +168,10 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     name: string;
     step?: number;
     total?: number;
+    levelSticker?: LevelStickerData;
     praiseKey?: string;
   } | null>(null);
+  const [sticker, setSticker] = useState<StickerData | null>(null);
 
   const stats = exerciseStats(session);
   const finishedAt = session.finishedAt ? Date.parse(session.finishedAt) : Date.now();
@@ -353,7 +367,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
   }, [session.items, exerciseQueries, historyUnitQueries, allEvents, t]);
 
   const prs = useMemo(() => {
-    const rows: { name: string; value: string }[] = [];
+    const rows: { index: number; name: string; value: string }[] = [];
     session.items.forEach((item, index) => {
       const values = doneSetValues(item);
       const sessionBest = bestSessionValue(values);
@@ -365,12 +379,71 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         return;
       }
       rows.push({
+        index,
         name: labelOf(item),
         value: item.kind === 'time' ? `${sessionBest} s` : String(sessionBest),
       });
     });
     return rows;
   }, [historyQueries, session.items, i18n.language]);
+
+  const exerciseRows = session.items
+    .map((item, index) => ({
+      item,
+      index,
+      sets: formatSetsCompact(doneSetValues(item), item.kind),
+    }))
+    .filter((row) => row.sets.length > 0);
+
+  function exerciseSticker(index: number): ExerciseStickerData {
+    const item = session.items[index];
+    const exercise = exerciseQueries[index]?.data;
+    return buildExerciseSticker({
+      exercise,
+      fallbackName: labelOf(item),
+      lang: i18n.language,
+      exerciseKind: item.kind,
+      perSide: item.perSide,
+      values: doneSetValues(item),
+      ladder: exercise?.ladderKey != null ? (laddersByKey.get(exercise.ladderKey) ?? []) : [],
+      // Only once the history has loaded — before that every set looks like a best.
+      isNewBest:
+        historyQueries[index]?.isSuccess === true && prs.some((pr) => pr.index === index),
+    });
+  }
+
+  function sessionSticker(): SessionStickerData {
+    return buildSessionSticker({
+      name: session.templateName,
+      dateKey: session.loggedOn,
+      durationMinutes: sessionDurationMinutes(session),
+      totals: { reps: stats.repsTotal, seconds: stats.secondsTotal },
+      items: session.items.map((item) => ({
+        exerciseId: item.exerciseId,
+        name: labelOf(item),
+        exerciseKind: item.kind,
+        values: doneSetValues(item),
+      })),
+      bestsCount: prs.length,
+      suggestions: suggestionRows.map((row) => ({ index: row.index, kind: row.suggestion.kind })),
+      decisions,
+    });
+  }
+
+  function levelStickerFor(row: SuggestionRow): LevelStickerData | undefined {
+    const ladder =
+      row.exercise.ladderKey != null ? (laddersByKey.get(row.exercise.ladderKey) ?? []) : [];
+    return (
+      buildLevelSticker({
+        toExercise: ladder.find((ex) => ex.id === row.suggestion.toExerciseId),
+        fromExercise: row.exercise,
+        lang: i18n.language,
+        ladder,
+      }) ?? undefined
+    );
+  }
+
+  const shareSheet = <ShareStickerSheet data={sticker} onClose={() => setSticker(null)} />;
 
   const adoptCandidates = useMemo(
     () =>
@@ -536,6 +609,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
             name: row.toName ?? labelOf(row.item),
             step: row.suggestion.level.toStep,
             total: row.suggestion.level.total,
+            levelSticker: levelStickerFor(row),
           };
         } else if (
           row.suggestion.kind === 'sets_up' ||
@@ -643,6 +717,16 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
             })}
           </Text>
           <Text style={styles.celebSub}>{t(subtitleKey)}</Text>
+          {celebration.levelSticker ? (
+            <Pressable
+              testID="training.progression.celebration.share"
+              accessibilityRole="button"
+              onPress={() => setSticker(celebration.levelSticker ?? null)}
+              style={styles.shareBtn}>
+              <Ionicons name="share-outline" size={18} color={BRAND_INDIGO} />
+              <Text style={styles.shareText}>{t('share.actions.share')}</Text>
+            </Pressable>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             onPress={() => onDismiss?.()}
@@ -650,6 +734,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
             <Text style={styles.doneText}>{t('training.progression.celebration.continue')}</Text>
           </Pressable>
         </Animated.View>
+        {shareSheet}
       </ScrollView>
     );
   }
@@ -859,6 +944,37 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         <Stat label={t('training.panel.seconds')} value={String(stats.secondsTotal)} />
       </GlassCard>
 
+      {exerciseRows.length > 0 ? (
+        <View style={styles.block} testID="training.summary.exercises">
+          <Text style={styles.blockTitle}>{t('share.exercisesTitle')}</Text>
+          {exerciseRows.map(({ item, index, sets }) => (
+            <View key={`${item.exerciseId}-${index}`} style={styles.exerciseRow}>
+              <Text style={styles.exerciseName} numberOfLines={1}>
+                {labelOf(item)}
+              </Text>
+              <Text style={styles.exerciseSets}>{sets}</Text>
+              <Pressable
+                testID={`training.summary.shareExercise.${index}`}
+                accessibilityRole="button"
+                accessibilityLabel={t('share.shareExercise', { name: labelOf(item) })}
+                hitSlop={8}
+                onPress={() => setSticker(exerciseSticker(index))}
+                style={styles.exerciseShare}>
+                <Ionicons name="share-outline" size={18} color={BRAND_INDIGO} />
+              </Pressable>
+            </View>
+          ))}
+          <Pressable
+            testID="training.summary.shareSession"
+            accessibilityRole="button"
+            onPress={() => setSticker(sessionSticker())}
+            style={styles.shareBtn}>
+            <Ionicons name="share-outline" size={18} color={BRAND_INDIGO} />
+            <Text style={styles.shareText}>{t('share.actions.share')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {prs.length > 0 ? (
         <View style={styles.block}>
           <Text style={styles.blockTitle}>{t('training.panel.prs')}</Text>
@@ -910,6 +1026,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           </>
         )}
       </View>
+      {shareSheet}
     </View>
   );
 }
@@ -1124,5 +1241,46 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 16,
+  },
+  exerciseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  exerciseName: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1E1B4B',
+  },
+  exerciseSets: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    fontVariant: ['tabular-nums'],
+  },
+  exerciseShare: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(79,70,229,0.1)',
+  },
+  shareBtn: {
+    marginTop: 4,
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(79,70,229,0.1)',
+  },
+  shareText: {
+    color: BRAND_INDIGO,
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
