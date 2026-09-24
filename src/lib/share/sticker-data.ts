@@ -5,6 +5,7 @@ import type {
   ExerciseKind,
   ProgressionEvent,
   ProgressionEventKind,
+  SessionSet,
   WorkoutSession,
 } from '@/lib/workouts/types';
 
@@ -18,7 +19,13 @@ import type {
 
 export type StickerVariant = 'light' | 'dark';
 export type StickerAction = 'save' | 'copy' | 'share';
-export type StickerAnalyticsType = 'exercise' | 'level' | 'session' | 'recap_week' | 'recap_month';
+export type StickerAnalyticsType =
+  | 'exercise'
+  | 'level'
+  | 'session'
+  | 'recap_week'
+  | 'recap_month'
+  | 'progress';
 export type StickerFormat = 'sticker' | 'story';
 export type RecapPeriod = 'week' | 'month';
 
@@ -85,11 +92,60 @@ export type RecapStickerData = {
   proteinHitDays: number;
 };
 
+export type ProgressPeriod = '4w' | '8w' | '12w' | 'all';
+
+export const PROGRESS_PERIODS: readonly ProgressPeriod[] = ['4w', '8w', '12w', 'all'];
+
+/** Weeks behind a period; "all" has no bound. */
+export const PROGRESS_PERIOD_WEEKS: Record<Exclude<ProgressPeriod, 'all'>, number> = {
+  '4w': 4,
+  '8w': 8,
+  '12w': 12,
+};
+
+/** Best set of one session. On a ladder the exercise (and step) can differ per session. */
+export type ProgressPoint = {
+  dateKey: string;
+  value: number;
+  exerciseId: string;
+  exerciseName: string;
+  /** Ladder step, null off-ladder. */
+  step: number | null;
+};
+
+export type ProgressView = {
+  period: ProgressPeriod;
+  /** Chronological, one per session. */
+  points: ProgressPoint[];
+  start: ProgressPoint;
+  current: ProgressPoint;
+  /**
+   * Start and current are different rungs of the ladder. Then the level is the
+   * figure — reps of two different exercises are not compared.
+   */
+  levelChanged: boolean;
+};
+
+export type ProgressStickerData = {
+  kind: 'progress';
+  /** Name of the exercise done most recently (the current rung on a ladder). */
+  name: string;
+  exerciseKind: ExerciseKind;
+  perSide: boolean;
+  /** Rungs on the ladder, null off-ladder. */
+  ladderTotal: number | null;
+  /** Periods with at least two sessions; empty means "no sticker, show a hint". */
+  views: Partial<Record<ProgressPeriod, ProgressView>>;
+  /** Selected period (the default until the user switches). */
+  period: ProgressPeriod;
+};
+
 export type StickerData =
   | ExerciseStickerData
   | LevelStickerData
   | SessionStickerData
-  | RecapStickerData;
+  | RecapStickerData
+  | ProgressStickerData;
 
 /** Optional lines on a sticker; each sticker reads the ones that apply to it. */
 export type StickerOptions = {
@@ -131,6 +187,8 @@ export function availableStickerOptions(data: StickerData): StickerOptionKey[] {
         ...(data.biggestGain ? (['showBiggestGain'] as const) : []),
         ...(data.proteinHitDays > 0 ? (['showProtein'] as const) : []),
       ];
+    case 'progress':
+      return data.views[data.period]?.levelChanged ? ['showLevel'] : [];
   }
 }
 
@@ -498,4 +556,161 @@ export function topSessionExercises(
       return aTime - bTime || b.best - a.best;
     })
     .slice(0, limit);
+}
+
+/** Minimum sessions for a progress sticker; below that the sheet shows a hint. */
+export const PROGRESS_MIN_SESSIONS = 2;
+/** The default period is the longest one with at least this many sessions. */
+export const PROGRESS_DEFAULT_MIN_SESSIONS = 3;
+
+type ProgressExercise = Pick<
+  Exercise,
+  'id' | 'names' | 'kind' | 'perSide' | 'ladderKey' | 'ladderStep' | 'userId' | 'archivedAt'
+>;
+
+/**
+ * Exercise ids a progress sticker follows: every catalog rung of the ladder,
+ * or the exercise alone off-ladder. Load these with `fetchExerciseProgressUnits`.
+ */
+export function progressExerciseIds(
+  exerciseId: string,
+  exercises: readonly ProgressExercise[],
+): string[] {
+  const exercise = exercises.find((row) => row.id === exerciseId);
+  if (!exercise?.ladderKey) {
+    return [exerciseId];
+  }
+  const ids = ladderRows(exercise.ladderKey, exercises).map((row) => row.id);
+  return ids.includes(exerciseId) ? ids : [...ids, exerciseId];
+}
+
+function progressWindowStart(period: ProgressPeriod, todayKey: string): string | null {
+  if (period === 'all') {
+    return null;
+  }
+  const start = parseKey(todayKey);
+  start.setDate(start.getDate() - (PROGRESS_PERIOD_WEEKS[period] * 7 - 1));
+  return toKey(start);
+}
+
+export function buildProgressSticker(params: {
+  /** The exercise the user shares (grouped by exercise_id, never by name). */
+  exerciseId: string;
+  /** Exercise list holding the catalog, for names and the ladder. */
+  exercises: readonly ProgressExercise[];
+  /** Sessions with sets of `progressExerciseIds(...)`, any order. */
+  units: readonly { sessionId: string; loggedOn: string; sets: readonly SessionSet[] }[];
+  todayKey: string;
+  lang: string;
+}): ProgressStickerData {
+  const byId = new Map(params.exercises.map((row) => [row.id, row]));
+  const shared = byId.get(params.exerciseId);
+  const ids = new Set(progressExerciseIds(params.exerciseId, params.exercises));
+  const ladderTotal =
+    shared?.ladderKey != null ? ladderRows(shared.ladderKey, params.exercises).length : null;
+
+  // One point per session: the highest rung done that day, its best set.
+  const all: (ProgressPoint & { perSide: boolean; kind: ExerciseKind })[] = [];
+  for (const unit of params.units) {
+    const bestByExercise = new Map<string, { value: number; perSide: boolean; kind: ExerciseKind; stored: string }>();
+    for (const set of unit.sets) {
+      if (set.exerciseId == null || !ids.has(set.exerciseId)) {
+        continue;
+      }
+      const value = setPerformanceValue(set);
+      if (value == null || !(value > 0)) {
+        continue;
+      }
+      const prev = bestByExercise.get(set.exerciseId);
+      if (!prev || value > prev.value) {
+        bestByExercise.set(set.exerciseId, {
+          value,
+          perSide: set.perSide,
+          kind: set.kind,
+          stored: set.exerciseName,
+        });
+      }
+    }
+    let pick: (typeof all)[number] | null = null;
+    for (const [exerciseId, best] of bestByExercise) {
+      const exercise = byId.get(exerciseId);
+      const step = exercise?.ladderStep ?? null;
+      if (!pick || (step ?? 0) > (pick.step ?? 0)) {
+        pick = {
+          dateKey: unit.loggedOn,
+          value: best.value,
+          exerciseId,
+          exerciseName: nameOrFallback(exercise, params.lang, best.stored),
+          step,
+          perSide: best.perSide,
+          kind: best.kind,
+        };
+      }
+    }
+    if (pick) {
+      all.push(pick);
+    }
+  }
+  all.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+
+  const latest = all[all.length - 1];
+  const views: Partial<Record<ProgressPeriod, ProgressView>> = {};
+  for (const period of PROGRESS_PERIODS) {
+    const startKey = progressWindowStart(period, params.todayKey);
+    // A week period that reaches past the first session would claim
+    // "12 weeks ago" for a start that is younger; "seit Beginn" covers that.
+    if (startKey != null && (all.length === 0 || all[0].dateKey >= startKey)) {
+      continue;
+    }
+    const points = all
+      .filter((point) => (startKey == null || point.dateKey >= startKey) && point.dateKey <= params.todayKey)
+      .map(({ perSide: _perSide, kind: _kind, ...point }) => point);
+    if (points.length < PROGRESS_MIN_SESSIONS) {
+      continue;
+    }
+    const start = points[0];
+    const current = points[points.length - 1];
+    views[period] = {
+      period,
+      points,
+      start,
+      current,
+      levelChanged: start.exerciseId !== current.exerciseId && start.step !== current.step,
+    };
+  }
+
+  const weekPeriods = PROGRESS_PERIODS.filter((period) => period !== 'all').reverse();
+  const period =
+    weekPeriods.find((p) => (views[p]?.points.length ?? 0) >= PROGRESS_DEFAULT_MIN_SESSIONS) ??
+    (views.all ? 'all' : (weekPeriods.find((p) => views[p]) ?? 'all'));
+
+  return {
+    kind: 'progress',
+    name: latest?.exerciseName ?? nameOrFallback(shared, params.lang, ''),
+    exerciseKind: latest?.kind ?? shared?.kind ?? 'reps',
+    perSide: latest?.perSide ?? shared?.perSide ?? false,
+    ladderTotal: ladderTotal != null && ladderTotal >= 2 ? ladderTotal : null,
+    views,
+    period,
+  };
+}
+
+/**
+ * Relative height of each point in [0, 1]. Within one exercise the best set;
+ * across a ladder every rung gets its own band ordered by step, so moving up a
+ * rung reads as up even when the harder exercise has fewer reps.
+ */
+export function progressCurveLevels(points: readonly ProgressPoint[]): number[] {
+  const steps = [...new Set(points.map((point) => point.step ?? 0))].sort((a, b) => a - b);
+  const bandOf = new Map(steps.map((step, index) => [step, index]));
+  const band = 1 / steps.length;
+  return points.map((point) => {
+    const step = point.step ?? 0;
+    const same = points.filter((other) => (other.step ?? 0) === step).map((other) => other.value);
+    const min = Math.min(...same);
+    const max = Math.max(...same);
+    const within = max === min ? 0.5 : (point.value - min) / (max - min);
+    // Leave a gap between bands so the step up is visible.
+    return (bandOf.get(step)! + (steps.length > 1 ? 0.1 + within * 0.6 : within)) * band;
+  });
 }
