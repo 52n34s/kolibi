@@ -160,7 +160,7 @@ export function trainingCardDayKeys(params: {
 
 /**
  * Training days the sessions card shows as filled dots — one per calendar day,
- * manual sessions and workouts merged. The recap sticker counts the same way.
+ * manual sessions and workouts merged.
  */
 export function trainingCardSessionCount(params: {
   rangeDays: 7 | 30;
