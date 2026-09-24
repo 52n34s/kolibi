@@ -1751,6 +1751,7 @@
       "showProtein": "Objetivo de proteína"
     },
     "newBest": "Nueva marca personal",
+    "firstTime": "Primera vez",
     "newLevel": "Nuevo nivel",
     "level": "Nivel {{n}} de {{total}}",
     "previousLevel": "antes: {{name}}",
