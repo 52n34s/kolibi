@@ -22,6 +22,9 @@ import { trackShareStickerCreated } from '@/lib/analytics';
 import {
   availableStickerOptions,
   DEFAULT_STICKER_OPTIONS,
+  PROGRESS_PERIOD_WEEKS,
+  PROGRESS_PERIODS,
+  type ProgressPeriod,
   stickerAnalyticsType,
   type StickerAction,
   type StickerData,
@@ -58,11 +61,15 @@ type ShareStickerSheetProps = {
   /** Sheet is open while this is set. */
   data: StickerData | null;
   onClose: () => void;
-  /** Offer the 1080 × 1920 story card next to the transparent sticker (recaps). */
+  /** Offer the 1080 × 1920 story card next to the transparent sticker (recap, progress). */
   allowStory?: boolean;
 };
 
-export function ShareStickerSheet({ data, onClose, allowStory = false }: ShareStickerSheetProps) {
+export function ShareStickerSheet({
+  data: incoming,
+  onClose,
+  allowStory = false,
+}: ShareStickerSheetProps) {
   const { t } = useTranslation();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const exportRef = useRef<View>(null);
@@ -72,21 +79,32 @@ export function ShareStickerSheet({ data, onClose, allowStory = false }: ShareSt
   const [layoutHeight, setLayoutHeight] = useState(0);
   const [busy, setBusy] = useState<StickerAction | null>(null);
   const [status, setStatus] = useState<Status>(null);
+  const [progressPeriod, setProgressPeriod] = useState<ProgressPeriod | null>(null);
 
-  const visible = data != null;
+  const visible = incoming != null;
 
   useEffect(() => {
     if (visible) {
       setStatus(null);
       setBusy(null);
     }
-  }, [visible]);
+    setProgressPeriod(incoming?.kind === 'progress' ? incoming.period : null);
+  }, [visible, incoming]);
 
-  if (!data) {
+  if (!incoming) {
     return null;
   }
 
-  const activeFormat: StickerFormat = allowStory && data.kind === 'recap' ? format : 'sticker';
+  // The period switch of the progress sticker picks one of its prepared views.
+  const data: StickerData =
+    incoming.kind === 'progress' && progressPeriod && incoming.views[progressPeriod]
+      ? { ...incoming, period: progressPeriod }
+      : incoming;
+  const progressPeriods =
+    data.kind === 'progress' ? PROGRESS_PERIODS.filter((period) => data.views[period]) : [];
+  const notEnoughProgress = data.kind === 'progress' && progressPeriods.length === 0;
+  const storyCapable = data.kind === 'recap' || data.kind === 'progress';
+  const activeFormat: StickerFormat = allowStory && storyCapable ? format : 'sticker';
   const height = activeFormat === 'story' ? STORY_LAYOUT_HEIGHT : layoutHeight;
   const availableWidth = Math.min(windowWidth - SHEET_GUTTER, STICKER_LAYOUT_WIDTH);
   const scale =
@@ -140,129 +158,158 @@ export function ShareStickerSheet({ data, onClose, allowStory = false }: ShareSt
 
   return (
     <GlassBottomSheet visible={visible} onClose={onClose} maxHeightRatio={0.92}>
-      {/* Export copy: full layout size, off screen, no background anywhere. */}
-      <View pointerEvents="none" style={styles.exportLayer}>
-        <View
-          ref={exportRef}
-          collapsable={false}
-          onLayout={(event) => setLayoutHeight(event.nativeEvent.layout.height)}>
-          {sticker}
-        </View>
-      </View>
-
-      <ScrollView
-        style={{ maxHeight: windowHeight * 0.85 }}
-        showsVerticalScrollIndicator={false}
-        bounces={false}>
-        <Text style={styles.title}>{t('share.title')}</Text>
-
-        <View
-          pointerEvents="none"
-          style={[
-            styles.preview,
-            // The dark backdrop shows off the light sticker and vice versa.
-            activeFormat === 'sticker' && variant === 'light'
-              ? styles.previewOnDark
-              : styles.previewOnLight,
-            { height: previewHeight + (activeFormat === 'sticker' ? 24 : 0) },
-          ]}>
-          <View style={{ width: previewWidth, height: previewHeight }}>
+      {notEnoughProgress ? (
+        <>
+          <Text style={styles.title}>{t('share.title')}</Text>
+          <Text testID="share.progress.notEnough" style={styles.hint}>
+            {t('share.progress.notEnough')}
+          </Text>
+        </>
+      ) : (
+        <>
+          {/* Export copy: full layout size, off screen, no background anywhere. */}
+          <View pointerEvents="none" style={styles.exportLayer}>
             <View
-              style={{
-                position: 'absolute',
-                width: STICKER_LAYOUT_WIDTH,
-                left: (previewWidth - STICKER_LAYOUT_WIDTH) / 2,
-                top: (previewHeight - (height || previewHeight)) / 2,
-                transform: [{ scale }],
-              }}>
+              ref={exportRef}
+              collapsable={false}
+              onLayout={(event) => setLayoutHeight(event.nativeEvent.layout.height)}>
               {sticker}
             </View>
           </View>
-        </View>
 
-        <View style={styles.controls}>
-          {allowStory && data.kind === 'recap' ? (
-            <PillSegmentSwitcher
-              compact
-              value={format}
-              onChange={(next) => {
-                setFormat(next);
-                resetStatus();
-              }}
-              segments={[
-                { id: 'sticker', label: t('share.format.sticker'), testID: 'share.format.sticker' },
-                { id: 'story', label: t('share.format.story'), testID: 'share.format.story' },
-              ]}
-            />
-          ) : null}
-          <PillSegmentSwitcher
-            compact
-            value={variant}
-            onChange={(next) => {
-              setVariant(next);
-              resetStatus();
-            }}
-            segments={[
-              { id: 'light', label: t('share.variant.light'), testID: 'share.variant.light' },
-              { id: 'dark', label: t('share.variant.dark'), testID: 'share.variant.dark' },
-            ]}
-          />
-          {optionKeys.map((key) => (
-            <View key={key} style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{t(`share.options.${key}`)}</Text>
-              <Switch
-                testID={`share.option.${key}`}
-                value={options[key]}
-                onValueChange={() => toggleOption(key)}
-                trackColor={{ true: BRAND_INDIGO }}
+          <ScrollView
+            style={{ maxHeight: windowHeight * 0.85 }}
+            showsVerticalScrollIndicator={false}
+            bounces={false}>
+            <Text style={styles.title}>{t('share.title')}</Text>
+
+            <View
+              pointerEvents="none"
+              style={[
+                styles.preview,
+                // The dark backdrop shows off the light sticker and vice versa.
+                activeFormat === 'sticker' && variant === 'light'
+                  ? styles.previewOnDark
+                  : styles.previewOnLight,
+                { height: previewHeight + (activeFormat === 'sticker' ? 24 : 0) },
+              ]}>
+              <View style={{ width: previewWidth, height: previewHeight }}>
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: STICKER_LAYOUT_WIDTH,
+                    left: (previewWidth - STICKER_LAYOUT_WIDTH) / 2,
+                    top: (previewHeight - (height || previewHeight)) / 2,
+                    transform: [{ scale }],
+                  }}>
+                  {sticker}
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.controls}>
+              {progressPeriods.length > 1 && data.kind === 'progress' ? (
+                <PillSegmentSwitcher
+                  compact
+                  value={data.period}
+                  onChange={(next) => {
+                    setProgressPeriod(next);
+                    resetStatus();
+                  }}
+                  segments={progressPeriods.map((period) => ({
+                    id: period,
+                    label:
+                      period === 'all'
+                        ? t('share.progress.sinceStart')
+                        : t('share.progress.periodWeeks', { count: PROGRESS_PERIOD_WEEKS[period] }),
+                    testID: `share.progress.period.${period}`,
+                  }))}
+                />
+              ) : null}
+              {allowStory && storyCapable ? (
+                <PillSegmentSwitcher
+                  compact
+                  value={format}
+                  onChange={(next) => {
+                    setFormat(next);
+                    resetStatus();
+                  }}
+                  segments={[
+                    { id: 'sticker', label: t('share.format.sticker'), testID: 'share.format.sticker' },
+                    { id: 'story', label: t('share.format.story'), testID: 'share.format.story' },
+                  ]}
+                />
+              ) : null}
+              <PillSegmentSwitcher
+                compact
+                value={variant}
+                onChange={(next) => {
+                  setVariant(next);
+                  resetStatus();
+                }}
+                segments={[
+                  { id: 'light', label: t('share.variant.light'), testID: 'share.variant.light' },
+                  { id: 'dark', label: t('share.variant.dark'), testID: 'share.variant.dark' },
+                ]}
+              />
+              {optionKeys.map((key) => (
+                <View key={key} style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>{t(`share.options.${key}`)}</Text>
+                  <Switch
+                    testID={`share.option.${key}`}
+                    value={options[key]}
+                    onValueChange={() => toggleOption(key)}
+                    trackColor={{ true: BRAND_INDIGO }}
+                  />
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.actions}>
+              <ActionButton
+                testID="share.action.save"
+                icon="download-outline"
+                label={t('share.actions.save')}
+                busy={busy === 'save'}
+                onPress={() => void run('save')}
+              />
+              {CLIPBOARD_KEEPS_ALPHA ? (
+                <ActionButton
+                  testID="share.action.copy"
+                  icon="copy-outline"
+                  label={t('share.actions.copy')}
+                  busy={busy === 'copy'}
+                  onPress={() => void run('copy')}
+                />
+              ) : null}
+              <ActionButton
+                testID="share.action.share"
+                icon="share-outline"
+                label={t('share.actions.share')}
+                busy={busy === 'share'}
+                primary
+                onPress={() => void run('share')}
               />
             </View>
-          ))}
-        </View>
 
-        <View style={styles.actions}>
-          <ActionButton
-            testID="share.action.save"
-            icon="download-outline"
-            label={t('share.actions.save')}
-            busy={busy === 'save'}
-            onPress={() => void run('save')}
-          />
-          {CLIPBOARD_KEEPS_ALPHA ? (
-            <ActionButton
-              testID="share.action.copy"
-              icon="copy-outline"
-              label={t('share.actions.copy')}
-              busy={busy === 'copy'}
-              onPress={() => void run('copy')}
-            />
-          ) : null}
-          <ActionButton
-            testID="share.action.share"
-            icon="share-outline"
-            label={t('share.actions.share')}
-            busy={busy === 'share'}
-            primary
-            onPress={() => void run('share')}
-          />
-        </View>
-
-        {status ? (
-          <View style={styles.statusRow}>
-            <Text
-              testID="share.status"
-              accessibilityLiveRegion="polite"
-              style={[styles.status, status === 'failed' && styles.statusError]}>
-              {t(`share.status.${status}`)}
-            </Text>
-            {status === 'permissionDenied' ? (
-              <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()}>
-                <Text style={styles.statusLink}>{t('share.openSettings')}</Text>
-              </Pressable>
+            {status ? (
+              <View style={styles.statusRow}>
+                <Text
+                  testID="share.status"
+                  accessibilityLiveRegion="polite"
+                  style={[styles.status, status === 'failed' && styles.statusError]}>
+                  {t(`share.status.${status}`)}
+                </Text>
+                {status === 'permissionDenied' ? (
+                  <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()}>
+                    <Text style={styles.statusLink}>{t('share.openSettings')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
             ) : null}
-          </View>
-        ) : null}
-      </ScrollView>
+          </ScrollView>
+        </>
+      )}
     </GlassBottomSheet>
   );
 }
@@ -308,6 +355,13 @@ const styles = StyleSheet.create({
     top: 0,
     left: OFFSCREEN_LEFT,
     width: STICKER_LAYOUT_WIDTH,
+  },
+  hint: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    paddingVertical: 16,
   },
   title: {
     marginBottom: 12,
