@@ -45,8 +45,9 @@ import type { WorkoutSession } from '@/lib/workouts/types';
 import {
   buildWeekDayMarkers,
   buildWeekDayMarkersForKeys,
-  countDistinctTrainingDaysMerged,
+  trainingCardSessionCount,
   weekDateKeysFromMonday,
+  weekStartsNewestFirst,
   type WeekDayMarker,
 } from '@/lib/workouts/week-day-markers';
 
@@ -69,33 +70,6 @@ type HistoryTrainingSectionProps = {
   onOpenTrainingTab?: () => void;
   canOpenTrainingTab?: boolean;
 };
-
-function mondayOnOrBefore(dateKey: string): string {
-  const date = parseDateOnly(dateKey);
-  const weekday = date.getDay();
-  const daysSinceMonday = weekday === 0 ? 6 : weekday - 1;
-  date.setDate(date.getDate() - daysSinceMonday);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function weekStartsNewestFirst(startKey: string, endKey: string): string[] {
-  const firstMonday = mondayOnOrBefore(startKey);
-  const lastMonday = mondayOnOrBefore(endKey);
-  const starts: string[] = [];
-  const cursor = parseDateOnly(firstMonday);
-  const last = parseDateOnly(lastMonday);
-  while (cursor.getTime() <= last.getTime()) {
-    const y = cursor.getFullYear();
-    const m = String(cursor.getMonth() + 1).padStart(2, '0');
-    const d = String(cursor.getDate()).padStart(2, '0');
-    starts.push(`${y}-${m}-${d}`);
-    cursor.setDate(cursor.getDate() + 7);
-  }
-  return starts.reverse();
-}
 
 function sessionDurationMinutes(session: WorkoutSession): number {
   const end = Date.parse(session.finishedAt ?? new Date().toISOString());
@@ -217,18 +191,17 @@ export function HistoryTrainingSection({
     [workoutSessions, rangeStartKey, todayKey],
   );
 
-  const currentWeekKeys = useMemo(() => {
-    const monday = mondayOnOrBefore(todayKey);
-    return weekDateKeysFromMonday(monday);
-  }, [todayKey]);
-
-  const sessionsThisWeek = useMemo(() => {
-    const weekSet = new Set(currentWeekKeys);
-    return countDistinctTrainingDaysMerged(
-      manualSessions.filter((s) => weekSet.has(s.loggedOn)),
-      workoutSessions.filter((s) => weekSet.has(s.loggedOn)),
-    );
-  }, [manualSessions, workoutSessions, currentWeekKeys]);
+  const sessionsThisWeek = useMemo(
+    () =>
+      trainingCardSessionCount({
+        rangeDays: 7,
+        rangeStartKey,
+        todayKey,
+        manualSessions,
+        workoutSessions,
+      }),
+    [manualSessions, workoutSessions, rangeStartKey, todayKey],
+  );
 
   const weekMarkers = useMemo(
     () => buildWeekDayMarkers(manualSessions, workoutSessions, parseDateOnly(todayKey)),
@@ -502,7 +475,7 @@ export function HistoryTrainingSection({
                       perSide: sets.perSide,
                       values: sets.values,
                       ladder: allExercises,
-                      isNewBest: true,
+                      milestone: 'newBest',
                     }),
                   );
                 }}
