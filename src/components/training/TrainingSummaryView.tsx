@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   celebWrap: {
-    alignItems: 'center',
+    alignItems: 'stretch',
     gap: 12,
     paddingTop: 24,
   },
@@ -1110,6 +1110,8 @@ const styles = StyleSheet.create({
   },
   doneBtn: {
     marginTop: 8,
+    alignSelf: 'stretch',
+    paddingHorizontal: 28,
     paddingVertical: 16,
     borderRadius: 999,
     backgroundColor: BRAND_INDIGO,
