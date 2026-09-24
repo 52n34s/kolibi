@@ -13,13 +13,12 @@ import {
   formatGain,
   formatSetsCompact,
   ladderPosition,
+  recapWindow,
   stickerAnalyticsType,
   topSessionExercises,
 } from './sticker-data.ts';
 import type { Exercise, ProgressionEvent, SessionSet, WorkoutSession } from '../workouts/types.ts';
-import { trainingCardSessionCount } from '../workouts/week-day-markers.ts';
-
-const NO_CARD = { rangeStartKey: '2026-09-18', todayKey: '2026-09-24', manualSessions: [], workoutSessions: [] };
+const TODAY = '2026-09-24';
 
 function set(partial: Partial<SessionSet> & Pick<SessionSet, 'id'>): SessionSet {
   return {
@@ -330,17 +329,18 @@ describe('biggestGain', () => {
 describe('buildRecapSticker', () => {
   it('sums reps without time sets and counts only accepted level-ups', () => {
     const recap = buildRecapSticker('month', {
-      sessions: [
+      todayKey: TODAY,
+      manualSessions: [],
+      workoutSessions: [
         session('s1', [
           set({ id: '1', reps: 7, completedAt: 'x' }),
           set({ id: '2', reps: 6, setIndex: 1, completedAt: 'y' }),
           set({ id: '3', kind: 'time', exerciseId: 'plank', seconds: 60, completedAt: 'z' }),
         ]),
       ],
-      card: NO_CARD,
       beforeBests: { ex1: 5 },
       events: [event({}), event({ id: 'e2', status: 'declined' }), event({ id: 'e3', kind: 'sets_up' })],
-      proteinHitDays: 4,
+      proteinDays: [],
       nameOf: () => 'Klimmzüge',
     });
     assert.equal(recap.totalReps, 13);
@@ -352,11 +352,12 @@ describe('buildRecapSticker', () => {
 
   it('handles a week without sessions and drops the protein line at 0', () => {
     const recap = buildRecapSticker('week', {
-      sessions: [],
-      card: NO_CARD,
+      todayKey: TODAY,
+      workoutSessions: [],
+      manualSessions: [],
       beforeBests: {},
       events: [],
-      proteinHitDays: 0,
+      proteinDays: [{ date: TODAY, hit: false }],
       nameOf: (best) => best.exerciseName,
     });
     assert.deepEqual(recap, {
@@ -375,14 +376,15 @@ describe('buildRecapSticker', () => {
 
   it('keeps one entry for the same exercise under two stored names', () => {
     const recap = buildRecapSticker('week', {
-      sessions: [
+      todayKey: TODAY,
+      manualSessions: [],
+      workoutSessions: [
         session('s1', [set({ id: '1', exerciseName: 'Klimmzüge', reps: 6, completedAt: 'a' })]),
         session('s2', [set({ id: '2', exerciseName: 'Pull-ups', reps: 8, completedAt: 'b' })]),
       ],
-      card: NO_CARD,
       beforeBests: { ex1: 5 },
       events: [],
-      proteinHitDays: 3,
+      proteinDays: [{ date: '2026-09-22', hit: true }],
       nameOf: () => 'Klimmzüge',
     });
     assert.equal(recap.bestsCount, 1);
@@ -391,37 +393,74 @@ describe('buildRecapSticker', () => {
   });
 });
 
-describe('recap sessions match the sessions card', () => {
-  // Thu 2026-09-24; the 7-day range starts Fri 2026-09-18.
+describe('recap rolling window', () => {
+  // Monday 2026-09-28. "Meine Woche" is Tue 09-22 … Mon 09-28, so Sat and Sun
+  // of the previous calendar week count; Mon 09-21 does not.
+  const MONDAY = '2026-09-28';
+  const at = (key: string, hour = 12) => {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d, hour).toISOString();
+  };
+  const day = (id: string, loggedOn: string, sets: SessionSet[], trainingSessionId: string | null = null) => ({
+    ...session(id, sets),
+    loggedOn,
+    trainingSessionId,
+  });
   const workouts = [
-    { ...session('w1', []), loggedOn: '2026-09-24' },
-    { ...session('w2', []), loggedOn: '2026-09-24' }, // second unit, same day
-    { ...session('w3', []), loggedOn: '2026-09-22' },
-    { ...session('w4', []), loggedOn: '2026-09-19' }, // in range, last week
+    day('mon', MONDAY, [set({ id: 'a', reps: 6, completedAt: at(MONDAY) })], 'ts-mon'),
+    day('sun', '2026-09-27', [set({ id: 'b', reps: 7, completedAt: at('2026-09-27') })]),
+    day('sat', '2026-09-26', [set({ id: 'c', exerciseId: 'dips', reps: 10, completedAt: at('2026-09-26') })]),
+    day('old', '2026-09-21', [set({ id: 'd', reps: 9, completedAt: at('2026-09-21') })]),
   ];
   const manual = [
-    { loggedOn: '2026-09-22' }, // same day as w3
-    { loggedOn: '2026-09-23' },
-    { loggedOn: '2026-09-14' }, // lookback only
+    { id: 'ts-mon', loggedOn: MONDAY }, // written by finishing "mon", not a second session
+    { id: 'run', loggedOn: '2026-09-24' },
+    { id: 'old-run', loggedOn: '2026-09-21' },
   ];
-
-  for (const rangeDays of [7, 30] as const) {
-    it(`uses the card's number for ${rangeDays} days`, () => {
-      const rangeStartKey = rangeDays === 7 ? '2026-09-18' : '2026-08-26';
-      const card = { rangeStartKey, todayKey: '2026-09-24', manualSessions: manual, workoutSessions: workouts };
-      const cardCount = trainingCardSessionCount({ rangeDays, ...card });
-      const recap = buildRecapSticker(rangeDays === 30 ? 'month' : 'week', {
-        sessions: workouts,
-        card,
-        beforeBests: {},
-        events: [],
-        proteinHitDays: 0,
-        nameOf: (best) => best.exerciseName,
-      });
-      assert.equal(recap.sessions, cardCount);
-      assert.equal(cardCount, rangeDays === 7 ? 3 : 5);
+  const events = [
+    event({ id: 'in', createdAt: at('2026-09-22', 0) }), // first minutes of the window
+    event({ id: 'out', createdAt: at('2026-09-21', 23) }),
+  ];
+  const proteinDays = [
+    { date: '2026-09-21', hit: true },
+    { date: '2026-09-22', hit: true },
+    { date: '2026-09-25', hit: false },
+    { date: MONDAY, hit: true }, // today counts
+  ];
+  const build = (period: 'week' | 'month') =>
+    buildRecapSticker(period, {
+      todayKey: MONDAY,
+      workoutSessions: workouts,
+      manualSessions: manual,
+      beforeBests: { ex1: 5, dips: 8 },
+      events,
+      proteinDays,
+      nameOf: (best) => (best.exerciseId === 'ex1' ? 'Klimmzüge' : 'Dips'),
     });
-  }
+
+  it('takes the last 7 days including today', () => {
+    assert.deepEqual(recapWindow('week', MONDAY), { startKey: '2026-09-22', endKey: MONDAY });
+    assert.deepEqual(recapWindow('month', MONDAY), { startKey: '2026-08-30', endKey: MONDAY });
+  });
+
+  it('draws every week figure from the same 7 days', () => {
+    const recap = build('week');
+    assert.equal(recap.sessions, 4); // mon, sun, sat + the unlinked run
+    assert.equal(recap.totalReps, 23); // 6 + 7 + 10, not the 9 of 09-21
+    assert.equal(recap.bestsCount, 2); // pull-ups 7 > 5, dips 10 > 8
+    assert.deepEqual(recap.biggestGain, { name: 'Klimmzüge', exerciseKind: 'reps', from: 5, to: 7 });
+    assert.equal(recap.levelsCount, 1);
+    assert.equal(recap.proteinHitDays, 2); // 09-22 and today
+  });
+
+  it('draws every month figure from the same 30 days', () => {
+    const recap = build('month');
+    assert.equal(recap.sessions, 6);
+    assert.equal(recap.totalReps, 32);
+    assert.deepEqual(recap.biggestGain, { name: 'Klimmzüge', exerciseKind: 'reps', from: 5, to: 9 });
+    assert.equal(recap.levelsCount, 2);
+    assert.equal(recap.proteinHitDays, 3);
+  });
 });
 
 describe('topSessionExercises', () => {
