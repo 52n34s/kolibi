@@ -1,7 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View, type TextProps, type TextStyle } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type TextProps,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 
 import { StickerBrand } from '@/components/share/StickerBrand';
 import { BRAND_INDIGO, BRAND_INDIGO_DEEP, BRAND_MINT } from '@/constants/brand';
@@ -37,6 +45,44 @@ export const STICKER_PALETTES: Record<StickerVariant, StickerPalette> = {
   },
 };
 
+/** The story card shows the same content 1.5× larger (about two thirds of its height). */
+export const STORY_CONTENT_SCALE = 1.5;
+
+const StickerScaleContext = createContext(1);
+
+const SCALED_KEYS = [
+  'fontSize',
+  'lineHeight',
+  'gap',
+  'rowGap',
+  'columnGap',
+  'width',
+  'height',
+  'borderRadius',
+  'borderWidth',
+  'paddingHorizontal',
+  'paddingVertical',
+  'marginTop',
+  'textShadowRadius',
+] as const;
+
+/** Multiplies the size keys of a style by the sticker's content scale. */
+function useScaledStyle<T extends ViewStyle | TextStyle>(style: StyleProp<T>): T {
+  const scale = useContext(StickerScaleContext);
+  const flat = { ...(StyleSheet.flatten(style) as T) };
+  if (scale === 1) {
+    return flat;
+  }
+  const record = flat as Record<string, unknown>;
+  for (const key of SCALED_KEYS) {
+    const value = record[key];
+    if (typeof value === 'number') {
+      record[key] = value * scale;
+    }
+  }
+  return flat;
+}
+
 const STORY_BACKGROUNDS: Record<StickerVariant, [string, string]> = {
   light: [BRAND_INDIGO, BRAND_INDIGO_DEEP],
   dark: ['#F5F4FF', '#E3F8F1'],
@@ -64,8 +110,12 @@ export function StickerFrame({
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.story}>
-        <View style={styles.storyBody}>{children}</View>
-        <StickerBrand color={palette.muted} textShadow={palette.shadow} />
+        <StickerScaleContext.Provider value={STORY_CONTENT_SCALE}>
+          {children}
+        </StickerScaleContext.Provider>
+        <View style={styles.storyBrand}>
+          <StickerBrand color={palette.muted} textShadow={palette.shadow} />
+        </View>
       </LinearGradient>
     );
   }
@@ -80,29 +130,38 @@ export function StickerFrame({
 }
 
 /** Sticker text ignores Dynamic Type: the export has a fixed layout. */
-export function StickerText(props: TextProps) {
-  return <Text allowFontScaling={false} {...props} />;
+export function StickerText({ style, ...props }: TextProps) {
+  return <Text allowFontScaling={false} style={useScaledStyle(style)} {...props} />;
+}
+
+/** Vertical stack whose spacing follows the content scale. */
+export function StickerStack({ style, children }: { style?: StyleProp<ViewStyle>; children: ReactNode }) {
+  return <View style={useScaledStyle(style)}>{children}</View>;
 }
 
 export function StickerBadge({ label }: { label: string }) {
   return (
-    <View style={styles.badge}>
+    <StickerStack style={styles.badge}>
       <StickerText style={styles.badgeText}>{label}</StickerText>
-    </View>
+    </StickerStack>
   );
+}
+
+function StickerDot({ style }: { style: StyleProp<ViewStyle> }) {
+  return <View style={useScaledStyle(style)} />;
 }
 
 /** Dots for every rung; the reached one is larger and filled mint. */
 export function StickerLadder({ level, palette }: { level: LadderPosition; palette: StickerPalette }) {
   return (
-    <View style={styles.ladder}>
+    <StickerStack style={styles.ladder}>
       {Array.from({ length: level.total }, (_, index) => {
         const step = index + 1;
         if (step === level.step) {
-          return <View key={step} style={[styles.dotCurrent, { borderColor: palette.text }]} />;
+          return <StickerDot key={step} style={[styles.dotCurrent, { borderColor: palette.text }]} />;
         }
         return (
-          <View
+          <StickerDot
             key={step}
             style={[
               styles.dot,
@@ -113,7 +172,7 @@ export function StickerLadder({ level, palette }: { level: LadderPosition; palet
           />
         );
       })}
-    </View>
+    </StickerStack>
   );
 }
 
@@ -126,12 +185,12 @@ export function StickerLevelLine({
 }) {
   const { t } = useTranslation();
   return (
-    <View style={styles.levelLine}>
+    <StickerStack style={styles.levelLine}>
       <StickerText style={[styles.levelText, { color: palette.text }, palette.shadow]}>
         {t('share.level', { n: level.step, total: level.total })}
       </StickerText>
       <StickerLadder level={level} palette={palette} />
-    </View>
+    </StickerStack>
   );
 }
 
@@ -149,7 +208,10 @@ export function StickerStat({
       <StickerText style={[styles.statValue, { color: palette.text }, palette.shadow]}>
         {value}
       </StickerText>
-      <StickerText style={[styles.statLabel, { color: palette.muted }, palette.shadow]}>
+      <StickerText
+        style={[styles.statLabel, { color: palette.muted }, palette.shadow]}
+        numberOfLines={1}
+        adjustsFontSizeToFit>
         {label}
       </StickerText>
     </View>
@@ -157,7 +219,7 @@ export function StickerStat({
 }
 
 export function StickerStatGrid({ children }: { children: ReactNode }) {
-  return <View style={styles.statGrid}>{children}</View>;
+  return <StickerStack style={styles.statGrid}>{children}</StickerStack>;
 }
 
 export function formatStickerDate(dateKey: string, lang: string): string {
@@ -229,13 +291,13 @@ const styles = StyleSheet.create({
   story: {
     width: STICKER_LAYOUT_WIDTH,
     height: STORY_LAYOUT_HEIGHT,
-    paddingHorizontal: 28,
-    paddingTop: 72,
-    paddingBottom: 36,
-  },
-  storyBody: {
-    flex: 1,
+    paddingHorizontal: 24,
     justifyContent: 'center',
+  },
+  storyBrand: {
+    position: 'absolute',
+    right: 28,
+    bottom: 36,
   },
   brandGap: {
     marginTop: 20,
