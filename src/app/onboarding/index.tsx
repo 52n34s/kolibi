@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/react-native';
 import { Href, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -129,6 +130,7 @@ function StepHeader({
 }
 
 export default function OnboardingScreen() {
+  const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
   const {
     mode,
@@ -674,6 +676,9 @@ export default function OnboardingScreen() {
       }
 
       await useAuthStore.getState().refreshOnboardingStatus();
+      // Goal, weight and targets changed: every screen reading them loads again
+      // (Today kept the old kcal and layout until the next app start).
+      void queryClient.invalidateQueries();
       if (isReviewMode) {
         router.back();
         return;
