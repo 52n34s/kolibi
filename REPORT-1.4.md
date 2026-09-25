@@ -786,7 +786,7 @@ Stand `release/1.4` = `7e29951` (gepusht). main unverändert seit `0db1698`. Kei
 `beginner_ladder_steps`, `register_push_token`, `workout_template_flag`, `rir_shortfall_reasons`, `profiles_plan_wizard_answers`, `exercise_muscles`, `body_measurements`, `skill_goals`, `daily_checkins`, `add_strength_goal_type`, `profiles_usage_purpose`.
 - Nicht wiederholbar waren `body_measurements`, `skill_goals`, `daily_checkins` (`create policy` ohne Schutz) → `drop policy if exists` davor (`74d4f85`).
 - `beginner_ladder_steps` war bereits wiederholbar: feste Stufe je Slug, Upsert per `catalog_slug`, eine Transaktion. Ob sie lief: Prüfabfrage.
-- Prüfabfragen: `supabase/checks/release-1.4.sql` – eine Zeile je Migration, `ok = true` = vollständig gelaufen; dazu die Abfrage für verwaiste `training_sessions` (nur anzeigen):
+- Prüfabfragen: `supabase/checks/release-1.4.sql` – eine einzige Abfrage, eine Zeile je Migration (`nr`, `migration`, `ausgefuehrt` ja/nein, `detail`), liest für neue Objekte nur Katalogsichten. Verwaiste `training_sessions` separat in `supabase/checks/release-1.4-orphans.sql` (nur anzeigen):
 
 ```sql
 select ts.id, ts.user_id, ts.logged_on, ts.duration_min, ts.estimated_kcal, ts.created_at,
