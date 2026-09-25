@@ -1821,5 +1821,55 @@
       "lunch": "A mediodía tomaste de media {{average}} g de proteína. Con {{from}}–{{to}} g más en la comida alcanzas tu objetivo más fácilmente.",
       "dinner": "Por la noche tomaste de media {{average}} g de proteína. Con {{from}}–{{to}} g más en la cena alcanzas tu objetivo más fácilmente."
     }
+  },
+  "skillGoal": {
+    "title": "Objetivo de habilidad",
+    "setCta": "Fijar objetivo de habilidad",
+    "setHint": "Elige un ejercicio y tu meta, por ejemplo 10 dominadas arquero o 30 s de L-sit.",
+    "edit": "Cambiar",
+    "share": "Compartir objetivo",
+    "targetReps": "Meta: {{value}} rep.",
+    "targetSeconds": "Meta: {{value}} s",
+    "currentReps": "Ahora: {{value}} rep.",
+    "currentSeconds": "Ahora: {{value}} s",
+    "currentRepsOn": "Ahora: {{value}} rep. de {{name}}",
+    "currentSecondsOn": "Ahora: {{value}} s de {{name}}",
+    "start": "Tu primera serie en esta progresión ya cuenta.",
+    "achieved": "¡Lo lograste! Es hora de tu siguiente meta.",
+    "tooLittleSessions_one": "{{count}} sesión más en esta progresión y verás aquí un periodo.",
+    "tooLittleSessions_other": "{{count}} sesiones más en esta progresión y verás aquí un periodo.",
+    "tooLittleDays_one": "Sigue entrenando {{count}} día más y verás aquí un periodo.",
+    "tooLittleDays_other": "Sigue entrenando {{count}} días más y verás aquí un periodo.",
+    "noTrend": "Ahora mantienes tu nivel. En cuanto suba, verás aquí un periodo.",
+    "beyondYear": "Una gran meta: probablemente en más de un año.",
+    "progressA11y": "{{percent}} % completado",
+    "period": {
+      "single": "probablemente a {{part}} de {{month}}",
+      "sameMonth": "probablemente entre {{from}} y {{to}} de {{month}}",
+      "range": "probablemente entre {{fromPart}} de {{fromMonth}} y {{toPart}} de {{toMonth}}"
+    },
+    "part": {
+      "early": "principios",
+      "mid": "mediados",
+      "late": "finales"
+    },
+    "sheet": {
+      "pickTitle": "Elige un ejercicio",
+      "searchPlaceholder": "Buscar ejercicio",
+      "suggested": "De tu entrenamiento",
+      "all": "Todos los ejercicios",
+      "targetTitle": "Tu meta",
+      "targetLabelReps": "Repeticiones",
+      "targetLabelSeconds": "Segundos",
+      "save": "Guardar objetivo",
+      "otherExercise": "Otro ejercicio",
+      "remove": "Quitar objetivo",
+      "invalid": "Introduce un valor entre 1 y 10000.",
+      "saveFailed": "Inténtalo de nuevo en un momento."
+    },
+    "sticker": {
+      "badge": "Mi meta",
+      "achievedBadge": "Meta alcanzada"
+    }
   }
 }

@@ -1821,5 +1821,55 @@
       "lunch": "You averaged {{average}} g of protein at lunch. Adding {{from}}–{{to}} g at midday makes your goal easier to hit.",
       "dinner": "You averaged {{average}} g of protein at dinner. Adding {{from}}–{{to}} g in the evening makes your goal easier to hit."
     }
+  },
+  "skillGoal": {
+    "title": "Skill goal",
+    "setCta": "Set a skill goal",
+    "setHint": "Pick an exercise and your target – for example 10 archer pull-ups or a 30 s L-sit.",
+    "edit": "Change",
+    "share": "Share goal",
+    "targetReps": "Goal: {{value}} reps",
+    "targetSeconds": "Goal: {{value}} s",
+    "currentReps": "Now: {{value}} reps",
+    "currentSeconds": "Now: {{value}} s",
+    "currentRepsOn": "Now: {{value}} reps of {{name}}",
+    "currentSecondsOn": "Now: {{value}} s of {{name}}",
+    "start": "Your first set on this ladder already counts.",
+    "achieved": "You did it! Time for your next goal.",
+    "tooLittleSessions_one": "{{count}} more session on this ladder and you'll see a time frame here.",
+    "tooLittleSessions_other": "{{count}} more sessions on this ladder and you'll see a time frame here.",
+    "tooLittleDays_one": "Keep training for {{count}} more day and you'll see a time frame here.",
+    "tooLittleDays_other": "Keep training for {{count}} more days and you'll see a time frame here.",
+    "noTrend": "You're holding your level right now. Once it climbs, you'll see a time frame here.",
+    "beyondYear": "A big goal – likely more than a year away.",
+    "progressA11y": "{{percent}}% done",
+    "period": {
+      "single": "likely {{part}} {{month}}",
+      "sameMonth": "likely {{from}} to {{to}} {{month}}",
+      "range": "likely {{fromPart}} {{fromMonth}} to {{toPart}} {{toMonth}}"
+    },
+    "part": {
+      "early": "early",
+      "mid": "mid",
+      "late": "late"
+    },
+    "sheet": {
+      "pickTitle": "Pick an exercise",
+      "searchPlaceholder": "Search exercises",
+      "suggested": "From your training",
+      "all": "All exercises",
+      "targetTitle": "Your target",
+      "targetLabelReps": "Reps",
+      "targetLabelSeconds": "Seconds",
+      "save": "Save goal",
+      "otherExercise": "Other exercise",
+      "remove": "Remove goal",
+      "invalid": "Enter a value between 1 and 10000.",
+      "saveFailed": "Please try again in a moment."
+    },
+    "sticker": {
+      "badge": "My goal",
+      "achievedBadge": "Goal reached"
+    }
   }
 }
