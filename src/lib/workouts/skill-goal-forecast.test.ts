@@ -175,6 +175,26 @@ describe('skillGoalPoints', () => {
     assert.equal(points[1]!.exerciseId, 'archer');
     assert.equal(points[1]!.value, 3);
   });
+
+  it('orders two units of the same day by start, newest-first input or not', () => {
+    const rungs = skillGoalRungs('archer', 10, EXERCISES)!;
+    // As fetched: newest first. Evening pull-ups after morning negatives.
+    const evening = { ...unit(0, set('pull', 6)), startedAt: `${TODAY}T18:30:00.000Z` };
+    const morning = { ...unit(0, set('neg', 6)), startedAt: `${TODAY}T08:00:00.000Z` };
+    const points = skillGoalPoints(rungs, [evening, morning]);
+    assert.deepEqual(
+      points.map((point) => point.exerciseId),
+      ['neg', 'pull'],
+    );
+    const forecast = computeSkillGoalForecast({
+      goalExerciseId: 'archer',
+      targetValue: 10,
+      exercises: EXERCISES,
+      units: [evening, morning],
+      todayKey: TODAY,
+    });
+    assert.equal(forecast?.current?.exerciseId, 'pull');
+  });
 });
 
 describe('computeSkillGoalForecast', () => {

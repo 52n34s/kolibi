@@ -75,6 +75,8 @@ export type SkillGoalRung = {
 
 export type SkillGoalUnit = {
   loggedOn: string;
+  /** Orders two units of the same day; sessions arrive newest first. */
+  startedAt?: string | null;
   sets: readonly SessionSet[];
 };
 
@@ -197,7 +199,7 @@ export function rungPosition(rungs: readonly SkillGoalRung[], index: number, val
   return index + (isGoalRung ? Math.max(0, within) : Math.min(1, Math.max(0, within)));
 }
 
-type SessionPoint = SkillGoalCurrent & { position: number };
+type SessionPoint = SkillGoalCurrent & { position: number; startedAt: string };
 
 /** One point per session, oldest first (rule 2). */
 export function skillGoalPoints(
@@ -233,6 +235,7 @@ export function skillGoalPoints(
           step: rungs[index]!.step,
           dateKey: unit.loggedOn,
           position,
+          startedAt: unit.startedAt ?? '',
         };
       }
     }
@@ -240,7 +243,10 @@ export function skillGoalPoints(
       points.push(pick);
     }
   }
-  return points.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  // Same day: the later unit is the current one (a second unit in the evening).
+  return points.sort(
+    (a, b) => a.dateKey.localeCompare(b.dateKey) || a.startedAt.localeCompare(b.startedAt),
+  );
 }
 
 function theilSen(points: readonly { x: number; y: number }[]): number | null {
