@@ -490,3 +490,266 @@ Details, Tabellen und Screenshots: `REPORT-week-test.md`. Kurz:
 - 15 tsc-Fehler auf main (Auth-Screens TS2769, `supabase.ts`, `language-switcher`, `profile-panel`, `support-panel`, `notifications-settings-section`, `use-theme`, `onboarding-field`).
 - **Zweite Sitzung aktiv:** Worktree `~/Dev/Kolibi-wt-f4b` (Branch `fix/session-end`, Commits „session detail accepts at most 300 min“ u. a.) mit eigenem Metro auf 8082 und dem Simulator „Kolibi QA“. Nicht angefasst.
 - Worktree `~/Dev/Kolibi-reminders` (`fix/reminders-keepawake`) ist in `release/1.4` aufgegangen und kann weg; `Kolibi-wt-report` (`test/week-simulation`) und `Kolibi-wt-main` bestehen weiter.
+
+---
+
+## Block 6.2 – Release 1.4.0 vorbereiten (wartet auf Freigabe)
+
+- Lokales `main` (48ea6ab, inzwischen auch auf `origin/main`) ist vollständig in `release/1.4` enthalten; kein weiterer Merge nötig. Tests 940/940 (1 übersprungen), tsc 15 (Baseline).
+- `app.json`: `version` 1.4.0. `runtimeVersion` bleibt `{ policy: "appVersion" }` und folgt damit auf 1.4.0. Build-Nummer: `eas.json` hat `appVersionSource: "remote"` und `production.autoIncrement: true` → EAS setzt die nächste Nummer (nach 32 → 33, falls seitdem kein Production-Build lief; prüfen mit `eas build:version:get -p ios`).
+- Nativ neu seit Build 32: Live-Aktivität (Widget-Extension + lokales Modul `modules/rest-live-activity`), `modules/instagram-stories`, `expo-haptics`, `NSSupportsLiveActivities`, `LSApplicationQueriesSchemes`, Health-Text (c4a9c46) → neuer Store-Build nötig (kein OTA).
+
+### Migrationen vor dem Release (SQL-Editor, in dieser Reihenfolge)
+
+| # | Datei | Zweck |
+|---|---|---|
+| 1 | `20260924152000_beginner_ladder_steps.sql` | Einsteiger-Stufen, Leitern neu nummeriert |
+| 2 | `20260925180000_register_push_token.sql` | Push-Token dem angemeldeten Nutzer übertragen (behebt fehlende Erinnerungen) |
+| 3 | `20260925190000_workout_template_flag.sql` | `workout_templates.is_template` (Meine Vorlagen) |
+| 4 | `20260926120000_rir_shortfall_reasons.sql` | `session_sets.rir`, `workout_sessions.shortfall_reasons` |
+| 5 | `20260926123300_profiles_plan_wizard_answers.sql` | Antworten des Plan-Assistenten im Profil |
+| 6 | `20260926143400_exercise_muscles.sql` | Muskelgruppen eigener Übungen |
+| 7 | `20260926153500_body_measurements.sql` | Körpermaße (RLS eigene Zeilen) |
+| 8 | `20260926160000_skill_goals.sql` | Skill-Ziel (RLS eigene Zeilen) |
+| 9 | `20260926170000_daily_checkins.sql` | Morgen-Check-in + Profilfelder (RLS eigene Zeilen) |
+| 10 | `20260926183100_add_strength_goal_type.sql` | Enum-Wert `strength` |
+| 11 | `20260926183200_profiles_usage_purpose.sql` | „Wofür nutzt du Kolibi?“ |
+
+Alle in `begin; … notify pgrst, 'reload schema'; commit;`. Die App läuft ohne jede einzelne weiter (Funktion ausgeblendet). Die Cron-Migration (1.3.5) fehlt noch – dafür brauche ich die Ausgabe von `cron.job`.
+
+### Was mit dem Merge rausgeht (`git log --oneline main..release/1.4`)
+
+```
+c67e1e6 release: version 1.4.0
+098237b docs: 1.4 report, blocks 5.1, W.1, 6.1 and the week test
+ca74aaa fix(test-week): rotating plans get training-day recommendations
+c363e45 test(week): maestro flows for templates, restoring a session and languages
+139b022 fix(test-week): Today follows a changed goal right away
+de5b031 fix(test-week): muscle adoption adds at most two sets and follows the plan's gear
+b54658d test(week): maestro flows for the 1.4 onboarding and the plan wizard
+462c950 Merge block/6.1-week-sim into release/1.4
+39aa885 test(week-sim): seven-day simulation for 1.4 on the pure functions
+6bc1091 docs: 1.4 report, blocks 3.3 and 3.6
+a7396d7 Merge block/3.3-recommendations into release/1.4
+791fbd6 today: log weight from the build-up card
+ba50e2b home: place recommendations below the check-in on Today
+d09f832 home: RecommendationsCard and TodayRecommendations
+ac10023 home: Today and Ernährung split, tabs with icons
+1ba15d8 day summary: compact card keeps the glass background
+29178a0 recommendations: useRecommendations assembles the context from existing queries
+6003a89 checkin: questions can be requested again after the morning window
+aaee83b brand: RECOMMENDATION_ACCENT design token
+6c6d3c0 recommendations: rule engine, 3-day snooze store and texts
+97ed305 i18n: the meals tab is now Ernährung / Nutrition / Nutrición
+8e6095a ui: segment switcher with an optional icon above a small label
+1135cdf today: training card with next unit, rest day and the week
+98da2bf day summary: compact one-line variant for Today
+2f16b6b i18n: Today sections (de, en, es)
+3bda668 today: training state (none, done, rest, next)
+8a0f54c today: section order and body card by goal, compact nutrition summary
+84af9c5 docs: 1.4 report, blocks 2.1 PNGs, 3.1, 3.2, 3.7, 4.1, 4.2
+8ef5622 Merge block/4-native into release/1.4
+f2e0524 Merge block/3.1-onboarding into release/1.4
+e5125ff Merge block/3.7-skill-goal into release/1.4
+12b2a99 Merge block/3.2-checkin into release/1.4
+df8c270 share: meal kcal stays on one line
+7d79a8d share: recap title keeps its size on the story card
+9a2291d training: paused live activity time looks like the running timer
+a329baf share: Instagram Story button when Instagram and an app id are there
+ca2deed i18n: Instagram Story share action (de, en, es)
+593349a config: query the instagram-stories scheme
+1b87296 share: Instagram Stories app id and pasteboard items, pure
+6489d57 native: local module for the Instagram Stories pasteboard flow
+40e6041 tests: goal mapping, onboarding step list, strength fallback, goal focus
+4e9bdd8 training: mirror the rest into the live activity, vibrate at the end
+564dca4 widget: rest timer live activity for lock screen and dynamic island
+54e6bae native: local module to start, update and end the rest live activity
+f8f1b89 i18n: live activity texts for the rest timer (de, en, es)
+8671a2b training: rest timer to live activity content, pure
+ab2e698 meals: one-time diet card; goals: show the cleaned goal category
+061599a skill-goal: card with bar and period in Training and Progress, picker sheet
+2beccc1 share: goal sticker (light/dark, story card)
+ee0ebe4 skill-goal: texts (de/en/es) and period formatting
+531632f onboarding: usage question first, cleaned goals, diet moved out, plan wizard for training
+e23c073 i18n: onboarding2 (usage, about, cleaned goals, diet card, goal focus)
+8fe331c training: "Als Nächstes" picks a fitting unit on gentle days
+681331f training: level-ups follow today's readiness
+1d46069 settings: check-in switch and optional wake-up reminder
+1835bf6 home: morning check-in card at the top of Today
+c4e2654 skill-goal: API behind a schema probe and the useSkillGoal hook
+da091ef share: goal sticker data and the goal analytics type
+bce83ef docs: 1.4 report, blocks 2.2, 2.3, 3.4, 3.5, 3.8
+b650f69 deps: expo-haptics for the end of the rest
+4d962ec checkin: data layer, useTodayCheckinStatus, useReadiness, reminder sync on start
+861f0d5 checkin: daily local reminder (DAILY trigger, kind checkin)
+c4a4e01 i18n: checkin namespace (de, en, es)
+0e990ab onboarding: step list, usage purpose and plan wizard hand-off (lib)
+03ec996 goals: cleaned goal categories, strength fallback and goal-focus table
+64a5c2a goals: strength goal type with the same effect as build_muscle
+e48dc2b skill-goal: forecast as a pure function over the ladder scale
+5be9620 Merge block/3.4-muscles into release/1.4
+848be00 Merge block/3.5-measurements into release/1.4
+97d8682 plan editor: save a unit as a template
+0c2be4e plan: Vorlagen with Kolibi templates, own templates and previous units
+c3f5e76 i18n: templates (de, en, es)
+8e11dc8 workouts: Kolibi templates from the plan wizard presets
+3be6c22 exercises: optional muscle selection for own exercises
+e795227 progress: sessions, muscles and exercises segments in Training
+97d6c30 skill-goals: migration file for the skill goal table
+37f5ac2 training: readiness gate for level-ups and a fitting next unit on gentle days
+59aaf89 today: build-up card for muscle gain goals
+2d48070 progress: build-up card and Maße sheet in the body area
+c6d65f7 measurements: build-up card with 4/8/12 week sentence
+42359a9 measurements: Maße sheet (chest, arm, waist, hip, thigh), gated like weight
+0e766de measurements: useBuildUp and useBodyMeasurementsAvailable hooks
+a7c949c measurements: body_measurements API with schema probe, build-up data fetch
+9eff953 checkin: today's status, card window until 12:00, reminder time helpers
+124bba8 i18n: muscles namespace (de, en, es)
+79f7bda Merge block/2.3-plan-assistant into release/1.4
+15e46c2 checkin: computeReadiness from check-in, training load, last session and nutrition
+bba137c weight-eta: plateau shows a stalled note with the plan date
+cea659e workouts: read and write muscles of own exercises once the migration ran
+20b99b7 db: muscle groups on own exercises (migration file, not run)
+b6d2cc1 target-weight: forecast dates for weight gain, fix month-part label
+4e3206a scan: share the meal from the result screen
+4a54e2d i18n: meal sticker and share button (de, en, es)
+2ccc813 share: meal sticker, story card on the scanned photo
+6be3f94 share: meal sticker data after the photo scan
+8127d05 plan wizard: shared reference cases and a markdown print script
+cbebae1 measurements: build-up summary and sentence (pure, tested), i18n namespace
+fa3c9f4 plan wizard: drop unused text key
+4a36e3d workouts: muscle recommendations and adopting them into a unit
+4a7af60 plan: create plan with the wizard from the plan screen
+fc4b5c5 training: plan wizard entry in empty states and at the bottom of the tab
+bc7b8b6 db: daily_checkins table and profile check-in switches
+5e9c118 plan wizard: question steps and editable plan preview at /koli/plan-wizard
+1dccfcc workouts: weekly sets per muscle group over 7 and 30 days
+536094a measurements: parse, prefill, usesMeasurements, daysSinceLastMeasurement
+a21eaa9 workouts: muscle mapping for the catalog and unit muscle profiles
+90f10dc docs: 1.4 report, block 2.5
+32090f1 plan wizard: texts in de, en and es under planWizard
+818b243 measurements: body_measurements table (chest, arm, hip, thigh; waist stays in waist_logs)
+cf76183 plan wizard: save a built plan as units, add or replace via archive
+8334b95 plan wizard: keep answers in the profile with a device fallback
+898f7c9 db: profiles.plan_wizard_answers for wizard pre-fill
+8e71dfa lib: detect missing columns and tables from PostgREST errors
+ef66c32 Merge block/2.5-rir into release/1.4
+fbbb3e9 summary: "Was war los?" after a clear shortfall; too hard twice suggests the easier rung
+c154b3c docs: 1.4 report, blocks 2.1, 2.2 data model, 2.4
+a871a5c plan wizard: Kolibi template presets built from fixed answers
+3db300f plan wizard: rule based buildPlan with swaps and markdown export
+f5e2ab6 training: optional "Wie viele wären noch gegangen?" row above Satz fertig
+22505c2 Merge block/2.4-meal-groups into release/1.4
+b31942c workouts: query and hook for own templates
+e05b947 workouts: saveAsTemplate, createUnitFromTemplate, archiveUnit, restoreUnit
+871110e workouts: units exclude own templates; own templates and the flag in the API
+b2e828f db: recognise columns and tables of migrations that have not run
+2414c78 db: workout_templates.is_template for own templates
+4501dc3 i18n: rir namespace (de, en, es)
+3b0b5d3 sync: write rir and shortfall_reasons only once the columns exist
+b260c1a balance: protein-by-time-of-day sentence below the balance rows
+f039566 meals tab: show grouped meals with name, time, kcal and protein
+e3a7d30 share: offer the story format for every sticker type
+f0c8f98 share: story card for exercise, level and session stickers
+d648132 session: rir on the open set, carried into the set upsert
+26192f8 i18n: meal group names, row meta and protein timing hints (de, en, es)
+03eb2ff workouts: per-run capability probe for optional columns, set row builder
+f50d48d training: rules for "clearly below target" and "too hard twice"
+f5b9223 meals: display label and header totals for grouped meals
+21315a3 progression: rir 2+ on an upper-bound session is a clear success; too-hard streak steps down
+ffa147b plan wizard: code-side catalog snapshot with ladders, ranges and equipment
+eccccf3 balance: protein by time of day with a hint for a clearly low main meal
+fdd5bf1 balance: protein distribution counts grouped meals instead of entries
+d83911f meals: group entries into meals by a 45-minute chain rule
+f4f499f db: session_sets.rir and workout_sessions.shortfall_reasons (file only)
+a4f3c49 docs: 1.4 report, blocks 1.1 to 1.3
+2b62a5e training: starting, backfilling and editing the plan need an active plan
+4dbc6d8 export: open for every registered user
+38198c8 home: every tab stays viewable without a plan
+7bcc92b access: route gate keeps view routes open, paywall over the previous screen
+6b7984e paywall: app-wide request store and host
+46f8138 access: rules for AGB Ziffer 10 Abs. 5
+0cd2f80 reminders: explain a reminder saved switched off, with a way to the iOS settings
+cf641b2 auth: release the push token before switching to another account
+ca081e0 push: token_failed with Sentry reason instead of a silent success
+cefe3c3 push: save the token through the RPC and report every failure
+7af32e4 db: register_push_token moves a device token to the signed-in user
+95a98e0 Merge fix/reminders-keepawake into release/1.4
+97d4808 Merge feat/share-stickers into release/1.4
+4f72011 fix(test-week): summary compares against earlier sessions, not itself
+f887a97 fix: keep the screen awake for the whole active session, on every tab
+4159b02 docs: report the story card fit and fill per variant
+73c4dd3 share: taller progress curve on the story card without a level change
+60ec34d share: biggest-gain line stays on one line on the story card
+24a7507 share: story card fits its content; stat values sized to fit
+2fdb9bd test: story scale target and bounds
+ee2543e share: story scale that fills about two thirds of the card, 1x to 2x
+7779f3a docs: report the rolling recap window and the progress sticker
+cbdc347 history: share progress from the exercise list
+35f3810 share: period switch, story card and hint for progress stickers
+292c40f share: render the progress sticker
+2194347 share: progress sticker with curve and ladder
+9feb829 share: expose the content scale to sticker parts
+61fbd3a i18n: progress sticker texts (es)
+4e06c5d i18n: progress sticker texts (en)
+ac8af04 i18n: progress sticker texts (de)
+03fc95d analytics: progress as share_sticker_created type
+b35ff61 test: progress sticker over time, level change, time, per side, few sessions
+431dd20 share: progress sticker data with periods, default and ladder steps
+1f3c732 workouts: query key for exercise progress
+b561707 workouts: load all sets of a ladder with their session day, paged
+7765b86 workouts: the recap no longer shares the sessions card count
+f90d024 history: feed the recap raw inputs for its rolling window
+1e3e031 test: every recap figure comes from the same window, incl. a Monday
+a4c24b6 share: recap figures from one rolling 7- or 30-day window
+6b67c29 history: name the protein-goal rule so the recap can reuse it
+f4edadd docs: report the decisions on permissions, first-time badge, recap count and story card
+98274b6 history: recap sessions from the sessions card inputs
+5f099d9 training: first executions show Zum ersten Mal instead of a personal best
+60d6173 share: recap title on one line, scaled on the story card
+edd72a1 share: session sticker spacing follows the content scale
+95f08f4 share: level sticker spacing follows the content scale
+7b74adc share: first-time badge and single-line sets on the exercise sticker
+f02b359 share: 1.5x content scale on the story card, centred
+ceb0948 i18n: first-time badge (es)
+275d9f3 i18n: first-time badge (en)
+5783227 i18n: first-time badge (de)
+a337a31 share: round sticker height in pixels
+15ac86b test: first-time badge and recap sessions equal to the sessions card
+a211321 share: first-time badge and recap sessions counted like the sessions card
+2b325c7 history: sessions card uses the shared day count
+f68ae6a test: training-card day count for 7 and 30 days
+b8fb3c1 workouts: count training-card days in one place
+f42979b share: request add-only photo access without granular read permissions
+30416a4 config: drop Face ID and microphone texts (es)
+bbb913e config: drop Face ID and microphone texts (en)
+bc3b8fe config: drop Face ID and microphone texts (de)
+49734b7 config: block Android media reads, drop unused microphone and Face ID permissions
+4e18810 config: cap legacy storage permissions at API 32 for add-only photos
+a2e5274 docs: report for shareable stickers (1.4)
+1278192 history: share menu with image recap next to the text export
+6f242e8 history: share personal bests and new levels
+1340b11 training: share exercises, the session and a new level from the summary
+cbd06e8 share: ShareStickerSheet with preview, variants and actions
+862aa48 share: pick the sticker component by kind
+3bc2184 share: weekly and monthly recap sticker and story card
+b7216c0 share: session sticker
+8da8e26 share: level sticker
+54f1316 share: exercise sticker
+f5b68ce share: sticker frame, palettes and ladder dots
+5044979 share: StickerBrand with a slot for the Koli line drawing
+e225ee2 i18n: sticker texts (es)
+b71fa75 i18n: sticker texts (en)
+ff7bc85 i18n: sticker texts (de)
+bd197c2 analytics: share_sticker_created without content
+d6808f4 share: capture a sticker PNG and save, copy or share it
+5ca1a86 test: sticker data builders
+7126beb share: pure sticker data builders grouped by exercise_id
+8e757fc config: add-only photo permission and English base permission texts
+2f766ca config: localized permission texts (es)
+236d8ba config: localized permission texts (en)
+746d664 config: localized permission texts (de)
+ec73311 deps: share sticker libraries
+```
+
+`git log --oneline origin/main..main`: leer (main ist bereits gepusht).
