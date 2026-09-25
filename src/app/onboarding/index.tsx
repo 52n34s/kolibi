@@ -130,9 +130,15 @@ function StepHeader({
 
 export default function OnboardingScreen() {
   const { t, i18n } = useTranslation();
-  const { mode, previewStep: previewStepParam } = useLocalSearchParams<{
+  const {
+    mode,
+    previewStep: previewStepParam,
+    startAt: startAtParam,
+  } = useLocalSearchParams<{
     mode?: string | string[];
     previewStep?: string | string[];
+    /** Review mode only: step id to open first (e.g. 'goal' from the goals area). */
+    startAt?: string | string[];
   }>();
   const isReviewMode = resolveReviewMode(mode);
   const session = useAuthStore((state) => state.session);
@@ -461,6 +467,17 @@ export default function OnboardingScreen() {
       setStep(index);
     }
   }, [previewStepParam, steps]);
+
+  useEffect(() => {
+    if (!isReviewMode) {
+      return;
+    }
+    const raw = Array.isArray(startAtParam) ? startAtParam[0] : startAtParam;
+    const index = resolveOnboardingPreviewStep(raw, steps);
+    if (index != null) {
+      setStep(index);
+    }
+  }, [isReviewMode, startAtParam, steps]);
 
   useEffect(() => {
     initializeUnitSystem();

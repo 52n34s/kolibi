@@ -52,6 +52,7 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { getGlassPillStyle } from '@/components/ui/glass-styles';
 import { DayMealList } from '@/components/day/DayMealList';
+import { DietPreferenceCard } from '@/components/home/DietPreferenceCard';
 import { DaySummaryBlock } from '@/components/day/DaySummaryBlock';
 import { HistoryPanel } from '@/components/history/history-panel';
 import { HomeActiveSessionBar } from '@/components/home/HomeActiveSessionBar';
@@ -1566,11 +1567,14 @@ export default function HomeScreen() {
                     <HomeSupplementChips />
                   </>
                 ) : (
-                  <DayMealList
-                    date={localDateKey()}
-                    editable
-                    onMealPress={handleTodayMealPress}
-                  />
+                  <>
+                    <DietPreferenceCard />
+                    <DayMealList
+                      date={localDateKey()}
+                      editable
+                      onMealPress={handleTodayMealPress}
+                    />
+                  </>
                 )}
               </ScrollView>
             )}
