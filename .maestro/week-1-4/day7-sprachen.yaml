@@ -1,0 +1,51 @@
+# Tag 7 · Heute und Ernährung in EN und ES, danach zurück auf DE.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag7
+---
+- runFlow:
+    file: common/set-language.yaml
+    env:
+      SETTINGS: "Einstellungen"
+      LANG: "EN"
+- openLink: "kolibi:///home"
+- extendedWaitUntil:
+    visible:
+      id: "home.tab.today"
+    timeout: 20000
+- tapOn:
+    id: "home.tab.today"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/01-today-en
+- tapOn:
+    id: "home.tab.meals"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/02-nutrition-en
+- runFlow:
+    file: common/set-language.yaml
+    env:
+      SETTINGS: "Settings"
+      LANG: "ES"
+- openLink: "kolibi:///home"
+- extendedWaitUntil:
+    visible:
+      id: "home.tab.today"
+    timeout: 20000
+- tapOn:
+    id: "home.tab.today"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/03-hoy-es
+- tapOn:
+    id: "home.tab.meals"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/04-nutricion-es
+- runFlow:
+    file: common/set-language.yaml
+    env:
+      SETTINGS: "Ajustes"
+      LANG: "DE"
+- openLink: "kolibi:///home"

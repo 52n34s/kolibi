@@ -1,0 +1,23 @@
+# Tag 2b · Einheit von Heute starten, zwei Sätze loggen, App mitten in der
+# Einheit beenden und neu starten: die Einheit ist wieder da.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag2
+---
+- openLink: "kolibi:///home"
+- extendedWaitUntil:
+    visible:
+      id: "today.training.start"
+    timeout: 30000
+- tapOn:
+    id: "today.training.start"
+- runFlow: common/set-done.yaml
+- runFlow: common/set-done.yaml
+- takeScreenshot: ${SHOT}/05-einheit-laeuft
+- stopApp
+- openLink: "kolibi://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 90000
+- takeScreenshot: ${SHOT}/06-nach-neustart-wiederhergestellt
