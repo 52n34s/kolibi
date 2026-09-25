@@ -33,6 +33,7 @@ import {
   type SessionStickerData,
   type StickerData,
 } from '@/lib/share/sticker-data';
+import { postTrainingNutritionHint } from '@/lib/nutrition/post-training-nutrition-hint';
 import { adoptTargetFromMedian } from '@/lib/workouts/adopt-target';
 import {
   openExerciseNames,
@@ -47,6 +48,14 @@ import { allSetsHitUpperBound } from '@/lib/workouts/format-target';
 import { applyProgression } from '@/lib/workouts/apply-progression';
 import { suggestGymIntensityFromSetPace } from '@/lib/workouts/intensity-pace';
 import { activeItemToHistoryUnit, withoutSession } from '@/lib/workouts/progression-history';
+import {
+  buildCelebration,
+  CELEBRATION_LEVEL_KEY,
+  CELEBRATION_MULTI_TITLE_KEY,
+  type AcceptedProgression,
+  type Celebration,
+  type ProgressionToTarget,
+} from '@/lib/workouts/celebration';
 import { bestPriorValue, bestSessionValue } from '@/lib/workouts/session-bests';
 import { suggestProgression, type ProgressionSuggestion } from '@/lib/workouts/progression';
 import {
@@ -88,6 +97,8 @@ import {
 } from '@/stores/workout-session-store';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { useReadiness } from '@/hooks/use-checkin';
+import { useIsDeloadActive } from '@/hooks/use-deload';
+import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { gateSuggestionByReadiness } from '@/lib/workouts/progression-readiness';
 
 type TrainingSummaryViewProps = {
@@ -169,14 +180,34 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
   const [footerHeight, setFooterHeight] = useState(96);
   const [error, setError] = useState<string | null>(null);
   const [progressError, setProgressError] = useState<string | null>(null);
-  const [celebration, setCelebration] = useState<{
-    kind: 'variant' | 'praise' | 'firstLevel';
-    name: string;
-    step?: number;
-    total?: number;
-    levelSticker?: LevelStickerData;
-    praiseKey?: string;
-  } | null>(null);
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+
+  // What is still open on the plate right after the session.
+  const dashboard = useHomeDashboard();
+  const nutritionHint = useMemo(() => {
+    const data = dashboard.data;
+    const targets = data?.latestCalorieGoal;
+    const macros = data?.consumedMacrosToday;
+    if (!data || !targets || !macros) {
+      return [];
+    }
+    // Nothing eaten yet is a known 0, not unknown.
+    const zeroDay = data.consumedCaloriesToday === 0;
+    const eaten = (value: number | null) => value ?? (zeroDay ? 0 : null);
+    return postTrainingNutritionHint({
+      trainingKind: 'strength',
+      consumed: {
+        proteinG: eaten(macros.proteinG),
+        carbsG: eaten(macros.carbsG),
+        fatG: eaten(macros.fatG),
+      },
+      targets: {
+        proteinG: targets.protein_g,
+        carbsG: targets.carbs_g,
+        fatG: targets.fat_g,
+      },
+    });
+  }, [dashboard.data]);
   const [sticker, setSticker] = useState<StickerData | null>(null);
 
   const stats = exerciseStats(session);
@@ -280,7 +311,13 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
 
   const readiness = useReadiness();
 
+  const deloadActive = useIsDeloadActive();
+
   const { suggestionRows, heldBackIndexes } = useMemo(() => {
+    // A lighter week changes no targets — neither up nor down.
+    if (deloadActive) {
+      return { suggestionRows: [] as SuggestionRow[], heldBackIndexes: new Set<number>() };
+    }
     const rows: SuggestionRow[] = [];
     // Level-ups today's readiness holds back (schonen, or normal without a clear success).
     const heldBack = new Set<number>();
@@ -341,6 +378,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     });
     return { suggestionRows: rows, heldBackIndexes: heldBack };
   }, [
+    deloadActive,
     readiness,
     session.items,
     session.sessionId,
@@ -477,6 +515,25 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         ladder,
       }) ?? undefined
     );
+  }
+
+  /** "Ab jetzt 4 Sätze …" — the sentence for one accepted small step. */
+  function praiseText(praise: { name: string; praiseKey: string; toTarget?: ProgressionToTarget }) {
+    const toTarget = praise.toTarget;
+    return t(praise.praiseKey, {
+      name: praise.name,
+      sets: toTarget?.targetSets ?? '',
+      range:
+        toTarget?.targetSeconds != null
+          ? `${toTarget.targetSeconds}${
+              toTarget.targetSecondsMax != null ? `–${toTarget.targetSecondsMax}` : ''
+            } s`
+          : toTarget?.targetReps != null
+            ? `${toTarget.targetReps}${
+                toTarget.targetRepsMax != null ? `–${toTarget.targetRepsMax}` : ''
+              }`
+            : '',
+    });
   }
 
   const shareSheet = <ShareStickerSheet data={sticker} onClose={() => setSticker(null)} allowStory />;
@@ -627,7 +684,9 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       }));
 
     let didAccept = false;
-    let celeb: typeof celebration = null;
+    // Every accepted step, not just the last one — buildCelebration decides
+    // what the screen becomes.
+    const accepted: AcceptedProgression[] = [];
 
     for (const row of suggestionRows) {
       const decision = decisions[row.index];
@@ -640,13 +699,13 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         didAccept = true;
 
         if (row.suggestion.kind === 'variant_up' && row.suggestion.level) {
-          celeb = {
-            kind: 'variant',
+          accepted.push({
+            kind: 'variant_up',
             name: row.toName ?? labelOf(row.item),
             step: row.suggestion.level.toStep,
             total: row.suggestion.level.total,
-            levelSticker: levelStickerFor(row),
-          };
+            levelSticker: levelStickerFor(row) ?? null,
+          });
         } else if (
           row.suggestion.kind === 'sets_up' ||
           row.suggestion.kind === 'range_up' ||
@@ -661,11 +720,12 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
                 : row.suggestion.kind === 'time_up'
                   ? 'training.progression.praise.timeUp'
                   : 'training.progression.praise.loadUp';
-          celeb = {
+          accepted.push({
             kind: 'praise',
             name: labelOf(row.item),
             praiseKey,
-          };
+            toTarget: row.suggestion.toTarget ?? undefined,
+          });
         }
       }
 
@@ -693,6 +753,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       });
     }
 
+    const celeb = buildCelebration(accepted);
     if (celeb) {
       setCelebration(celeb);
     } else {
@@ -732,7 +793,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     }
   }
 
-  if (celebration?.kind === 'variant') {
+  if (celebration?.mode === 'single_level') {
     const subtitleKey = pickCelebrationSubtitleKey(session.sessionId);
     return (
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -746,7 +807,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
             {t('training.progression.celebration.title')}
           </Text>
           <Text style={styles.celebLevel}>
-            {t('training.progression.celebration.level', {
+            {t(CELEBRATION_LEVEL_KEY, {
               name: celebration.name,
               step: celebration.step,
               total: celebration.total,
@@ -757,7 +818,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
             <Pressable
               testID="training.progression.celebration.share"
               accessibilityRole="button"
-              onPress={() => setSticker(celebration.levelSticker ?? null)}
+              onPress={() => setSticker(celebration.levelSticker as StickerData)}
               style={styles.shareBtn}>
               <Ionicons name="share-outline" size={18} color={BRAND_INDIGO} />
               <Text style={styles.shareText}>{t('share.actions.share')}</Text>
@@ -775,9 +836,57 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     );
   }
 
-  if (celebration?.kind === 'praise' && celebration.praiseKey) {
-    const accepted = suggestionRows.find((r) => decisions[r.index] === 'accept');
-    const toTarget = accepted?.suggestion.toTarget;
+  if (celebration?.mode === 'multi_level') {
+    return (
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Animated.View entering={FadeIn.duration(420)} style={styles.celebWrap}>
+          <Image
+            source={require('@/assets/images/koli-energetic.png')}
+            style={styles.koliLarge}
+            contentFit="contain"
+          />
+          <Text testID="training.progression.celebration" style={styles.celebTitle}>
+            {t(CELEBRATION_MULTI_TITLE_KEY, { count: celebration.count })}
+          </Text>
+          <View style={styles.celebLevelList}>
+            {celebration.levels.map((level, index) => (
+              <View key={`${level.name}-${index}`} style={styles.celebLevelRow}>
+                <Text style={styles.celebLevelRowText}>
+                  {t(CELEBRATION_LEVEL_KEY, {
+                    name: level.name,
+                    step: level.step,
+                    total: level.total,
+                  })}
+                </Text>
+                {level.levelSticker ? (
+                  <Pressable
+                    testID={`training.progression.celebration.share.${index}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('share.actions.share')}
+                    hitSlop={8}
+                    onPress={() => setSticker(level.levelSticker as StickerData)}>
+                    <Ionicons name="share-outline" size={18} color={BRAND_INDIGO} />
+                  </Pressable>
+                ) : null}
+              </View>
+            ))}
+          </View>
+          {celebration.praiseLine ? (
+            <Text style={styles.celebSub}>{praiseText(celebration.praiseLine)}</Text>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onDismiss?.()}
+            style={styles.doneBtn}>
+            <Text style={styles.doneText}>{t('training.progression.celebration.continue')}</Text>
+          </Pressable>
+        </Animated.View>
+        {shareSheet}
+      </ScrollView>
+    );
+  }
+
+  if (celebration?.mode === 'praise_only') {
     return (
       <ScrollView contentContainerStyle={styles.scroll}>
         <Animated.View entering={FadeIn.duration(320)} style={styles.celebWrap}>
@@ -787,24 +896,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
               style={styles.koliSmall}
               contentFit="contain"
             />
-            <Text style={styles.praiseText}>
-              {t(celebration.praiseKey, {
-                name: celebration.name,
-                sets: toTarget?.targetSets ?? '',
-                range:
-                  toTarget?.targetSeconds != null
-                    ? `${toTarget.targetSeconds}${
-                        toTarget.targetSecondsMax != null
-                          ? `–${toTarget.targetSecondsMax}`
-                          : ''
-                      } s`
-                    : toTarget?.targetReps != null
-                      ? `${toTarget.targetReps}${
-                          toTarget.targetRepsMax != null ? `–${toTarget.targetRepsMax}` : ''
-                        }`
-                      : '',
-              })}
-            </Text>
+            <Text style={styles.praiseText}>{praiseText(celebration)}</Text>
           </GlassCard>
           <Pressable
             accessibilityRole="button"
@@ -850,6 +942,16 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           </Text>
           <Text style={styles.openLink}>{t('training.panel.backToSession')}</Text>
         </Pressable>
+      ) : null}
+
+      {nutritionHint.length > 0 ? (
+        <View testID="training.summary.nutritionHint" style={styles.nutritionHintCard}>
+          {nutritionHint.map((line) => (
+            <Text key={line.kind} style={styles.nutritionHintText}>
+              {t(line.messageKey, line.kind === 'fat' ? undefined : line.params)}
+            </Text>
+          ))}
+        </View>
       ) : null}
 
       <View style={styles.block}>
@@ -1199,6 +1301,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: BRAND_INDIGO,
   },
+  nutritionHintCard: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+  },
+  nutritionHintText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#064E3B',
+  },
   backLink: {
     alignSelf: 'center',
     paddingVertical: 6,
@@ -1250,6 +1364,23 @@ const styles = StyleSheet.create({
     color: TEXT_SECONDARY,
     textAlign: 'center',
     paddingHorizontal: 24,
+  },
+  celebLevelList: {
+    alignSelf: 'stretch',
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  celebLevelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  celebLevelRowText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: BRAND_INDIGO,
   },
   praiseCard: {
     flexDirection: 'row',

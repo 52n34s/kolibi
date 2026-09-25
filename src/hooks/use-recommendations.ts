@@ -6,10 +6,12 @@ import { create } from 'zustand';
 
 import { useDeferredProgressions } from '@/components/training/IdleProgressionOverlay';
 import { useReadiness, useTodayCheckinStatus } from '@/hooks/use-checkin';
+import { useDeloadSuggestion } from '@/hooks/use-deload';
 import { useExercises } from '@/hooks/use-exercises';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
+import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { fetchBodyMeasurementsSince } from '@/lib/body-measurements';
@@ -120,6 +122,9 @@ export function useRecommendations(): {
   const { data: profileSettings } = useProfileSettings(userId);
   const goalType = profileSettings?.profile?.goal_type ?? null;
   const goalCategory = goalCategoryForGoalType(goalType);
+  const focusAreas = profileSettings?.profile?.focus_areas ?? null;
+  const sessionsPerWeek = profileSettings?.profile?.training_sessions_per_week ?? null;
+  const hasTrainingGoal = sessionsPerWeek != null && sessionsPerWeek >= 1;
 
   const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
   const trainingEnabled = resolveTrainingTabEnabled(trainingTabFlag);
@@ -134,6 +139,11 @@ export function useRecommendations(): {
     enabled: trainingEnabled,
   });
   const exercisesQuery = useExercises(trainingEnabled);
+  // Also for nutrition-only people: the hint after a logged run lives here.
+  const { data: trainingRowsWeek = [] } = useTrainingSessionsWeek(
+    hasTrainingGoal || trainingEnabled,
+  );
+  const deloadSuggested = useDeloadSuggestion();
 
   const templates = useMemo(
     () => (trainingEnabled ? (templatesQuery.data ?? []) : []),
@@ -174,7 +184,6 @@ export function useRecommendations(): {
     [dismissInStore, userId],
   );
 
-  const sessionsPerWeek = profileSettings?.profile?.training_sessions_per_week ?? null;
   const trainingDay = useMemo(() => {
     const weekday = isoWeekday(now);
     return isTrainingDay({
@@ -190,6 +199,32 @@ export function useRecommendations(): {
     () => sessions.some((session) => session.loggedOn === todayKey),
     [sessions, todayKey],
   );
+
+  /**
+   * The last training of today: a finished unit or a logged row, whichever is
+   * later. A unit shows up in both, and both say strength.
+   */
+  const lastTraining = useMemo(() => {
+    const candidates: { kind: 'strength' | 'endurance'; atMs: number }[] = [];
+    const add = (kind: 'strength' | 'endurance', at: string | null) => {
+      const atMs = at == null ? NaN : Date.parse(at);
+      if (Number.isFinite(atMs)) {
+        candidates.push({ kind, atMs });
+      }
+    };
+    for (const session of sessions) {
+      if (session.loggedOn === todayKey) {
+        add('strength', session.finishedAt);
+      }
+    }
+    for (const row of trainingRowsWeek) {
+      if (row.loggedOn === todayKey) {
+        add(row.activity === 'strength' ? 'strength' : 'endurance', row.createdAt);
+      }
+    }
+    candidates.sort((a, b) => b.atMs - a.atMs);
+    return candidates[0] ?? null;
+  }, [sessions, todayKey, trainingRowsWeek]);
 
   const nextLevel = useMemo((): NextLevelReady | null => {
     const row = deferredProgressions.find((item) => isAscentKind(item.suggestion.kind));
@@ -273,6 +308,7 @@ export function useRecommendations(): {
             proteinG: macros.proteinG ?? (nothingLogged ? 0 : null),
             carbsG: macros.carbsG ?? (nothingLogged ? 0 : null),
             fiberG: macros.fiberG ?? (nothingLogged ? 0 : null),
+            fatG: macros.fatG ?? (nothingLogged ? 0 : null),
           }
         : null;
     const latestWeight = dashboardData?.latestWeight ?? null;
@@ -287,6 +323,11 @@ export function useRecommendations(): {
         nowMs: now.getTime(),
         trainingDay: trainingEnabled && trainingDay,
         trainedToday,
+        trainedTodayKind: lastTraining?.kind ?? null,
+        hoursSinceTraining:
+          lastTraining == null ? null : (now.getTime() - lastTraining.atMs) / 3_600_000,
+        focusAreas,
+        deloadSuggested,
         consumed,
         targets: goal
           ? {
@@ -294,6 +335,7 @@ export function useRecommendations(): {
               proteinG: goal.protein_g,
               carbsG: goal.carbs_g,
               fiberG: goal.fiber_g,
+              fatG: goal.fat_g,
             }
           : null,
         readiness: trainingEnabled ? (readiness?.level ?? null) : null,
@@ -318,8 +360,11 @@ export function useRecommendations(): {
   }, [
     checkinStatus,
     dashboardData,
+    deloadSuggested,
     dismissals,
+    focusAreas,
     goalCategory,
+    lastTraining,
     measurementRows,
     muscleDeficits,
     nextLevel,

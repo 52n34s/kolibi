@@ -33,6 +33,10 @@ function ctx(overrides: Partial<RecommendationContext> = {}): RecommendationCont
     nowMs: NOW,
     trainingDay: false,
     trainedToday: false,
+    trainedTodayKind: null,
+    hoursSinceTraining: null,
+    focusAreas: null,
+    deloadSuggested: false,
     consumed: { proteinG: 100, carbsG: 150, fiberG: 20 },
     targets: { kcal: 2000, proteinG: 120, carbsG: 220, fiberG: 30 },
     readiness: null,
@@ -410,6 +414,120 @@ describe('buildRecommendations – ordering, cap and snooze', () => {
   });
 });
 
+describe('buildRecommendations – after the session', () => {
+  const afterTraining = ctx({
+    trainedToday: true,
+    trainedTodayKind: 'strength',
+    hoursSinceTraining: 1,
+    consumed: { proteinG: 40, carbsG: 60, fiberG: 20, fatG: 60 },
+    targets: { kcal: 2000, proteinG: 120, carbsG: 220, fiberG: 30, fatG: 65 },
+  });
+
+  it('protein first after strength, carbs and the fat line under it', () => {
+    const [rec] = buildRecommendations(afterTraining);
+    assert.equal(rec?.kind, 'post_training');
+    assert.deepEqual(rec?.message, { key: 'postTraining.protein', params: { g: 80 } });
+    assert.deepEqual(rec?.moreLines, [
+      { key: 'postTraining.carbs', params: { g: 160 } },
+      { key: 'postTraining.fat', params: undefined },
+    ]);
+  });
+
+  it('carbs lead after a run', () => {
+    const [rec] = buildRecommendations({ ...afterTraining, trainedTodayKind: 'endurance' });
+    assert.equal(rec?.message.key, 'postTraining.carbs');
+  });
+
+  it('replaces the plain protein and carbs hints, keeps fiber', () => {
+    const list = buildRecommendations({
+      ...afterTraining,
+      trainingDay: true,
+      consumed: { proteinG: 0, carbsG: 0, fiberG: 0, fatG: 0 },
+    });
+    assert.deepEqual(kinds(list), ['post_training', 'fiber']);
+  });
+
+  it('stays quiet outside the window and without a session', () => {
+    assert.deepEqual(kinds(buildRecommendations({ ...afterTraining, hoursSinceTraining: 5 })), [
+      'protein',
+    ]);
+    assert.deepEqual(kinds(buildRecommendations({ ...afterTraining, hoursSinceTraining: null })), [
+      'protein',
+    ]);
+    assert.deepEqual(
+      kinds(buildRecommendations({ ...afterTraining, trainedToday: false, trainedTodayKind: null })),
+      ['protein'],
+    );
+  });
+
+  it('stays quiet when nothing is open any more', () => {
+    assert.deepEqual(
+      kinds(
+        buildRecommendations({
+          ...afterTraining,
+          consumed: { proteinG: 120, carbsG: 220, fiberG: 30, fatG: 20 },
+        }),
+      ),
+      [],
+    );
+  });
+});
+
+describe('buildRecommendations – lighter week', () => {
+  it('offers start and "Jetzt nicht", before the other training hints', () => {
+    const list = buildRecommendations(
+      ctx({ deloadSuggested: true, nextLevel: { exerciseId: 'x', exerciseName: 'X' } }),
+    );
+    assert.deepEqual(kinds(list), ['deload', 'next_level']);
+    assert.deepEqual(list[0]?.action, {
+      target: 'deloadStart',
+      labelKey: 'recommendations.deload.actionStart',
+    });
+    assert.deepEqual(list[0]?.secondaryAction, {
+      target: 'deloadDismiss',
+      labelKey: 'recommendations.deload.actionDismiss',
+    });
+  });
+
+  it('shows on a gentle day too', () => {
+    const list = buildRecommendations(
+      ctx({ deloadSuggested: true, readiness: 'gentle', trainingDay: true }),
+    );
+    assert.deepEqual(kinds(list), ['deload', 'rest_day']);
+  });
+});
+
+describe('buildRecommendations – focus areas', () => {
+  const behind = { proteinG: 0, carbsG: 0, fiberG: 0 };
+
+  it('a chosen topic moves its hints forward inside the category', () => {
+    const plain = buildRecommendations(ctx({ goalCategory: 'lose', consumed: behind }));
+    assert.deepEqual(kinds(plain), ['protein', 'fiber']);
+    const withFiber = buildRecommendations(
+      ctx({ goalCategory: 'lose', consumed: behind, focusAreas: ['more_fiber'] }),
+    );
+    assert.deepEqual(kinds(withFiber), ['fiber', 'protein']);
+  });
+
+  it('two areas on the same list keep the goal order between them', () => {
+    const list = buildRecommendations(
+      ctx({
+        goalCategory: 'lose',
+        consumed: behind,
+        focusAreas: ['more_fiber', 'more_protein'],
+      }),
+    );
+    assert.deepEqual(kinds(list), ['protein', 'fiber']);
+  });
+
+  it('unknown ids change nothing', () => {
+    const list = buildRecommendations(
+      ctx({ goalCategory: 'lose', consumed: behind, focusAreas: [] }),
+    );
+    assert.deepEqual(kinds(list), ['protein', 'fiber']);
+  });
+});
+
 describe('dismissals storage', () => {
   it('writes and reads per user', () => {
     const storage = createMemoryKvStorage();
@@ -468,12 +586,29 @@ describe('i18n', () => {
             checkinStatus: 'open',
           }),
         ),
+        buildRecommendations(ctx({ goalCategory: goal, deloadSuggested: true })),
+        buildRecommendations(
+          ctx({
+            goalCategory: goal,
+            trainedToday: true,
+            trainedTodayKind: 'strength',
+            hoursSinceTraining: 1,
+            consumed: { ...behind, fatG: 60 },
+            targets: { kcal: 2000, proteinG: 120, carbsG: 220, fiberG: 30, fatG: 65 },
+          }),
+        ),
       );
     }
     const keys = new Set<string>();
     for (const rec of lists.flat()) {
       keys.add(rec.message.key);
       keys.add(rec.action.labelKey);
+      for (const line of rec.moreLines ?? []) {
+        keys.add(line.key);
+      }
+      if (rec.secondaryAction) {
+        keys.add(rec.secondaryAction.labelKey);
+      }
       if (rec.reason) {
         keys.add(rec.reason.key);
       }

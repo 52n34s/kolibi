@@ -11,6 +11,7 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { BRAND_INDIGO, RECOMMENDATION_ACCENT } from '@/constants/brand';
 import { useRequestCheckinQuestions } from '@/hooks/use-checkin';
+import { useDeloadWeek } from '@/hooks/use-deload';
 import { useRecommendations } from '@/hooks/use-recommendations';
 import type {
   Recommendation,
@@ -61,6 +62,9 @@ export function RecommendationsCard({
       <View style={{ gap: 8 }}>
         {recommendations.map((rec) => {
           const handler = handlers[rec.action.target];
+          const secondary = rec.secondaryAction
+            ? handlers[rec.secondaryAction.target]
+            : undefined;
           return (
             <Swipeable
               key={rec.kind}
@@ -85,24 +89,45 @@ export function RecommendationsCard({
                     <Text className="text-[15px] font-medium leading-5 text-gray-900">
                       {t(rec.message.key, rec.message.params)}
                     </Text>
+                    {(rec.moreLines ?? []).map((line) => (
+                      <Text
+                        key={line.key}
+                        className="mt-0.5 text-[15px] font-medium leading-5 text-gray-900">
+                        {t(line.key, line.params)}
+                      </Text>
+                    ))}
                     {rec.reason ? (
                       <Text className="mt-0.5 text-sm leading-5 text-gray-500">
                         {t(rec.reason.key, rec.reason.params)}
                       </Text>
                     ) : null}
-                    {handler ? (
-                      <Pressable
-                        testID={`home.recommendations.${rec.kind}.action`}
-                        accessibilityRole="button"
-                        hitSlop={8}
-                        onPress={() => handler(rec.action)}
-                        className="mt-1.5 flex-row items-center self-start py-1">
-                        <Text className="text-sm font-semibold" style={{ color: BRAND_INDIGO }}>
-                          {t(rec.action.labelKey)}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={14} color={BRAND_INDIGO} />
-                      </Pressable>
-                    ) : null}
+                    <View className="flex-row items-center" style={{ gap: 16 }}>
+                      {handler ? (
+                        <Pressable
+                          testID={`home.recommendations.${rec.kind}.action`}
+                          accessibilityRole="button"
+                          hitSlop={8}
+                          onPress={() => handler(rec.action)}
+                          className="mt-1.5 flex-row items-center self-start py-1">
+                          <Text className="text-sm font-semibold" style={{ color: BRAND_INDIGO }}>
+                            {t(rec.action.labelKey)}
+                          </Text>
+                          <Ionicons name="chevron-forward" size={14} color={BRAND_INDIGO} />
+                        </Pressable>
+                      ) : null}
+                      {secondary && rec.secondaryAction ? (
+                        <Pressable
+                          testID={`home.recommendations.${rec.kind}.secondaryAction`}
+                          accessibilityRole="button"
+                          hitSlop={8}
+                          onPress={() => secondary(rec.secondaryAction!)}
+                          className="mt-1.5 flex-row items-center self-start py-1">
+                          <Text className="text-sm font-semibold text-gray-500">
+                            {t(rec.secondaryAction.labelKey)}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
                   </View>
                   <Pressable
                     testID={`home.recommendations.${rec.kind}.dismiss`}
@@ -144,6 +169,7 @@ export function TodayRecommendations({
 }: TodayRecommendationsProps) {
   const { recommendations, dismiss } = useRecommendations();
   const requestCheckin = useRequestCheckinQuestions();
+  const { start: startDeloadWeek, dismiss: dismissDeloadWeek } = useDeloadWeek();
 
   const handlers = useMemo(
     (): RecommendationActionHandlers => ({
@@ -157,8 +183,23 @@ export function TodayRecommendations({
           router.push(`/koli/exercise-progress/${action.exerciseId}` as Href);
         }
       },
+      // Both writes make the card go away: the profile decides whether it shows.
+      deloadStart: () => {
+        void startDeloadWeek();
+      },
+      deloadDismiss: () => {
+        void dismissDeloadWeek();
+      },
     }),
-    [onOpenMeals, onOpenMeasurements, onOpenTraining, onOpenWeightSheet, requestCheckin],
+    [
+      dismissDeloadWeek,
+      onOpenMeals,
+      onOpenMeasurements,
+      onOpenTraining,
+      onOpenWeightSheet,
+      requestCheckin,
+      startDeloadWeek,
+    ],
   );
 
   return (

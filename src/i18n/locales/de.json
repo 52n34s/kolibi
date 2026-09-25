@@ -704,6 +704,9 @@
     }
   },
   "training": {
+    "deload": {
+      "banner": "Leichtere Woche – bis {{date}}"
+    },
     "imageViewer": {
       "close": "Bild schließen",
       "dismissHint": "Daneben tippen oder nach unten wischen"
@@ -1010,6 +1013,7 @@
       "harder": "schwerer",
       "celebration": {
         "title": "Neue Stufe erreicht!",
+        "multiTitle": "{{count}} neue Stufen",
         "level": "{{name}} · Stufe {{step}} von {{total}}",
         "subtitle1": "Deine Konstanz zahlt sich aus.",
         "subtitle2": "Stark – das hast du dir erarbeitet.",
@@ -1423,6 +1427,25 @@
     }
   },
   "settings": {
+    "deload": {
+      "title": "Leichtere Woche",
+      "body": "Ein Satz weniger pro Übung. Dein Körper holt auf, dein Plan bleibt.",
+      "active": "Läuft bis {{date}}",
+      "end": "Leichtere Woche beenden",
+      "inactive": "Gerade läuft keine leichtere Woche."
+    },
+    "focusAreas": {
+      "title": "Deine Schwerpunkte",
+      "subtitle": "Womit soll Kolibi dich zuerst unterstützen?",
+      "max": "Bis zu 3 Schwerpunkte",
+      "label": {
+        "more_protein": "Mehr Protein",
+        "more_fiber": "Mehr Ballaststoffe und Gemüse",
+        "more_training_energy": "Mehr Energie fürs Training",
+        "better_recovery": "Besser erholen",
+        "more_regular_meals": "Regelmäßiger essen"
+      }
+    },
     "title": "Einstellungen",
     "backToHome": "Zurück zur Startseite",
     "subSegments": {
@@ -2400,6 +2423,10 @@
     "done": "Pause vorbei – weiter geht’s!"
   },
   "today": {
+    "focusAreasNudge": {
+      "title": "Magst du Schwerpunkte setzen? Dann passen die Hinweise noch besser zu dir.",
+      "action": "Schwerpunkte wählen"
+    },
     "nutrition": {
       "kcalLeft": "kcal heute übrig",
       "kcalOver": "kcal drüber",
@@ -2421,6 +2448,11 @@
   "recommendations": {
     "title": "Für dich heute",
     "dismiss": "Ausblenden",
+    "deload": {
+      "message": "Eine leichtere Woche bringt dich weiter. Dein Körper holt auf, danach geht's stärker weiter.",
+      "actionStart": "Leichtere Woche starten",
+      "actionDismiss": "Jetzt nicht"
+    },
     "protein": {
       "message": "Noch {{grams}} g Protein bis zum Ziel",
       "action": "Protein erfassen"
@@ -2459,5 +2491,23 @@
       "body": "Vier kurze Fragen, dann weiß Kolibi, was heute zu dir passt.",
       "action": "Check-in starten"
     }
+  },
+  "goals": {
+    "focusAreas": {
+      "title": "Was ist dir außerdem wichtig?",
+      "subtitle": "Wähle bis zu 3 Themen – die Hinweise richten sich danach.",
+      "label": {
+        "more_protein": "Mehr Protein",
+        "more_fiber": "Mehr Ballaststoffe und Gemüse",
+        "more_training_energy": "Mehr Energie fürs Training",
+        "better_recovery": "Besser erholen",
+        "more_regular_meals": "Regelmäßiger essen"
+      }
+    }
+  },
+  "postTraining": {
+    "protein": "Noch {{g}} g Protein bis zum Ziel – gut für die Erholung.",
+    "carbs": "Noch {{g}} g Kohlenhydrate – damit füllst du deine Speicher wieder auf.",
+    "fat": "Fett ist fast erreicht. Für den Rest des Tages passen magere Proteinquellen gut."
   }
 }

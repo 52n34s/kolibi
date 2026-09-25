@@ -704,6 +704,9 @@
     }
   },
   "training": {
+    "deload": {
+      "banner": "Lighter week – until {{date}}"
+    },
     "imageViewer": {
       "close": "Close image",
       "dismissHint": "Tap outside or swipe down to close"
@@ -1010,6 +1013,7 @@
       "harder": "harder",
       "celebration": {
         "title": "New level unlocked!",
+        "multiTitle": "{{count}} new levels",
         "level": "{{name}} · Level {{step}} of {{total}}",
         "subtitle1": "Your consistency is paying off.",
         "subtitle2": "Strong — you earned this.",
@@ -1423,6 +1427,25 @@
     }
   },
   "settings": {
+    "deload": {
+      "title": "Lighter week",
+      "body": "One set less per exercise. Your body catches up, your plan stays.",
+      "active": "Running until {{date}}",
+      "end": "End lighter week",
+      "inactive": "No lighter week is running right now."
+    },
+    "focusAreas": {
+      "title": "Your focus areas",
+      "subtitle": "What should Kolibi support you with first?",
+      "max": "Up to 3 focus areas",
+      "label": {
+        "more_protein": "More protein",
+        "more_fiber": "More fibre and vegetables",
+        "more_training_energy": "More energy for training",
+        "better_recovery": "Better recovery",
+        "more_regular_meals": "More regular meals"
+      }
+    },
     "title": "Settings",
     "backToHome": "Back to home",
     "subSegments": {
@@ -2400,6 +2423,10 @@
     "done": "Rest’s over – let’s go!"
   },
   "today": {
+    "focusAreasNudge": {
+      "title": "Want to set focus areas? Then the hints fit you even better.",
+      "action": "Choose focus areas"
+    },
     "nutrition": {
       "kcalLeft": "kcal left today",
       "kcalOver": "kcal over",
@@ -2421,6 +2448,11 @@
   "recommendations": {
     "title": "For you today",
     "dismiss": "Hide",
+    "deload": {
+      "message": "A lighter week takes you further. Your body catches up, then you come back stronger.",
+      "actionStart": "Start lighter week",
+      "actionDismiss": "Not now"
+    },
     "protein": {
       "message": "{{grams}} g of protein to reach your goal",
       "action": "Log protein"
@@ -2459,5 +2491,23 @@
       "body": "Four quick questions, then Kolibi knows what fits you today.",
       "action": "Start check-in"
     }
+  },
+  "goals": {
+    "focusAreas": {
+      "title": "What else matters to you?",
+      "subtitle": "Pick up to 3 topics – your hints follow them.",
+      "label": {
+        "more_protein": "More protein",
+        "more_fiber": "More fibre and vegetables",
+        "more_training_energy": "More energy for training",
+        "better_recovery": "Better recovery",
+        "more_regular_meals": "More regular meals"
+      }
+    }
+  },
+  "postTraining": {
+    "protein": "{{g}} g of protein to go – good for recovery.",
+    "carbs": "{{g}} g of carbs to go – refills your energy stores.",
+    "fat": "Fat is almost reached. Lean protein sources fit well for the rest of the day."
   }
 }

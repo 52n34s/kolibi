@@ -704,6 +704,9 @@
     }
   },
   "training": {
+    "deload": {
+      "banner": "Semana más suave – hasta el {{date}}"
+    },
     "imageViewer": {
       "close": "Cerrar imagen",
       "dismissHint": "Toca fuera o desliza hacia abajo para cerrar"
@@ -1010,6 +1013,7 @@
       "harder": "más difícil",
       "celebration": {
         "title": "¡Nuevo nivel alcanzado!",
+        "multiTitle": "{{count}} niveles nuevos",
         "level": "{{name}} · Nivel {{step}} de {{total}}",
         "subtitle1": "Tu constancia da frutos.",
         "subtitle2": "Fuerte — te lo has ganado.",
@@ -1423,6 +1427,25 @@
     }
   },
   "settings": {
+    "deload": {
+      "title": "Semana más suave",
+      "body": "Una serie menos por ejercicio. Tu cuerpo se recupera y tu plan sigue.",
+      "active": "Activa hasta el {{date}}",
+      "end": "Terminar la semana suave",
+      "inactive": "Ahora mismo no hay ninguna semana suave activa."
+    },
+    "focusAreas": {
+      "title": "Tus prioridades",
+      "subtitle": "¿Con qué quieres que Kolibi te ayude primero?",
+      "max": "Hasta 3 prioridades",
+      "label": {
+        "more_protein": "Más proteína",
+        "more_fiber": "Más fibra y verdura",
+        "more_training_energy": "Más energía para entrenar",
+        "better_recovery": "Mejor recuperación",
+        "more_regular_meals": "Comer más regular"
+      }
+    },
     "title": "Ajustes",
     "backToHome": "Volver al inicio",
     "subSegments": {
@@ -2400,6 +2423,10 @@
     "done": "¡Descanso terminado, a por ello!"
   },
   "today": {
+    "focusAreasNudge": {
+      "title": "¿Quieres marcar prioridades? Así los consejos encajarán aún mejor contigo.",
+      "action": "Elegir prioridades"
+    },
     "nutrition": {
       "kcalLeft": "kcal restantes hoy",
       "kcalOver": "kcal de más",
@@ -2421,6 +2448,11 @@
   "recommendations": {
     "title": "Para ti hoy",
     "dismiss": "Ocultar",
+    "deload": {
+      "message": "Una semana más suave te lleva más lejos. Tu cuerpo se recupera y luego vuelves con más fuerza.",
+      "actionStart": "Empezar semana suave",
+      "actionDismiss": "Ahora no"
+    },
     "protein": {
       "message": "Te quedan {{grams}} g de proteína para tu objetivo",
       "action": "Registrar proteína"
@@ -2459,5 +2491,23 @@
       "body": "Cuatro preguntas rápidas y Kolibi sabrá qué te conviene hoy.",
       "action": "Empezar check-in"
     }
+  },
+  "goals": {
+    "focusAreas": {
+      "title": "¿Qué más te importa?",
+      "subtitle": "Elige hasta 3 temas – los consejos se guiarán por ellos.",
+      "label": {
+        "more_protein": "Más proteína",
+        "more_fiber": "Más fibra y verdura",
+        "more_training_energy": "Más energía para entrenar",
+        "better_recovery": "Mejor recuperación",
+        "more_regular_meals": "Comer más regular"
+      }
+    }
+  },
+  "postTraining": {
+    "protein": "Te faltan {{g}} g de proteína – buena para la recuperación.",
+    "carbs": "Te faltan {{g}} g de carbohidratos – recargan tus reservas.",
+    "fat": "Casi alcanzas la grasa. Para el resto del día van bien las proteínas magras."
   }
 }
