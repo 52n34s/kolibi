@@ -78,7 +78,7 @@ import { useBodyMeasurementsAvailable } from '@/hooks/use-build-up';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { isBuildUpGoal } from '@/lib/build-up';
 import { goalCategoryForGoalType } from '@/lib/goal-category';
-import { todayBodyCard, todaySectionOrder } from '@/lib/today-layout';
+import { todayBodyCard, visibleTodaySections } from '@/lib/today-layout';
 import { TodayTrainingCard } from '@/components/home/TodayTrainingCard';
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
@@ -1565,7 +1565,9 @@ export default function HomeScreen() {
                     />
 
                     {/* Order by goal: weight goals lead with nutrition and body, muscle and strength with training. */}
-                    {todaySectionOrder(goalCategory).map((section) => (
+                    {visibleTodaySections(goalCategory, {
+                      sessionBannerShown: Boolean(trainingTabEnabled && activeSession),
+                    }).map((section) => (
                       <View key={section} className="mt-4">
                         {section === 'training' ? (
                           trainingTabEnabled ? (

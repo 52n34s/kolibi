@@ -5,6 +5,7 @@ import {
   todayBodyCard,
   todayNutritionSummary,
   todaySectionOrder,
+  visibleTodaySections,
   todayTrainingState,
 } from './today-layout.ts';
 
@@ -77,5 +78,20 @@ describe('todayTrainingState', () => {
   it('offers the next unit on a planned day and in a rotating plan', () => {
     assert.equal(todayTrainingState({ ...base, units: [{ weekdays: [5] }], sessions: [] }), 'next');
     assert.equal(todayTrainingState({ ...base, units: [{ weekdays: [] }], sessions: [] }), 'next');
+  });
+});
+
+describe('visibleTodaySections', () => {
+  it('hides the training card while the session banner shows', () => {
+    assert.deepEqual(visibleTodaySections('muscle', { sessionBannerShown: true }), ['nutrition', 'body']);
+    assert.deepEqual(visibleTodaySections('lose', { sessionBannerShown: true }), ['nutrition', 'body']);
+  });
+
+  it('keeps every section without a running session', () => {
+    assert.deepEqual(visibleTodaySections('muscle', { sessionBannerShown: false }), [
+      'training',
+      'nutrition',
+      'body',
+    ]);
   });
 });

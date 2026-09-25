@@ -20,6 +20,19 @@ export function todaySectionOrder(goal: GoalCategory | null): TodaySection[] {
   }
 }
 
+/**
+ * Sections Today shows. While a unit runs, the banner "Training läuft · …
+ * Weiter geht's" sits at the top of every tab and leads back into it, so the
+ * training card (next unit / done) would only repeat it with stale content.
+ */
+export function visibleTodaySections(
+  goal: GoalCategory | null,
+  options: { sessionBannerShown: boolean },
+): TodaySection[] {
+  const order = todaySectionOrder(goal);
+  return options.sessionBannerShown ? order.filter((section) => section !== 'training') : order;
+}
+
 /** Which body card Today shows: the weight card for weight goals, the build-up card for muscle and strength. */
 export function todayBodyCard(goal: GoalCategory | null): 'weight' | 'buildUp' {
   return goal === 'muscle' || goal === 'strength' ? 'buildUp' : 'weight';
