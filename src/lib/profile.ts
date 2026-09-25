@@ -10,12 +10,16 @@ import {
 } from '@/lib/calorie-goals';
 import { createSchemaProbe } from '@/lib/db-schema-errors';
 import { clampFocusAreas, type FocusAreaId } from '@/lib/focus-areas';
+import {
+  parseOptionalProfileColumns,
+  type MovementGoalPeriod,
+  type MovementGoalType,
+} from '@/lib/profile-row';
 import { uploadImageToStorage } from '@/lib/storage-upload';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
 
-export type MovementGoalType = 'steps' | 'running_km' | 'distance_km';
-export type MovementGoalPeriod = 'day' | 'week';
+export type { MovementGoalPeriod, MovementGoalType } from '@/lib/profile-row';
 
 const PROFILE_SETTINGS_SELECT =
   'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context, movement_goal_type, movement_goal_value, movement_goal_period, target_weight_kg, progress_start_date, training_sessions_per_week';
@@ -203,43 +207,10 @@ export async function fetchProfileSettings(
     throw new Error('Profile not found');
   }
 
-  const movementGoalType = parseMovementGoalType(profile.movement_goal_type);
-  const movementGoalPeriod = parseMovementGoalPeriod(profile.movement_goal_period);
-  const rawMovementValue =
-    profile.movement_goal_value == null ? null : Number(profile.movement_goal_value);
-
   return {
     ...profile,
-    diet_preference: profile.diet_preference ?? null,
-    cuisine_context: Array.isArray(profile.cuisine_context)
-      ? profile.cuisine_context
-      : null,
-    movement_goal_type: movementGoalType,
-    movement_goal_value:
-      rawMovementValue != null && Number.isFinite(rawMovementValue) ? rawMovementValue : null,
-    movement_goal_period: movementGoalPeriod,
-    target_weight_kg: (() => {
-      if (profile.target_weight_kg == null) {
-        return null;
-      }
-      const parsed = Number(profile.target_weight_kg);
-      return Number.isFinite(parsed) ? parsed : null;
-    })(),
-    progress_start_date:
-      typeof profile.progress_start_date === 'string' ? profile.progress_start_date : null,
-    training_sessions_per_week: (() => {
-      if (profile.training_sessions_per_week == null) {
-        return null;
-      }
-      const parsed = Number(profile.training_sessions_per_week);
-      return Number.isFinite(parsed) && parsed >= 1 && parsed <= 14 ? parsed : null;
-    })(),
-    focus_areas: Array.isArray(profile.focus_areas)
-      ? clampFocusAreas(profile.focus_areas.map(String))
-      : null,
-    deload_until: typeof profile.deload_until === 'string' ? profile.deload_until : null,
-    deload_suggested_at:
-      typeof profile.deload_suggested_at === 'string' ? profile.deload_suggested_at : null,
+    // Optional columns: absent before their migration, parsed and typed here.
+    ...parseOptionalProfileColumns(profile),
     latest_weight_kg: weightResult.data?.weight_kg ?? null,
     daily_calorie_goal: calorieGoalResult.data?.daily_calorie_goal ?? null,
   };
@@ -347,19 +318,7 @@ export async function updateFoodContext(params: {
   await refreshMacrosKeepingCalorieGoal(userId);
 }
 
-function parseMovementGoalType(value: unknown): MovementGoalType | null {
-  if (value === 'steps' || value === 'running_km' || value === 'distance_km') {
-    return value;
-  }
-  return null;
-}
 
-function parseMovementGoalPeriod(value: unknown): MovementGoalPeriod | null {
-  if (value === 'day' || value === 'week') {
-    return value;
-  }
-  return null;
-}
 
 /** Writes all three movement-goal columns together. Does not touch calorie_goals. */
 export async function updateMovementGoal(params: {
