@@ -45,7 +45,8 @@ export function formatWeightDeltaForDisplay(params: {
     return null;
   }
 
-  const sign = params.deltaKg > 0 ? '+' : '-';
+  // Typographic minus, as everywhere else in the app.
+  const sign = params.deltaKg > 0 ? '+' : '−';
   const absKg = Math.abs(params.deltaKg);
 
   if (params.unitSystem === 'imperial') {

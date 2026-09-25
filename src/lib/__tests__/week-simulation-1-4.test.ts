@@ -1288,8 +1288,8 @@ describe('week simulation 1.4 (build_muscle, 4 units, Push + Pull & Legs)', () =
     assert.equal(en, "You're building up: waist −0.2 in, chest steady, +2 levels.");
     assert.ok(withHistory.weightDeltaKg != null && withHistory.weightDeltaKg > 0.3);
     // Weight: 7-day mean 80.225 against 79.2 → +1.0 kg = +2.3 lbs; two main exercises with their gain.
-    assert.equal(deHistory, 'Du baust auf: Gewicht +1 kg, Taille −0,5 cm, Brust stabil, +2 Stufen, Bankdips +5, Bankdips, Knie gebeugt +3.');
-    assert.equal(enHistory, "You're building up: weight +2.3 lbs, waist −0.2 in, chest steady, +2 levels, Bench Dips +5, Bent-Knee Bench Dips +3.");
+    assert.equal(deHistory, 'Du baust auf: Gewicht +1 kg, Taille −0,5 cm, Brust stabil, +2 Stufen, Bankdips: +5, Bankdips (Knie gebeugt): +3.');
+    assert.equal(enHistory, "You're building up: weight +2.3 lbs, waist −0.2 in, chest steady, +2 levels, Bench Dips: +5, Bent-Knee Bench Dips: +3.");
   });
 
   it('11 skill goal forecast: too little data after a week, a period with four weeks', () => {

@@ -9,6 +9,7 @@ import {
   exerciseGains,
   formatBuildUpSentence,
   isBuildUpGoal,
+  sentenceExerciseName,
   weightAverageDelta,
   type BuildUpInput,
   type BuildUpSummary,
@@ -249,7 +250,7 @@ describe('formatBuildUpSentence', () => {
   it('builds the German sentence', () => {
     assert.equal(
       formatBuildUpSentence(example, { unitSystem: 'metric', locale: 'de', t: makeT('de') }),
-      'Du baust auf: Gewicht stabil, Taille −1,5 cm, Brust +1 cm, Liegestütze +4.',
+      'Du baust auf: Gewicht stabil, Taille −1,5 cm, Brust +1 cm, Liegestütze: +4.',
     );
   });
 
@@ -265,7 +266,7 @@ describe('formatBuildUpSentence', () => {
         }),
         { unitSystem: 'imperial', locale: 'en', t: makeT('en') },
       ),
-      "You're building up: weight +2 lbs, waist −0.6 in, upper arm steady, +2 levels, Plank +15 s.",
+      "You're building up: weight +2 lbs, waist −0.6 in, upper arm steady, +2 levels, Plank: +15 s.",
     );
   });
 
@@ -300,7 +301,7 @@ describe('formatBuildUpSentence', () => {
       }),
       { unitSystem: 'metric', locale: 'de', t: makeT('de') },
     );
-    assert.equal(sentence, 'Du baust auf: A +1, B +2.');
+    assert.equal(sentence, 'Du baust auf: A: +1, B: +2.');
   });
 
   it('is null without any data', () => {
@@ -317,5 +318,17 @@ describe('isBuildUpGoal', () => {
     assert.equal(isBuildUpGoal('gain_weight'), true);
     assert.equal(isBuildUpGoal('lose_weight'), false);
     assert.equal(isBuildUpGoal(null), false);
+  });
+});
+
+describe('sentenceExerciseName', () => {
+  it('puts a qualifier after a comma into brackets', () => {
+    assert.equal(sentenceExerciseName('Bankdips, Knie gebeugt'), 'Bankdips (Knie gebeugt)');
+    assert.equal(sentenceExerciseName('Barren-Rudern, Knie gebeugt'), 'Barren-Rudern (Knie gebeugt)');
+  });
+
+  it('leaves plain names and names with brackets alone', () => {
+    assert.equal(sentenceExerciseName('Bankdips'), 'Bankdips');
+    assert.equal(sentenceExerciseName('Dips (assistiert), leicht'), 'Dips (assistiert), leicht');
   });
 });

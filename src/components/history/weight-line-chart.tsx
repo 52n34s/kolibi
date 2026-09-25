@@ -138,10 +138,10 @@ export function WeightLineChart({
               {/* Arrow says the target is off the visible scale, not at this height. */}
               {`${targetAbove ? '↑' : '↓'} ${
                 targetLabel
-                  ? `${targetLabel} (${formatDeltaKg ? formatDeltaKg(edgeDelta) : `${edgeDelta > 0 ? '+' : ''}${edgeDelta.toFixed(1)} kg`})`
+                  ? `${targetLabel} (${formatDeltaKg ? formatDeltaKg(edgeDelta) : `${edgeDelta > 0 ? '+' : edgeDelta < 0 ? '−' : ''}${Math.abs(edgeDelta).toFixed(1)} kg`})`
                   : formatDeltaKg
                     ? formatDeltaKg(edgeDelta)
-                    : `${edgeDelta > 0 ? '+' : ''}${edgeDelta.toFixed(1)} kg`
+                    : `${edgeDelta > 0 ? '+' : edgeDelta < 0 ? '−' : ''}${Math.abs(edgeDelta).toFixed(1)} kg`
               }`}
             </SvgText>
           ) : null}

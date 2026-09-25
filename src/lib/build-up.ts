@@ -306,6 +306,20 @@ function circumferencePart(
   });
 }
 
+/**
+ * Exercise name inside the comma-separated sentence: a qualifier after a comma
+ * goes into brackets ("Bankdips, Knie gebeugt" → "Bankdips (Knie gebeugt)"),
+ * so it does not read as a second entry.
+ */
+export function sentenceExerciseName(name: string): string {
+  const trimmed = name.trim();
+  const comma = trimmed.indexOf(', ');
+  if (comma <= 0 || trimmed.includes('(')) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, comma)} (${trimmed.slice(comma + 2)})`;
+}
+
 /** Sentence parts in fixed order; parts without data are left out. */
 export function buildUpParts(
   summary: BuildUpSummary,
@@ -339,7 +353,7 @@ export function buildUpParts(
   for (const gain of summary.exerciseGains.slice(0, BUILD_UP_MAX_EXERCISES_IN_SENTENCE)) {
     parts.push(
       t(gain.kind === 'time' ? 'measurements.buildUp.exerciseSeconds' : 'measurements.buildUp.exerciseReps', {
-        name: gain.exerciseName,
+        name: sentenceExerciseName(gain.exerciseName),
         delta: formatNumber(gain.delta, locale),
       }),
     );
@@ -348,7 +362,7 @@ export function buildUpParts(
 }
 
 /**
- * E.g. "Du baust auf: Gewicht stabil, Taille −1,5 cm, Brust +1 cm, Liegestütze +4."
+ * E.g. "Du baust auf: Gewicht stabil, Taille −1,5 cm, Brust +1 cm, Liegestütze: +4."
  * Null when no part has data.
  */
 export function formatBuildUpSentence(
