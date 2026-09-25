@@ -74,6 +74,22 @@ import type {
 } from '../workouts/types.ts';
 import type { SaveTemplateExerciseInput } from '../workouts/workouts-api.ts';
 import { buildWeekDayMarkersForKeys, trainingCardSessionCount } from '../workouts/week-day-markers.ts';
+import { macroChartDomain, macroGoalChangeIndices, macroTrendSummary, isMacroDayInTarget } from '../history-macro-trend.ts';
+import { postTrainingNutritionHint } from '../nutrition/post-training-nutrition-hint.ts';
+import { reconcileTrainingRows } from '../training-rows.ts';
+import { resolveSportKcalForHistory } from '../sport-energy-day.ts';
+import { buildCelebration } from '../workouts/celebration.ts';
+import {
+  DELOAD_RULES,
+  isDeloadActive,
+  suggestDeload,
+  templateForStart,
+  type DeloadContext,
+} from '../workouts/deload.ts';
+import { applySetPrefill, lastSetsByExercise } from '../workouts/set-prefill.ts';
+import { buildActiveSessionFromTemplate, completeCurrentSet, adjustCurrent, addSet } from '../workouts/session-logic.ts';
+import type { WorkoutTemplate } from '../workouts/types.ts';
+
 
 // ---------------------------------------------------------------------------
 // Time
@@ -1369,5 +1385,199 @@ describe('week simulation 1.4 (build_muscle, 4 units, Push + Pull & Legs)', () =
     assert.equal(run, '3.1 mi');
     assert.equal(food, '150 g');
     assert.match(delta ?? '', /^\+0\.\d lbs$/);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// Test week 2 (1.4.0): six weeks, 2026-08-24 … 2026-10-04, injected time
+// ---------------------------------------------------------------------------
+
+describe('week simulation 2 (six weeks, 1.4.0 additions)', () => {
+  const W0 = '2026-08-24'; // Monday of week 1
+  const TODAY6 = '2026-10-04'; // Sunday of week 6
+  const weekStart = (week: number) => shiftKey(W0, (week - 1) * 7);
+  const hist = (sessionId: string, reps: number[], extra: Partial<ProgressionHistoryUnit> = {}): ProgressionHistoryUnit => ({
+    sessionId,
+    intensity: 'normal',
+    sets: reps.map((r) => ({
+      reps: r,
+      seconds: null,
+      secondsOtherSide: null,
+      targetReps: 8,
+      targetRepsMax: 12,
+      targetSeconds: null,
+      targetSecondsMax: null,
+      done: true,
+    })),
+    ...extra,
+  });
+  const ladderEx = cat('push_up');
+  const target = { targetSets: 3, targetReps: 8, targetRepsMax: 12, targetSeconds: null, targetSecondsMax: null };
+  const suggest = (history: ProgressionHistoryUnit[]) =>
+    suggestProgression({
+      exercise: { ...ladderEx, progressionKind: 'variant' },
+      ladder: ladderOf(ladderEx),
+      currentTarget: target,
+      history,
+      templateExerciseIds: [ladderEx.id],
+      lastEvents: [],
+    });
+
+  it('W2-1 extra sets: 12·12·12·9 suggests, a bonus set at the upper bound counts on "hart", two units with 5 sets → sets_up 4', () => {
+    const weak = hist('w1', [9, 9, 9]);
+    assert.ok(suggest([hist('w2', [12, 12, 12, 9]), weak]) != null, '12·12·12·9 is a success of the planned sets');
+    assert.equal(suggest([hist('w3', [12, 12, 12, 12], { intensity: 'hard' }), weak])?.kind, 'variant_up');
+    assert.equal(suggest([hist('w4', [12, 12, 12, 11], { intensity: 'hard' }), weak]), null, 'hard without a bonus set at the bound waits');
+    const five = (id: string) => hist(id, [9, 9, 9, 9, 9]);
+    const setsUp = suggest([five('w5b'), five('w5a')]);
+    assert.equal(setsUp?.kind, 'sets_up');
+    assert.equal(setsUp?.toTarget.targetSets, 4);
+  });
+
+  it('W2-2 prefill: this unit, then the last unit, then the lower bound', () => {
+    const template = {
+      id: 'push',
+      name: 'Push',
+      shortLabel: 'P',
+      colorKey: 'indigo',
+      weekdays: [1],
+      position: 0,
+      exercises: [{ id: 'te', exerciseId: 'push_up', exercise: ladderEx, position: 0, targetSets: 3, targetReps: 8, targetRepsMax: 12, targetSeconds: null, targetSecondsMax: null, targetWeightKg: null, restSeconds: 90 }],
+    } as unknown as WorkoutTemplate;
+    const fresh = buildActiveSessionFromTemplate(template, { userId: 'u', loggedOn: weekStart(6) });
+    assert.deepEqual(fresh.items[0]!.sets.map((x) => x.value), [8, 8, 8]);
+    const history = lastSetsByExercise([
+      { id: 'prev', finishedAt: at(weekStart(5), 19), startedAt: at(weekStart(5), 18), loggedOn: weekStart(5), sets: [0, 1].map((i) => ({ ...sessions0Set(i), reps: [11, 10][i]! })) },
+    ]);
+    let session = buildActiveSessionFromTemplate(template, { userId: 'u', loggedOn: weekStart(6), lastSetsByExercise: history });
+    assert.deepEqual(session.items[0]!.sets.map((x) => x.value), [11, 10, 10]);
+    session = adjustCurrent(session, 1);
+    session = completeCurrentSet(session, at(weekStart(6), 18))!.session;
+    assert.deepEqual(session.items[0]!.sets.map((x) => x.value), [12, 12, 12]);
+    session = addSet(session, 0);
+    assert.equal(session.items[0]!.sets.at(-1)!.value, 12);
+    assert.equal(applySetPrefill(session.items[0]!, null), session.items[0]!);
+  });
+
+  function sessions0Set(i: number): SessionSet {
+    return {
+      id: `prev-${i}`, sessionId: 'prev', userId: 'u', exerciseId: 'push_up', exerciseName: 'Push-up', exercisePosition: 0, setIndex: i,
+      kind: 'reps', perSide: false, targetReps: 8, targetRepsMax: 12, targetSeconds: null, targetSecondsMax: null, targetWeightKg: null,
+      reps: 10, seconds: null, secondsOtherSide: null, weightKg: null, completedAt: at(weekStart(5), 18, i),
+    };
+  }
+
+  it('W2-3 post-training hint: strength leads with protein, a run with carbs, fat from 85 %', () => {
+    const base = { consumed: { proteinG: 60, carbsG: 120, fatG: 60 }, targets: { proteinG: 150, carbsG: 300, fatG: 70 } };
+    const strength = postTrainingNutritionHint({ trainingKind: 'strength', ...base });
+    const run = postTrainingNutritionHint({ trainingKind: 'endurance', ...base });
+    assert.deepEqual(strength.map((l) => l.kind), ['protein', 'carbs', 'fat']);
+    assert.deepEqual(run.map((l) => l.kind), ['carbs', 'protein', 'fat']);
+    const lowFat = postTrainingNutritionHint({ trainingKind: 'strength', ...base, consumed: { ...base.consumed, fatG: 59 } });
+    assert.equal(lowFat.some((l) => l.kind === 'fat'), false, '59/70 = 84 % stays quiet');
+  });
+
+  it('W2-4 focus areas change the order of the recommendations', () => {
+    const ctx = (goalCategory: RecommendationContext['goalCategory'], focusAreas: RecommendationContext['focusAreas']): RecommendationContext => ({
+      goalCategory,
+      hour: 13, minute: 0, todayKey: TODAY6, nowMs: Date.parse(at(TODAY6, 13)),
+      trainingDay: true, trainedToday: false,
+      consumed: { proteinG: 30, carbsG: 80, fiberG: 4 },
+      targets: { kcal: 2600, proteinG: 150, carbsG: 320, fiberG: 35 },
+      readiness: 'normal', nextLevel: null, muscleDeficits: [], lastWeightDateKey: TODAY6,
+      lastMeasurementDateKey: null, usesMeasurements: false, checkinStatus: 'open', dismissals: {},
+      focusAreas,
+    } as RecommendationContext);
+    const kinds = (c: RecommendationContext) => buildRecommendations(c).map((r) => r.kind);
+    assert.deepEqual(kinds(ctx('muscle', null)), ['protein', 'carbs_training', 'checkin']);
+    assert.deepEqual(kinds(ctx('muscle', ['more_training_energy'])), ['carbs_training', 'protein', 'checkin']);
+    assert.deepEqual(kinds(ctx('lose', null)), ['protein', 'fiber', 'checkin']);
+    assert.deepEqual(kinds(ctx('lose', ['more_fiber'])), ['fiber', 'protein', 'checkin']);
+    // Finding (test week 2): a focus only reorders what the goal already
+    // produces. "Mehr Ballaststoffe" with build_muscle yields no fiber hint.
+    assert.deepEqual(kinds(ctx('muscle', ['more_fiber'])), ['protein', 'carbs_training', 'checkin']);
+  });
+
+  it('W2-5 lighter week: both triggers, 28-day cooldown, one set less during it, no level-ups, back afterwards', () => {
+    const now = Date.parse(at(TODAY6, 9));
+    const trainingDayKeys = [3, 4, 5, 6].flatMap((w) => [weekStart(w), shiftKey(weekStart(w), 3)]);
+    const weekVolumes = [3, 4, 5, 6].map((w) => ({ weekStartKey: weekStart(w), setCount: 40 }));
+    const base: DeloadContext = {
+      nowMs: now, todayKey: TODAY6, lastSuggestedAt: null, deloadUntil: null,
+      trainingDayKeys, weekVolumes,
+      recentReadiness: [0, 1, 2, 3].map((d) => ({ dateKey: shiftKey(TODAY6, -d), level: d < 2 ? 'gentle' : 'normal' })),
+      recentUnits: [], exerciseHistory: [], recentCheckins: [], checkinAverages: null,
+    };
+    assert.deepEqual(suggestDeload(base), { shouldSuggest: true, reason: 'load_and_gentle' });
+    const second: DeloadContext = {
+      ...base,
+      recentReadiness: [],
+      recentUnits: [
+        { exercises: [{ exerciseId: 'a', bestLoadOrReps: 8 }, { exerciseId: 'b', bestLoadOrReps: 20 }] },
+        { exercises: [{ exerciseId: 'a', bestLoadOrReps: 8 }, { exerciseId: 'b', bestLoadOrReps: 21 }] },
+      ],
+      exerciseHistory: [{ exerciseId: 'a', values: [10, 10, 11] }, { exerciseId: 'b', values: [25, 26] }],
+      recentCheckins: [{ energy: 2, soreness: 4 }, { energy: 2, soreness: 4 }, { energy: 2, soreness: 3 }, { energy: 4, soreness: 2 }, { energy: 4, soreness: 2 }],
+      checkinAverages: { energy: 3.5, soreness: 2.5 },
+    };
+    assert.deepEqual(suggestDeload(second), { shouldSuggest: true, reason: 'performance_and_checkin' });
+    const cooled = new Date(now - (DELOAD_RULES.suggestCooldownDays - 1) * 86_400_000).toISOString();
+    assert.equal(suggestDeload({ ...base, lastSuggestedAt: cooled }).shouldSuggest, false, 'within 28 days');
+    const old = new Date(now - (DELOAD_RULES.suggestCooldownDays + 1) * 86_400_000).toISOString();
+    assert.equal(suggestDeload({ ...base, lastSuggestedAt: old }).shouldSuggest, true);
+
+    const until = shiftKey(TODAY6, 6);
+    const plan = { id: 'p', name: 'Push', shortLabel: 'P', colorKey: 'indigo', weekdays: [], position: 0, exercises: [{ targetSets: 3 }, { targetSets: 1 }] } as unknown as WorkoutTemplate;
+    assert.equal(isDeloadActive(until, TODAY6), true);
+    assert.deepEqual(templateForStart(plan, until, TODAY6).exercises.map((e) => e.targetSets), [2, 1]);
+    assert.equal(suggestDeload({ ...base, deloadUntil: until }).shouldSuggest, false, 'no new suggestion during it');
+    assert.equal(templateForStart(plan, until, shiftKey(until, 1)), plan, 'back to the plan after the week');
+  });
+
+  it('W2-6 manual entries (is_manual) count on unit days, phantoms do not', () => {
+    const day = weekStart(6);
+    const units = [{ loggedOn: day, finishedAt: at(day, 19), trainingSessionId: 'linked' }];
+    const rows = [
+      { id: 'linked', loggedOn: day, activity: 'strength', isManual: false },
+      { id: 'phantom', loggedOn: day, activity: 'strength', isManual: false },
+      { id: 'yoga-log', loggedOn: day, activity: 'strength', isManual: true },
+    ];
+    const result = reconcileTrainingRows(rows, units);
+    assert.deepEqual(result.kept.map((r) => r.id).sort(), ['linked', 'yoga-log']);
+    assert.deepEqual(result.manual.map((r) => r.id), ['yoga-log']);
+    assert.deepEqual(result.duplicates.map((r) => r.id), ['phantom']);
+  });
+
+  it('W2-7 the stored sport energy is what history uses', () => {
+    assert.equal(resolveSportKcalForHistory({ sportEnergyKcal: 640, activeEnergyKcal: 420 }), 640);
+    assert.equal(resolveSportKcalForHistory({ sportEnergyKcal: null, activeEnergyKcal: 420 }), 420);
+    assert.equal(resolveSportKcalForHistory({ sportEnergyKcal: -1, activeEnergyKcal: null }), null);
+  });
+
+  it('W2-8 macro history: scale from 0, summary, in target, today not counted, goal jump marked', () => {
+    const dates = [0, 1, 2, 3, 4, 5, 6].map((d) => shiftKey(TODAY6, d - 6));
+    const protein = [150, 170, null, 160, 140, 175, 30];
+    const goal = [160, 160, 160, 165, 165, 165, 165];
+    const domain = macroChartDomain([protein, goal]);
+    assert.equal(domain.min, 0);
+    assert.ok(domain.max >= 175 * 1.15);
+    const summary = macroTrendSummary({ nutrient: 'protein', dates, actual: protein, goal, todayKey: TODAY6 });
+    assert.deepEqual(summary, { avg: 159, goal: 163, hit: 2, days: 5 });
+    assert.equal(isMacroDayInTarget('fiber', 30, 30), true);
+    assert.equal(isMacroDayInTarget('carbs', 331, 300), false);
+    assert.equal(isMacroDayInTarget('fat', 63, 70), true);
+    assert.deepEqual([...macroGoalChangeIndices(goal)], [3]);
+  });
+
+  it('W2-9 several level-ups in one unit become one celebration', () => {
+    const celebration = buildCelebration([
+      { kind: 'variant_up', name: 'Liegestütze', step: 3, total: 6, levelSticker: null },
+      { kind: 'variant_up', name: 'Klimmzüge', step: 5, total: 6, levelSticker: null },
+      { kind: 'praise', name: 'Plank', praiseKey: 'training.progression.praise.timeUp' },
+    ]);
+    assert.equal(celebration?.mode, 'multi_level');
+    assert.equal(celebration?.mode === 'multi_level' && celebration.count, 2);
+    assert.equal(celebration?.mode === 'multi_level' && celebration.praiseLine?.name, 'Plank');
   });
 });
