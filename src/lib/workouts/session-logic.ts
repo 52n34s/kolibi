@@ -1,5 +1,6 @@
 import { newId } from '../id';
 import { resolveExerciseName } from './exercise-name';
+import { applySetPrefill, type LastSetsByExercise } from './set-prefill';
 import { normalizeRir } from './session-set-row';
 import {
   emptySummaryDraft,
@@ -40,7 +41,7 @@ export type SessionSetUpsertPayload = {
   rir?: number | null;
 };
 
-/** Lower-bound target for set prefill (never history, never max). */
+/** Lower-bound target, the last prefill fallback (see set-prefill.ts). */
 export function defaultSetValue(
   item: Pick<ActiveExercise, 'kind' | 'targetReps' | 'targetSeconds'>,
 ): number {
@@ -94,13 +95,22 @@ function snapshotFromTemplateExercise(te: TemplateExercise, lang: string): Activ
 
 export function buildActiveSessionFromTemplate(
   template: WorkoutTemplate,
-  opts: { userId: string; loggedOn: string; startedAt?: string; lang?: string },
+  opts: {
+    userId: string;
+    loggedOn: string;
+    startedAt?: string;
+    lang?: string;
+    /** Last finished sets per exercise_id for the prefill (rule b). */
+    lastSetsByExercise?: LastSetsByExercise;
+  },
 ): ActiveSession {
   const lang = opts.lang ?? 'de';
+  const history = opts.lastSetsByExercise ?? {};
   const items = template.exercises
     .slice()
     .sort((a, b) => a.position - b.position)
-    .map((te) => snapshotFromTemplateExercise(te, lang));
+    .map((te) => snapshotFromTemplateExercise(te, lang))
+    .map((item) => applySetPrefill(item, history[item.exerciseId]));
 
   return {
     sessionId: newId(),
@@ -118,7 +128,27 @@ export function buildActiveSessionFromTemplate(
     items,
     cursor: { exerciseIndex: 0, setIndex: 0 },
     summaryDraft: emptySummaryDraft(),
+    ...(Object.keys(history).length > 0 ? { lastSetsByExercise: pickHistory(history, items) } : {}),
   };
+}
+
+/** Only the exercises of this session are kept on it (persisted with it). */
+function pickHistory(
+  history: LastSetsByExercise,
+  items: readonly ActiveExercise[],
+): NonNullable<ActiveSession['lastSetsByExercise']> {
+  const out: NonNullable<ActiveSession['lastSetsByExercise']> = {};
+  for (const item of items) {
+    const sets = history[item.exerciseId];
+    if (sets) {
+      out[item.exerciseId] = sets.map((set) => ({ ...set }));
+    }
+  }
+  return out;
+}
+
+function prefillItem(session: Pick<ActiveSession, 'lastSetsByExercise'>, item: ActiveExercise): ActiveExercise {
+  return applySetPrefill(item, session.lastSetsByExercise?.[item.exerciseId]);
 }
 
 export function buildActiveExerciseFromCatalog(
@@ -184,6 +214,7 @@ export function adjustCurrent(session: ActiveSession, delta: number): ActiveSess
   return withCurrentSet(session, (set) => ({
     ...set,
     value: clampNonNeg(set.value + delta),
+    edited: true,
   }));
 }
 
@@ -191,6 +222,7 @@ export function setCurrent(session: ActiveSession, value: number): ActiveSession
   return withCurrentSet(session, (set) => ({
     ...set,
     value: clampNonNeg(value),
+    edited: true,
   }));
 }
 
@@ -206,6 +238,7 @@ export function setCurrentSides(
     ...set,
     value: Math.min(a, b),
     secondsOtherSide: Math.max(a, b),
+    edited: true,
   }));
 }
 
@@ -286,10 +319,11 @@ export function completeCurrentSet(
     if (ei !== exerciseIndex) {
       return item;
     }
-    return {
+    // The open sets the user has not touched follow the set just done (rule a).
+    return prefillItem(session, {
       ...item,
       sets: item.sets.map((s, si) => (si === setIndex ? completedSet : s)),
-    };
+    });
   });
 
   // Forward first, then wrap to the front — same fallback as skipExercise.
@@ -324,7 +358,7 @@ export function addSet(session: ActiveSession, exerciseIndex: number): ActiveSes
     if (ei !== exerciseIndex) {
       return item;
     }
-    return { ...item, sets: [...item.sets, createEmptySet(item)] };
+    return prefillItem(session, { ...item, sets: [...item.sets, createEmptySet(item)] });
   });
   const next = { ...session, items };
   // Completing all sets moves to summary; adding a set on summary re-opens active.
@@ -540,7 +574,7 @@ export function addExerciseToSession(
   exercise: Exercise,
   opts: { lang?: string } = {},
 ): ActiveSession {
-  const nextItem = buildActiveExerciseFromCatalog(exercise, opts);
+  const nextItem = prefillItem(session, buildActiveExerciseFromCatalog(exercise, opts));
   const items = [...session.items, nextItem];
   return {
     ...session,

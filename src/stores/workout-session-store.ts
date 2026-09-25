@@ -6,6 +6,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { localDateKey } from '@/lib/day-window';
 import { createMmkvZustandStorage } from '@/lib/mmkv-zustand-storage';
 import { createSingleFlight } from '@/lib/single-flight';
+import type { LastSetsByExercise } from '@/lib/workouts/set-prefill';
 import {
   type FinishSessionResult,
 } from '@/lib/workouts/finish-session';
@@ -59,7 +60,10 @@ type CompleteResult = { restSeconds: number | null; isLastSet: boolean };
 
 type WorkoutSessionState = {
   active: ActiveSession | null;
-  startSession: (template: WorkoutTemplate, opts?: { loggedOn?: string; lang?: string }) => void;
+  startSession: (
+    template: WorkoutTemplate,
+    opts?: { loggedOn?: string; lang?: string; lastSetsByExercise?: LastSetsByExercise },
+  ) => void;
   adjustCurrent: (delta: number) => void;
   setCurrent: (value: number) => void;
   setCurrentSides: (seconds: number, secondsOtherSide: number) => void;
@@ -180,6 +184,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
           userId,
           loggedOn: opts?.loggedOn ?? localDateKey(),
           lang: opts?.lang,
+          lastSetsByExercise: opts?.lastSetsByExercise,
         });
         set({ active: session });
         enqueueSessionSnapshot(session);

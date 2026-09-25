@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { TrainingActiveView } from '@/components/training/TrainingActiveView';
 import { TrainingIdleView } from '@/components/training/TrainingIdleView';
 import { TrainingSummaryView } from '@/components/training/TrainingSummaryView';
+import { useLastSetsByExercise } from '@/hooks/use-last-sets-by-exercise';
 import { useRequirePlan } from '@/hooks/use-require-plan';
 import { flushWorkoutSyncQueue } from '@/lib/workouts/sync-queue-runtime';
 import type { ActiveSession, WorkoutTemplate } from '@/lib/workouts/types';
@@ -36,11 +37,12 @@ export function TrainingPanel({ onEditPlan }: TrainingPanelProps) {
   }, [active]);
 
   const requirePlan = useRequirePlan();
+  const lastSetsByExercise = useLastSetsByExercise();
 
   function handleStart(template: WorkoutTemplate) {
     void requirePlan('startSession').then((allowed) => {
       if (allowed) {
-        startSession(template, { lang: i18n.language });
+        startSession(template, { lang: i18n.language, lastSetsByExercise });
       }
     });
   }

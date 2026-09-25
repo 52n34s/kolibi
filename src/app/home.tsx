@@ -71,6 +71,7 @@ import { BuildUpCard } from '@/components/measurements/build-up-card';
 import { MeasurementsSheet } from '@/components/measurements/measurements-sheet';
 import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
+import { useLastSetsByExercise } from '@/hooks/use-last-sets-by-exercise';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useTrialStatus } from '@/hooks/use-premium-access';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
@@ -430,6 +431,7 @@ export default function HomeScreen() {
   );
 
   const requirePlan = useRequirePlan();
+  const lastSetsByExercise = useLastSetsByExercise();
   /** "Start" on Today: same plan check as the training tab, then show the session. */
   const startUnitFromToday = useCallback(
     (template: WorkoutTemplate) => {
@@ -437,11 +439,13 @@ export default function HomeScreen() {
         if (!allowed) {
           return;
         }
-        useWorkoutSessionStore.getState().startSession(template, { lang: i18n.language });
+        useWorkoutSessionStore
+          .getState()
+          .startSession(template, { lang: i18n.language, lastSetsByExercise });
         switchHomeTab('training');
       });
     },
-    [i18n.language, requirePlan, switchHomeTab],
+    [i18n.language, lastSetsByExercise, requirePlan, switchHomeTab],
   );
 
   const homeTabSwipeGesture = useMemo(

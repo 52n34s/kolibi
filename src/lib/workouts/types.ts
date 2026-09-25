@@ -176,6 +176,11 @@ export type ActiveSet = {
    * not tapped. Optional: sessions persisted before this field load as-is.
    */
   rir?: number | null;
+  /**
+   * The user changed the value (stepper, direct input, hold timer). Such a
+   * value is never replaced by a prefill. Optional for persisted sessions.
+   */
+  edited?: boolean;
 };
 
 export type ActiveExercise = {
@@ -265,6 +270,11 @@ export type ActiveSession = {
   items: ActiveExercise[];
   cursor: ActiveSessionCursor;
   summaryDraft: SummaryDraft;
+  /**
+   * Sets of the last finished session per exercise_id, taken at start for
+   * prefilling (see set-prefill.ts). Missing on older persisted sessions.
+   */
+  lastSetsByExercise?: Record<string, { value: number; secondsOtherSide: number | null }[]>;
 };
 
 export function isUnitColorKey(value: string): value is UnitColorKey {
