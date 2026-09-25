@@ -18,6 +18,7 @@ import {
   ladderPosition,
   nextStoryScale,
   progressCurveLevels,
+  risingRungs,
   progressExerciseIds,
   recapWindow,
   stickerAnalyticsType,
@@ -552,16 +553,17 @@ describe('buildProgressSticker', () => {
   });
 
   it('shows the level when the rung changed instead of comparing reps', () => {
-    const sticker = build('knee', [
+    const units = [
       unit('a', '2026-05-10', [{ exerciseId: 'knee', reps: 12 }]),
       unit('b', '2026-07-10', [{ exerciseId: 'knee', reps: 15 }]),
       unit('c', '2026-08-20', [{ exerciseId: 'knee', reps: 16 }, { exerciseId: 'push', reps: 5 }]),
       unit('d', '2026-09-26', [{ exerciseId: 'push', reps: 8 }]),
-    ]);
-    assert.deepEqual(progressExerciseIds('knee', EXERCISES).sort(), ['diamond', 'knee', 'push']);
+    ];
+    assert.deepEqual(progressExerciseIds('push', EXERCISES).sort(), ['diamond', 'knee', 'push']);
+    const sticker = build('push', units);
     const view = sticker.views[sticker.period]!;
     assert.equal(sticker.period, '12w');
-    assert.equal(sticker.name, 'Liegestütze'); // current rung
+    assert.equal(sticker.name, 'Liegestütze'); // the shared rung
     assert.equal(sticker.ladderTotal, 3);
     assert.equal(view.levelChanged, true);
     assert.deepEqual([view.start.step, view.start.exerciseName], [1, 'Knie-Liegestütze']);
@@ -569,6 +571,32 @@ describe('buildProgressSticker', () => {
     // The session with both rungs counts the higher one.
     assert.deepEqual(view.points.map((p) => [p.step, p.value]), [[1, 15], [2, 5], [2, 8]]);
     assert.deepEqual(availableStickerOptions(sticker), ['showLevel']);
+  });
+
+  it('F10: title and curve stop at the shared rung, rungs above it are left out', () => {
+    const sticker = build('knee', [
+      unit('a', '2026-08-10', [{ exerciseId: 'knee', reps: 12 }]),
+      unit('b', '2026-08-20', [{ exerciseId: 'knee', reps: 15 }, { exerciseId: 'push', reps: 5 }]),
+      unit('c', '2026-09-26', [{ exerciseId: 'diamond', reps: 3 }, { exerciseId: 'knee', reps: 16 }]),
+    ]);
+    const view = sticker.views[sticker.period]!;
+    assert.equal(sticker.name, 'Knie-Liegestütze');
+    assert.equal(view.levelChanged, false);
+    assert.deepEqual(view.points.map((p) => [p.step, p.value]), [[1, 12], [1, 15], [1, 16]]);
+  });
+
+  it('F10: a lower rung after the step up (another unit) is never drawn as a step back', () => {
+    const sticker = build('push', [
+      unit('a', '2026-08-03', [{ exerciseId: 'knee', reps: 14 }]),
+      unit('b', '2026-08-10', [{ exerciseId: 'push', reps: 5 }]),
+      unit('c', '2026-08-12', [{ exerciseId: 'knee', reps: 18 }]), // unit B still on the old rung
+      unit('d', '2026-09-20', [{ exerciseId: 'push', reps: 7 }]),
+    ]);
+    const view = sticker.views[sticker.period]!;
+    assert.equal(sticker.name, 'Liegestütze');
+    assert.deepEqual(view.points.map((p) => [p.step, p.value]), [[1, 14], [2, 5], [2, 7]]);
+    const steps = view.points.map((p) => p.step ?? 0);
+    assert.ok(steps.every((step, index) => index === 0 || step >= steps[index - 1]));
   });
 
   it('uses seconds for time exercises', () => {
@@ -608,6 +636,16 @@ describe('buildProgressSticker', () => {
     assert.deepEqual(Object.keys(sticker.views), ['all']);
     assert.equal(sticker.period, 'all');
     assert.deepEqual([sticker.views.all!.start.value, sticker.views.all!.current.value], [5, 7]);
+  });
+});
+
+describe('risingRungs', () => {
+  it('drops points on a lower rung once a higher one was reached', () => {
+    assert.deepEqual(
+      risingRungs([{ step: 1 }, { step: 2 }, { step: 1 }, { step: 2 }, { step: 3 }]).map((p) => p.step),
+      [1, 2, 2, 3],
+    );
+    assert.deepEqual(risingRungs([{ step: null }, { step: null }]).length, 2);
   });
 });
 

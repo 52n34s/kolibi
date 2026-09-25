@@ -132,7 +132,7 @@ export type ProgressView = {
 
 export type ProgressStickerData = {
   kind: 'progress';
-  /** Name of the exercise done most recently (the current rung on a ladder). */
+  /** Exercise of the current rung: the shared one or, before its first set, the rung below. */
   name: string;
   exerciseKind: ExerciseKind;
   perSide: boolean;
@@ -616,8 +616,9 @@ type ProgressExercise = Pick<
 >;
 
 /**
- * Exercise ids a progress sticker follows: every catalog rung of the ladder,
- * or the exercise alone off-ladder. Load these with `fetchExerciseProgressUnits`.
+ * Exercise ids a progress sticker loads: every catalog rung of the ladder,
+ * or the exercise alone off-ladder. buildProgressSticker keeps the shared
+ * rung and the ones below it. Load these with `fetchExerciseProgressUnits`.
  */
 export function progressExerciseIds(
   exerciseId: string,
@@ -656,12 +657,18 @@ export function buildProgressSticker(params: {
   const ladderTotal =
     shared?.ladderKey != null ? ladderRows(shared.ladderKey, params.exercises).length : null;
 
+  // The shared exercise is the current rung. Rungs above it (a try, another
+  // unit) are not part of its progress.
+  const sharedStep = shared?.ladderKey != null ? (shared.ladderStep ?? null) : null;
+  const aboveShared = (exerciseId: string) =>
+    sharedStep != null && (byId.get(exerciseId)?.ladderStep ?? 0) > sharedStep;
+
   // One point per session: the highest rung done that day, its best set.
-  const all: (ProgressPoint & { perSide: boolean; kind: ExerciseKind })[] = [];
+  const sessionPoints: (ProgressPoint & { perSide: boolean; kind: ExerciseKind })[] = [];
   for (const unit of params.units) {
     const bestByExercise = new Map<string, { value: number; perSide: boolean; kind: ExerciseKind; stored: string }>();
     for (const set of unit.sets) {
-      if (set.exerciseId == null || !ids.has(set.exerciseId)) {
+      if (set.exerciseId == null || !ids.has(set.exerciseId) || aboveShared(set.exerciseId)) {
         continue;
       }
       const value = setPerformanceValue(set);
@@ -695,10 +702,11 @@ export function buildProgressSticker(params: {
       }
     }
     if (pick) {
-      all.push(pick);
+      sessionPoints.push(pick);
     }
   }
-  all.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  sessionPoints.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  const all = risingRungs(sessionPoints);
 
   const latest = all[all.length - 1];
   const views: Partial<Record<ProgressPeriod, ProgressView>> = {};
@@ -733,6 +741,8 @@ export function buildProgressSticker(params: {
 
   return {
     kind: 'progress',
+    // The rung the curve ends on: the shared one, or the rung below it
+    // when the shared one has no sets yet.
     name: latest?.exerciseName ?? nameOrFallback(shared, params.lang, ''),
     exerciseKind: latest?.kind ?? shared?.kind ?? 'reps',
     perSide: latest?.perSide ?? shared?.perSide ?? false,
@@ -740,6 +750,25 @@ export function buildProgressSticker(params: {
     views,
     period,
   };
+}
+
+/**
+ * Chronological points whose rung never goes down: after a step up, sessions
+ * that still use a lower rung (another unit, a warm-up) are left out, so a
+ * change of rung is never drawn as a step back.
+ */
+export function risingRungs<T extends Pick<ProgressPoint, 'step'>>(points: readonly T[]): T[] {
+  let top = Number.NEGATIVE_INFINITY;
+  const out: T[] = [];
+  for (const point of points) {
+    const step = point.step ?? 0;
+    if (step < top) {
+      continue;
+    }
+    top = step;
+    out.push(point);
+  }
+  return out;
 }
 
 /**
