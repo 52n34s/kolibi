@@ -37,6 +37,7 @@
           "es"
         ],
         "ITSAppUsesNonExemptEncryption": false,
+        "NSSupportsLiveActivities": true,
         "UIBackgroundModes": [
           "remote-notification"
         ],
