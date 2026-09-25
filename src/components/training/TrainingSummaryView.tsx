@@ -82,6 +82,8 @@ import {
   useWorkoutSessionStore,
 } from '@/stores/workout-session-store';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
+import { useReadiness } from '@/hooks/use-checkin';
+import { gateSuggestionByReadiness } from '@/lib/workouts/progression-readiness';
 
 type TrainingSummaryViewProps = {
   session: ActiveSession;
@@ -265,8 +267,12 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
 
   const allEvents = (eventsQuery[0]?.data ?? []) as ProgressionEvent[];
 
-  const suggestionRows = useMemo((): SuggestionRow[] => {
+  const readiness = useReadiness();
+
+  const { suggestionRows, heldBackIndexes } = useMemo(() => {
     const rows: SuggestionRow[] = [];
+    // Level-ups today's readiness holds back (schonen, or normal without a clear success).
+    const heldBack = new Set<number>();
     session.items.forEach((item, index) => {
       const exercise =
         exerciseQueries[index]?.data ??
@@ -291,7 +297,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           { ...currentUnit, shortfallReasons: normalizeShortfallReasons(shortfallPicked) },
           ...past,
         ]);
-      const suggestion = suggestProgression({
+      const raw = suggestProgression({
         exercise,
         ladder,
         currentTarget: {
@@ -306,6 +312,10 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         lastEvents,
         tooHardStreak,
       });
+      const suggestion = gateSuggestionByReadiness(raw, readiness, currentUnit);
+      if (raw && !suggestion) {
+        heldBack.add(index);
+      }
       if (!suggestion) {
         return;
       }
@@ -318,8 +328,9 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       }
       rows.push({ index, item, exercise, suggestion, toName });
     });
-    return rows;
+    return { suggestionRows: rows, heldBackIndexes: heldBack };
   }, [
+    readiness,
     session.items,
     session.sessionId,
     session.intensity,
@@ -479,7 +490,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     return session.items
       .map((item, index) => ({ item, index }))
       .filter(({ item, index }) => {
-        if (progressionIndexSet.has(index)) {
+        if (progressionIndexSet.has(index) || heldBackIndexes.has(index)) {
           return false;
         }
         return allSetsHitUpperBound({
@@ -489,7 +500,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           setValues: doneSetValues(item),
         });
       });
-  }, [session.items, progressionIndexSet]);
+  }, [session.items, progressionIndexSet, heldBackIndexes]);
 
   async function persistAdoptAndAdds(): Promise<void> {
     const templateId = session.templateId;
@@ -887,6 +898,12 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         </Text>
       ))}
 
+      {heldBackIndexes.size > 0 ? (
+        <Text testID="training.summary.readinessWaiting" style={styles.readinessWaiting}>
+          {t('checkin.progression.waiting')}
+        </Text>
+      ) : null}
+
       {ascentRows.length > 0 || upperBoundReady.length > 0 ? (
         <View style={styles.block}>
           <Text style={styles.blockTitle}>{t('training.progression.readyTitle')}</Text>
@@ -1188,6 +1205,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#1E1B4B',
+  },
+  readinessWaiting: {
+    textAlign: 'center',
+    color: TEXT_SECONDARY,
+    fontSize: 14,
+    marginBottom: 12,
   },
   firstLevel: {
     textAlign: 'center',
