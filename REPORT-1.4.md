@@ -753,3 +753,76 @@ ec73311 deps: share sticker libraries
 ```
 
 `git log --oneline origin/main..main`: leer (main ist bereits gepusht).
+
+## Nachtrag 2026-09-25: Übergabe, Fehler vor dem Build, Entscheidungen, Migrationen
+
+Stand `release/1.4` = `7e29951` (gepusht). main unverändert seit `0db1698`. Kein Merge nach main, kein Build, kein OTA.
+
+### Schritt 1 – Zusammenführen
+- F4 (`fix/session-end`) per `--no-ff` nach main (`0db1698`), gepusht; main in release/1.4 gemergt (`d705ea3`), ohne Rebase.
+- Konflikte: `history-training-section.tsx` (Dauer jetzt aus `sessionDurationFromTimestamps`, Wochen-Helfer aus main entfernt, Nachtrag-Link behält `requirePlan`), `finish-session.test.ts` (beide describe-Blöcke bleiben), `TrainingSummaryView` rechnet Bestwerte nur über `milestones`.
+- Kolibi-reminders: identisch, verworfen und entfernt. Worktrees f4b und main entfernt. **Achtung:** Beim Entfernen von `Kolibi-wt-f4b` gingen dessen ignorierte Kopien von `.env`/`.env.local` mit; die Fassungen im Hauptrepo sind da.
+- Bleibt: `Kolibi-wt-report` (`test/week-simulation`, 9 ungemergte Commits). Agent-Worktrees unter `.claude/worktrees/` (block/2.3 … block/6.1) sind nicht angefasst – Liste mit `git worktree list`.
+
+### Schritt 2 – Fehler (je ein Commit mit Test)
+| | Fehler | Commit | Ursache / Lösung |
+|---|---|---|---|
+| A | Phantom „Manuell · Krafttraining 3 min“ | `52c9614` | Zweites „Fertig“, während das erste noch lief (es „tat scheinbar nichts“) → zwei `training_sessions`, nur eine verknüpft. Dazu: ein Abgleich, der während eines anderen startete, kehrte sofort zurück, und der laufende schrieb seinen alten Stand zurück (neue Aufträge weg). Verwerfen nach gescheitertem Finish ließ die eingefügte Zeile liegen. Fix: Finish einmal je Einheit (`createSingleFlight`), Abgleich-Durchläufe nacheinander, Aufträge einzeln per id entfernt, Verwerfen löscht die unverknüpfte Zeile. `reconcileTrainingRows`: an Tagen mit abgeschlossener Einheit zählen unverknüpfte Kraft-Zeilen nie zusätzlich (Sport-Energie neben Health, Export, Rückblick-Sticker). |
+| B | F10 Fortschritts-Sticker | `3fd2512` | Nahm jede Stufe der Leiter. Jetzt nur die geteilte Stufe und die darunter; nach einem Stufenwechsel fallen spätere Einheiten auf der alten Stufe weg (`risingRungs`) – nie ein Rückschritt, Stufen als getrennte Kurvenstücke. Titel = Übung der Stufe, auf der die Kurve endet. |
+| C | Onboarding-Datum | `aa851f0` | Beim Öffnen wird das angezeigte Datum gesetzt (`dateOnPickerOpen`). |
+| D | „zuletzt: noch nie“ | `5735d30` | Im Simulator zeigt die Zeile die *nächste* Einheit (z. B. B nach A) – dort stimmt „noch nie“. Konsistent gelöst: Eine Einheit ohne Satz ist kein Training. „Beenden“ ohne Satz bietet nur Verwerfen / Weiter trainieren („Gespeichert wird ab dem ersten Satz.“); `finishActiveSession` lehnt sie ab – keine 1-Minuten-Kraftzeile, keine Energie. |
+| E | Leertexte | `3b4900e` | 12 Leertexte in DE/EN/ES positiv; Test verhindert Verneinungen am Anfang. Die Tagesliste nutzt einen eigenen Tagestext. Status- und Fehlertexte („Noch nicht erfasst“, „Kein Barcode erkannt“) bewusst unverändert. |
+| F | Aufbau-Satz | `7870ae2` | „Bankdips (Knie gebeugt): +3“; ASCII-Minus in `formatWeightDeltaForDisplay` und der Diagrammbeschriftung → „−“. |
+| G | Befund 1 (`history.ts:300`) | – | Ursache eindeutig: Der Verlauf nimmt nur `daily_health_stats.active_energy_kcal`; heute kommen Kolibi-kcal dazu, wenn kein Uhr-Workout gleichen Typs da ist. Welche Workout-Typen an vergangenen Tagen vorlagen, ist nicht gespeichert – Nachrechnen würde an Uhr-Tagen doppelt zählen. **Dokumentiert, nicht behoben.** Vorschlag: Spalte `sport_energy_kcal` in `daily_health_stats`, die der Health-Sync mit `buildSportEnergyDay` füllt; der Verlauf nimmt sie, wenn vorhanden. Braucht Migration → Freigabe. |
+
+### Schritt 3 – Entscheidungen
+- Umgesetzt: Mahlzeit-Gruppen mit einem Eintrag offen (`98d8419`); Trainingslog frei ansehbar, Eintragen/Löschen → Paywall; Einheit-Detail nur ansehen, jede Bearbeitung und Löschen → Paywall (`cd88f5d`, neue Aktionen `editSession`, `logTraining`); Muskel-Hinweise erst ab 3 Einheiten oder 7 Tagen, höchstens zwei größte Lücken (`f436cb6`, Muskelansicht und Heute).
+- Bereits so, unverändert: 0,3 g/kg „Protein verteilt“, Tageszeit-Satz für alle Ziele (kein Ziel-Filter), Ziele/Supplemente/Übungskatalog hinter dem Zugang, Anonym: Training frei, Trainingstag-Annahme, `p_device_id default null`.
+
+### Schritt 4 – Cron
+`20260926190000_cron_jobs.sql` (`c0c6128`), **nicht in der Release-Liste**: unschedule je Name, falls vorhanden, dann schedule (5 Jobs). `public.purge_old_scan_logs()` steht in keiner Migration – vermutlich von Hand angelegt; bitte vor dem Ausführen prüfen (`select to_regprocedure('public.purge_old_scan_logs()')`).
+
+### Schritt 5 – Migrationen (Release-Liste, 11)
+`beginner_ladder_steps`, `register_push_token`, `workout_template_flag`, `rir_shortfall_reasons`, `profiles_plan_wizard_answers`, `exercise_muscles`, `body_measurements`, `skill_goals`, `daily_checkins`, `add_strength_goal_type`, `profiles_usage_purpose`.
+- Nicht wiederholbar waren `body_measurements`, `skill_goals`, `daily_checkins` (`create policy` ohne Schutz) → `drop policy if exists` davor (`74d4f85`).
+- `beginner_ladder_steps` war bereits wiederholbar: feste Stufe je Slug, Upsert per `catalog_slug`, eine Transaktion. Ob sie lief: Prüfabfrage.
+- Prüfabfragen: `supabase/checks/release-1.4.sql` – eine Zeile je Migration, `ok = true` = vollständig gelaufen; dazu die Abfrage für verwaiste `training_sessions` (nur anzeigen):
+
+```sql
+select ts.id, ts.user_id, ts.logged_on, ts.duration_min, ts.estimated_kcal, ts.created_at,
+       (select count(*) from public.workout_sessions w
+         where w.user_id = ts.user_id and w.logged_on = ts.logged_on
+           and w.finished_at is not null) as finished_units_that_day
+  from public.training_sessions ts
+ where ts.training_type = 'strength'
+   and not exists (select 1 from public.workout_sessions ws where ws.training_session_id = ts.id)
+ order by ts.created_at desc;
+```
+Zeilen mit `finished_units_that_day > 0` sind Phantome; ohne Einheit am Tag kann es auch ein echter manueller Eintrag sein.
+
+### Schritt 6 – Prüfung
+- `npm test`: 983 Tests, 982 bestanden, 1 übersprungen (Befund 1). `tsc`: 15 Fehler in `src/` = Baseline.
+- Simulator „Kolibi QA“ (Maestro `.maestro/week-1-4/step6-*.yaml`, Screenshots `~/Desktop/kolibi-1.4-check/step6/`):
+  - Einheit beenden mit doppelt getipptem „Fertig“: eine Einheit, 1 min (endet am letzten Satz), keine Phantom-Zeile unter „Letzte Einheiten“ – bestanden.
+  - Zusammenfassung – bestanden. Beenden ohne Satz: nur Verwerfen / Weiter trainieren – bestanden.
+  - Onboarding-Datum: öffnen, „Fertig“ ohne Drehen → „25. Sept. 2001“ übernommen – bestanden (frischer anonymer Nutzer; App-Daten des QA-Simulators dafür zurückgesetzt).
+  - Einheit-Detail: wird angezeigt; der gesperrte Zustand braucht ein registriertes Konto ohne Abo – **nicht testbar** (Logik in `product-access.test.ts`).
+  - Fortschritts-Sticker mit Stufenwechsel: braucht Einheiten auf zwei Stufen – **nur als Test** (`sticker-data.test.ts`, F10-Fälle).
+  - Nebenbei: Nach dem Maestro-Lauf stand kurz die Kalender-App vorne und fragte nach Standort und Mitteilungen – beides abgelehnt. Der RevenueCat-Fehler „Invalid API key“ ist ein bekanntes Problem der Dev-Umgebung.
+- Health-Check: e2ffcb9 (1.3) und release/1.4 lesen dieselben 8 Typen (Aktivenergie, Herzfrequenz, Schritte, Geh-/Laufstrecke, Taille, Körperfett, magere Masse, Workouts); alle stehen in `NSHealthShareUsageDescription` (app.json EN, `locales/de|en|es.json`). Geschrieben wird nur der Taillenumfang (`NSHealthUpdateUsageDescription`). Bestanden.
+
+### Commits seit `d705ea3`
+```
+7e29951 test(maestro): step 6 flows — double Fertig, finish without a set, onboarding date
+74d4f85 db: 1.4 migrations safe to run again, read-only checks
+c0c6128 db: pg_cron jobs as an idempotent migration (not in the 1.4 release list)
+f436cb6 muscles: hints after 3 units or 7 days of data, two largest gaps at most
+cd88f5d access: training log and unit detail open to view, edits ask for the plan
+98d8419 meals: a group with a single entry starts open
+7870ae2 fix(build-up): exercise parts read "Bankdips (Knie gebeugt): +3", one minus sign
+3b4900e i18n: empty states worded positively (de, en, es)
+5735d30 fix(training): a unit without a set is not saved as training
+aa851f0 fix(onboarding): "Fertig" keeps the shown birth date without turning
+3fd2512 fix(share): progress sticker follows the shared rung, never steps back
+52c9614 fix(training): no phantom "Manuell · Krafttraining" rows
+```
