@@ -2399,5 +2399,46 @@
       "createPlan": "Crear plan",
       "openTraining": "Ir al entrenamiento"
     }
+  },
+  "recommendations": {
+    "title": "Para ti hoy",
+    "dismiss": "Ocultar",
+    "protein": {
+      "message": "Te quedan {{grams}} g de proteína para tu objetivo",
+      "action": "Registrar proteína"
+    },
+    "fiber": {
+      "message": "Te quedan {{grams}} g de fibra para tu objetivo",
+      "action": "Registrar comida"
+    },
+    "carbs": {
+      "message": "Día de entreno: los carbohidratos antes de la sesión te dan más fuerza",
+      "action": "Registrar comida"
+    },
+    "restDay": {
+      "message": "Hoy te sienta bien un descanso o una sesión suave",
+      "action": "Ver entreno"
+    },
+    "nextLevel": {
+      "message": "{{exercise}}: estás listo para el siguiente nivel",
+      "action": "Ver ejercicio"
+    },
+    "muscleDeficit": {
+      "message": "{{group}}: {{count}} series más esta semana, por ejemplo con {{exercise}}",
+      "action": "Ver ejercicio"
+    },
+    "weight": {
+      "message": "Hora de pesarte: así tu evolución sigue al día",
+      "messageFirst": "Tu primer pesaje hace visible tu progreso",
+      "action": "Pesarme ahora"
+    },
+    "measurements": {
+      "message": "Hora de nuevas medidas: así ves cómo cambias",
+      "action": "Añadir medidas"
+    },
+    "checkin": {
+      "message": "Tu check-in lleva un momento y ajusta el entreno de hoy a ti",
+      "action": "Empezar check-in"
+    }
   }
 }

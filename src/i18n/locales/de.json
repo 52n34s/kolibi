@@ -2399,5 +2399,46 @@
       "createPlan": "Plan erstellen",
       "openTraining": "Zum Training"
     }
+  },
+  "recommendations": {
+    "title": "Für dich heute",
+    "dismiss": "Ausblenden",
+    "protein": {
+      "message": "Noch {{grams}} g Protein bis zum Ziel",
+      "action": "Protein erfassen"
+    },
+    "fiber": {
+      "message": "Noch {{grams}} g Ballaststoffe bis zum Ziel",
+      "action": "Mahlzeit erfassen"
+    },
+    "carbs": {
+      "message": "Trainingstag: Kohlenhydrate vor der Einheit geben dir mehr Kraft",
+      "action": "Mahlzeit erfassen"
+    },
+    "restDay": {
+      "message": "Heute passt eine Pause oder eine lockere Einheit gut zu deiner Tagesform",
+      "action": "Training ansehen"
+    },
+    "nextLevel": {
+      "message": "{{exercise}}: Die nächste Stufe ist bereit für dich",
+      "action": "Übung ansehen"
+    },
+    "muscleDeficit": {
+      "message": "{{group}}: {{count}} Sätze mehr diese Woche, zum Beispiel mit {{exercise}}",
+      "action": "Übung ansehen"
+    },
+    "weight": {
+      "message": "Zeit fürs Wiegen – so bleibt dein Verlauf aktuell",
+      "messageFirst": "Dein erstes Wiegen macht deinen Fortschritt sichtbar",
+      "action": "Jetzt wiegen"
+    },
+    "measurements": {
+      "message": "Zeit für neue Maße – so siehst du deine Veränderung",
+      "action": "Maße eintragen"
+    },
+    "checkin": {
+      "message": "Dein Check-in dauert einen Moment und stimmt dein Training auf heute ab",
+      "action": "Check-in starten"
+    }
   }
 }

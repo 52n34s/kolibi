@@ -8,6 +8,7 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { BRAND_INDIGO } from '@/constants/brand';
 import {
+  useCheckinQuestionsRequested,
   useReadiness,
   useSaveCheckin,
   useSkipCheckinToday,
@@ -69,7 +70,13 @@ export function CheckinCard() {
   const [editing, setEditing] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
 
-  const mode = editing ? 'questions' : checkinCardMode(status, openedAt);
+  // A recommendation can ask for the questions after the morning window.
+  const requested = useCheckinQuestionsRequested();
+  const mode = editing
+    ? 'questions'
+    : requested && status === 'open'
+      ? 'questions'
+      : checkinCardMode(status, openedAt);
 
   if (mode === 'hidden') {
     return null;
