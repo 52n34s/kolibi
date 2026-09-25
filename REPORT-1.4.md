@@ -9,6 +9,7 @@ Baseline: `npm test` grün, `npx tsc --noEmit | grep -v supabase/functions` = 15
 |---|---|---|---|
 | 1 | `20260924152000_beginner_ladder_steps.sql` | Einsteiger-Stufen unter den Leitern (schon auf main, seit Build 32 neu) | 1.3-Inhalt |
 | 2 | `20260925180000_register_push_token.sql` | RPC, die den Push-Token eines Geräts dem angemeldeten Nutzer überträgt | 1.3 |
+| 3 | `20260925190000_workout_template_flag.sql` | `workout_templates.is_template` für „Meine Vorlagen“ | 2.2 |
 
 ---
 
@@ -123,7 +124,45 @@ rollback;
 
 ---
 
+## Block 2.1 – Sticker
+
+- Alle fünf Typen sind in `release/1.4`: Übung, Stufe, Einheit, Rückblick (Woche/Monat, rollierendes Fenster), Fortschritt (`src/components/share/stickers/*`, Daten `src/lib/share/sticker-data.ts`).
+- Einpassung der Story-Karte kam schon mit `feat/share-stickers` (ee2543e, 24a7507, 60ec34d, 73c4dd3): `StoryFrame` misst den Inhalt und skaliert auf ~70 % Kastenhöhe (sichtbar 65–70 %), 1- bis 2-fach, Titel/Werte einzeilig, Fortschritt ohne Stufenwechsel mit 2,2-facher Kurve. Gemessener Füllgrad laut `REPORT-share-stickers.md`: Rückblick Woche 66,9 %, Monat 67,8 %, Fortschritt 67,4 %, Fortschritt mit Stufenwechsel 68,6 %; kurzer Rückblick 28,5 % (2-fach-Grenze hat Vorrang).
+- **Neu:** Story-Karte auch für Übung, Stufe und Einheit (f0c8f98, e3a7d30); die Zusammenfassung bietet das Story-Format an. Titel auf der Story-Karte einzeilig mit Verkleinerung.
+- `StickerBrand`: „kolibi.app“ plus markierter Platz (`mark`) für das SVG – unverändert.
+- **PNGs nicht erzeugt.** Der Simulator „Kolibi QA“ wird gerade von einer zweiten Sitzung genutzt (Metro aus `~/Dev/Kolibi-wt-f4b`, Branch `fix/session-end`, Port 8082). Ich habe in diese Sitzung nicht eingegriffen. Die QA-Seite zum Export liegt bereit (nicht committet) und läuft in Block 6.1 bzw. sobald der Simulator frei ist. Füllgrad für Übung/Stufe/Einheit als Story daher noch ungemessen.
+
+---
+
+## Block 2.2 – Vorlagen (Stand: Datenmodell fertig, Oberfläche folgt nach 2.3)
+
+- Vorhandene Archivierung (a9e0337): `workout_templates.archived_at`, `archiveTemplate`/`restoreTemplate`, Abschnitt „archiviert“ im Plan-Editor. Wird genutzt.
+- Ergänzt: Spalte `is_template boolean not null default false` (Migration 3). Einheit = `is_template false` (aktiv ohne `archived_at`, „frühere Einheit“ mit), eigene Vorlage = `is_template true`; Vorlage löschen = archivieren (nichts wird gelöscht).
+- RLS bestätigt: `workout_templates` hat vier Policies `select/insert/update/delete … using/with check (user_id = auth.uid())` für `authenticated` (Migration `20260922101000_workout_logger.sql`). Keine Änderung nötig.
+- Alle Lesestellen für Training, „Als Nächstes“, Wochenkarte, Fortschritt, Rückblick und Export laufen über `fetchTemplates` → nur Einheiten (`is_template = false`), sobald die Spalte existiert. Ohne Migration: Verhalten wie bisher, „Meine Vorlagen“ ausgeblendet (`hasTemplateFlag`, `createSchemaProbe`).
+- Hilfsfunktionen mit Tests (`src/lib/workouts/unit-templates.ts`): `saveAsTemplate`, `createUnitFromTemplate`, `archiveUnit`, `restoreUnit`, `renameTemplate`, `removeTemplate`. Kopien laufen über `save_workout_template`; schlägt das Setzen des Kennzeichens fehl, wird die Kopie sofort archiviert.
+- Commits: 2414c78, b2e828f, 871110e, e05b947, b31942c. Tests 550/550, tsc 15.
+
+---
+
+## Block 2.4 – Mahlzeiten gruppieren
+
+Branch `block/2.4-meal-groups`, gemergt (Tests danach 590/590, tsc 15). Commits d83911f, fdd5bf1, eccccf3, f5b9223, 26192f8, f039566, b260c1a.
+- `groupMeals` (`src/lib/meal-groups.ts`): Kette ≤ 45:00 min zum vorigen Eintrag, nie über den lokalen Tag hinaus, unsortierte Eingabe erlaubt. Namen nach Startzeit: 04:00–10:59 Frühstück, 11:00–14:59 Mittagessen, 15:00–17:29 Snack, ab 17:30 Abendessen.
+- Annahmen: 00:00–03:59 = Snack (Nacht); jede Hauptmahlzeit höchstens einmal pro Tag – mehrere Gruppen im selben Fenster: die mit den meisten kcal behält den Namen, die anderen werden Snack. ES: „Merienda“ 15:00–17:29, sonst „Tentempié“; Desayuno/Comida/Cena.
+- Essen-Tab und Tagesansicht (`DayMealList`): Gruppen mit Name, Startzeit, kcal, Protein, Anzahl; aufklappbar, Einträge bearbeitbar wie bisher (gleicher `onMealPress`, Premium-Gate beim Aufrufer).
+- „Protein verteilt“ (`computeProteinDistributionStats`) zählt Gruppen. Mahlzeit zählt ab 100 kcal Summe.
+- Protein nach Tageszeit (`src/lib/meal-protein-timing.ts`): Schnitt pro gegessener Mahlzeit dieser Art über 7 Tage (ohne heute). Hinweis, wenn Frühstück/Mittag/Abend < 60 % von Tagesziel ÷ 3 und an ≥ 3 Tagen vorhanden; höchstens ein Satz (größter Rückstand). Menge = Lücke auf 5 g gerundet, Spanne +5 g.
+
+**Fragen**
+- ❓ Die Schwelle für „Protein verteilt“ war nie fest 25 g, sondern 0,3 g/kg Bezugsgewicht (auf 5 g gerundet). Beibehalten – oder fest 25 g?
+- ❓ Gruppen sind zugeklappt (Bearbeiten = ein Tipp mehr). Gruppen mit einem Eintrag direkt offen zeigen?
+- ❓ Tageszeit-Satz bei allen Zielen oder nur bei Muskelaufbau/Abnehmen?
+
+---
+
 ## Aufräumen später
 - ESLint startet nicht: `Cannot find module 'eslint/config'`.
 - 15 tsc-Fehler auf main (Auth-Screens TS2769, `supabase.ts`, `language-switcher`, `profile-panel`, `support-panel`, `notifications-settings-section`, `use-theme`, `onboarding-field`).
+- **Zweite Sitzung aktiv:** Worktree `~/Dev/Kolibi-wt-f4b` (Branch `fix/session-end`, Commits „session detail accepts at most 300 min“ u. a.) mit eigenem Metro auf 8082 und dem Simulator „Kolibi QA“. Nicht angefasst.
 - Worktree `~/Dev/Kolibi-reminders` (`fix/reminders-keepawake`) ist in `release/1.4` aufgegangen und kann weg; `Kolibi-wt-report` (`test/week-simulation`) und `Kolibi-wt-main` bestehen weiter.
