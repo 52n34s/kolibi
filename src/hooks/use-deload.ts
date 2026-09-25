@@ -127,16 +127,7 @@ export function deloadUntilLabel(dateKey: string, locale: string): string {
   return parseDateOnly(dateKey).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
-/** The unit with one set less per exercise — what a lighter week trains. */
-export function lighterTemplate(template: WorkoutTemplate): WorkoutTemplate {
-  return {
-    ...template,
-    exercises: template.exercises.map((exercise) => ({
-      ...exercise,
-      targetSets: deloadSets(exercise.targetSets),
-    })),
-  };
-}
+export { lighterTemplate } from '@/lib/workouts/deload';
 
 /** Monday of the week containing `dateKey`. */
 function mondayKey(dateKey: string): string {

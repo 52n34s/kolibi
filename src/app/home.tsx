@@ -72,6 +72,7 @@ import { BuildUpCard } from '@/components/measurements/build-up-card';
 import { MeasurementsSheet } from '@/components/measurements/measurements-sheet';
 import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
+import { useDeloadWeek } from '@/hooks/use-deload';
 import { useLastSetsByExercise } from '@/hooks/use-last-sets-by-exercise';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useTrialStatus } from '@/hooks/use-premium-access';
@@ -81,6 +82,7 @@ import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { isBuildUpGoal } from '@/lib/build-up';
 import { goalCategoryForGoalType } from '@/lib/goal-category';
 import { todayBodyCard, visibleTodaySections } from '@/lib/today-layout';
+import { templateForStart } from '@/lib/workouts/deload';
 import { TodayTrainingCard } from '@/components/home/TodayTrainingCard';
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
@@ -433,6 +435,7 @@ export default function HomeScreen() {
 
   const requirePlan = useRequirePlan();
   const lastSetsByExercise = useLastSetsByExercise();
+  const deload = useDeloadWeek();
   /** "Start" on Today: same plan check as the training tab, then show the session. */
   const startUnitFromToday = useCallback(
     (template: WorkoutTemplate) => {
@@ -440,13 +443,17 @@ export default function HomeScreen() {
         if (!allowed) {
           return;
         }
+        // Same template as the training tab: one set less in a lighter week.
         useWorkoutSessionStore
           .getState()
-          .startSession(template, { lang: i18n.language, lastSetsByExercise });
+          .startSession(templateForStart(template, deload.deloadUntil, localDateKey()), {
+            lang: i18n.language,
+            lastSetsByExercise,
+          });
         switchHomeTab('training');
       });
     },
-    [i18n.language, lastSetsByExercise, requirePlan, switchHomeTab],
+    [deload.deloadUntil, i18n.language, lastSetsByExercise, requirePlan, switchHomeTab],
   );
 
   const homeTabSwipeGesture = useMemo(

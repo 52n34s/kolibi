@@ -6,7 +6,9 @@ import { TrainingActiveView } from '@/components/training/TrainingActiveView';
 import { TrainingIdleView } from '@/components/training/TrainingIdleView';
 import { TrainingSummaryView } from '@/components/training/TrainingSummaryView';
 import { BRAND_INDIGO } from '@/constants/brand';
-import { deloadUntilLabel, lighterTemplate, useDeloadWeek } from '@/hooks/use-deload';
+import { deloadUntilLabel, useDeloadWeek } from '@/hooks/use-deload';
+import { localDateKey } from '@/lib/day-window';
+import { templateForStart } from '@/lib/workouts/deload';
 import { useLastSetsByExercise } from '@/hooks/use-last-sets-by-exercise';
 import { useRequirePlan } from '@/hooks/use-require-plan';
 import { DELOAD_TEXT_KEYS } from '@/lib/workouts/deload';
@@ -46,7 +48,7 @@ export function TrainingPanel({ onEditPlan }: TrainingPanelProps) {
   function handleStart(template: WorkoutTemplate) {
     void requirePlan('startSession').then((allowed) => {
       if (allowed) {
-        startSession(deload.isActive ? lighterTemplate(template) : template, {
+        startSession(templateForStart(template, deload.deloadUntil, localDateKey()), {
           lang: i18n.language,
           lastSetsByExercise,
         });

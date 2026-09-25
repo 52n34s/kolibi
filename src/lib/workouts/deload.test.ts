@@ -15,6 +15,7 @@ import {
   suggestDeload,
   worseCheckinCount,
   type DeloadContext,
+  templateForStart,
 } from './deload.ts';
 
 const TODAY = '2026-09-25';
@@ -383,5 +384,34 @@ describe('i18n', () => {
         assert.ok(String(lookup(tree, key)).includes('{{date}}'), `${lang}: ${key} needs {{date}}`);
       }
     }
+  });
+});
+
+describe('templateForStart (test week 2)', () => {
+  const template = {
+    id: 't',
+    name: 'Push',
+    shortLabel: 'P',
+    colorKey: 'indigo' as const,
+    weekdays: [],
+    position: 0,
+    exercises: [
+      { targetSets: 3 },
+      { targetSets: 1 },
+    ],
+  } as unknown as import('./types.ts').WorkoutTemplate;
+
+  it('in a lighter week every start gets one set less (never below one)', () => {
+    const start = templateForStart(template, '2026-10-01', '2026-09-28');
+    assert.deepEqual(start.exercises.map((e) => e.targetSets), [2, 1]);
+  });
+
+  it('outside the week, and on the day after, the plan stays as it is', () => {
+    assert.equal(templateForStart(template, null, '2026-09-28'), template);
+    assert.equal(templateForStart(template, '2026-10-01', '2026-10-02'), template);
+    assert.deepEqual(
+      templateForStart(template, '2026-10-01', '2026-10-01').exercises.map((e) => e.targetSets),
+      [2, 1],
+    );
   });
 });

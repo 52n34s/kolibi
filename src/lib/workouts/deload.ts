@@ -1,5 +1,6 @@
 import { daysBetweenKeys } from '@/lib/recommendations/recommendations';
 import type { ReadinessLevel } from '@/lib/checkin/readiness';
+import type { WorkoutTemplate } from '@/lib/workouts/types';
 
 /**
  * When a lighter week is the better next step.
@@ -117,6 +118,29 @@ export function isDeloadActive(deloadUntil: string | null, todayKey: string): bo
 /** One set less, but never below a single set. */
 export function deloadSets(targetSets: number): number {
   return Math.max(1, targetSets - 1);
+}
+
+/** The unit with one set less per exercise — what a lighter week trains. */
+export function lighterTemplate(template: WorkoutTemplate): WorkoutTemplate {
+  return {
+    ...template,
+    exercises: template.exercises.map((exercise) => ({
+      ...exercise,
+      targetSets: deloadSets(exercise.targetSets),
+    })),
+  };
+}
+
+/**
+ * The template a unit starts from. Every start (training tab, Today) goes
+ * through here, so a lighter week is never skipped by the way the unit began.
+ */
+export function templateForStart(
+  template: WorkoutTemplate,
+  deloadUntil: string | null,
+  todayKey: string,
+): WorkoutTemplate {
+  return isDeloadActive(deloadUntil, todayKey) ? lighterTemplate(template) : template;
 }
 
 export function isInSuggestCooldown(lastSuggestedAt: string | null, nowMs: number): boolean {
