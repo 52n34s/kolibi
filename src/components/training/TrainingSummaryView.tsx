@@ -45,6 +45,14 @@ import { activeItemToHistoryUnit, withoutSession } from '@/lib/workouts/progress
 import { bestPriorValue, bestSessionValue } from '@/lib/workouts/session-bests';
 import { suggestProgression, type ProgressionSuggestion } from '@/lib/workouts/progression';
 import {
+  isTooHardStreak,
+  normalizeShortfallReasons,
+  sessionHasClearShortfall,
+  SHORTFALL_REASONS,
+  toggleShortfallReason,
+} from '@/lib/workouts/shortfall';
+import { useSchemaCapability } from '@/hooks/use-schema-capability';
+import {
   isAscentKind,
   isDescentKind,
   pickCelebrationSubtitleKey,
@@ -123,6 +131,13 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
   const setDecisions = (
     updater: (prev: Record<number, Decision>) => Record<number, Decision>,
   ) => updateSummaryDraft({ decisions: updater(decisions) });
+
+  // "Was war los?": once per session, only after a clear shortfall and only
+  // once shortfall_reasons exists — without the column there is no place to keep it.
+  const shortfallAvailable = useSchemaCapability('workoutSessionsShortfallReasons');
+  const showShortfall = shortfallAvailable && sessionHasClearShortfall(session.items);
+  const shortfallPicked = draft.shortfallReasons;
+  const shortfallReasons = normalizeShortfallReasons(shortfallPicked);
 
   useEffect(() => {
     if (intensity != null) {
@@ -270,6 +285,12 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       const lastEvents = allEvents.filter(
         (ev) => ev.fromExerciseId === item.exerciseId || ev.toExerciseId === item.exerciseId,
       );
+      const tooHardStreak =
+        shortfallAvailable &&
+        isTooHardStreak(item, [
+          { ...currentUnit, shortfallReasons: normalizeShortfallReasons(shortfallPicked) },
+          ...past,
+        ]);
       const suggestion = suggestProgression({
         exercise,
         ladder,
@@ -283,6 +304,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         history: [currentUnit, ...past],
         templateExerciseIds,
         lastEvents,
+        tooHardStreak,
       });
       if (!suggestion) {
         return;
@@ -309,6 +331,8 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     templateExerciseIds,
     allEvents,
     i18n.language,
+    shortfallAvailable,
+    shortfallPicked,
   ]);
 
   const ascentRows = suggestionRows.filter((row) => isAscentKind(row.suggestion.kind));
@@ -825,6 +849,38 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         })}
       </View>
 
+      {showShortfall ? (
+        <View style={styles.block} testID="training.summary.shortfall">
+          <Text style={styles.blockTitle}>{t('rir.shortfallTitle')}</Text>
+          <View style={styles.shortfallChips}>
+            {SHORTFALL_REASONS.map((reason) => {
+              const selected = shortfallReasons.includes(reason);
+              return (
+                <Pressable
+                  key={reason}
+                  testID={`training.summary.shortfall.${reason}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() =>
+                    updateSummaryDraft({
+                      shortfallReasons: toggleShortfallReason(shortfallReasons, reason),
+                    })
+                  }
+                  style={[styles.shortfallChip, selected && styles.shortfallChipSelected]}>
+                  <Text
+                    style={[
+                      styles.shortfallChipText,
+                      selected && styles.shortfallChipTextSelected,
+                    ]}>
+                    {t(`rir.reason.${reason}`)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
       {firstLevelHints.map((hint) => (
         <Text key={hint} style={styles.firstLevel}>
           {hint}
@@ -1192,6 +1248,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#1E1B4B',
+  },
+  shortfallChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  shortfallChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(79, 70, 229, 0.08)',
+  },
+  shortfallChipSelected: {
+    backgroundColor: BRAND_INDIGO,
+  },
+  shortfallChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: BRAND_INDIGO,
+  },
+  shortfallChipTextSelected: {
+    color: '#FFFFFF',
   },
   checkRow: {
     flexDirection: 'row',
