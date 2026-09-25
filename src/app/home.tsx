@@ -64,11 +64,16 @@ import {
   weightGoalProgressPercent,
 } from '@/components/home/weight-progress-card';
 import { WeightInputSheet } from '@/components/home/weight-update-sheet';
+import { BuildUpCard } from '@/components/measurements/build-up-card';
+import { MeasurementsSheet } from '@/components/measurements/measurements-sheet';
 import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useTrialStatus } from '@/hooks/use-premium-access';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
+import { useBodyMeasurementsAvailable } from '@/hooks/use-build-up';
+import { useProfileSettings } from '@/hooks/use-profile-settings';
+import { isBuildUpGoal } from '@/lib/build-up';
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
@@ -185,6 +190,11 @@ export default function HomeScreen() {
   const unitSystem = useUnitSystem();
   const { data, isLoading, isError, error } = useHomeDashboard();
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
+  const { data: profileSettings } = useProfileSettings(userId);
+  // Read-only: muscle gain goals get the build-up card on Today.
+  const showBuildUpToday = isBuildUpGoal(profileSettings?.profile?.goal_type);
+  const measurementsAvailable = useBodyMeasurementsAvailable(showBuildUpToday);
+  const [showMeasurementsSheet, setShowMeasurementsSheet] = useState(false);
   const movementGoalType = data?.profile?.movement_goal_type ?? null;
   const movementGoalValue = data?.profile?.movement_goal_value ?? null;
   const movementGoalPeriod = data?.profile?.movement_goal_period ?? null;
@@ -1533,6 +1543,15 @@ export default function HomeScreen() {
                       />
                     </View>
 
+                    {showBuildUpToday ? (
+                      <BuildUpCard
+                        className="mt-4"
+                        onOpenMeasurements={
+                          measurementsAvailable ? () => setShowMeasurementsSheet(true) : undefined
+                        }
+                      />
+                    ) : null}
+
                     <HomeSupplementChips />
                   </>
                 ) : (
@@ -1689,6 +1708,10 @@ export default function HomeScreen() {
       />
 
 
+      <MeasurementsSheet
+        visible={showMeasurementsSheet}
+        onClose={() => setShowMeasurementsSheet(false)}
+      />
       <WeightInputSheet
         visible={weightSheet != null}
         title={t('home.weight.modalTitle')}
