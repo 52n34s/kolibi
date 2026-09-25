@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import {
   STICKER_PALETTES,
+  StickerFitLine,
   StickerFrame,
   StickerStack,
   StickerStat,
@@ -31,12 +32,12 @@ export function RecapSticker({ data, variant, options, format = 'sticker' }: Rec
   return (
     <StickerFrame variant={variant} format={format}>
       <StickerStack style={s.stack}>
-        <StickerText
+        <StickerFitLine
+          text={data.period === 'month' ? t('share.myMonth') : t('share.myWeek')}
           style={[s.recapTitle, { color: palette.text }, palette.shadow]}
-          numberOfLines={1}
-          adjustsFontSizeToFit>
-          {data.period === 'month' ? t('share.myMonth') : t('share.myWeek')}
-        </StickerText>
+          baseFontSize={s.recapTitle.fontSize}
+          baseLineHeight={s.recapTitle.lineHeight}
+        />
         <StickerStatGrid>
           <StickerStat
             label={t('share.stats.sessions')}
@@ -67,7 +68,8 @@ export function RecapSticker({ data, variant, options, format = 'sticker' }: Rec
             <StickerText
               style={[s.sub, { color: palette.text }, palette.shadow]}
               numberOfLines={1}
-              adjustsFontSizeToFit>
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}>
               {formatGain(data.biggestGain)}
             </StickerText>
           </StickerStack>

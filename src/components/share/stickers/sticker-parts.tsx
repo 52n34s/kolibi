@@ -325,6 +325,38 @@ export function StickerStat({
   );
 }
 
+/** Content width of a sticker line. */
+const LINE_WIDTH = STICKER_LAYOUT_WIDTH - 48;
+/** Width of a heavy letter in em (generous, so a title never wraps). */
+const LETTER_EM = 0.68;
+
+/**
+ * One-line heading sized to fit, computed like StickerStat. Neither
+ * adjustsFontSizeToFit nor numberOfLines: on the story card iOS reused a stale,
+ * tiny layout for a one-line text; the computed size keeps it on one line.
+ */
+export function StickerFitLine({
+  text,
+  style,
+  baseFontSize,
+  baseLineHeight,
+}: {
+  text: string;
+  style: StyleProp<TextStyle>;
+  baseFontSize: number;
+  baseLineHeight: number;
+}) {
+  const scale = useStickerScale();
+  const fitted = Math.min(baseFontSize * scale, LINE_WIDTH / (Math.max(1, text.length) * LETTER_EM));
+  const fontSize = fitted / scale;
+  return (
+    <StickerText
+      style={[style, { fontSize, lineHeight: fontSize * (baseLineHeight / baseFontSize) }]}>
+      {text}
+    </StickerText>
+  );
+}
+
 export function StickerStatGrid({ children }: { children: ReactNode }) {
   return <StickerStack style={styles.statGrid}>{children}</StickerStack>;
 }
