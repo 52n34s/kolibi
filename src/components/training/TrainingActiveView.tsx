@@ -14,6 +14,7 @@ import {
 } from '@/components/training/training-panel-utils';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
+import { useSchemaCapability } from '@/hooks/use-schema-capability';
 import { useTimerTick } from '@/hooks/use-timer-tick';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
 import { displayActiveExerciseName } from '@/lib/workouts/exercise-name';
@@ -44,6 +45,9 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   const adjustCurrent = useWorkoutSessionStore((s) => s.adjustCurrent);
   const setCurrent = useWorkoutSessionStore((s) => s.setCurrent);
   const setCurrentSides = useWorkoutSessionStore((s) => s.setCurrentSides);
+  const setCurrentRir = useWorkoutSessionStore((s) => s.setCurrentRir);
+  // Hidden until the rir migration ran — there is nowhere to save it before.
+  const rirAvailable = useSchemaCapability('sessionSetsRir');
   const completeCurrentSet = useWorkoutSessionStore((s) => s.completeCurrentSet);
   const editDoneSet = useWorkoutSessionStore((s) => s.editDoneSet);
   const addSet = useWorkoutSessionStore((s) => s.addSet);
@@ -296,6 +300,8 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
           onSetValue={handleSetValue}
           onSetSides={handleSetSides}
           onDone={handleDone}
+          showRir={rirAvailable}
+          onSetRir={setCurrentRir}
         />
 
       </ScrollView>
