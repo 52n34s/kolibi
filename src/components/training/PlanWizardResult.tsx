@@ -32,7 +32,7 @@ type PlanWizardResultProps = {
 };
 
 /** Catalog snapshot row as an Exercise for ExerciseThumb and the image viewer. */
-function previewExercise(entry: PlanCatalogEntry): Exercise {
+export function previewExercise(entry: PlanCatalogEntry): Exercise {
   return {
     id: `catalog:${entry.slug}`,
     userId: null,

@@ -21,6 +21,7 @@ import {
   useOpenPlanWizard,
 } from '@/components/training/PlanWizardEntryCard';
 import { StarterPlanPicker } from '@/components/training/StarterPlanPicker';
+import { TemplatesSection } from '@/components/training/TemplatesSection';
 import { GlassCard } from '@/components/ui/glass-card';
 import {
   BRAND_INDIGO,
@@ -221,52 +222,12 @@ export default function WorkoutPlanScreen() {
               </View>
             )}
 
-            {archived.length > 0 ? (
-              <View style={styles.archivedBlock}>
-                <Text style={styles.archivedTitle}>{t('training.plan.archivedTitle')}</Text>
-                <View style={styles.list}>
-                  {archived.map((template) => (
-                    <GlassCard
-                      key={template.id}
-                      testID={`training.plan.archived.${template.shortLabel}`}
-                      style={styles.archivedCard}>
-                      <View style={styles.cardMain}>
-                        <View style={styles.cardHeader}>
-                          <View
-                            style={[
-                              styles.dot,
-                              {
-                                backgroundColor:
-                                  TRAINING_UNIT_COLORS[template.colorKey] ?? BRAND_INDIGO,
-                              },
-                            ]}
-                          />
-                          <Text style={styles.short}>{template.shortLabel}</Text>
-                        </View>
-                        <Text style={styles.name}>{template.name}</Text>
-                        <Text style={styles.meta}>
-                          {t('training.plan.archivedMeta', {
-                            count: template.exercises.length,
-                          })}
-                        </Text>
-                      </View>
-                      <Pressable
-                        testID={`training.plan.archived.${template.shortLabel}.restore`}
-                        accessibilityRole="button"
-                        disabled={restoringId != null}
-                        onPress={() => void handleRestore(template.id)}
-                        style={styles.restoreBtn}>
-                        {restoringId === template.id ? (
-                          <ActivityIndicator color={BRAND_INDIGO} />
-                        ) : (
-                          <Text style={styles.restoreText}>{t('training.plan.restore')}</Text>
-                        )}
-                      </Pressable>
-                    </GlassCard>
-                  ))}
-                </View>
-              </View>
-            ) : null}
+            <TemplatesSection
+              unitCount={ordered.length}
+              archived={archived}
+              restoringId={restoringId}
+              onRestore={(id) => void handleRestore(id)}
+            />
           </>
         )}
 
@@ -337,26 +298,11 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  archivedBlock: {
-    marginBottom: 8,
-  },
-  archivedTitle: {
-    marginBottom: 10,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E1B4B',
-  },
   card: {
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  archivedCard: {
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   cardMain: {
     flex: 1,
@@ -391,19 +337,6 @@ const styles = StyleSheet.create({
   },
   arrowBtn: {
     padding: 6,
-  },
-  restoreBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    minWidth: 108,
-    alignItems: 'center',
-    borderRadius: 999,
-    backgroundColor: 'rgba(79, 70, 229, 0.12)',
-  },
-  restoreText: {
-    color: BRAND_INDIGO,
-    fontWeight: '700',
-    fontSize: 14,
   },
   primary: {
     marginTop: 8,
