@@ -31,3 +31,10 @@ export const TRAINING_UNIT_COLORS = {
   amber: '#F59E0B',
   pink: '#EC4899',
 } as const;
+
+/**
+ * The one accent of the Today recommendations (Block 3.3). Used sparingly and
+ * always next to an icon: the icon itself and its soft badge behind it
+ * (this colour at low opacity). Teal-700 clears 5:1 on white.
+ */
+export const RECOMMENDATION_ACCENT = '#0F766E';
