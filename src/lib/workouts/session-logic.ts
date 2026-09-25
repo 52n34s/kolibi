@@ -285,6 +285,7 @@ export function completeCurrentSet(
     items,
     cursor: nextCursor ?? session.cursor,
     phase: isLastSet ? 'summary' : 'active',
+    ...(isLastSet ? { summaryOpenedAt: completedAt } : {}),
   };
 
   return {
@@ -531,28 +532,69 @@ export function addExerciseToSession(
   };
 }
 
+/** Longest session Kolibi stores, shows or counts toward calories. */
+export const SESSION_DURATION_MAX_MINUTES = 300;
+
+/**
+ * When the session ended: its last completed set (time sets included), else
+ * the moment the summary opened, else `fallbackIso` for sessions persisted
+ * before summaryOpenedAt existed. Time spent on the summary or in the rest
+ * after the last set does not count. Capped at SESSION_DURATION_MAX_MINUTES.
+ */
+export function sessionEndIso(session: ActiveSession, fallbackIso: string): string {
+  let lastSetMs: number | null = null;
+  for (const item of session.items) {
+    for (const set of item.sets) {
+      const ms = set.done && set.completedAt ? Date.parse(set.completedAt) : NaN;
+      if (Number.isFinite(ms) && (lastSetMs == null || ms > lastSetMs)) {
+        lastSetMs = ms;
+      }
+    }
+  }
+  const end = lastSetMs ?? Date.parse(session.summaryOpenedAt ?? fallbackIso);
+  const start = Date.parse(session.startedAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return fallbackIso;
+  }
+  const capped = Math.min(Math.max(end, start), start + SESSION_DURATION_MAX_MINUTES * 60_000);
+  return new Date(capped).toISOString();
+}
+
+/** Open the summary without completing a set ("Beenden"). */
+export function enterSummaryAt(session: ActiveSession, nowIso: string): ActiveSession {
+  return { ...session, phase: 'summary', summaryOpenedAt: nowIso };
+}
+
+/** "Zurück zur Einheit": the session runs again and has no end yet. */
+export function resumeFromSummary(session: ActiveSession): ActiveSession {
+  return { ...session, phase: 'active', finishedAt: null, summaryOpenedAt: null };
+}
+
+/** `finishedAt` only for backdated finishes; otherwise the session's own end. */
 export function markSessionFinished(
   session: ActiveSession,
   intensity: GymIntensity,
-  finishedAt: string = new Date().toISOString(),
+  finishedAt?: string,
 ): ActiveSession {
   return {
     ...session,
     intensity,
-    finishedAt,
+    finishedAt: finishedAt ?? sessionEndIso(session, new Date().toISOString()),
     phase: 'summary',
   };
 }
 
-/** Duration minutes from startedAt → finishedAt, clamped to 1–300. */
+/** Duration minutes from startedAt to the session's end, clamped to 1–300. */
 export function sessionDurationMinutes(session: ActiveSession, nowIso?: string): number {
-  const end = Date.parse(session.finishedAt ?? nowIso ?? new Date().toISOString());
+  const end = Date.parse(
+    session.finishedAt ?? sessionEndIso(session, nowIso ?? new Date().toISOString()),
+  );
   const start = Date.parse(session.startedAt);
   if (!Number.isFinite(end) || !Number.isFinite(start) || end <= start) {
     return 1;
   }
   const minutes = Math.round((end - start) / 60_000);
-  return Math.min(300, Math.max(1, minutes));
+  return Math.min(SESSION_DURATION_MAX_MINUTES, Math.max(1, minutes));
 }
 
 export function toSessionSetUpsert(
