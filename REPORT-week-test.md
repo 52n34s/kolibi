@@ -253,17 +253,133 @@ Keiner davon erfüllt die Regeln für einen Fix (Datenbank, Entwurfsfrage oder u
 - Mahlzeiten konnte der anonyme Nutzer nicht eintragen: „Manuell“ führt zur Anmeldung, der Foto-Scan erkennt die Apple-Beispielfotos nicht, Barcode braucht eine Kamera. Protein-Tage und Bewertungssatz sind deshalb nur in Block 1 geprüft.
 - RevenueCat meldet im Dev-Build „Invalid API key“ (lokaler Schlüssel fehlt).
 
-## Übersicht der Fehler
+## Block 3 (Fortsetzung): fehlende Schritte nachgeholt
+
+Nach der vollständigen Aufgabenbeschreibung fehlten Schritte aus Tag 1, 4, 5, 6 und 7. Neue Flows: `day4-plan-bearbeiten.yaml`, `day5-schlechter-tag-a.yaml`, `day5-schlechter-tag-b.yaml`, `day7-sprachen-start.yaml`, `day7-sprache-en.yaml`, `day7-sprache-es.yaml`, `day7-sprache-de.yaml`, `common/set-language.yaml` (Commit „test: maestro week flows“). Sheets und Dialoge habe ich von Hand im Simulator bedient und die Screenshots mit `xcrun simctl io … screenshot` gesichert.
+
+| Tag | Schritt | Ergebnis | Screenshot |
+|---|---|---|---|
+| 1 | Mahlzeit manuell über die Suche | **nicht möglich.** Die Lupe ist die Barcode-Produktsuche, „Manuell“ führt anonyme Nutzer zur Anmeldung. | `tag1/30`, `tag1/50` |
+| 1 | Foto-Scan aus der Galerie | ✔ mit einem echten Foto (Kichererbsen 180 g, Linsen 120 g, 603 kcal) | `tag1/53` |
+| 1 | Menge korrigieren | ✔ Kichererbsen 180 → 200 g: 270 → 300 kcal, Gesamt 603 → 633; Heute danach 1890 von 2523 | `tag1/54`, `55` |
+| 4 | Imperial: Heute, Ziele, Fortschritt | ✔ 188.7 lbs, Ziel 189.6 lbs überall; zurück auf Metrisch ✔ | `tag4/20`–`26` |
+| 4 | Trainingsziel | auf 4 × pro Woche gesetzt, Wochenkarte danach „2 von 4“ | `tag4/24` |
+| 4 | Plan bearbeiten: Wochentag So, Reihenfolge, Seitstütz entfernt, Aktives Hängen hinzugefügt | ✔, Plan danach „4 Übungen · Di, Fr, So“ | `tag4/30`–`36` |
+| 5 | Schlechter Tag: weniger Wiederholungen, Klimmzüge übersprungen | ✔ Zusammenfassung „1 Übung offen: Klimmzüge“, keine Bestwerte, Aktives Hängen „Zum ersten Mal“ | `tag5/20`–`30` |
+| 5 | `xcrun simctl terminate` mitten im Satz, Neustart | ✔ Einheit wiederhergestellt (Übung 3/4, Satz 2/3, erster Satz erhalten); später auch nach Kaltstart | `tag5/25`, `26`, `27` |
+| 6 | Fortschritt: Ernährung, Körper, Training je 7 und 30 Tage | ✔ (Ernährung zeigt im Dev-Build Vorschauwerte, siehe Block 3) | `tag6/20`–`23` |
+| 6 | Rückblick Woche und Monat, Sticker und Story, Hell und Dunkel | ✔ „Mein Monat“ 5 Einheiten, 347 Wdh., 1 neue Stufe | `tag6/24`–`28` |
+| 6 | Fortschritts-Sticker, Zeitraum-Umschalter | Barren-Dips „Seit Beginn 7 → Heute 9“ ✔. Umschalter erscheint nicht, weil es erst eine Woche Historie gibt (so gewollt). | `tag6/30` |
+| 6 | Hinweis bei zu wenigen Einheiten | **nicht auslösbar**: Der Sticker zählt Einheiten je Leiter, und jede Leiter hatte ≥ 2 Einheiten. Aktives Hängen (1 Einheit) zeigt stattdessen F10. | `tag6/32` |
+| 6 | Bestwerte-Liste: Stufen-Sticker über „Neue Stufe · …“ | ✔ | `tag6/33` |
+| 6 | Export als Text | Öffnet ohne Paywall (anonym). Vorschau mit Plan und Einheiten. Siehe F4 und F11. | `tag6/34`, `35` |
+| 7 | Englisch und Spanisch: laufende Einheit, Übersicht, Bestwerte, Übungsliste, Sticker | ✔ alle Katalog-Übungen übersetzt („Hollow hold“ steht so im spanischen Katalog). Buchstaben-Symbole der Übungsliste waren deutsch → **F9, behoben**. | `tag7/22`–`46` |
+| 7 | Zurück auf Deutsch | ✔ | `tag7/50` |
+| 7 | Einheit löschen | ✔ laufende Einheit „Verwerfen“, gespeicherte Einheit über Detail → „Einheit löschen“ (mit Rückfrage) | `tag7/52`–`59` |
+| 7 | Paywall nach den kostenlosen Scans | **nicht getestet.** Anonyme Nutzer haben 4 kostenlose Scans (`FREE_SCAN_LIMIT = 4` in `src/lib/scanGate.ts`), die Vorgabe erlaubt höchstens 3 Foto-Scans. Laut Code öffnet sich nach dem 4. erfolgreichen Scan die Paywall (`openPaywallBecauseScanLimit`). Ob Ansehen und Historie danach weiter gehen, konnte ich nicht im Ablauf prüfen. | – |
+
+**Foto-Scans:** zwei von höchstens drei. Scan 1 (Tag 1, synthetisches Bild) → „Nichts erkannt“. Scan 2 mit `commons-edgell-nourish-bowl.jpg`, Quelle Wikimedia Commons, „File:Edgell Nourish Bowl.jpg“ von Mx. Granger, Lizenz **CC0**. Die drei Bilder `meal-*.jpg` in `~/Desktop/kolibi-week-test/media/` hat die vorige Sitzung selbst gezeichnet (keine fremde Lizenz). `simctl addmedia` funktioniert jetzt.
+
+## Block 4: Auswertung
+
+### Sticker-Dateien
+
+Aus der Fotomediathek des Simulators (`…/Devices/56480505-…/data/Media/DCIM/100APPLE/*.PNG`) nach `~/Desktop/kolibi-week-test/sticker/` kopiert und mit PIL geprüft:
+
+| Datei | Inhalt | Größe | Transparenz |
+|---|---|---|---|
+| IMG_0007.PNG | Übung Bulgarian Split Squats, Hell | 1080 × 1158 | echt, 91 % transparent, Ecke (0,0,0,0) |
+| IMG_0008.PNG | Rückblick „Mein Monat“, Dunkel | 1080 × 797 | echt, 94 % |
+| IMG_0009.PNG | Story-Karte „Mein Monat“, Dunkel | **1080 × 1920** | deckend (richtig für Story) |
+| IMG_0010.PNG | Story-Karte „Mein Monat“, Hell | **1080 × 1920** | deckend |
+| IMG_0011.PNG | Fortschritt Barren-Dips, Hell | 1080 × 881 | echt, 90 % |
+| IMG_0012.PNG | Stufe Liegestütze auf Parallettes, Hell | 1080 × 870 | echt, 85 % |
+
+- Alle Sticker haben eine Breite von 1080 und einen echten Alphakanal, der Hintergrund ist transparent. Die Story-Karten haben genau 1080 × 1920.
+- **Sensible Daten:** Auf keinem Bild und auf keinem Sticker-Screenshot (Übung, Stufe, Einheit, Rückblick, Fortschritt, auch EN/ES) erscheinen Gewicht, kg, lbs, kcal, Kalorienziel, Taille, Körperfett oder Zusatzgewicht. ✔
+- Beim Namen der Varianten gilt die Textfarbe: „Hell“ = helle Schrift (Story: Indigo-Hintergrund), „Dunkel“ = dunkle Schrift (Story: heller Hintergrund). Das ist bei Sticker und Story einheitlich, aber zumindest für die Story-Karte nicht selbsterklärend. Nur notiert.
+- Der Sticker vom 1. Lauf (Einheit, Tag 5) wurde nicht gesichert, nur angesehen (`tag5/08`).
+
+### Metro-Logs (ohne RevenueCat)
+
+- `WARN Require cycle: src/stores/auth-store.ts -> src/stores/workout-session-store.ts -> src/stores/auth-store.ts` bei jedem Start. Bisher ohne sichtbare Folgen. **F13**, niedrig.
+- `WARN [resolve-foods] resolve_foods failed, continuing without enrichment: {"code": "57014", "message": "canceling statement due to statement timeout"}` beim Foto-Scan. Die Datenbankfunktion lief in ein Timeout, der Scan ging ohne Anreicherung weiter. **F12**, Datenbank, nicht angefasst.
+- `WARN DateTimePicker: onChange is deprecated` (Bibliothek, beim Nachtragen).
+- Der Web-SSR-Fehler „Tried to access storage on the server“ entsteht nur, weil die Metro-Startseite im Browser-Tab gerendert wurde. Kein App-Fehler.
+
+### Wochen-Simulation (Block 1) gegen die App (Block 3)
+
+| Thema | Simulation | App | Bewertung |
+|---|---|---|---|
+| Kalorienziel ohne Health | 2530 kcal an allen Tagen (30 Jahre) | 2523 kcal an allen Tagen (Geburtstag 25.09.1995, also 31) | stimmt, Altersunterschied |
+| Makros | 163 / 312 / 70 | 163 / 310 / 70 | stimmt |
+| Erster Stufenvorschlag Liegestütze | Do (erste Einheit mit 3 × 12) | erste Push-Einheit mit 12 · 12 · 12 | stimmt, gleiche Regel |
+| „hart“ ohne vorigen Erfolg | kein Vorschlag, bei „normal“ Archer | genauso | stimmt |
+| Zielwerte nach Annahme | 3 × 8–12 (Migration) | 3 × 10–12 | **weicht ab (F6)** |
+| „Zum ersten Mal“ / Bestwerte je Einheit | wie Tabelle 4 | wie erwartet, **nach Fix F1** | stimmt |
+| Wochenkarte zählt Tage, nicht Einheiten | ja | ja (2 von 4 bei 5 Einheiten an 2 Tagen) | stimmt |
+| Bestwerte im Rückblick / Bestwerte-Liste in der ersten Woche | 0 | 0 (nur „Neue Stufe“) | stimmt, Entwurfsfrage aus Block 1 |
+| Trainings-kcal pro Einheit | 45–55 min Annahme | Dauer bis „Fertig“, einmal 300 bzw. 593 min | **weicht ab (F4)** |
+| Sticker ohne sensible Daten | ja | ja | stimmt |
+| Imperial: Gewicht in lb, Lebensmittel in g | ja | 188.7 lbs; Mahlzeit in g | stimmt |
+
+### Neue Fehler aus Block 3 (Fortsetzung) und Block 4
+
+**F4 (verschärft) · Dauer läuft auf der Zusammenfassung weiter: 300 bzw. 593 Minuten** — *nur dokumentiert, Schwere jetzt hoch*.
+- Die erste Pull-&-Legs-Einheit (Tag 2) dauerte etwa 12 Minuten. Die Zusammenfassung blieb danach stundenlang offen (zwischen zwei Testsitzungen), erst dann kam „Fertig“.
+- Die Liste „Letzte Einheiten“ zeigt **300 Min** (gedeckelt in `sessionDurationMinutes`, `src/lib/workouts/session-logic.ts`). Der Text-Export zeigt für dieselbe Einheit **593 min**, die gespeicherte Dauer ist also nicht gedeckelt.
+- Mit Health fließt die Dauer in die Trainings-kcal. Bei 86 kg und MET 5 wären 300 min rund 2150 kcal.
+- Die Ursache ist eindeutig: `finishedAt` wird erst bei „Fertig“ gesetzt. Nicht behoben, weil die richtige Endzeit eine Produktentscheidung ist (letzter Satz? Öffnen der Zusammenfassung? Deckel?). Nutzer können die Dauer in der Einheit-Detailansicht korrigieren (`tag7/56`).
+- Screenshots: `tag6/23-30tage-volumen.png`, `tag6/35-export-text-2.png`.
+- **1.3-relevant: ja.**
+
+**F9 · Übungsliste: Buchstaben-Symbole bleiben deutsch** — *behoben* in `31f06fa` „fix(test-week): exercise list thumb letter follows the app language“, Test `src/lib/__tests__/exercise-stub.test.ts`.
+- Schritte: App auf Englisch, Fortschritt → Training → Übungen.
+- Erwartet: Der Buchstabe passt zum Namen (Pull-ups → P).
+- Tatsächlich: K bei „Pull-ups“, B bei „Inverted Rows“ und „Parallel Bar Dips“. `exerciseStubFromSessionSet` nahm den gespeicherten deutschen Satznamen.
+- Nach dem Fix: I, B, P, P, P, P (EN) und C, F, R, S, D (ES), erneut geprüft (`tag7/33`, `tag7/44`, `45`). Vorher: `tag7/32-uebungen-en.png`.
+- Schwere: niedrig. **1.3-relevant: ja** (gleicher Code auf `main`).
+
+**F10 · Fortschritts-Sticker nimmt die ganze Leiter und zeigt einen Rückschritt** — *nur dokumentiert*.
+- Schritte: Aktives Hängen (Leiter `pull_vertical`, Stufe 2) einmal machen, nachdem vorher Klimmzüge (Stufe 5) geloggt waren. Dann in der Übungsliste bei „Aktives Hängen“ oder „Klimmzüge“ auf Teilen tippen.
+- Erwartet: Fortschritt der gewählten Übung oder der Hinweis „zu wenige Einheiten“.
+- Tatsächlich: „Seit Beginn Stufe 5 von 6 → Heute Stufe 2 von 6, Klimmzüge → Aktives Hängen“. Auch der Sticker für **Klimmzüge** heißt dann „Aktives Hängen“ (auf Spanisch „Colgarse activo“, `tag7/46`). Die Kurve steigt trotzdem an. `buildProgressSticker` nimmt je Einheit die höchste Stufe der Leiter und je Tag die zuletzt geloggte Einheit, Einheiten am selben Tag werden nur nach Datum sortiert.
+- Screenshot: `tag6/32-fortschritt-zu-wenig.png`, `tag7/46-sticker-es.png`.
+- Schwere: **mittel** für 1.4 (Teilen-Funktion zeigt Rückschritt). Ob eine leichtere Stufe als Rückschritt gelten soll, ist eine Entwurfsfrage. **1.3-relevant: nein** (`sticker-data.ts` gibt es nur auf `feat/share-stickers`).
+
+**F11 · Export: Zurück-Knopf überdeckt den Titel** — *nur dokumentiert (Layout)*.
+- Der Titel „Export“ liegt unter dem runden Zurück-Knopf, sichtbar ist nur „port“. Screenshot `tag6/34-export-text.png`. Schwere: niedrig. **1.3-relevant: ja** (Datei unverändert gegenüber `main`).
+
+**F12 · `resolve_foods` Statement-Timeout beim Foto-Scan** — *nur dokumentiert (Datenbank)*. Der Scan lieferte trotzdem ein Ergebnis. Schwere: mittel, weil die Nährwerte ohne Abgleich mit der Lebensmitteldatenbank ungenauer sein können. **1.3-relevant: ja**, falls die Funktion in Produktion genauso langsam ist; das habe ich nicht geprüft.
+
+**F13 · Require-Zyklus auth-store ↔ workout-session-store** — *nur dokumentiert*. Keine sichtbare Folge. Schwere: niedrig. **1.3-relevant: ja.**
+
+## Übersicht der Fehler (vollständig)
 
 | # | Titel | Schwere | Status | 1.3-relevant |
 |---|---|---|---|---|
-| F1 | Zusammenfassung vergleicht die Einheit mit sich selbst | hoch | behoben (`1445e69`) | ja |
+| F1 | Zusammenfassung vergleicht die Einheit mit sich selbst | hoch | behoben `1445e69` | ja |
+| F4 | Dauer läuft auf der Zusammenfassung weiter (300/593 min) | hoch | dokumentiert | ja |
 | F2 | Geburtsdatum: „Fertig“ ohne Drehen übernimmt nichts | mittel | dokumentiert | ja |
-| F3 | Gewicht und Distanz mit Punkt statt Komma | niedrig | dokumentiert | ja |
-| F4 | Dauer läuft auf der Zusammenfassung weiter | mittel | dokumentiert | ja |
+| F10 | Fortschritts-Sticker zeigt Leiter-Rückschritt, falschen Titel | mittel | dokumentiert | nein (1.4) |
+| F12 | `resolve_foods` Timeout beim Scan | mittel | dokumentiert (DB) | ja (nicht in Prod geprüft) |
+| F3 | Punkt statt Komma bei Gewicht/Distanz | niedrig | dokumentiert | ja |
 | F5 | Nachtragen nutzt den aktuellen Plan | niedrig | dokumentiert | ja |
-| F6 | Zielbereich neue Stufe: Datenbank ≠ Migrationen | niedrig | dokumentiert | ja |
+| F6 | Zielbereich neue Stufe: Datenbank ≠ Migrationen | niedrig | dokumentiert (DB) | ja |
 | F7 | Startgewicht wandert am ersten Tag | niedrig | dokumentiert | ja |
 | F8 | „Noch keine Mahlzeiten heute“ für vergangene Tage | niedrig | dokumentiert | ja |
+| F9 | Übungsliste: Buchstaben-Symbole deutsch | niedrig | behoben `31f06fa` | ja |
+| F11 | Export: Titel vom Zurück-Knopf überdeckt | niedrig | dokumentiert | ja |
+| F13 | Require-Zyklus in den Stores | niedrig | dokumentiert | ja |
 
-Dazu die Entwurfsfragen aus Block 1: kein höheres Ziel an Trainingstagen ohne Health, kein Defizit bei Muskelaufbau, keine Bestwerte in der ersten Woche, kein Laufen im manuellen Training.
+Entwurfsfragen aus Block 1 bleiben: kein höheres Ziel an Trainingstagen ohne Health, kein Defizit bei Muskelaufbau, keine Bestwerte in der ersten Woche, kein Laufen im manuellen Training.
+
+## Nicht getestet
+
+- **Paywall nach den kostenlosen Scans:** Dafür wären 4 erfolgreiche Scans nötig, die Vorgabe erlaubt 3.
+- **Manuelle Mahlzeit über eine Suche:** Anonyme Nutzer landen bei der Anmeldung; mit Konto wollte ich nicht testen (Vorgabe).
+- **Hinweis bei zu wenigen Einheiten** im Fortschritts-Sticker: mit diesen Daten nicht auslösbar (siehe F10).
+- **Apple Health:** im Simulator nicht verbunden. Die Kalorienziele mit Health sind nur in Block 1 berechnet.
+- **Tagesübergänge und echtes Datum:** Die Uhr wurde nicht verstellt. Alle App-Tage liegen am 24./25.09., der Montag-Rückblick nur in Block 1.
+- **Barcode:** Die Simulator-Kamera liefert kein Bild.
+- **Teilen ins Netz (Instagram usw.):** Nur „Als Bild sichern“ und „Kopieren“ geprüft, „Teilen“ nicht ausgelöst.
