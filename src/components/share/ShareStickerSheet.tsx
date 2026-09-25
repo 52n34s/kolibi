@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,11 @@ import { StickerView } from '@/components/share/stickers/StickerView';
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 import { trackShareStickerCreated } from '@/lib/analytics';
+import {
+  INSTAGRAM_STORIES_URL,
+  instagramAppIdFrom,
+  instagramStoryItems,
+} from '@/lib/share/instagram-stories';
 import {
   availableStickerOptions,
   DEFAULT_STICKER_OPTIONS,
@@ -43,11 +49,22 @@ import {
   STORY_LAYOUT_HEIGHT,
 } from '@/lib/share/sticker-export';
 
+import {
+  isInstagramStoriesModuleAvailable,
+  shareToInstagramStory,
+} from '../../../modules/instagram-stories';
+
 /**
  * Whether a copied PNG keeps its alpha channel when pasted. Checked in the
  * simulator: iOS offers the copy as public.png with alpha (plus a JPEG).
  */
 const CLIPBOARD_KEEPS_ALPHA = true;
+
+/**
+ * Facebook App ID for Instagram Stories (EAS env EXPO_PUBLIC_FACEBOOK_APP_ID).
+ * Without it the Instagram button stays hidden.
+ */
+const INSTAGRAM_APP_ID = instagramAppIdFrom(process.env.EXPO_PUBLIC_FACEBOOK_APP_ID);
 
 /** Sheet side padding (GlassSheetSurface) on both sides. */
 const SHEET_GUTTER = 48;
@@ -80,8 +97,33 @@ export function ShareStickerSheet({
   const [busy, setBusy] = useState<StickerAction | null>(null);
   const [status, setStatus] = useState<Status>(null);
   const [progressPeriod, setProgressPeriod] = useState<ProgressPeriod | null>(null);
+  const [instagramReady, setInstagramReady] = useState(false);
 
   const visible = incoming != null;
+
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'ios' || !INSTAGRAM_APP_ID) {
+      return;
+    }
+    if (!isInstagramStoriesModuleAvailable()) {
+      return;
+    }
+    let cancelled = false;
+    Linking.canOpenURL(INSTAGRAM_STORIES_URL)
+      .then((installed) => {
+        if (!cancelled) {
+          setInstagramReady(installed);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setInstagramReady(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (visible) {
@@ -138,6 +180,17 @@ export function ShareStickerSheet({
         }
       } else if (action === 'copy') {
         await copySticker(fileUri);
+      } else if (action === 'instagram') {
+        const opened =
+          INSTAGRAM_APP_ID != null &&
+          (await shareToInstagramStory(
+            INSTAGRAM_APP_ID,
+            instagramStoryItems(fileUri, activeFormat, variant),
+          ));
+        if (!opened) {
+          setStatus('failed');
+          return;
+        }
       } else {
         await shareSticker(fileUri);
       }
@@ -281,6 +334,16 @@ export function ShareStickerSheet({
                   onPress={() => void run('copy')}
                 />
               ) : null}
+              {instagramReady ? (
+                <ActionButton
+                  testID="share.action.instagram"
+                  icon="logo-instagram"
+                  label={t('share.actions.instagram')}
+                  accessibilityLabel={t('share.actions.instagramA11y')}
+                  busy={busy === 'instagram'}
+                  onPress={() => void run('instagram')}
+                />
+              ) : null}
               <ActionButton
                 testID="share.action.share"
                 icon="share-outline"
@@ -317,6 +380,7 @@ function ActionButton({
   testID,
   icon,
   label,
+  accessibilityLabel,
   busy,
   primary = false,
   onPress,
@@ -324,6 +388,7 @@ function ActionButton({
   testID: string;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  accessibilityLabel?: string;
   busy: boolean;
   primary?: boolean;
   onPress: () => void;
@@ -333,7 +398,7 @@ function ActionButton({
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       onPress={onPress}
       style={[styles.action, primary && styles.actionPrimary]}>
       {busy ? (
