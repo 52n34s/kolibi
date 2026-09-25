@@ -1837,5 +1837,165 @@
       "short_on_time": "short on time",
       "too_hard": "too hard"
     }
+  },
+  "planWizard": {
+    "title": "Create plan",
+    "entry": {
+      "title": "Your plan in two minutes",
+      "subtitle": "A few quick questions and you get a plan that fits you.",
+      "cta": "Create plan"
+    },
+    "stepCounter": "Step {{current}} of {{total}}",
+    "back": "Back",
+    "next": "Next",
+    "steps": {
+      "goal": {
+        "title": "What's your goal?",
+        "options": {
+          "muscle": "Build muscle",
+          "strength_skills": "Strength and skills",
+          "fat_loss": "Lose fat",
+          "fitness": "Stay fit"
+        }
+      },
+      "days": {
+        "title": "How many days per week?",
+        "option": "{{count}} days"
+      },
+      "minutes": {
+        "title": "How long per session?",
+        "option": "{{count}} minutes",
+        "optionMax": "75+ minutes"
+      },
+      "equipment": {
+        "title": "What do you have available?",
+        "hint": "Pick everything you have.",
+        "options": {
+          "none": "Just my body",
+          "bar": "Pull-up bar",
+          "parallettes": "Parallettes",
+          "rings": "Rings",
+          "backpack": "Backpack as weight"
+        }
+      },
+      "assessment": {
+        "title": "Where are you right now?",
+        "hint": "A rough guess is perfect, you can adjust everything later.",
+        "push": {
+          "question": "How many push-ups can you do in a row?",
+          "l0": "0",
+          "l1": "1–5",
+          "l2": "6–15",
+          "l3": "16+"
+        },
+        "pull": {
+          "question": "How many pull-ups?",
+          "l0": "0",
+          "l1": "1–3",
+          "l2": "4–8",
+          "l3": "9+"
+        },
+        "legs": {
+          "question": "How many squats in a row?",
+          "l0": "under 10",
+          "l1": "10–25",
+          "l2": "26–50",
+          "l3": "more"
+        }
+      },
+      "focus": {
+        "title": "What do you want to focus on?",
+        "options": {
+          "balanced": "Balanced",
+          "upper": "Upper body",
+          "chest_shoulders": "Chest and shoulders",
+          "back": "Back",
+          "legs": "Legs"
+        }
+      },
+      "cardio": {
+        "title": "Do you also do cardio?",
+        "hint": "Like running, cycling or swimming.",
+        "options": {
+          "none": "No",
+          "some": "1–2 × per week",
+          "lots": "3 × or more"
+        }
+      },
+      "scope": {
+        "title": "What would you like to create?",
+        "options": {
+          "full": "Full plan",
+          "single": "Just one workout"
+        },
+        "hints": {
+          "full": "All workouts for your training week",
+          "single": "One workout matching your focus"
+        }
+      }
+    },
+    "result": {
+      "title": "Your plan",
+      "subtitleFull": "{{days}} training days per week, {{count}} workouts in rotation",
+      "subtitleSingle": "One workout matching your focus",
+      "sessionMeta": "{{count}} exercises · ~{{minutes}} min",
+      "rest": "{{seconds}} s rest",
+      "swap": "Swap",
+      "remove": "Remove",
+      "swapTitle": "Swap exercise",
+      "pullAlternative": "With a pull-up bar or rings, pull-ups and rows join your plan.",
+      "emptySession": "We'll skip this workout when saving.",
+      "add": "Add to my workouts",
+      "replace": "Replace my plan",
+      "save": "Use this plan",
+      "replaceConfirmTitle": "Replace plan?",
+      "replaceConfirmBody": "Your current workouts move to the archive. You can bring them back anytime in your training plan.",
+      "replaceConfirm": "Replace",
+      "cancel": "Cancel",
+      "saveFailed": "Saving needs another try. Give it a moment and tap again.",
+      "editAnswers": "Change answers"
+    },
+    "sessions": {
+      "full_a": "Full Body A",
+      "full_b": "Full Body B",
+      "full": "Full Body",
+      "push": "Push",
+      "pull_legs": "Pull & Legs",
+      "pull": "Pull",
+      "legs": "Legs",
+      "upper": "Upper Body",
+      "chest_shoulders": "Chest and Shoulders",
+      "back": "Back"
+    },
+    "sessionShort": {
+      "full_a": "A",
+      "full_b": "B",
+      "full": "FB",
+      "push": "Ps",
+      "pull_legs": "PL",
+      "pull": "Pl",
+      "legs": "Lg",
+      "upper": "Up",
+      "chest_shoulders": "CS",
+      "back": "Bk"
+    },
+    "presets": {
+      "full_body_beginner": {
+        "title": "Full Body Beginner",
+        "subtitle": "2 × per week · bodyweight only"
+      },
+      "push_pull_legs_advanced": {
+        "title": "Push / Pull & Legs Advanced",
+        "subtitle": "4 × per week · with pull-up bar"
+      },
+      "chest_shoulders_focus": {
+        "title": "Chest and Shoulders Focus",
+        "subtitle": "One workout · bodyweight only"
+      },
+      "short_20": {
+        "title": "Quick Workout 20 Minutes",
+        "subtitle": "One workout · bodyweight only"
+      }
+    }
   }
 }

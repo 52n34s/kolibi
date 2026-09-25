@@ -21,6 +21,7 @@ export default function KoliLayout() {
         <Stack.Screen name="exercise-edit" options={{ title: '' }} />
         <Stack.Screen name="workout-plan" options={{ title: '' }} />
         <Stack.Screen name="workout-template-edit" options={{ title: '' }} />
+        <Stack.Screen name="plan-wizard" options={{ title: '' }} />
         <Stack.Screen name="workout-session/[id]" options={{ title: '' }} />
         <Stack.Screen name="exercise-progress/[exerciseId]" options={{ title: '' }} />
         <Stack.Screen name="workout-backfill" options={{ title: '' }} />

@@ -16,6 +16,10 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
+import {
+  PlanWizardEntryCard,
+  useOpenPlanWizard,
+} from '@/components/training/PlanWizardEntryCard';
 import { StarterPlanPicker } from '@/components/training/StarterPlanPicker';
 import { GlassCard } from '@/components/ui/glass-card';
 import {
@@ -56,6 +60,7 @@ export default function WorkoutPlanScreen() {
   const archived = archivedQuery.data ?? [];
   const [reordering, setReordering] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const openPlanWizard = useOpenPlanWizard();
 
   const idleDurationSec = useRestTimerStore((s) => s.idleDurationSec);
   const setIdleDurationSec = useRestTimerStore((s) => s.setIdleDurationSec);
@@ -148,6 +153,7 @@ export default function WorkoutPlanScreen() {
           <>
             {showStarterPicker ? (
               <View style={styles.empty}>
+                <PlanWizardEntryCard testID="training.plan.planWizard" />
                 <StarterPlanPicker
                   onCustom={() => router.push('/koli/workout-template-edit' as Href)}
                 />
@@ -271,6 +277,16 @@ export default function WorkoutPlanScreen() {
           style={styles.primary}>
           <Text style={styles.primaryText}>{t('training.plan.add')}</Text>
         </Pressable>
+
+        {showStarterPicker ? null : (
+          <Pressable
+            testID="training.plan.planWizardButton"
+            accessibilityRole="button"
+            onPress={openPlanWizard}
+            style={styles.secondary}>
+            <Text style={styles.secondaryText}>{t('planWizard.title')}</Text>
+          </Pressable>
+        )}
 
         <Pressable
           testID="training.plan.catalog"
@@ -399,6 +415,19 @@ const styles = StyleSheet.create({
   },
   primaryText: {
     color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  secondary: {
+    marginTop: 10,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'rgba(79, 70, 229, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryText: {
+    color: BRAND_INDIGO,
     fontWeight: '700',
     fontSize: 16,
   },

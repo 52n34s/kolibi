@@ -1837,5 +1837,165 @@
       "short_on_time": "wenig Zeit",
       "too_hard": "zu schwer"
     }
+  },
+  "planWizard": {
+    "title": "Plan erstellen",
+    "entry": {
+      "title": "Dein Plan in zwei Minuten",
+      "subtitle": "Ein paar kurze Fragen, und du bekommst einen Plan, der zu dir passt.",
+      "cta": "Plan erstellen"
+    },
+    "stepCounter": "Schritt {{current}} von {{total}}",
+    "back": "Zurück",
+    "next": "Weiter",
+    "steps": {
+      "goal": {
+        "title": "Was ist dein Ziel?",
+        "options": {
+          "muscle": "Muskelaufbau",
+          "strength_skills": "Kraft und Skills",
+          "fat_loss": "Fett verlieren",
+          "fitness": "Fit bleiben"
+        }
+      },
+      "days": {
+        "title": "Wie viele Tage pro Woche?",
+        "option": "{{count}} Tage"
+      },
+      "minutes": {
+        "title": "Wie lange pro Einheit?",
+        "option": "{{count}} Minuten",
+        "optionMax": "75+ Minuten"
+      },
+      "equipment": {
+        "title": "Was hast du zur Verfügung?",
+        "hint": "Wähle alles, was du hast.",
+        "options": {
+          "none": "Nichts, nur mein Körper",
+          "bar": "Klimmzugstange",
+          "parallettes": "Parallettes",
+          "rings": "Ringe",
+          "backpack": "Rucksack als Gewicht"
+        }
+      },
+      "assessment": {
+        "title": "Wo stehst du gerade?",
+        "hint": "Schätz einfach, du kannst alles später anpassen.",
+        "push": {
+          "question": "Wie viele Liegestütze schaffst du am Stück?",
+          "l0": "0",
+          "l1": "1–5",
+          "l2": "6–15",
+          "l3": "16+"
+        },
+        "pull": {
+          "question": "Wie viele Klimmzüge?",
+          "l0": "0",
+          "l1": "1–3",
+          "l2": "4–8",
+          "l3": "9+"
+        },
+        "legs": {
+          "question": "Wie viele Kniebeugen ohne Pause?",
+          "l0": "unter 10",
+          "l1": "10–25",
+          "l2": "26–50",
+          "l3": "mehr"
+        }
+      },
+      "focus": {
+        "title": "Worauf willst du dich konzentrieren?",
+        "options": {
+          "balanced": "Ausgewogen",
+          "upper": "Oberkörper",
+          "chest_shoulders": "Brust und Schultern",
+          "back": "Rücken",
+          "legs": "Beine"
+        }
+      },
+      "cardio": {
+        "title": "Machst du zusätzlich Ausdauer?",
+        "hint": "Etwa Laufen, Radfahren oder Schwimmen.",
+        "options": {
+          "none": "Nein",
+          "some": "1–2 × pro Woche",
+          "lots": "3 × oder öfter"
+        }
+      },
+      "scope": {
+        "title": "Was möchtest du erstellen?",
+        "options": {
+          "full": "Ganzer Plan",
+          "single": "Nur eine Einheit"
+        },
+        "hints": {
+          "full": "Alle Einheiten für deine Trainingswoche",
+          "single": "Eine Einheit passend zu deinem Fokus"
+        }
+      }
+    },
+    "result": {
+      "title": "Dein Plan",
+      "subtitleFull": "{{days}} Trainingstage pro Woche, {{count}} Einheiten im Wechsel",
+      "subtitleSingle": "Eine Einheit passend zu deinem Fokus",
+      "sessionMeta": "{{count}} Übungen · ~{{minutes}} min",
+      "rest": "{{seconds}} s Pause",
+      "swap": "Tauschen",
+      "remove": "Entfernen",
+      "swapTitle": "Übung tauschen",
+      "pullAlternative": "Mit Klimmzugstange oder Ringen kommen Klimmzüge und Rudern dazu.",
+      "emptySession": "Diese Einheit lassen wir beim Speichern weg.",
+      "add": "Zu meinen Einheiten hinzufügen",
+      "replace": "Meinen Plan ersetzen",
+      "save": "Plan übernehmen",
+      "replaceConfirmTitle": "Plan ersetzen?",
+      "replaceConfirmBody": "Deine bisherigen Einheiten wandern ins Archiv. Im Trainingsplan holst du sie jederzeit zurück.",
+      "replaceConfirm": "Ersetzen",
+      "cancel": "Abbrechen",
+      "saveFailed": "Speichern hat gerade nicht geklappt. Versuch es gleich noch einmal.",
+      "editAnswers": "Antworten ändern"
+    },
+    "sessions": {
+      "full_a": "Ganzkörper A",
+      "full_b": "Ganzkörper B",
+      "full": "Ganzkörper",
+      "push": "Push",
+      "pull_legs": "Pull & Legs",
+      "pull": "Pull",
+      "legs": "Legs",
+      "upper": "Oberkörper",
+      "chest_shoulders": "Brust und Schultern",
+      "back": "Rücken"
+    },
+    "sessionShort": {
+      "full_a": "A",
+      "full_b": "B",
+      "full": "GK",
+      "push": "Ps",
+      "pull_legs": "PL",
+      "pull": "Pl",
+      "legs": "Lg",
+      "upper": "OK",
+      "chest_shoulders": "BS",
+      "back": "Rü"
+    },
+    "presets": {
+      "full_body_beginner": {
+        "title": "Ganzkörper Einsteiger",
+        "subtitle": "2 × pro Woche · ohne Ausrüstung"
+      },
+      "push_pull_legs_advanced": {
+        "title": "Push / Pull & Legs Fortgeschritten",
+        "subtitle": "4 × pro Woche · mit Klimmzugstange"
+      },
+      "chest_shoulders_focus": {
+        "title": "Brust und Schultern Fokus",
+        "subtitle": "Eine Einheit · nur mit deinem Körper"
+      },
+      "short_20": {
+        "title": "Kurz-Einheit 20 Minuten",
+        "subtitle": "Eine Einheit · nur mit deinem Körper"
+      }
+    }
   }
 }
