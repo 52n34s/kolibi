@@ -52,6 +52,7 @@ import {
   shiftTimestampToDate,
   type SessionExerciseGroup,
 } from '@/lib/workouts/session-detail-utils';
+import { SESSION_DURATION_MAX_MINUTES } from '@/lib/workouts/session-logic';
 import type { GymIntensity, SessionSet } from '@/lib/workouts/types';
 import {
   deleteSessionSet,
@@ -667,7 +668,7 @@ export default function WorkoutSessionDetailScreen() {
               if (
                 Number.isFinite(durationMinutes) &&
                 durationMinutes >= 1 &&
-                durationMinutes <= 600
+                durationMinutes <= SESSION_DURATION_MAX_MINUTES
               ) {
                 void persistMeta({ durationMinutes: Math.round(durationMinutes) });
               } else {

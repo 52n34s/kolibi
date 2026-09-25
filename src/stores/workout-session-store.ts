@@ -17,10 +17,12 @@ import {
   buildActiveSessionFromTemplate,
   completeCurrentSet as completeCurrentSetLogic,
   editDoneSet as editDoneSetLogic,
+  enterSummaryAt,
   jumpTo as jumpToLogic,
   moveExercise as moveExerciseLogic,
   removeLastSet as removeLastSetLogic,
   removeOpenTrailingSet as removeOpenTrailingSetLogic,
+  resumeFromSummary,
   setCurrent as setCurrentLogic,
   setCurrentSides as setCurrentSidesLogic,
   skipExercise as skipExerciseLogic,
@@ -266,7 +268,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
         if (!active) {
           return;
         }
-        set({ active: { ...active, phase: 'summary' } });
+        set({ active: enterSummaryAt(active, new Date().toISOString()) });
       },
 
       updateSummaryDraft: (patch) => {
@@ -288,7 +290,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
         if (!active || active.phase !== 'summary') {
           return;
         }
-        set({ active: { ...active, phase: 'active', finishedAt: null } });
+        set({ active: resumeFromSummary(active) });
       },
 
       finishSession: async (intensity, queryClient) => {
