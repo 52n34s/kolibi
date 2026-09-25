@@ -33,6 +33,7 @@ import { OnboardingLayout } from '@/components/onboarding/onboarding-layout';
 import { OptionCard } from '@/components/onboarding/option-card';
 import { getGlassCardStyle } from '@/components/ui/glass-styles';
 import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
+import { dateOnPickerOpen } from '@/lib/date-picker-open';
 import { parseDateOnly } from '@/lib/day-window';
 import { suggestInitialTargetWeightKg } from '@/lib/macro-goals';
 import {
@@ -617,6 +618,8 @@ export default function OnboardingScreen() {
   }
 
   function openDatePicker() {
+    // The shown date counts as chosen, so "Fertig" keeps it without turning.
+    setBirthDate(dateOnPickerOpen(birthDate, defaultBirthDate));
     if (Platform.OS === 'android') {
       openBirthDatePickerAndroid({
         value: birthDate ?? defaultBirthDate,
