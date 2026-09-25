@@ -1,0 +1,55 @@
+# TAG 5a · Bad day: Pull & Legs with fewer reps, Klimmzüge skipped via the
+# overview. Stops after the first Bulgarian set; the app is then terminated
+# from outside (xcrun simctl terminate) and day5-schlechter-tag-b continues.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag5
+---
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+- scrollUntilVisible:
+    element:
+      id: "training.template.PL.start"
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+    optional: true
+- tapOn:
+    id: "training.template.PL.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+- takeScreenshot: ${SHOT}/20-schlechter-tag-start
+# Barren-Rudern (now first): 7 · 6 · 6
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "7" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "6" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "6" } }
+# Klimmzüge: skip via overview
+- tapOn:
+    id: "training.overview.open"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/21-uebersicht
+- tapOn:
+    id: "training.overview.exercise.1.more"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/22-uebersicht-mehr
+- tapOn:
+    id: "training.overview.exercise.1.skip"
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/23-klimmzuege-uebersprungen
+- tapOn:
+    id: "training.overview.closeButton"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/24-nach-ueberspringen
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "6" } }
+- takeScreenshot: ${SHOT}/25-vor-abbruch

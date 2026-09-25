@@ -1,0 +1,31 @@
+# TAG 7b · English: running session, overview, Fortschritt list.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag7
+---
+- runFlow:
+    file: common/set-language.yaml
+    env: { LANG: "EN", SETTINGS: "Einstellungen" }
+- takeScreenshot: ${SHOT}/24-einstellungen-en
+- tapOn:
+    point: "8%,11%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/25-laufend-en
+- tapOn:
+    id: "training.overview.open"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/26-uebersicht-en
+- tapOn:
+    id: "training.overview.closeButton"
+- tapOn:
+    point: "75%,19%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/27-fortschritt-en
+- scroll
+- scroll
+- takeScreenshot: ${SHOT}/28-fortschritt-en-2
+- scroll
+- takeScreenshot: ${SHOT}/29-fortschritt-en-3

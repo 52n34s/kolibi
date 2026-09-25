@@ -1,0 +1,39 @@
+# TAG 7c · Spanish: running session, overview, Fortschritt training area.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag7
+---
+- runFlow:
+    file: common/set-language.yaml
+    env: { LANG: "ES", SETTINGS: "Settings" }
+- takeScreenshot: ${SHOT}/40-einstellungen-es
+- tapOn:
+    point: "8%,11%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/41-laufend-es
+- tapOn:
+    id: "training.overview.open"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/42-uebersicht-es
+- tapOn:
+    id: "training.overview.closeButton"
+- tapOn:
+    point: "75%,19%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    point: "79%,36%"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/43-fortschritt-training-es
+- scroll
+- scroll
+- takeScreenshot: ${SHOT}/44-fortschritt-es-2
+- scroll
+- takeScreenshot: ${SHOT}/45-fortschritt-es-3

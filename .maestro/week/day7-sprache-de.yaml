@@ -1,0 +1,13 @@
+# TAG 7d · Back to German.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag7
+---
+- runFlow:
+    file: common/set-language.yaml
+    env: { LANG: "DE", SETTINGS: "Ajustes" }
+- takeScreenshot: ${SHOT}/50-wieder-deutsch
+- tapOn:
+    point: "8%,11%"
+- waitForAnimationToEnd:
+    timeout: 3000

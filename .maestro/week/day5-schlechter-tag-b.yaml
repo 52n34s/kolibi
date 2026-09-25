@@ -1,0 +1,37 @@
+# TAG 5b · After the app was terminated mid-set and relaunched: the running
+# session must be restored. Finish Bulgarian (6 · 5 per side left) and
+# Aktives Hängen 2 × 12 s, then look at the summary.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag5
+---
+- runFlow: common/launch.yaml
+- runFlow:
+    when:
+      visible:
+        id: "home.tab.training"
+    commands:
+      - tapOn:
+          id: "home.tab.training"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+- takeScreenshot: ${SHOT}/27-wiederhergestellt
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "5" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "5" } }
+- runFlow: { file: common/hold-once.yaml, env: { TIME: "00:12" } }
+- runFlow: { file: common/hold-once.yaml, env: { TIME: "00:12" } }
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.done"
+    timeout: 25000
+- tapOn:
+    id: "training.summary.intensity.normal"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/28-zusammenfassung-schlecht
+- scroll
+- takeScreenshot: ${SHOT}/29-zusammenfassung-schlecht-unten
+- scroll
+- takeScreenshot: ${SHOT}/30-zusammenfassung-schlecht-ende

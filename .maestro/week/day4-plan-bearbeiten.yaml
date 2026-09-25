@@ -1,0 +1,28 @@
+# TAG 4 · Plan bearbeiten, continued from the open "Pull & Legs" editor
+# (weekday So added, order changed and Seitstütz removed by hand before):
+# add "Aktives Hängen" from the catalog and save.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag4
+---
+- tapOn: "Übungen hinzufügen"
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.search"
+    timeout: 20000
+- runFlow:
+    file: common/catalog-pick.yaml
+    env:
+      NAME: "Aktives"
+      SLUG: "active_hang"
+- takeScreenshot: ${SHOT}/34-katalog-aktives-haengen
+- tapOn:
+    id: "training.catalog.confirmSelection"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/35-pl-mit-neuer-uebung
+- tapOn:
+    id: "training.templateEdit.save"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/36-plan-gespeichert

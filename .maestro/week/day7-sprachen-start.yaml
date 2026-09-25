@@ -1,0 +1,20 @@
+# TAG 7a · Start Push and log one Liegestütze-Parallettes set, so a running
+# session can be checked in English and Spanish (switched by hand in
+# settings, see report).
+appId: com.steffen.kolibi
+env:
+  SHOT: tag7
+---
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "10" } }
+- takeScreenshot: ${SHOT}/20-laufend-de
