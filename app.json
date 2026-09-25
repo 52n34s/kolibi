@@ -38,6 +38,9 @@
         ],
         "ITSAppUsesNonExemptEncryption": false,
         "NSSupportsLiveActivities": true,
+        "LSApplicationQueriesSchemes": [
+          "instagram-stories"
+        ],
         "UIBackgroundModes": [
           "remote-notification"
         ],
