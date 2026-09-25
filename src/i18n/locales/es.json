@@ -519,7 +519,8 @@
         "analyzing": "Analizando tu comida...",
         "analyzeErrorTitle": "No se pudo analizar",
         "analyzeError": "No se pudieron analizar las fotos. Inténtalo de nuevo.",
-        "saveError": "No se pudo guardar la comida. Inténtalo de nuevo."
+        "saveError": "No se pudo guardar la comida. Inténtalo de nuevo.",
+        "share": "Compartir"
       },
       "rateLimit": {
         "title": "Límite de escaneos alcanzado",
@@ -1798,6 +1799,11 @@
       "periodWeeks_other": "{{count}} semanas",
       "notEnough": "Para un sticker de progreso hacen falta al menos dos sesiones de este ejercicio.",
       "share": "Compartir progreso de {{name}}"
+    },
+    "meal": {
+      "title": "Mi comida",
+      "kcal": "{{value}} kcal",
+      "protein": "{{value}} g de proteína"
     }
   },
   "mealGroups": {

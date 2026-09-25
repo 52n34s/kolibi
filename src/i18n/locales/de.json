@@ -519,7 +519,8 @@
         "analyzing": "Mahlzeit wird analysiert...",
         "analyzeErrorTitle": "Analyse fehlgeschlagen",
         "analyzeError": "Die Mahlzeit-Fotos konnten nicht analysiert werden. Bitte erneut versuchen.",
-        "saveError": "Die Mahlzeit konnte nicht gespeichert werden. Bitte erneut versuchen."
+        "saveError": "Die Mahlzeit konnte nicht gespeichert werden. Bitte erneut versuchen.",
+        "share": "Teilen"
       },
       "rateLimit": {
         "title": "Scan-Limit erreicht",
@@ -1798,6 +1799,11 @@
       "periodWeeks_other": "{{count}} Wochen",
       "notEnough": "Für einen Fortschritts-Sticker braucht es mindestens zwei Einheiten dieser Übung.",
       "share": "Fortschritt bei {{name}} teilen"
+    },
+    "meal": {
+      "title": "Meine Mahlzeit",
+      "kcal": "{{value}} kcal",
+      "protein": "{{value}} g Protein"
     }
   },
   "mealGroups": {

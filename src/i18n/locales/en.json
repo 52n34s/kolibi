@@ -519,7 +519,8 @@
         "analyzing": "Analyzing your meal...",
         "analyzeErrorTitle": "Could not analyze meal",
         "analyzeError": "The meal photos could not be analyzed. Please try again.",
-        "saveError": "Could not save your meal. Please try again."
+        "saveError": "Could not save your meal. Please try again.",
+        "share": "Share"
       },
       "rateLimit": {
         "title": "Scan limit reached",
@@ -1798,6 +1799,11 @@
       "periodWeeks_other": "{{count}} weeks",
       "notEnough": "A progress sticker needs at least two sessions of this exercise.",
       "share": "Share progress for {{name}}"
+    },
+    "meal": {
+      "title": "My meal",
+      "kcal": "{{value}} kcal",
+      "protein": "{{value}} g protein"
     }
   },
   "mealGroups": {
