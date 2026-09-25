@@ -61,7 +61,7 @@ type ShareStickerSheetProps = {
   /** Sheet is open while this is set. */
   data: StickerData | null;
   onClose: () => void;
-  /** Offer the 1080 × 1920 story card next to the transparent sticker (recap, progress). */
+  /** Offer the 1080 × 1920 story card next to the transparent sticker. */
   allowStory?: boolean;
 };
 
@@ -103,8 +103,7 @@ export function ShareStickerSheet({
   const progressPeriods =
     data.kind === 'progress' ? PROGRESS_PERIODS.filter((period) => data.views[period]) : [];
   const notEnoughProgress = data.kind === 'progress' && progressPeriods.length === 0;
-  const storyCapable = data.kind === 'recap' || data.kind === 'progress';
-  const activeFormat: StickerFormat = allowStory && storyCapable ? format : 'sticker';
+  const activeFormat: StickerFormat = allowStory ? format : 'sticker';
   const height = activeFormat === 'story' ? STORY_LAYOUT_HEIGHT : layoutHeight;
   const availableWidth = Math.min(windowWidth - SHEET_GUTTER, STICKER_LAYOUT_WIDTH);
   const scale =
@@ -226,7 +225,7 @@ export function ShareStickerSheet({
                   }))}
                 />
               ) : null}
-              {allowStory && storyCapable ? (
+              {allowStory ? (
                 <PillSegmentSwitcher
                   compact
                   value={format}

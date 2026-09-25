@@ -433,7 +433,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     );
   }
 
-  const shareSheet = <ShareStickerSheet data={sticker} onClose={() => setSticker(null)} />;
+  const shareSheet = <ShareStickerSheet data={sticker} onClose={() => setSticker(null)} allowStory />;
 
   const adoptCandidates = useMemo(
     () =>
