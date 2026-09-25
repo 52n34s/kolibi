@@ -72,7 +72,8 @@ export type SyncQueueOp =
       id: string;
       type: 'deleteSession';
       userId: string;
-      payload: { sessionId: string };
+      /** trainingSessionId: a training_sessions row the session never got linked to. */
+      payload: { sessionId: string; trainingSessionId?: string | null };
       createdAt: string;
     };
 
@@ -83,7 +84,7 @@ export type SyncQueueApi = {
   upsertWorkoutSession: (input: UpsertSessionOpPayload) => Promise<unknown>;
   upsertSessionSets: (sets: SyncSetUpsertPayload[]) => Promise<unknown>;
   deleteSessionSet: (setId: string) => Promise<void>;
-  deleteWorkoutSession: (sessionId: string) => Promise<void>;
+  deleteWorkoutSession: (sessionId: string, trainingSessionId?: string | null) => Promise<void>;
 };
 
 /**
@@ -263,7 +264,6 @@ export function createWorkoutSyncQueue(
   api: SyncQueueApi,
   readCurrentUserId: CurrentUserIdReader = () => null,
 ) {
-  let flushing = false;
   const listeners = new Set<StatusListener>();
 
   function notify(): void {
@@ -310,56 +310,74 @@ export function createWorkoutSyncQueue(
     };
   }
 
-  async function flush(): Promise<void> {
-    if (flushing) {
+  /**
+   * One pass at a time. A caller that arrives while a pass runs waits for it
+   * and then runs its own, so "after flush the queue is empty" holds for
+   * everything enqueued before the call (finishActiveSession relies on it).
+   */
+  let running: Promise<void> | null = null;
+
+  function flush(): Promise<void> {
+    const previous = running;
+    const pass = (previous ? previous.catch(() => {}) : Promise.resolve()).then(drain);
+    running = pass;
+    void pass
+      .finally(() => {
+        if (running === pass) {
+          running = null;
+        }
+      })
+      .catch(() => {});
+    return pass;
+  }
+
+  async function drain(): Promise<void> {
+    const currentUserId = readCurrentUserId();
+    if (currentUserId == null) {
+      // Nobody signed in — nothing can be written. Keep the queue as it is
+      // rather than dropping work over a transient auth gap.
       return;
     }
-    flushing = true;
-    try {
-      const currentUserId = readCurrentUserId();
-      if (currentUserId == null) {
-        // Nobody signed in — nothing can be written. Keep the queue as it is
-        // rather than dropping work over a transient auth gap.
-        return;
-      }
 
-      const { mine, foreign } = partitionByOwner(coalesceOps(readOps(storage)), currentUserId);
-      if (foreign.length > 0) {
-        // Left over from a previous account. Dropping is the only safe option:
-        // sending would file someone else's sets under the current user.
-        dropForeign(foreign, currentUserId);
-      }
-
-      let ops = mine;
-      writeOps(storage, ops);
-
-      while (ops.length > 0) {
-        const head = ops[0];
-        if (!head) {
-          break;
-        }
-        try {
-          if (head.type === 'upsertSession') {
-            await api.upsertWorkoutSession(head.payload);
-          } else if (head.type === 'upsertSets') {
-            await api.upsertSessionSets(head.payload);
-          } else if (head.type === 'deleteSet') {
-            await api.deleteSessionSet(head.payload.setId);
-          } else {
-            await api.deleteWorkoutSession(head.payload.sessionId);
-          }
-          ops = ops.slice(1);
-          writeOps(storage, ops);
-          notify();
-        } catch (error) {
-          setStatus('offline');
-          throw error;
-        }
-      }
-      setStatus('synced');
-    } finally {
-      flushing = false;
+    const { mine, foreign } = partitionByOwner(coalesceOps(readOps(storage)), currentUserId);
+    if (foreign.length > 0) {
+      // Left over from a previous account. Dropping is the only safe option:
+      // sending would file someone else's sets under the current user.
+      dropForeign(foreign, currentUserId);
     }
+    writeOps(storage, mine);
+
+    // Read the stored queue before every op and remove only the op that was
+    // sent: ops enqueued during a request stay (writing back a snapshot lost them).
+    for (;;) {
+      const head = partitionByOwner(readOps(storage), currentUserId).mine[0];
+      if (!head) {
+        break;
+      }
+      try {
+        if (head.type === 'upsertSession') {
+          await api.upsertWorkoutSession(head.payload);
+        } else if (head.type === 'upsertSets') {
+          await api.upsertSessionSets(head.payload);
+        } else if (head.type === 'deleteSet') {
+          await api.deleteSessionSet(head.payload.setId);
+        } else {
+          await api.deleteWorkoutSession(
+            head.payload.sessionId,
+            head.payload.trainingSessionId ?? null,
+          );
+        }
+        writeOps(
+          storage,
+          readOps(storage).filter((op) => op.id !== head.id),
+        );
+        notify();
+      } catch (error) {
+        setStatus('offline');
+        throw error;
+      }
+    }
+    setStatus(readOps(storage).length === 0 ? 'synced' : 'pending');
   }
 
   function clear(): void {
@@ -390,8 +408,12 @@ export function createWorkoutSyncQueue(
     enqueueDeleteSet(setId: string, userId: string) {
       enqueue({ type: 'deleteSet', userId, payload: { setId } });
     },
-    enqueueDeleteSession(sessionId: string, userId: string) {
-      enqueue({ type: 'deleteSession', userId, payload: { sessionId } });
+    enqueueDeleteSession(sessionId: string, userId: string, trainingSessionId?: string | null) {
+      enqueue({
+        type: 'deleteSession',
+        userId,
+        payload: { sessionId, ...(trainingSessionId ? { trainingSessionId } : {}) },
+      });
     },
   };
 }

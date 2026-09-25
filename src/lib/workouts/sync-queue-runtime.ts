@@ -92,8 +92,12 @@ export function enqueueDeleteSet(setId: string, userId: string): void {
   getWorkoutSyncQueue().enqueueDeleteSet(setId, userId);
 }
 
-export function enqueueDeleteSession(sessionId: string, userId: string): void {
-  getWorkoutSyncQueue().enqueueDeleteSession(sessionId, userId);
+export function enqueueDeleteSession(
+  sessionId: string,
+  userId: string,
+  trainingSessionId?: string | null,
+): void {
+  getWorkoutSyncQueue().enqueueDeleteSession(sessionId, userId, trainingSessionId);
 }
 
 /** Drop every queued op, e.g. on sign-out. */

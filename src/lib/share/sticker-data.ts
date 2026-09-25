@@ -1,3 +1,4 @@
+import { reconcileTrainingRows } from '@/lib/training-rows';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { personalBests, setPerformanceValue, type PersonalBest } from '@/lib/workouts/progress';
 import type { SkillGoalForecast, SkillGoalPeriod } from '@/lib/workouts/skill-goal-forecast';
@@ -537,9 +538,10 @@ export function buildRecapSticker(
     workoutSessions: readonly WorkoutSession[];
     /**
      * training_sessions rows. Finishing a workout writes one and links it via
-     * `trainingSessionId`; those are the workout itself and are not counted twice.
+     * `trainingSessionId`; those are the workout itself and are not counted twice,
+     * nor are unlinked duplicates of a unit (see reconcileTrainingRows).
      */
-    manualSessions: readonly { id: string; loggedOn: string }[];
+    manualSessions: readonly { id: string; loggedOn: string; activity: string }[];
     /** Best value per exercise_id before the window start (`useExerciseBestsBefore`). */
     beforeBests: Readonly<Record<string, number>>;
     /** Progression events; only those created inside the window count. */
@@ -552,11 +554,8 @@ export function buildRecapSticker(
 ): RecapStickerData {
   const window = recapWindow(period, params.todayKey);
   const workouts = params.workoutSessions.filter((session) => inWindow(session.loggedOn, window));
-  const linked = new Set(
-    params.workoutSessions.map((session) => session.trainingSessionId).filter(Boolean),
-  );
-  const manual = params.manualSessions.filter(
-    (session) => !linked.has(session.id) && inWindow(session.loggedOn, window),
+  const manual = reconcileTrainingRows(params.manualSessions, params.workoutSessions).manual.filter(
+    (session) => inWindow(session.loggedOn, window),
   );
 
   const sets = workouts.flatMap((session) => session.sets);

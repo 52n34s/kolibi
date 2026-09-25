@@ -36,6 +36,7 @@ import {
 } from '@/lib/sport-energy-day';
 import { mapTrainingIntensityToSportIntensity } from '@/lib/training-calories';
 import type { TrainingActivity } from '@/lib/training-calories';
+import { reconcileTrainingRows } from '@/lib/training-rows';
 import { fetchTrainingSessionsForDate } from '@/lib/training-sessions';
 import { supabase } from '@/lib/supabase';
 import i18n from '@/i18n';
@@ -542,11 +543,11 @@ export async function getSportEnergyDay(params: {
             string,
             { name: string; shortLabel: string; colorKey: string }
           >();
+          let dayUnits: Awaited<ReturnType<typeof fetchWorkoutUnitsForDay>>['units'] = [];
           try {
-            unitByTrainingSessionId = await fetchWorkoutUnitLabelsByTrainingSessionId(
-              params.userId,
-              dateKey,
-            );
+            const day = await fetchWorkoutUnitsForDay(params.userId, dateKey);
+            unitByTrainingSessionId = day.labels;
+            dayUnits = day.units;
           } catch (unitLabelError) {
             console.warn(
               '[Health] workout unit labels for sport energy failed:',
@@ -554,7 +555,8 @@ export async function getSportEnergyDay(params: {
             );
           }
 
-          for (const trainingSession of trainingSessions) {
+          // Unlinked duplicates of a unit never count on top (nor next to Health).
+          for (const trainingSession of reconcileTrainingRows(trainingSessions, dayUnits).kept) {
             const unit = unitByTrainingSessionId.get(trainingSession.id);
             trainingInputs.push({
               activity: trainingSession.activity,
@@ -593,21 +595,30 @@ export async function getSportEnergyDay(params: {
   }
 }
 
-async function fetchWorkoutUnitLabelsByTrainingSessionId(
+async function fetchWorkoutUnitsForDay(
   userId: string,
   loggedOn: string,
-): Promise<Map<string, { name: string; shortLabel: string; colorKey: string }>> {
+): Promise<{
+  labels: Map<string, { name: string; shortLabel: string; colorKey: string }>;
+  units: { loggedOn: string; finishedAt: string | null; trainingSessionId: string | null }[];
+}> {
   const map = new Map<string, { name: string; shortLabel: string; colorKey: string }>();
   const { data, error } = await supabase
     .from('workout_sessions')
-    .select('training_session_id, template_name, short_label, color_key')
+    .select('training_session_id, template_name, short_label, color_key, finished_at')
     .eq('user_id', userId)
-    .eq('logged_on', loggedOn)
-    .not('training_session_id', 'is', null);
+    .eq('logged_on', loggedOn);
 
   if (error) {
     throw error;
   }
+
+  const units = (data ?? []).map((row) => ({
+    loggedOn,
+    finishedAt: typeof row.finished_at === 'string' ? row.finished_at : null,
+    trainingSessionId:
+      typeof row.training_session_id === 'string' ? row.training_session_id : null,
+  }));
 
   for (const row of data ?? []) {
     const trainingSessionId =
@@ -626,7 +637,7 @@ async function fetchWorkoutUnitLabelsByTrainingSessionId(
     });
   }
 
-  return map;
+  return { labels: map, units };
 }
 
 /**

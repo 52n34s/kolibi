@@ -931,7 +931,14 @@ export async function upsertSessionSets(
   }
 }
 
-export async function deleteWorkoutSession(sessionId: string): Promise<void> {
+/**
+ * Deletes the session and its training_sessions row. `unlinkedTrainingSessionId`
+ * covers a row inserted by a finish whose link step never landed.
+ */
+export async function deleteWorkoutSession(
+  sessionId: string,
+  unlinkedTrainingSessionId?: string | null,
+): Promise<void> {
   try {
     const userId = await requireUserId();
     const { data: session, error: fetchError } = await supabase
@@ -945,7 +952,13 @@ export async function deleteWorkoutSession(sessionId: string): Promise<void> {
       throw fetchError;
     }
 
-    const trainingSessionId = session?.training_session_id ?? null;
+    const trainingSessionIds = [
+      ...new Set(
+        [session?.training_session_id ?? null, unlinkedTrainingSessionId ?? null].filter(
+          (id): id is string => id != null,
+        ),
+      ),
+    ];
 
     const { error } = await supabase
       .from('workout_sessions')
@@ -957,11 +970,11 @@ export async function deleteWorkoutSession(sessionId: string): Promise<void> {
       throw error;
     }
 
-    if (trainingSessionId) {
+    if (trainingSessionIds.length > 0) {
       const { error: tsError } = await supabase
         .from('training_sessions')
         .delete()
-        .eq('id', trainingSessionId)
+        .in('id', trainingSessionIds)
         .eq('user_id', userId);
       if (tsError) {
         throw tsError;

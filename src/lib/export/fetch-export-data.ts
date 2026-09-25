@@ -15,6 +15,7 @@ import {
   shiftLocalDateKey,
 } from '@/lib/day-window';
 import { fetchMealsForLocalDate } from '@/lib/meals';
+import { reconcileTrainingRows } from '@/lib/training-rows';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
 import {
   displayExerciseName,
@@ -458,15 +459,10 @@ export async function fetchExportData(params: {
     };
   });
 
-  // Manual sessions that aren't already linked from a workout session
-  const linkedTrainingIds = new Set(
-    (workoutSessions ?? [])
-      .map((session) => session.trainingSessionId)
-      .filter((id): id is string => id != null),
-  );
-  const manualExport = (manualSessions ?? [])
-    .filter((session) => !linkedTrainingIds.has(session.id))
-    .map((session) => ({
+  // Manual entries only: rows of a Kolibi unit (linked, or whose link got
+  // lost) and duplicates of one are not "Manuell".
+  const manualExport = reconcileTrainingRows(manualSessions ?? [], workoutSessions ?? [])
+    .manual.map((session) => ({
       dateLabel: formatExportDateLabel(session.loggedOn, lang),
       activityLabel: t(`home.training.activity.${session.activity}`),
       durationMin: session.durationMinutes,
