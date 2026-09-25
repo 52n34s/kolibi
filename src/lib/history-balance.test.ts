@@ -351,18 +351,35 @@ describe('detectRepeatedCalorieUndershoot', () => {
   });
 });
 
+/** One logged entry at a local wall-clock time on a YYYY-MM-DD day. */
+function logged(
+  date: string,
+  time: string,
+  totalCalories: number,
+  proteinG: number | null,
+) {
+  const [y, m, d] = date.split('-').map(Number);
+  const [h, min] = time.split(':').map(Number);
+  return {
+    date,
+    eatenAt: new Date(y!, m! - 1, d!, h!, min!).toISOString(),
+    totalCalories,
+    proteinG,
+  };
+}
+
 describe('computeProteinDistributionStats', () => {
   it('ignores low-calorie meals and averages only complete protein days', () => {
     const stats = computeProteinDistributionStats(
       [
-        { date: '2026-09-11', totalCalories: 500, proteinG: 30 },
-        { date: '2026-09-11', totalCalories: 350, proteinG: 20 },
-        { date: '2026-09-11', totalCalories: 50, proteinG: null },
-        { date: '2026-09-12', totalCalories: 400, proteinG: 25 },
-        { date: '2026-09-13', totalCalories: 300, proteinG: 30 },
-        { date: '2026-09-14', totalCalories: 300, proteinG: 25 },
-        { date: '2026-09-15', totalCalories: 300, proteinG: 25 },
-        { date: '2026-09-16', totalCalories: 300, proteinG: null },
+        logged('2026-09-11', '08:00', 500, 30),
+        logged('2026-09-11', '12:30', 350, 20),
+        logged('2026-09-11', '16:00', 50, null),
+        logged('2026-09-12', '12:00', 400, 25),
+        logged('2026-09-13', '12:00', 300, 30),
+        logged('2026-09-14', '12:00', 300, 25),
+        logged('2026-09-15', '12:00', 300, 25),
+        logged('2026-09-16', '12:00', 300, null),
       ],
       83,
     );
@@ -376,13 +393,63 @@ describe('computeProteinDistributionStats', () => {
 
   it('returns stats for fewer than five eligible days', () => {
     const stats = computeProteinDistributionStats(
-      [
-        { date: '2026-09-11', totalCalories: 400, proteinG: 30 },
-        { date: '2026-09-12', totalCalories: 400, proteinG: 25 },
-      ],
+      [logged('2026-09-11', '12:00', 400, 30), logged('2026-09-12', '12:00', 400, 25)],
       83,
     );
     assert.ok(stats != null);
     assert.equal(stats.trackedDays, 2);
+  });
+
+  it('counts grouped entries as one meal', () => {
+    // 12:00 + 12:30 + 13:10 chain into one lunch with 15 + 10 + 5 = 30 g.
+    const stats = computeProteinDistributionStats(
+      [
+        logged('2026-09-11', '12:00', 300, 15),
+        logged('2026-09-11', '12:30', 200, 10),
+        logged('2026-09-11', '13:10', 150, 5),
+        logged('2026-09-11', '19:00', 600, 20),
+      ],
+      83,
+    );
+    assert.ok(stats != null);
+    assert.equal(stats.averageMealCount, 2);
+    assert.equal(stats.averageMealsAtThreshold, 1);
+  });
+
+  it('keeps entries more than 45 minutes apart as separate meals', () => {
+    const stats = computeProteinDistributionStats(
+      [logged('2026-09-11', '12:00', 300, 15), logged('2026-09-11', '12:46', 300, 15)],
+      83,
+    );
+    assert.ok(stats != null);
+    assert.equal(stats.averageMealCount, 2);
+    assert.equal(stats.averageMealsAtThreshold, 0);
+  });
+
+  it('counts small entries once they add up to a meal of 100 kcal', () => {
+    const stats = computeProteinDistributionStats(
+      [logged('2026-09-11', '15:00', 60, 3), logged('2026-09-11', '15:20', 60, 4)],
+      83,
+    );
+    assert.ok(stats != null);
+    assert.equal(stats.averageMealCount, 1);
+  });
+
+  it('treats a small entry without protein data as 0 g inside a meal', () => {
+    const stats = computeProteinDistributionStats(
+      [logged('2026-09-11', '08:00', 400, 26), logged('2026-09-11', '08:10', 40, null)],
+      83,
+    );
+    assert.ok(stats != null);
+    assert.equal(stats.trackedDays, 1);
+    assert.equal(stats.averageMealsAtThreshold, 1);
+  });
+
+  it('drops the day when a larger entry of a meal lacks protein data', () => {
+    const stats = computeProteinDistributionStats(
+      [logged('2026-09-11', '08:00', 400, 26), logged('2026-09-11', '08:10', 150, null)],
+      83,
+    );
+    assert.equal(stats, null);
   });
 });

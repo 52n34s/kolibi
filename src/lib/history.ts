@@ -51,6 +51,8 @@ export type HistoryDayRow = {
 /** Individual meal macros retained for period-level analyses. */
 export type HistoryMealEntry = {
   date: string;
+  /** Logged timestamp (ISO); used to group entries into meals. */
+  eatenAt: string;
   totalCalories: number;
   proteinG: number | null;
 };
@@ -202,6 +204,7 @@ export async function fetchHistoryData(
     const totalCalories = Number(row.total_kcal ?? 0);
     meals.push({
       date: dateKey,
+      eatenAt: row.eaten_at,
       totalCalories,
       // Legacy meal rows coalesced missing macros to 0 — treat as unknown.
       proteinG: macroOrEmpty(totalCalories, Number(row.total_protein_g ?? 0)),
