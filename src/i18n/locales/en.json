@@ -1,10 +1,8 @@
 {
   "auth": {
-    "valueProp": {
-      "action": "Snap a photo.",
-      "result": "Calories done."
-    },
-    "convertHeadline": "Your tracking starts for real now",
+    "signInHeadline": "Pick up where you left off",
+    "signUpHeadline": "Food and training – together from now on",
+    "convertHeadline": "Keep your progress safe",
     "subtitleSignIn": "Sign in to continue",
     "subtitleSignUp": "Create your account to get started",
     "apple": "Sign in with Apple",

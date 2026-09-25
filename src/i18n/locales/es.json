@@ -1,10 +1,8 @@
 {
   "auth": {
-    "valueProp": {
-      "action": "Haz una foto.",
-      "result": "Calorías listas."
-    },
-    "convertHeadline": "Tu seguimiento empieza de verdad",
+    "signInHeadline": "Sigue donde lo dejaste",
+    "signUpHeadline": "Comida y entrenamiento, juntos desde ahora",
+    "convertHeadline": "Guarda tu progreso",
     "subtitleSignIn": "Inicia sesión para continuar",
     "subtitleSignUp": "Crea tu cuenta para empezar",
     "apple": "Iniciar sesión con Apple",

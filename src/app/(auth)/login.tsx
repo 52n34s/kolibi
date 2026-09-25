@@ -396,25 +396,19 @@ export default function LoginScreen() {
           />
         </View>
 
-        {isAnonymousUser ? (
-          <Text
-            className="mb-8 text-center text-5xl font-bold leading-tight tracking-tight text-[#2C2C2A]"
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.85}>
-            {t('auth.convertHeadline')}
-          </Text>
-        ) : (
-          <Text
-            className="mb-8 text-center text-5xl font-bold leading-tight tracking-tight"
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.85}>
-            <Text className="text-[#2C2C2A]">{t('auth.valueProp.action')}</Text>
-            {'\n'}
-            <Text className="text-[#4F46E5]">{t('auth.valueProp.result')}</Text>
-          </Text>
-        )}
+        <Text
+          className="mb-8 text-center text-5xl font-bold leading-tight tracking-tight text-[#2C2C2A]"
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}>
+          {t(
+            isAnonymousUser
+              ? 'auth.convertHeadline'
+              : isSignUpMode
+                ? 'auth.signUpHeadline'
+                : 'auth.signInHeadline',
+          )}
+        </Text>
         {isSignUpMode ? (
           <View className="mb-10 self-center rounded-full bg-[#7CE7C7] px-4 py-2.5">
             <Text className="text-center text-sm font-semibold text-[#2C2C2A]">
