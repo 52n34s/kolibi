@@ -104,6 +104,18 @@ export async function fetchWaistCmForDay(
   return Number.isFinite(waistCm) && waistCm > 0 ? waistCm : null;
 }
 
+/** Clears one day, e.g. when the measurements sheet empties the waist field. */
+export async function deleteWaistLogForDay(userId: string, loggedOn: string): Promise<void> {
+  const { error } = await supabase
+    .from('waist_logs')
+    .delete()
+    .eq('user_id', userId)
+    .eq('logged_on', loggedOn);
+  if (error) {
+    throw error;
+  }
+}
+
 export function formatWaistForDisplay(params: {
   waistCm: number;
   unitSystem: UnitSystem;
