@@ -15,6 +15,7 @@ import type { ProgressionHistoryUnit } from '@/lib/workouts/progression';
 import { uploadImageToStorage } from '@/lib/storage-upload';
 import { supabase } from '@/lib/supabase';
 import { createSchemaProbe } from '@/lib/db-schema-errors';
+import { isMuscleGroup } from '@/lib/workouts/muscles';
 import {
   isExerciseKind,
   isGymIntensity,
@@ -25,6 +26,7 @@ import {
   type Exercise,
   type ExerciseKind,
   type GymIntensity,
+  type MuscleGroup,
   type ProgressionEvent,
   type ProgressionEventKind,
   type ProgressionEventStatus,
@@ -61,6 +63,8 @@ type ExerciseRow = {
   ladder_step: number | null;
   progression_kind: string;
   time_cap_seconds: number | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
 };
 
 type TemplateRow = {
@@ -194,7 +198,17 @@ function mapExercise(row: ExerciseRow): Exercise {
     ladderStep: row.ladder_step,
     progressionKind,
     timeCapSeconds: row.time_cap_seconds,
+    ...(row.primary_muscles !== undefined || row.secondary_muscles !== undefined
+      ? {
+          primaryMuscles: muscleList(row.primary_muscles),
+          secondaryMuscles: muscleList(row.secondary_muscles),
+        }
+      : {}),
   };
+}
+
+function muscleList(values: string[] | null | undefined): MuscleGroup[] {
+  return (values ?? []).filter(isMuscleGroup);
 }
 
 function nestExercise(value: ExerciseRow | ExerciseRow[] | null): ExerciseRow | null {
@@ -257,12 +271,27 @@ function mapWorkoutSession(row: WorkoutSessionRow, sets: SessionSet[] = []): Wor
 const EXERCISE_SELECT =
   'id, user_id, catalog_slug, names, kind, per_side, default_sets, default_reps, default_reps_max, default_seconds, default_seconds_max, default_rest_seconds, image_asset, image_path, note, archived_at, ladder_key, ladder_step, progression_kind, time_cap_seconds';
 
+/**
+ * exercises.primary_muscles / secondary_muscles come with migration
+ * 20260926143400. Until it runs, own exercises have no muscles and the
+ * selection in the exercise editor stays hidden.
+ */
+export const hasExerciseMuscles = createSchemaProbe(() =>
+  supabase.from('exercises').select('primary_muscles, secondary_muscles').limit(0),
+);
+
+async function exerciseSelect(): Promise<string> {
+  return (await hasExerciseMuscles())
+    ? `${EXERCISE_SELECT}, primary_muscles, secondary_muscles`
+    : EXERCISE_SELECT;
+}
+
 export async function fetchExercises(): Promise<Exercise[]> {
   try {
     const userId = await requireUserId();
     const { data, error } = await supabase
       .from('exercises')
-      .select(EXERCISE_SELECT)
+      .select(await exerciseSelect())
       .is('archived_at', null)
       .or(`user_id.is.null,user_id.eq.${userId}`);
 
@@ -270,7 +299,7 @@ export async function fetchExercises(): Promise<Exercise[]> {
       throw error;
     }
 
-    const mapped = ((data ?? []) as ExerciseRow[]).map(mapExercise);
+    const mapped = ((data ?? []) as unknown as ExerciseRow[]).map(mapExercise);
     mapped.sort((a, b) => {
       const aOwn = a.userId != null ? 0 : 1;
       const bOwn = b.userId != null ? 0 : 1;
@@ -296,12 +325,16 @@ export type CreateExerciseInput = {
   defaultRestSeconds?: number | null;
   imageAsset?: string | null;
   note?: string | null;
+  /** Saved only once migration 20260926143400 ran. */
+  primaryMuscles?: MuscleGroup[];
+  secondaryMuscles?: MuscleGroup[];
 };
 
 export async function createExercise(input: CreateExerciseInput): Promise<Exercise> {
   try {
     const userId = await requireUserId();
     const id = input.id ?? newId();
+    const withMuscles = await hasExerciseMuscles();
     const { data, error } = await supabase
       .from('exercises')
       .insert({
@@ -317,14 +350,20 @@ export async function createExercise(input: CreateExerciseInput): Promise<Exerci
         default_rest_seconds: input.defaultRestSeconds ?? null,
         image_asset: input.imageAsset ?? null,
         note: input.note ?? null,
+        ...(withMuscles
+          ? {
+              primary_muscles: input.primaryMuscles ?? [],
+              secondary_muscles: input.secondaryMuscles ?? [],
+            }
+          : {}),
       })
-      .select(EXERCISE_SELECT)
+      .select(await exerciseSelect())
       .single();
 
     if (error) {
       throw error;
     }
-    return mapExercise(data as ExerciseRow);
+    return mapExercise(data as unknown as ExerciseRow);
   } catch (error) {
     captureAndThrow(error);
   }
@@ -341,6 +380,9 @@ export type UpdateExerciseInput = {
   imagePath?: string | null;
   imageAsset?: string | null;
   note?: string | null;
+  /** Saved only once migration 20260926143400 ran. */
+  primaryMuscles?: MuscleGroup[];
+  secondaryMuscles?: MuscleGroup[];
 };
 
 export async function updateExercise(
@@ -362,19 +404,23 @@ export async function updateExercise(
     if (input.imagePath !== undefined) patch.image_path = input.imagePath;
     if (input.imageAsset !== undefined) patch.image_asset = input.imageAsset;
     if (input.note !== undefined) patch.note = input.note;
+    if (await hasExerciseMuscles()) {
+      if (input.primaryMuscles !== undefined) patch.primary_muscles = input.primaryMuscles;
+      if (input.secondaryMuscles !== undefined) patch.secondary_muscles = input.secondaryMuscles;
+    }
 
     const { data, error } = await supabase
       .from('exercises')
       .update(patch)
       .eq('id', exerciseId)
       .eq('user_id', userId)
-      .select(EXERCISE_SELECT)
+      .select(await exerciseSelect())
       .single();
 
     if (error) {
       throw error;
     }
-    return mapExercise(data as ExerciseRow);
+    return mapExercise(data as unknown as ExerciseRow);
   } catch (error) {
     captureAndThrow(error);
   }
@@ -551,12 +597,13 @@ async function mapTemplatesWithExercises(templateRows: TemplateRow[]): Promise<W
   }
 
   const templateIds = templateRows.map((row) => row.id);
+  const exerciseColumns = await exerciseSelect();
   const { data: teRows, error: teError } = await supabase
     .from('template_exercises')
     .select(
       `id, template_id, exercise_id, position, target_sets, target_reps, target_reps_max,
        target_seconds, target_seconds_max, target_weight_kg, rest_seconds,
-       exercises (${EXERCISE_SELECT})`,
+       exercises (${exerciseColumns})`,
     )
     .in('template_id', templateIds)
     .order('position', { ascending: true });
@@ -566,7 +613,7 @@ async function mapTemplatesWithExercises(templateRows: TemplateRow[]): Promise<W
   }
 
   const byTemplate = new Map<string, TemplateExercise[]>();
-  for (const raw of (teRows ?? []) as TemplateExerciseRow[]) {
+  for (const raw of (teRows ?? []) as unknown as TemplateExerciseRow[]) {
     const exerciseRow = nestExercise(raw.exercises);
     if (!exerciseRow) {
       continue;

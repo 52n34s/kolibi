@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { HistoryMusclesView } from '@/components/history/history-muscles-view';
 import { MiniSparkline } from '@/components/history/mini-sparkline';
 import {
   WorkoutVolumeBarChart,
@@ -61,6 +62,8 @@ import {
 
 type ManualSessionLike = { loggedOn: string };
 
+type TrainingSegment = 'sessions' | 'muscles' | 'exercises';
+
 type HistoryTrainingSectionProps = {
   chartWidth: number;
   rangeDays: 7 | 30;
@@ -74,6 +77,8 @@ type HistoryTrainingSectionProps = {
   runningKm: number | null;
   runningKmPeriod: 'day' | 'week';
   healthConnected: boolean;
+  /** profiles.goal_type: build_muscle raises the weekly set mark per muscle group. */
+  goalType?: string | null;
   /** Switch Home to Training tab when available; otherwise open workout plan. */
   onOpenTrainingTab?: () => void;
   canOpenTrainingTab?: boolean;
@@ -151,6 +156,7 @@ export function HistoryTrainingSection({
   runningKm,
   runningKmPeriod,
   healthConnected,
+  goalType = null,
   onOpenTrainingTab,
   canOpenTrainingTab = false,
 }: HistoryTrainingSectionProps) {
@@ -159,6 +165,7 @@ export function HistoryTrainingSection({
   const innerWidth = chartWidth - 32;
   const [showAllBests, setShowAllBests] = useState(false);
   const [volumeMetric, setVolumeMetric] = useState<'reps' | 'seconds'>('reps');
+  const [segment, setSegment] = useState<TrainingSegment>('sessions');
   const { data: progressionEvents = [] } = useProgressionEvents({
     since: `${rangeStartKey}T00:00:00.000Z`,
   });
@@ -440,217 +447,250 @@ export function HistoryTrainingSection({
 
   return (
     <>
-      <Text className="mb-3 text-lg font-semibold text-gray-900">
-        {t('history.training.sessionsTitle')}
-      </Text>
+      <View className="mb-4">
+        <PillSegmentSwitcher
+          value={segment}
+          onChange={setSegment}
+          compact
+          segments={[
+            {
+              id: 'sessions',
+              label: t('muscles.segments.sessions'),
+              testID: 'history.training.segment.sessions',
+            },
+            {
+              id: 'muscles',
+              label: t('muscles.segments.muscles'),
+              testID: 'history.training.segment.muscles',
+            },
+            {
+              id: 'exercises',
+              label: t('muscles.segments.exercises'),
+              testID: 'history.training.segment.exercises',
+            },
+          ]}
+        />
+      </View>
 
-      <View
-        testID="history.training.week"
-        style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
-        className="mb-8">
-        <View className="px-4 py-5">
-          {rangeDays === 7 ? (
-            <>
-              <Text className="text-sm text-gray-500">
-                {t('history.training.sessionsHeadlineWeek')}
-              </Text>
-              <Text className="mt-1 text-2xl font-bold text-[#4F46E5]">{sessionValue}</Text>
-              <View className="mt-5">
-                <WeekDayDots markers={weekMarkers} />
-                <View className="mt-2 flex-row justify-between px-0.5">
-                  {weekDayLabels.map((label, index) => (
-                    <Text
-                      key={`${label}-${index}`}
-                      className="w-7 text-center text-[10px] text-gray-500">
+      {segment === 'muscles' ? (
+        <HistoryMusclesView todayKey={todayKey} initialDays={rangeDays} goalType={goalType} />
+      ) : null}
+
+      {segment === 'sessions' ? (
+        <>
+          <Text className="mb-3 text-lg font-semibold text-gray-900">
+            {t('history.training.sessionsTitle')}
+          </Text>
+
+          <View
+            testID="history.training.week"
+            style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
+            className="mb-8">
+            <View className="px-4 py-5">
+              {rangeDays === 7 ? (
+                <>
+                  <Text className="text-sm text-gray-500">
+                    {t('history.training.sessionsHeadlineWeek')}
+                  </Text>
+                  <Text className="mt-1 text-2xl font-bold text-[#4F46E5]">{sessionValue}</Text>
+                  <View className="mt-5">
+                    <WeekDayDots markers={weekMarkers} />
+                    <View className="mt-2 flex-row justify-between px-0.5">
+                      {weekDayLabels.map((label, index) => (
+                        <Text
+                          key={`${label}-${index}`}
+                          className="w-7 text-center text-[10px] text-gray-500">
+                          {label}
+                        </Text>
+                      ))}
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <View className="gap-4">
+                  {weekRows30.map((row) => (
+                    <View key={row.weekStart} className="flex-row items-center gap-3">
+                      <Text className="w-6 text-xs tabular-nums text-gray-500">
+                        {String(Number(row.weekStart.slice(8, 10)))}
+                      </Text>
+                      <View className="min-w-0 flex-1">
+                        <WeekDayDots markers={row.markers} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+
+          {bests.length > 0 || levelUps.length > 0 ? (
+            <View
+              testID="history.training.bests"
+              style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
+              className="mb-8">
+              <View className="px-4 py-4">
+                <Text className="mb-3 text-sm font-semibold text-gray-900">
+                  {t('history.training.bestsTitle')}
+                </Text>
+                {levelUps.map((row) => {
+                  const levelSticker = row.sticker;
+                  return (
+                    <View key={row.id} className="flex-row items-center gap-3 py-2">
+                      <Text
+                        className="min-w-0 flex-1 text-sm font-semibold"
+                        style={{ color: '#4F46E5' }}>
+                        {t('history.training.newLevel', { name: row.name })}
+                      </Text>
+                      {levelSticker ? (
+                        <ShareIconButton
+                          testID={`history.training.shareLevel.${row.id}`}
+                          label={t('share.shareLevel', { name: row.name })}
+                          onPress={() => setSticker(levelSticker)}
+                        />
+                      ) : null}
+                    </View>
+                  );
+                })}
+                {visibleBests.map((best) => (
+                  <BestRow
+                    key={best.exerciseId ?? `name:${best.exerciseName}`}
+                    best={best}
+                    t={t}
+                    onShare={() => {
+                      const sets = bestSessionSets(sessionsInRange, best);
+                      setSticker(
+                        buildExerciseSticker({
+                          exercise:
+                            best.exerciseId != null ? exercisesById.get(best.exerciseId) : undefined,
+                          fallbackName: best.exerciseName,
+                          lang: i18n.language,
+                          exerciseKind: best.kind,
+                          perSide: sets.perSide,
+                          values: sets.values,
+                          ladder: allExercises,
+                          milestone: 'newBest',
+                        }),
+                      );
+                    }}
+                  />
+                ))}
+                {bests.length > 3 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showAllBests
+                        ? t('history.training.bestsShowLess')
+                        : t('history.training.bestsShowAll')
+                    }
+                    onPress={() => setShowAllBests((prev) => !prev)}
+                    className="mt-2 py-2">
+                    <Text className="text-sm font-medium text-[#4F46E5]">
+                      {showAllBests
+                        ? t('history.training.bestsShowLess')
+                        : t('history.training.bestsShowAll')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+
+          {volumeBars.length > 0 && (hasRepsVolume || hasSecondsVolume) ? (
+            <View
+              testID="history.training.volume"
+              style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
+              className="mb-8">
+              <View className="px-4 py-4">
+                <Text className="mb-3 text-sm font-semibold text-gray-900">
+                  {t('history.training.volumeTitle')}
+                </Text>
+                {showVolumePill ? (
+                  <View className="mb-3">
+                    <PillSegmentSwitcher
+                      value={volumeMetric}
+                      onChange={setVolumeMetric}
+                      compact
+                      segments={[
+                        { id: 'reps', label: t('history.training.volumeReps') },
+                        { id: 'seconds', label: t('history.training.volumeSeconds') },
+                      ]}
+                    />
+                  </View>
+                ) : null}
+                <WorkoutVolumeBarChart
+                  bars={volumeBars}
+                  width={innerWidth}
+                  height={140}
+                  compact={rangeDays === 30}
+                />
+                <View className="mt-2 flex-row justify-between px-1">
+                  {volumeXLabels.map((label, index) => (
+                    <Text key={`${label}-${index}`} className="text-[10px] text-gray-500">
                       {label}
                     </Text>
                   ))}
                 </View>
               </View>
-            </>
-          ) : (
-            <View className="gap-4">
-              {weekRows30.map((row) => (
-                <View key={row.weekStart} className="flex-row items-center gap-3">
-                  <Text className="w-6 text-xs tabular-nums text-gray-500">
-                    {String(Number(row.weekStart.slice(8, 10)))}
-                  </Text>
-                  <View className="min-w-0 flex-1">
-                    <WeekDayDots markers={row.markers} />
-                  </View>
-                </View>
-              ))}
             </View>
-          )}
-        </View>
-      </View>
+          ) : null}
 
-      {bests.length > 0 || levelUps.length > 0 ? (
-        <View
-          testID="history.training.bests"
-          style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
-          className="mb-8">
-          <View className="px-4 py-4">
-            <Text className="mb-3 text-sm font-semibold text-gray-900">
-              {t('history.training.bestsTitle')}
-            </Text>
-            {levelUps.map((row) => {
-              const levelSticker = row.sticker;
-              return (
-                <View key={row.id} className="flex-row items-center gap-3 py-2">
-                  <Text
-                    className="min-w-0 flex-1 text-sm font-semibold"
-                    style={{ color: '#4F46E5' }}>
-                    {t('history.training.newLevel', { name: row.name })}
-                  </Text>
-                  {levelSticker ? (
-                    <ShareIconButton
-                      testID={`history.training.shareLevel.${row.id}`}
-                      label={t('share.shareLevel', { name: row.name })}
-                      onPress={() => setSticker(levelSticker)}
-                    />
-                  ) : null}
-                </View>
-              );
-            })}
-            {visibleBests.map((best) => (
-              <BestRow
-                key={best.exerciseId ?? `name:${best.exerciseName}`}
-                best={best}
-                t={t}
-                onShare={() => {
-                  const sets = bestSessionSets(sessionsInRange, best);
-                  setSticker(
-                    buildExerciseSticker({
-                      exercise:
-                        best.exerciseId != null ? exercisesById.get(best.exerciseId) : undefined,
-                      fallbackName: best.exerciseName,
-                      lang: i18n.language,
-                      exerciseKind: best.kind,
-                      perSide: sets.perSide,
-                      values: sets.values,
-                      ladder: allExercises,
-                      milestone: 'newBest',
-                    }),
-                  );
-                }}
-              />
-            ))}
-            {bests.length > 3 ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={
-                  showAllBests
-                    ? t('history.training.bestsShowLess')
-                    : t('history.training.bestsShowAll')
-                }
-                onPress={() => setShowAllBests((prev) => !prev)}
-                className="mt-2 py-2">
-                <Text className="text-sm font-medium text-[#4F46E5]">
-                  {showAllBests
-                    ? t('history.training.bestsShowLess')
-                    : t('history.training.bestsShowAll')}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-        </View>
-      ) : null}
-
-      {volumeBars.length > 0 && (hasRepsVolume || hasSecondsVolume) ? (
-        <View
-          testID="history.training.volume"
-          style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
-          className="mb-8">
-          <View className="px-4 py-4">
-            <Text className="mb-3 text-sm font-semibold text-gray-900">
-              {t('history.training.volumeTitle')}
-            </Text>
-            {showVolumePill ? (
-              <View className="mb-3">
-                <PillSegmentSwitcher
-                  value={volumeMetric}
-                  onChange={setVolumeMetric}
-                  compact
-                  segments={[
-                    { id: 'reps', label: t('history.training.volumeReps') },
-                    { id: 'seconds', label: t('history.training.volumeSeconds') },
-                  ]}
-                />
-              </View>
-            ) : null}
-            <WorkoutVolumeBarChart
-              bars={volumeBars}
-              width={innerWidth}
-              height={140}
-              compact={rangeDays === 30}
-            />
-            <View className="mt-2 flex-row justify-between px-1">
-              {volumeXLabels.map((label, index) => (
-                <Text key={`${label}-${index}`} className="text-[10px] text-gray-500">
-                  {label}
-                </Text>
-              ))}
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-      {sessionsInRange.length > 0 ? (
-        <>
-          <Text className="mb-3 text-lg font-semibold text-gray-900">
-            {t('history.training.recentTitle')}
-          </Text>
-          <View
-            style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
-            className="mb-8">
-            <View className="px-2 py-1">
-              {sessionsInRange.map((session) => {
-                const targetLabel = formatTargetActual(session, t);
-                return (
+          {sessionsInRange.length > 0 ? (
+            <>
+              <Text className="mb-3 text-lg font-semibold text-gray-900">
+                {t('history.training.recentTitle')}
+              </Text>
+              <View
+                style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
+                className="mb-8">
+                <View className="px-2 py-1">
+                  {sessionsInRange.map((session) => {
+                    const targetLabel = formatTargetActual(session, t);
+                    return (
+                      <Pressable
+                        key={session.id}
+                        testID={`history.training.session.${session.id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={session.templateName}
+                        onPress={() =>
+                          router.push(`/koli/workout-session/${session.id}` as Href)
+                        }
+                        className="flex-row items-center px-3 py-3">
+                        <View className="min-w-0 flex-1">
+                          <Text className="text-sm text-gray-900" numberOfLines={1}>
+                            {formatShortDate(session.loggedOn, i18n.language)}
+                            {' · '}
+                            <Text style={{ fontWeight: '700' }}>{session.shortLabel}</Text>
+                            {' '}
+                            {session.templateName}
+                          </Text>
+                          <Text className="mt-0.5 text-xs" style={{ color: TEXT_SECONDARY }}>
+                            {t('history.training.durationMinutes', {
+                              minutes: sessionDurationMinutes(session),
+                            })}
+                            {targetLabel ? ` · ${targetLabel}` : ''}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
                   <Pressable
-                    key={session.id}
-                    testID={`history.training.session.${session.id}`}
+                    testID="training.backfill.open"
                     accessibilityRole="button"
-                    accessibilityLabel={session.templateName}
-                    onPress={() =>
-                      router.push(`/koli/workout-session/${session.id}` as Href)
-                    }
-                    className="flex-row items-center px-3 py-3">
-                    <View className="min-w-0 flex-1">
-                      <Text className="text-sm text-gray-900" numberOfLines={1}>
-                        {formatShortDate(session.loggedOn, i18n.language)}
-                        {' · '}
-                        <Text style={{ fontWeight: '700' }}>{session.shortLabel}</Text>
-                        {' '}
-                        {session.templateName}
-                      </Text>
-                      <Text className="mt-0.5 text-xs" style={{ color: TEXT_SECONDARY }}>
-                        {t('history.training.durationMinutes', {
-                          minutes: sessionDurationMinutes(session),
-                        })}
-                        {targetLabel ? ` · ${targetLabel}` : ''}
-                      </Text>
-                    </View>
+                    accessibilityLabel={t('training.backfill.open')}
+                    onPress={openBackfill}
+                    className="px-3 py-3">
+                    <Text className="text-sm font-medium text-[#4F46E5]">
+                      {t('training.backfill.open')}
+                    </Text>
                   </Pressable>
-                );
-              })}
-              <Pressable
-                testID="training.backfill.open"
-                accessibilityRole="button"
-                accessibilityLabel={t('training.backfill.open')}
-                onPress={openBackfill}
-                className="px-3 py-3">
-                <Text className="text-sm font-medium text-[#4F46E5]">
-                  {t('training.backfill.open')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
+                </View>
+              </View>
+            </>
+          ) : null}
         </>
       ) : null}
 
-      {exerciseRows.length > 0 ? (
+      {segment === 'exercises' && exerciseRows.length > 0 ? (
         <>
           <Text className="mb-3 text-lg font-semibold text-gray-900">
             {t('history.training.exercisesTitle')}
@@ -715,7 +755,7 @@ export function HistoryTrainingSection({
         </>
       ) : null}
 
-      {healthConnected ? (
+      {segment === 'sessions' && healthConnected ? (
         <View
           style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
           className="mb-8">
