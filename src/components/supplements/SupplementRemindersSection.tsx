@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   Pressable,
   Switch,
@@ -156,7 +157,29 @@ export function SupplementRemindersSection({
     return requested.status === 'granted' ? 'granted' : 'denied';
   }
 
-  async function ensureCanEnablePush(): Promise<boolean> {
+  function openIosSettings() {
+    void Linking.openSettings();
+  }
+
+  /** Permission is off: say so and offer the way to the iOS settings. */
+  function showPermissionOffHint(savedAsOff: boolean) {
+    Alert.alert(
+      savedAsOff
+        ? t('supplements.reminders.permissionOff.savedTitle')
+        : t('supplements.reminders.permissionOff.title'),
+      t('supplements.reminders.permissionOff.message'),
+      [
+        { text: t('supplements.reminders.permissionOff.later'), style: 'cancel' },
+        { text: t('supplements.reminders.permissionOff.openSettings'), onPress: openIosSettings },
+      ],
+    );
+  }
+
+  /**
+   * 'denied' leaves the hint to the caller, which knows whether the reminder
+   * was saved switched off.
+   */
+  async function ensureCanEnablePush(): Promise<'allowed' | 'denied' | 'failed'> {
     let status = permissionStatus;
 
     if (status === 'loading' || status === 'unavailable') {
@@ -172,24 +195,16 @@ export function SupplementRemindersSection({
       } catch (error) {
         console.error('[SupplementReminders] permission request failed:', error);
         Alert.alert(t('settings.errors.title'), t('supplements.reminders.errors.saveFailed'));
-        return false;
-      }
-
-      if (status !== 'granted') {
-        return false;
+        return 'failed';
       }
     }
 
     if (status === 'denied') {
-      Alert.alert(
-        t('settings.errors.title'),
-        t('settings.notifications.deniedHint'),
-      );
-      return false;
+      return 'denied';
     }
 
     if (status !== 'granted') {
-      return false;
+      return 'failed';
     }
 
     try {
@@ -202,9 +217,9 @@ export function SupplementRemindersSection({
           t('settings.errors.title'),
           t('settings.notifications.tokenRegistrationFailed'),
         );
-        return false;
+        return 'failed';
       }
-      return true;
+      return 'allowed';
     } catch (error) {
       console.error('[SupplementReminders] token sync failed:', error);
       reportTokenRegistrationFailed();
@@ -212,7 +227,7 @@ export function SupplementRemindersSection({
         t('settings.errors.title'),
         t('settings.notifications.tokenRegistrationFailed'),
       );
-      return false;
+      return 'failed';
     }
   }
 
@@ -221,13 +236,18 @@ export function SupplementRemindersSection({
   }, [queryClient, remindersQueryKey]);
 
   const saveMutation = useMutation({
-    mutationFn: async (input: SupplementReminderWriteInput) => {
+    mutationFn: async (input: SupplementReminderWriteInput & { permissionOff?: boolean }) => {
+      const { permissionOff: _permissionOff, ...write } = input;
       if (isNew || editing == null) {
-        return createSupplementReminder(userId, input);
+        return createSupplementReminder(userId, write);
       }
-      return updateSupplementReminder(editing.id, input);
+      return updateSupplementReminder(editing.id, write);
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, input) => {
+      if (input.permissionOff) {
+        // Wanted on, saved off: the hint explains why and links to the settings.
+        showPermissionOffHint(true);
+      }
       await invalidateReminders();
       setEditorOpen(false);
       setEditing(null);
@@ -266,8 +286,11 @@ export function SupplementRemindersSection({
   const toggleMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
       if (enabled) {
-        const allowed = await ensureCanEnablePush();
-        if (!allowed) {
+        const permission = await ensureCanEnablePush();
+        if (permission === 'denied') {
+          showPermissionOffHint(false);
+        }
+        if (permission !== 'allowed') {
           throw new Error('PUSH_NOT_ALLOWED');
         }
       }
@@ -354,17 +377,18 @@ export function SupplementRemindersSection({
 
     try {
       let isEnabled = draft.isEnabled;
+      let permissionOff = false;
       if (isEnabled) {
-        const allowed = await ensureCanEnablePush();
-        if (!allowed) {
+        const permission = await ensureCanEnablePush();
+        if (permission === 'failed') {
+          // Registration hiccup, already explained: keep the editor as it is.
+          return;
+        }
+        if (permission === 'denied') {
+          // Save the reminder switched off so it exists; the hint follows.
           isEnabled = false;
+          permissionOff = true;
           setDraft((current) => ({ ...current, isEnabled: false }));
-          if (!isNew && editing) {
-            // Keep editor open so the user sees the switch flipped off.
-          } else if (isNew) {
-            // Still allow saving as disabled after a denial? Prefer abort create when they wanted on.
-            // If permission denied while enabling for new, save as disabled so the reminder exists.
-          }
         }
       }
 
@@ -373,6 +397,7 @@ export function SupplementRemindersSection({
         remind_at: draft.remindAt,
         is_enabled: isEnabled,
         supplement_ids: draft.supplementIds,
+        permissionOff,
       });
     } finally {
       setIsPreparingSave(false);

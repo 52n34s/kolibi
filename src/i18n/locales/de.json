@@ -1036,6 +1036,13 @@
         "saveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
         "deleteFailed": "Löschen fehlgeschlagen. Bitte erneut versuchen.",
         "needSupplements": "Wähle mindestens ein Supplement aus."
+      },
+      "permissionOff": {
+        "title": "Mitteilungen für Kolibi einschalten",
+        "savedTitle": "Erinnerung gespeichert, noch ausgeschaltet",
+        "message": "Erlaube Mitteilungen für Kolibi in den iOS-Einstellungen. Danach schaltest du die Erinnerung hier mit einem Tipp ein.",
+        "later": "Später",
+        "openSettings": "Zu den Einstellungen"
       }
     },
     "homeChip": {
@@ -1472,7 +1479,7 @@
       "deniedHint": "Mitteilungen sind deaktiviert. Aktiviere sie in den iOS-Einstellungen, damit Erinnerungen ankommen.",
       "saveFailed": "Mitteilungs-Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
       "learningHint": "Kolibi lernt aus deinen Einträgen, wann du isst.",
-      "tokenRegistrationFailed": "Die Registrierung für Mitteilungen ist fehlgeschlagen. Bitte später erneut versuchen.",
+      "tokenRegistrationFailed": "Die Anmeldung für Erinnerungen hat gerade nicht geklappt. Starte Kolibi neu, dann versucht die App es noch einmal.",
       "meals": {
         "breakfast": "Frühstück",
         "lunch": "Mittag",

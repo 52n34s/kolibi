@@ -1036,6 +1036,13 @@
         "saveFailed": "Could not save. Please try again.",
         "deleteFailed": "Could not delete. Please try again.",
         "needSupplements": "Select at least one supplement."
+      },
+      "permissionOff": {
+        "title": "Turn on notifications for Kolibi",
+        "savedTitle": "Reminder saved, switched off for now",
+        "message": "Allow notifications for Kolibi in iOS Settings. Then switch the reminder on here with one tap.",
+        "later": "Later",
+        "openSettings": "Open Settings"
       }
     },
     "homeChip": {
@@ -1472,7 +1479,7 @@
       "deniedHint": "Notifications are off. Enable them in iOS Settings so reminders can arrive.",
       "saveFailed": "Could not update notification settings. Please try again.",
       "learningHint": "Kolibi learns when you eat from your entries.",
-      "tokenRegistrationFailed": "Notification registration failed. Please try again later.",
+      "tokenRegistrationFailed": "Setting up reminders didn't work just now. Restart Kolibi and it will try again.",
       "meals": {
         "breakfast": "Breakfast",
         "lunch": "Lunch",

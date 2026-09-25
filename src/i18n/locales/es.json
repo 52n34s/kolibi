@@ -1036,6 +1036,13 @@
         "saveFailed": "No se pudo guardar. Inténtalo de nuevo.",
         "deleteFailed": "No se pudo eliminar. Inténtalo de nuevo.",
         "needSupplements": "Selecciona al menos un suplemento."
+      },
+      "permissionOff": {
+        "title": "Activa las notificaciones de Kolibi",
+        "savedTitle": "Recordatorio guardado, por ahora desactivado",
+        "message": "Permite las notificaciones de Kolibi en Ajustes de iOS. Después activa aquí el recordatorio con un toque.",
+        "later": "Más tarde",
+        "openSettings": "Ir a Ajustes"
       }
     },
     "homeChip": {
@@ -1472,7 +1479,7 @@
       "deniedHint": "Las notificaciones están desactivadas. Actívalas en Ajustes de iOS para recibir recordatorios.",
       "saveFailed": "No se pudo guardar la configuración. Inténtalo de nuevo.",
       "learningHint": "Kolibi aprende cuándo comes a partir de tus registros.",
-      "tokenRegistrationFailed": "No se pudo registrar para notificaciones. Inténtalo de nuevo más tarde.",
+      "tokenRegistrationFailed": "Activar los recordatorios no funcionó ahora mismo. Reinicia Kolibi y lo intentará de nuevo.",
       "meals": {
         "breakfast": "Desayuno",
         "lunch": "Comida",
