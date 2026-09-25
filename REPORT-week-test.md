@@ -437,3 +437,12 @@ Scans insgesamt: 5 (4 durchgelaufen, der 5. Versuch öffnet die Paywall ohne Ana
 **Hinweis:** Die Fortschritt-Zusammenfassung zeigt „Noch keine erfassten Tage in diesem Zeitraum“, während das Diagramm den heutigen Tag mit 2093 kcal zeigt (`paywall/37`). Vermutlich zählt nur ein abgeschlossener Tag. Nur notiert.
 
 **Nicht geprüft:** Preise und Texte der Paywall (Schritt 7). Dafür braucht es einen Build mit RevenueCat-Schlüssel (TestFlight oder Sandbox), was ich nicht verwenden durfte.
+
+## Release-Basis
+
+- **Store-Build iOS 1.3.0 (Build 32)**, EAS-Profil `production`, fertig am 22.09.2026 um 22:34 UTC.
+- **Build-Commit: `e2ffcb9a4b99c8e573455bbf759c36e2656e79ed`**
+- `runtimeVersion` hat die Policy `appVersion`, also 1.3.0. OTA-Updates aus `main` passen zu diesem Build, solange `version` in `app.json` 1.3.0 bleibt.
+- Nach dem Build auf `origin/main`, aber nicht im Build: `c4a9c46` (Abo-Sperre für registrierte Nutzer, Export-Texte, **Health-Berechtigungstext in `app.json`**).
+- Nur lokal auf `main` (Stand 25.09.): 18 JS-Commits (`9328af5` bis `3045549`) und F9 (`762d7bb`, Merge `470460c`). Keiner davon ist im Build.
+- **Nativ seit dem Build:** nur `NSHealthShareUsageDescription` in `app.json` (`c4a9c46`). Dieser Text erreicht Nutzer nur mit einem neuen Store-Build, nicht per OTA. Alles andere ist JS, TS, Übersetzungen, Assets (`.webp`), Maestro-Flows, Doku oder eine SQL-Migration (nicht über die App ausgeliefert).
