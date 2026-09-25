@@ -51,6 +51,19 @@ export type ProgressionEvent = {
   createdAt: string;
 };
 
+/** Muscle groups for set counting (Block 3.4). Order = display order. */
+export type MuscleGroup =
+  | 'chest'
+  | 'shoulders'
+  | 'triceps'
+  | 'back'
+  | 'biceps'
+  | 'core'
+  | 'quads'
+  | 'hamstrings'
+  | 'glutes'
+  | 'calves';
+
 export type Exercise = {
   id: string;
   userId: string | null;
@@ -72,6 +85,12 @@ export type Exercise = {
   ladderStep: number | null;
   progressionKind: ProgressionKind;
   timeCapSeconds: number | null;
+  /**
+   * Own exercises only (exercises.primary_muscles, migration 20260926140000).
+   * Absent until the migration ran; catalog exercises use CATALOG_MUSCLES.
+   */
+  primaryMuscles?: MuscleGroup[];
+  secondaryMuscles?: MuscleGroup[];
 };
 
 export type TemplateExercise = {
