@@ -1,5 +1,6 @@
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { personalBests, setPerformanceValue, type PersonalBest } from '@/lib/workouts/progress';
+import type { SkillGoalForecast, SkillGoalPeriod } from '@/lib/workouts/skill-goal-forecast';
 import type {
   Exercise,
   ExerciseKind,
@@ -25,7 +26,8 @@ export type StickerAnalyticsType =
   | 'session'
   | 'recap_week'
   | 'recap_month'
-  | 'progress';
+  | 'progress'
+  | 'goal';
 export type StickerFormat = 'sticker' | 'story';
 export type RecapPeriod = 'week' | 'month';
 
@@ -140,12 +142,38 @@ export type ProgressStickerData = {
   period: ProgressPeriod;
 };
 
+/**
+ * Skill goal: exercise, target, where the user stands, a bar and the expected
+ * period. Values are reps or seconds only — never the load.
+ */
+export type GoalStickerData = {
+  kind: 'goal';
+  /** The goal exercise. */
+  name: string;
+  exerciseKind: ExerciseKind;
+  perSide: boolean;
+  target: number;
+  /**
+   * Latest best set on the goal ladder. `name` is set when it is another rung
+   * than the goal (then the value belongs to that exercise).
+   */
+  current: { value: number; kind: ExerciseKind; name: string | null } | null;
+  /** 0…1 along the ladder up to the target. */
+  progress: number;
+  /** Expected period, null while there is no date to show. */
+  period: SkillGoalPeriod | null;
+  achieved: boolean;
+  /** Rung of the goal exercise, null off-ladder. */
+  level: LadderPosition | null;
+};
+
 export type StickerData =
   | ExerciseStickerData
   | LevelStickerData
   | SessionStickerData
   | RecapStickerData
-  | ProgressStickerData;
+  | ProgressStickerData
+  | GoalStickerData;
 
 /** Optional lines on a sticker; each sticker reads the ones that apply to it. */
 export type StickerOptions = {
@@ -189,6 +217,8 @@ export function availableStickerOptions(data: StickerData): StickerOptionKey[] {
       ];
     case 'progress':
       return data.views[data.period]?.levelChanged ? ['showLevel'] : [];
+    case 'goal':
+      return data.level ? ['showLevel'] : [];
   }
 }
 
@@ -713,6 +743,46 @@ export function progressCurveLevels(points: readonly ProgressPoint[]): number[] 
     // Leave a gap between bands so the step up is visible.
     return (bandOf.get(step)! + (steps.length > 1 ? 0.1 + within * 0.6 : within)) * band;
   });
+}
+
+type GoalExercise = Pick<
+  Exercise,
+  'id' | 'names' | 'kind' | 'perSide' | 'ladderKey' | 'ladderStep' | 'userId' | 'archivedAt'
+>;
+
+export function buildGoalSticker(params: {
+  goal: { exerciseId: string; targetValue: number };
+  forecast: SkillGoalForecast;
+  /** Exercise list holding the catalog, for names and the ladder. */
+  exercises: readonly GoalExercise[];
+  lang: string;
+}): GoalStickerData {
+  const byId = new Map(params.exercises.map((row) => [row.id, row]));
+  const exercise = byId.get(params.goal.exerciseId);
+  const { forecast } = params;
+  const current = forecast.current;
+  const currentExercise = current ? byId.get(current.exerciseId) : undefined;
+  const onOtherRung = current != null && current.exerciseId !== params.goal.exerciseId;
+  const achieved = forecast.status === 'achieved';
+  return {
+    kind: 'goal',
+    name: nameOrFallback(exercise, params.lang, ''),
+    exerciseKind: exercise?.kind ?? 'reps',
+    perSide: exercise?.perSide ?? false,
+    target: params.goal.targetValue,
+    current:
+      current == null || achieved
+        ? null
+        : {
+            value: current.value,
+            kind: currentExercise?.kind ?? exercise?.kind ?? 'reps',
+            name: onOtherRung ? nameOrFallback(currentExercise, params.lang, '') || null : null,
+          },
+    progress: Math.min(1, Math.max(0, achieved ? 1 : forecast.progress)),
+    period: forecast.status === 'ok' ? forecast.period : null,
+    achieved,
+    level: ladderPosition(exercise, params.exercises),
+  };
 }
 
 /**
