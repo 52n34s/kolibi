@@ -22,6 +22,7 @@ import {
   CuisineMultiSelectChips,
   DIET_PREFERENCE_OPTIONS,
 } from '@/components/settings/food-context-controls';
+import { CheckinSettingsSection } from '@/components/settings/checkin-settings-section';
 import { NotificationsSettingsSection } from '@/components/settings/notifications-settings-section';
 import { GlassCard } from '@/components/ui/glass-card';
 import { ProfileHeader } from '@/components/settings/profile-header';
@@ -529,6 +530,8 @@ export function ProfilePanel() {
         </SettingsSection>
 
         <NotificationsSettingsSection userId={userId} />
+
+        <CheckinSettingsSection />
 
         {showPasswordSection ? (
           <SettingsSection title={t('settings.password.sectionTitle')}>
