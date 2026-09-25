@@ -140,6 +140,8 @@ export type SessionSet = {
   secondsOtherSide: number | null;
   weightKg: number | null;
   completedAt: string;
+  /** Reps in reserve 0–3 (3 = "3 or more"). Missing before the rir migration. */
+  rir?: number | null;
 };
 
 /** In-progress session snapshot (Zustand store). */
@@ -150,6 +152,11 @@ export type ActiveSet = {
   done: boolean;
   completedAt: string | null;
   secondsOtherSide: number | null;
+  /**
+   * "Wie viele wären noch gegangen?" 0–3 (3 = "3 or more"); null / missing =
+   * not tapped. Optional: sessions persisted before this field load as-is.
+   */
+  rir?: number | null;
 };
 
 export type ActiveExercise = {
@@ -200,6 +207,11 @@ export type SummaryDraft = {
   adopt: Record<number, boolean>;
   addToTemplate: Record<number, boolean>;
   decisions: Record<number, SummaryDecision>;
+  /**
+   * "Was war los?" picks (ShortfallReason values). Optional: drafts persisted
+   * before this field come back without it.
+   */
+  shortfallReasons?: string[];
 };
 
 export function emptySummaryDraft(): SummaryDraft {

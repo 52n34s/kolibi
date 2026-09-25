@@ -1,6 +1,7 @@
 import {
   PROGRESSION_DECLINED_COOLDOWN_SESSIONS,
   PROGRESSION_NO_UPPER_BONUS,
+  PROGRESSION_RIR_CLEAR_RESERVE,
   PROGRESSION_REPS_RANGE_DELTA,
   PROGRESSION_REPS_RANGE_MAX,
   PROGRESSION_REPS_RANGE_MIN,
@@ -25,12 +26,16 @@ export type ProgressionHistorySet = {
   targetSeconds: number | null;
   targetSecondsMax: number | null;
   done: boolean;
+  /** Reps in reserve (0–3, 3 = "3 or more"); null / missing = not given. */
+  rir?: number | null;
 };
 
 export type ProgressionHistoryUnit = {
   sessionId: string;
   intensity: GymIntensity | null;
   sets: ProgressionHistorySet[];
+  /** "Was war los?" picks of that session; null / missing = none or unknown. */
+  shortfallReasons?: readonly string[] | null;
 };
 
 export type SuggestProgressionInput = {
@@ -40,6 +45,11 @@ export type SuggestProgressionInput = {
   history: ProgressionHistoryUnit[];
   templateExerciseIds: string[];
   lastEvents: ProgressionEvent[];
+  /**
+   * "zu schwer" picked for this exercise in this and the previous session
+   * containing it (see isTooHardStreak). Suggests the easier rung.
+   */
+  tooHardStreak?: boolean;
 };
 
 export type ProgressionLevel = {
@@ -97,8 +107,8 @@ export function isQualifyingUnit(
 }
 
 export function setPerformanceValue(
-  exercise: Exercise,
-  set: ProgressionHistorySet,
+  exercise: Pick<Exercise, 'kind' | 'perSide'>,
+  set: Pick<ProgressionHistorySet, 'reps' | 'seconds' | 'secondsOtherSide'>,
 ): number | null {
   if (exercise.kind === 'time') {
     if (set.seconds == null || !Number.isFinite(set.seconds)) {
@@ -156,6 +166,16 @@ export function isUnitSuccess(
     }
   }
   return true;
+}
+
+/**
+ * At least one done set left PROGRESSION_RIR_CLEAR_RESERVE or more reps in
+ * reserve. Missing rir never counts — the old rules apply unchanged.
+ */
+export function hasClearReserve(unit: ProgressionHistoryUnit): boolean {
+  return unit.sets.some(
+    (set) => set.done && set.rir != null && set.rir >= PROGRESSION_RIR_CLEAR_RESERVE,
+  );
 }
 
 /** More than half of the unit's sets are below the lower target bound. */
@@ -273,7 +293,9 @@ function buildAscent(
   const { exercise, ladder, currentTarget, templateExerciseIds } = input;
   const latest = qualifying[0]!;
   let success = isUnitSuccess(exercise, latest, currentTarget);
-  if (success && latest.intensity === 'hard') {
+  // Upper bound everywhere with reps to spare is a clear success: "hart"
+  // then no longer waits for a second session.
+  if (success && latest.intensity === 'hard' && !hasClearReserve(latest)) {
     const prev = qualifying[1];
     if (prev == null || !isUnitSuccess(exercise, prev, currentTarget)) {
       success = false;
@@ -422,6 +444,33 @@ function buildAscent(
   return null;
 }
 
+function variantDown(
+  input: SuggestProgressionInput,
+  reasonKey: string,
+): ProgressionSuggestion | null {
+  const { exercise, ladder, currentTarget, templateExerciseIds } = input;
+  if (exercise.ladderKey == null || exercise.ladderStep == null) {
+    return null;
+  }
+  const prev = stepNeighbor(ladder, exercise.ladderStep, -1);
+  if (prev == null || new Set(templateExerciseIds).has(prev.id)) {
+    return null;
+  }
+  return {
+    kind: 'variant_down',
+    exerciseId: exercise.id,
+    toExerciseId: prev.id,
+    fromTarget: cloneTarget(currentTarget),
+    toTarget: targetFromExerciseDefaults(prev, currentTarget.targetSets),
+    level: levelInfo(exercise.ladderKey, ladder, exercise.ladderStep, prev.ladderStep!),
+    reasonKey,
+    reasonParams: {
+      fromStep: exercise.ladderStep,
+      toStep: prev.ladderStep!,
+    },
+  };
+}
+
 function buildDescent(
   input: SuggestProgressionInput,
   qualifying: ProgressionHistoryUnit[],
@@ -431,7 +480,7 @@ function buildDescent(
   }
   const a = qualifying[0]!;
   const b = qualifying[1]!;
-  const { exercise, ladder, currentTarget, templateExerciseIds } = input;
+  const { exercise, currentTarget } = input;
   if (
     !isUnitWeak(exercise, a, currentTarget) ||
     !isUnitWeak(exercise, b, currentTarget)
@@ -440,25 +489,10 @@ function buildDescent(
   }
 
   const fromTarget = cloneTarget(currentTarget);
-  const inTemplate = new Set(templateExerciseIds);
 
-  if (exercise.ladderKey != null && exercise.ladderStep != null) {
-    const prev = stepNeighbor(ladder, exercise.ladderStep, -1);
-    if (prev != null && !inTemplate.has(prev.id)) {
-      return {
-        kind: 'variant_down',
-        exerciseId: exercise.id,
-        toExerciseId: prev.id,
-        fromTarget,
-        toTarget: targetFromExerciseDefaults(prev, currentTarget.targetSets),
-        level: levelInfo(exercise.ladderKey, ladder, exercise.ladderStep, prev.ladderStep!),
-        reasonKey: 'training.progression.reason.variantDown',
-        reasonParams: {
-          fromStep: exercise.ladderStep,
-          toStep: prev.ladderStep!,
-        },
-      };
-    }
+  const down = variantDown(input, 'training.progression.reason.variantDown');
+  if (down != null) {
+    return down;
   }
 
   if (exercise.kind === 'time') {
@@ -512,6 +546,13 @@ export function suggestProgression(input: SuggestProgressionInput): ProgressionS
   );
   if (qualifying.length === 0) {
     return null;
+  }
+
+  if (input.tooHardStreak === true) {
+    const down = variantDown(input, 'rir.reasonTooHard');
+    if (down != null) {
+      return applyDeclineGate(down, qualifying, input.lastEvents);
+    }
   }
 
   const ascent = buildAscent(input, qualifying);

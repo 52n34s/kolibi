@@ -1819,5 +1819,17 @@
       "lunch": "Mittags hattest du im Schnitt {{average}} g Protein. Mit {{from}}–{{to}} g mehr zum Mittagessen erreichst du dein Ziel leichter.",
       "dinner": "Abends hattest du im Schnitt {{average}} g Protein. Mit {{from}}–{{to}} g mehr zum Abendessen erreichst du dein Ziel leichter."
     }
+  },
+  "rir": {
+    "question": "Wie viele wären noch gegangen?",
+    "shortfallTitle": "Was war los?",
+    "reasonTooHard": "Zweimal in Folge zu schwer – mit der leichteren Stufe baust du eine solide Basis auf.",
+    "reason": {
+      "tired": "müde",
+      "pain": "Schmerzen",
+      "technique": "Technik",
+      "short_on_time": "wenig Zeit",
+      "too_hard": "zu schwer"
+    }
   }
 }

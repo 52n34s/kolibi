@@ -1819,5 +1819,17 @@
       "lunch": "You averaged {{average}} g of protein at lunch. Adding {{from}}–{{to}} g at midday makes your goal easier to hit.",
       "dinner": "You averaged {{average}} g of protein at dinner. Adding {{from}}–{{to}} g in the evening makes your goal easier to hit."
     }
+  },
+  "rir": {
+    "question": "How many more could you have done?",
+    "shortfallTitle": "What happened?",
+    "reasonTooHard": "Too hard twice in a row – the easier rung helps you build a solid base.",
+    "reason": {
+      "tired": "tired",
+      "pain": "pain",
+      "technique": "technique",
+      "short_on_time": "short on time",
+      "too_hard": "too hard"
+    }
   }
 }

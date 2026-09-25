@@ -583,3 +583,119 @@ describe('suggestProgression', () => {
     assert.equal(typeof suggestion!.kind, 'string');
   });
 });
+
+describe('suggestProgression – reps in reserve (Block 2.5)', () => {
+  const ex = exercise({ id: 'incline', kind: 'reps', ladderKey: 'push_horizontal', ladderStep: 1 });
+  const next = exercise({ id: 'push_up', kind: 'reps', ladderKey: 'push_horizontal', ladderStep: 2 });
+  const weakPrev = unit({
+    sessionId: 's0',
+    intensity: 'normal',
+    sets: [set({ reps: 6 }), set({ reps: 6 }), set({ reps: 6 })],
+  });
+  const run = (latest: ProgressionHistoryUnit) =>
+    suggestProgression(
+      baseInput({
+        exercise: ex,
+        ladder: [ex, next],
+        templateExerciseIds: [ex.id],
+        history: [latest, weakPrev],
+      }),
+    );
+
+  it('rir: upper bound everywhere + one set rir ≥ 2 → next step right away, even when hard', () => {
+    const latest = unit({
+      sessionId: 's1',
+      intensity: 'hard',
+      sets: [set({ rir: 0 }), set({ rir: 2 }), set({ rir: 1 })],
+    });
+    assert.equal(run(latest)?.kind, 'variant_up');
+  });
+
+  it('rir: 3 ("3 or more") counts as clear reserve', () => {
+    const latest = unit({ sessionId: 's1', intensity: 'hard', sets: [set(), set(), set({ rir: 3 })] });
+    assert.equal(run(latest)?.kind, 'variant_up');
+  });
+
+  it('rir: 0 everywhere keeps the existing hard rule (waits for a second success)', () => {
+    const latest = unit({
+      sessionId: 's1',
+      intensity: 'hard',
+      sets: [set({ rir: 0 }), set({ rir: 0 }), set({ rir: 0 })],
+    });
+    assert.equal(run(latest), null);
+  });
+
+  it('rir: missing keeps the existing hard rule', () => {
+    const latest = unit({ sessionId: 's1', intensity: 'hard', sets: [set(), set(), set({ rir: null })] });
+    assert.equal(run(latest), null);
+  });
+
+  it('rir: reserve without all sets at the upper bound is no success', () => {
+    const latest = unit({
+      sessionId: 's1',
+      intensity: 'normal',
+      sets: [set({ reps: 10, rir: 3 }), set({ rir: 2 }), set({ rir: 2 })],
+    });
+    assert.equal(run(latest), null);
+  });
+
+  it('rir: open sets with rir do not count', () => {
+    const latest = unit({
+      sessionId: 's1',
+      intensity: 'hard',
+      sets: [set(), set(), set(), set({ done: false, rir: 3 })],
+    });
+    assert.equal(run(latest), null);
+  });
+});
+
+describe('suggestProgression – too hard twice (Block 2.5)', () => {
+  const step1 = exercise({ id: 'bench', kind: 'reps', ladderKey: 'dip', ladderStep: 1 });
+  const step2 = exercise({ id: 'parallel', kind: 'reps', ladderKey: 'dip', ladderStep: 2 });
+  const one = unit({ sessionId: 's1', sets: [set({ reps: 5 }), set({ reps: 12 }), set({ reps: 12 })] });
+
+  it('tooHardStreak: variant_down to the easier rung, reason rir.reasonTooHard', () => {
+    const suggestion = suggestProgression(
+      baseInput({
+        exercise: step2,
+        ladder: [step1, step2],
+        templateExerciseIds: [step2.id],
+        history: [one],
+        tooHardStreak: true,
+      }),
+    );
+    assert.equal(suggestion?.kind, 'variant_down');
+    assert.equal(suggestion?.toExerciseId, step1.id);
+    assert.equal(suggestion?.reasonKey, 'rir.reasonTooHard');
+    assert.equal(suggestion?.level?.toStep, 1);
+  });
+
+  it('tooHardStreak: without an easier rung the existing rules apply', () => {
+    const suggestion = suggestProgression(
+      baseInput({
+        exercise: step1,
+        ladder: [step1, step2],
+        templateExerciseIds: [step1.id],
+        history: [one],
+        tooHardStreak: true,
+      }),
+    );
+    assert.equal(suggestion, null);
+  });
+
+  it('tooHardStreak: respects a fresh decline of variant_down', () => {
+    const suggestion = suggestProgression(
+      baseInput({
+        exercise: step2,
+        ladder: [step1, step2],
+        templateExerciseIds: [step2.id],
+        history: [one],
+        tooHardStreak: true,
+        lastEvents: [
+          event({ id: 'e1', kind: 'variant_down', status: 'declined', sessionId: 's1' }),
+        ],
+      }),
+    );
+    assert.equal(suggestion, null);
+  });
+});

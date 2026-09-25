@@ -22,6 +22,7 @@ import {
   removeLastSet as removeLastSetLogic,
   removeOpenTrailingSet as removeOpenTrailingSetLogic,
   setCurrent as setCurrentLogic,
+  setCurrentRir as setCurrentRirLogic,
   setCurrentSides as setCurrentSidesLogic,
   skipExercise as skipExerciseLogic,
   toSessionSetUpsert,
@@ -59,6 +60,8 @@ type WorkoutSessionState = {
   adjustCurrent: (delta: number) => void;
   setCurrent: (value: number) => void;
   setCurrentSides: (seconds: number, secondsOtherSide: number) => void;
+  /** "Wie viele wären noch gegangen?" for the open set; null clears it. */
+  setCurrentRir: (rir: number | null) => void;
   completeCurrentSet: () => CompleteResult | null;
   addSet: (exerciseIndex: number) => void;
   removeLastSet: (exerciseIndex: number) => void;
@@ -165,6 +168,14 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
           return;
         }
         set({ active: setCurrentSidesLogic(active, seconds, secondsOtherSide) });
+      },
+
+      setCurrentRir: (rir) => {
+        const active = get().active;
+        if (!active) {
+          return;
+        }
+        set({ active: setCurrentRirLogic(active, rir) });
       },
 
       completeCurrentSet: () => {

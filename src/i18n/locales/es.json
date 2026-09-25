@@ -1819,5 +1819,17 @@
       "lunch": "A mediodía tomaste de media {{average}} g de proteína. Con {{from}}–{{to}} g más en la comida alcanzas tu objetivo más fácilmente.",
       "dinner": "Por la noche tomaste de media {{average}} g de proteína. Con {{from}}–{{to}} g más en la cena alcanzas tu objetivo más fácilmente."
     }
+  },
+  "rir": {
+    "question": "¿Cuántas más habrías podido hacer?",
+    "shortfallTitle": "¿Qué pasó?",
+    "reasonTooHard": "Demasiado difícil dos veces seguidas: con el nivel más fácil construyes una base sólida.",
+    "reason": {
+      "tired": "cansancio",
+      "pain": "dolor",
+      "technique": "técnica",
+      "short_on_time": "poco tiempo",
+      "too_hard": "demasiado difícil"
+    }
   }
 }
