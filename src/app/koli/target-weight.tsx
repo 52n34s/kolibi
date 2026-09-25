@@ -42,7 +42,10 @@ import {
 } from '@/lib/macro-recommendations';
 import { formatAppDate } from '@/lib/onboarding';
 import { resolveCalorieSource } from '@/lib/calorie-goal-math';
-import { calculateTargetWeightForecast } from '@/lib/target-weight-forecast';
+import {
+  calculateTargetWeightForecast,
+  resolveForecastMacroGoalProfile,
+} from '@/lib/target-weight-forecast';
 import { kgToLbs } from '@/lib/units';
 import { fuzzyEtaParts, localizedMonthName } from '@/lib/weight-goal-eta';
 import {
@@ -114,11 +117,7 @@ export default function TargetWeightSettingsScreen() {
       activityLevel: profile?.activity_level ?? null,
       calorieSource: resolveCalorieSource(healthConnectedPreference === true),
       goalType: profile?.goal_type ?? null,
-      macroGoalProfile:
-        mapProfileGoalToEmpfehlungsZiel(profile?.goal_type) ===
-        MacroEmpfehlungsZiel.MUSKELAUFBAU
-          ? 'muscle'
-          : null,
+      macroGoalProfile: resolveForecastMacroGoalProfile(profile?.goal_type),
       weighDaysLast30,
       today,
     });
@@ -133,7 +132,7 @@ export default function TargetWeightSettingsScreen() {
 
     const { part, monthDate, year } = fuzzyEtaParts(targetForecast.etaDate);
     return t('weightGoalEta.fuzzy', {
-      part: t(`weightGoalEta.${part}`),
+      part: t(`weightGoalEta.part.${part}`),
       month: localizedMonthName(monthDate, i18n.language),
       year,
     });
