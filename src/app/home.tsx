@@ -76,6 +76,9 @@ import { useHealthConnectedPreference } from '@/hooks/use-health-connected-prefe
 import { useBodyMeasurementsAvailable } from '@/hooks/use-build-up';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { isBuildUpGoal } from '@/lib/build-up';
+import { goalCategoryForGoalType } from '@/lib/goal-category';
+import { todayBodyCard, todaySectionOrder } from '@/lib/today-layout';
+import { TodayTrainingCard } from '@/components/home/TodayTrainingCard';
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
@@ -153,12 +156,21 @@ import {
 } from '@/services/mealVision/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { useWorkoutSessionStore } from '@/stores/workout-session-store';
+import { useRequirePlan } from '@/hooks/use-require-plan';
+import type { WorkoutTemplate } from '@/lib/workouts/types';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 
 const MAX_WEIGHT_KG = 699.9;
 const SIGNUP_ROUTE = '/(auth)/login' as Href;
 
 type HomeTab = 'today' | 'meals' | 'training' | 'history';
+
+const HOME_TAB_ICONS = {
+  today: 'sunny-outline',
+  meals: 'restaurant-outline',
+  training: 'barbell-outline',
+  history: 'stats-chart-outline',
+} as const satisfies Record<HomeTab, string>;
 type WeightSheetKind = 'current' | null;
 
 function navigateToSignup() {
@@ -195,6 +207,7 @@ export default function HomeScreen() {
   const { data: profileSettings } = useProfileSettings(userId);
   // Read-only: muscle gain goals get the build-up card on Today.
   const showBuildUpToday = isBuildUpGoal(profileSettings?.profile?.goal_type);
+  const goalCategory = goalCategoryForGoalType(profileSettings?.profile?.goal_type);
   const measurementsAvailable = useBodyMeasurementsAvailable(showBuildUpToday);
   const [showMeasurementsSheet, setShowMeasurementsSheet] = useState(false);
   const movementGoalType = data?.profile?.movement_goal_type ?? null;
@@ -413,6 +426,21 @@ export default function HomeScreen() {
       })();
     },
     [trainingTabEnabled],
+  );
+
+  const requirePlan = useRequirePlan();
+  /** "Start" on Today: same plan check as the training tab, then show the session. */
+  const startUnitFromToday = useCallback(
+    (template: WorkoutTemplate) => {
+      void requirePlan('startSession').then((allowed) => {
+        if (!allowed) {
+          return;
+        }
+        useWorkoutSessionStore.getState().startSession(template, { lang: i18n.language });
+        switchHomeTab('training');
+      });
+    },
+    [i18n.language, requirePlan, switchHomeTab],
   );
 
   const homeTabSwipeGesture = useMemo(
@@ -1491,6 +1519,7 @@ export default function HomeScreen() {
                   segments={homeTabs.map((tab) => ({
                     id: tab,
                     testID: `home.tab.${tab}`,
+                    icon: HOME_TAB_ICONS[tab],
                     label:
                       tab === 'meals' && homeTabs.length >= 4
                         ? t('home.tabs.mealsShort')
@@ -1532,51 +1561,66 @@ export default function HomeScreen() {
                   <>
                     <CheckinCard />
 
-                    <DaySummaryBlock date={localDateKey()} />
-
-                    {activityRows.length > 0 ? (
-                      <View
-                        className="mt-4"
-                        style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-                        <View className="px-5 py-4">
-                          <HomeProgressRows rows={activityRows} />
-                        </View>
+                    {/* Order by goal: weight goals lead with nutrition and body, muscle and strength with training. */}
+                    {todaySectionOrder(goalCategory).map((section) => (
+                      <View key={section} className="mt-4">
+                        {section === 'training' ? (
+                          trainingTabEnabled ? (
+                            <TodayTrainingCard
+                              onStart={startUnitFromToday}
+                              onOpenTraining={() => switchHomeTab('training')}>
+                              {activityRows.length > 0 ? (
+                                <HomeProgressRows rows={activityRows} />
+                              ) : null}
+                            </TodayTrainingCard>
+                          ) : activityRows.length > 0 ? (
+                            <View
+                              style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+                              <View className="px-5 py-4">
+                                <HomeProgressRows rows={activityRows} />
+                              </View>
+                            </View>
+                          ) : null
+                        ) : section === 'nutrition' ? (
+                          <DaySummaryBlock
+                            date={localDateKey()}
+                            compact
+                            onPress={() => switchHomeTab('meals')}
+                          />
+                        ) : todayBodyCard(goalCategory) === 'buildUp' ? (
+                          <BuildUpCard
+                            onOpenMeasurements={
+                              measurementsAvailable ? () => setShowMeasurementsSheet(true) : undefined
+                            }
+                          />
+                        ) : (
+                          <WeightProgressCard
+                            currentValue={weightLabel}
+                            dailyValue={dailyWeightLabel}
+                            startLabel={t('home.weight.startTitle')}
+                            startValue={startWeightLabel}
+                            targetLabel={t('home.weight.targetTitle')}
+                            targetValue={targetWeightLabel}
+                            progressPercent={weightProgressPercent}
+                            accessibilityLabel={t('home.weight.label')}
+                            onPress={openCurrentWeightSheet}
+                          />
+                        )}
                       </View>
-                    ) : null}
-
-                    <View className="mt-6">
-                      <WeightProgressCard
-                        currentValue={weightLabel}
-                        dailyValue={dailyWeightLabel}
-                        startLabel={t('home.weight.startTitle')}
-                        startValue={startWeightLabel}
-                        targetLabel={t('home.weight.targetTitle')}
-                        targetValue={targetWeightLabel}
-                        progressPercent={weightProgressPercent}
-                        accessibilityLabel={t('home.weight.label')}
-                        onPress={openCurrentWeightSheet}
-                      />
-                    </View>
-
-                    {showBuildUpToday ? (
-                      <BuildUpCard
-                        className="mt-4"
-                        onOpenMeasurements={
-                          measurementsAvailable ? () => setShowMeasurementsSheet(true) : undefined
-                        }
-                      />
-                    ) : null}
-
-                    <HomeSupplementChips />
+                    ))}
                   </>
                 ) : (
                   <>
-                    <DietPreferenceCard />
+                    <DaySummaryBlock date={localDateKey()} />
+                    <View className="mt-4">
+                      <DietPreferenceCard />
+                    </View>
                     <DayMealList
                       date={localDateKey()}
                       editable
                       onMealPress={handleTodayMealPress}
                     />
+                    <HomeSupplementChips />
                   </>
                 )}
               </ScrollView>
