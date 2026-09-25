@@ -1,3 +1,4 @@
+import type { GoalCategory } from '@/lib/goal-category';
 import type { UnitSystem } from '@/lib/unit-system';
 import { setPerformanceValue } from '@/lib/workouts/progress';
 import type { ExerciseKind, ProgressionEventKind, ProgressionEventStatus, SessionSet } from '@/lib/workouts/types';
@@ -379,4 +380,109 @@ export function formatBuildUpSentence(
 /** Today shows the build-up card for these profiles.goal_type values. */
 export function isBuildUpGoal(goalType: string | null | undefined): boolean {
   return goalType === 'build_muscle' || goalType === 'gain_weight';
+}
+
+/**
+ * Compact tile view of the build-up card (Progress → Body and Today).
+ * `null` means the goal has no tailored verdict here — the card falls back
+ * to the long `formatBuildUpSentence` instead.
+ */
+export type BuildUpVerdict = 'gain' | 'lose';
+
+export function buildUpVerdictForGoal(
+  goalCategory: GoalCategory | null | undefined,
+): BuildUpVerdict | null {
+  if (goalCategory === 'muscle' || goalCategory === 'strength') {
+    return 'gain';
+  }
+  if (goalCategory === 'lose') {
+    return 'lose';
+  }
+  return null;
+}
+
+export type BuildUpTileKey = 'weight' | 'waist' | 'chest' | 'arm';
+export type BuildUpTileDirection = 'up' | 'down' | 'stable';
+
+export type BuildUpTile = {
+  key: BuildUpTileKey;
+  /** Null when there is no comparable data for this metric. */
+  direction: BuildUpTileDirection | null;
+  deltaValue: number | null;
+  /** Whether this direction matches the goal — the only case shown in mint. */
+  isGood: boolean;
+};
+
+/** Directions that read as progress toward each verdict's goal. Everything else is neutral, never red. */
+const GOOD_DIRECTION_BY_VERDICT: Record<
+  BuildUpVerdict,
+  Partial<Record<BuildUpTileKey, BuildUpTileDirection>>
+> = {
+  gain: { waist: 'down', chest: 'up', arm: 'up' },
+  lose: { weight: 'down', waist: 'down' },
+};
+
+function buildUpTile(
+  key: BuildUpTileKey,
+  deltaValue: number | null,
+  stableThreshold: number,
+  verdict: BuildUpVerdict | null,
+): BuildUpTile {
+  if (deltaValue == null) {
+    return { key, direction: null, deltaValue: null, isGood: false };
+  }
+  const direction: BuildUpTileDirection =
+    Math.abs(deltaValue) < stableThreshold ? 'stable' : deltaValue > 0 ? 'up' : 'down';
+  const isGood = verdict != null && GOOD_DIRECTION_BY_VERDICT[verdict][key] === direction;
+  return { key, direction, deltaValue, isGood };
+}
+
+/** The four tiles in fixed display order: weight, waist, chest, arm. */
+export function buildUpTiles(summary: BuildUpSummary, verdict: BuildUpVerdict | null): BuildUpTile[] {
+  return [
+    buildUpTile('weight', summary.weightDeltaKg, BUILD_UP_WEIGHT_STABLE_KG, verdict),
+    buildUpTile('waist', summary.waistDeltaCm, BUILD_UP_CIRCUMFERENCE_STABLE_CM, verdict),
+    buildUpTile('chest', summary.chestDeltaCm, BUILD_UP_CIRCUMFERENCE_STABLE_CM, verdict),
+    buildUpTile('arm', summary.armDeltaCm, BUILD_UP_CIRCUMFERENCE_STABLE_CM, verdict),
+  ];
+}
+
+export function formatBuildUpTileValue(
+  tile: BuildUpTile,
+  unitSystem: UnitSystem,
+  locale: string,
+  t: BuildUpTranslate,
+): string | null {
+  if (tile.direction == null || tile.deltaValue == null) {
+    return null;
+  }
+  if (tile.direction === 'stable') {
+    return t('measurements.buildUp.tileStable');
+  }
+  return tile.key === 'weight'
+    ? formatWeightDelta(tile.deltaValue, unitSystem, locale, t)
+    : formatCircumferenceDelta(tile.deltaValue, unitSystem, locale, t);
+}
+
+/** Up to `max` exercise gains, largest improvement first (ties broken by name). */
+export function topExerciseGains(
+  gains: readonly BuildUpExerciseGain[],
+  max: number = BUILD_UP_MAX_EXERCISES_IN_SENTENCE,
+): BuildUpExerciseGain[] {
+  return [...gains]
+    .sort((a, b) => b.delta - a.delta || a.exerciseName.localeCompare(b.exerciseName))
+    .slice(0, max);
+}
+
+export function formatExerciseGainDelta(
+  gain: BuildUpExerciseGain,
+  locale: string,
+  t: BuildUpTranslate,
+): string {
+  return t(
+    gain.kind === 'time'
+      ? 'measurements.buildUp.exerciseGainSeconds'
+      : 'measurements.buildUp.exerciseGainReps',
+    { delta: formatNumber(gain.delta, locale) },
+  );
 }

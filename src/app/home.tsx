@@ -1608,6 +1608,7 @@ export default function HomeScreen() {
                           />
                         ) : todayBodyCard(goalCategory) === 'buildUp' ? (
                           <BuildUpCard
+                            goalCategory={goalCategory}
                             onOpenWeight={openCurrentWeightSheet}
                             onOpenMeasurements={
                               measurementsAvailable ? () => setShowMeasurementsSheet(true) : undefined

@@ -47,6 +47,7 @@ import {
   type StickerData,
 } from '@/lib/share/sticker-data';
 import { displayExerciseName } from '@/lib/workouts/exercise-name';
+import { goalCategoryForGoalType } from '@/lib/goal-category';
 import {
   useBalanceSupplementHistory,
   useTopContributingFoods,
@@ -2090,9 +2091,11 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       </View>
       <BuildUpCard
         className="mt-3"
+        goalCategory={goalCategoryForGoalType(profile?.goal_type)}
         onOpenMeasurements={
           measurementsAvailable ? () => setShowMeasurementsSheet(true) : undefined
         }
+        onOpenWeight={onOpenWeightSheet}
       />
         </>
       ) : null}

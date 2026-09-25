@@ -4,13 +4,19 @@ import { describe, it } from 'node:test';
 
 import {
   buildUpStartKey,
+  buildUpTiles,
+  buildUpVerdictForGoal,
   circumferenceDelta,
   computeBuildUp,
   exerciseGains,
   formatBuildUpSentence,
+  formatBuildUpTileValue,
+  formatExerciseGainDelta,
   isBuildUpGoal,
   sentenceExerciseName,
+  topExerciseGains,
   weightAverageDelta,
+  type BuildUpExerciseGain,
   type BuildUpInput,
   type BuildUpSummary,
   type BuildUpTranslate,
@@ -330,5 +336,163 @@ describe('sentenceExerciseName', () => {
   it('leaves plain names and names with brackets alone', () => {
     assert.equal(sentenceExerciseName('Bankdips'), 'Bankdips');
     assert.equal(sentenceExerciseName('Dips (assistiert), leicht'), 'Dips (assistiert), leicht');
+  });
+});
+
+describe('buildUpVerdictForGoal', () => {
+  it('maps muscle and strength goals to gain', () => {
+    assert.equal(buildUpVerdictForGoal('muscle'), 'gain');
+    assert.equal(buildUpVerdictForGoal('strength'), 'gain');
+  });
+
+  it('maps the lose-weight goal to lose', () => {
+    assert.equal(buildUpVerdictForGoal('lose'), 'lose');
+  });
+
+  it('has no verdict for other goals or when unset', () => {
+    assert.equal(buildUpVerdictForGoal('maintain'), null);
+    assert.equal(buildUpVerdictForGoal('endurance'), null);
+    assert.equal(buildUpVerdictForGoal('custom'), null);
+    assert.equal(buildUpVerdictForGoal(null), null);
+  });
+});
+
+describe('buildUpTiles', () => {
+  it('reads a missing metric as no data, never good', () => {
+    const tiles = buildUpTiles(summary(), 'gain');
+    for (const tile of tiles) {
+      assert.equal(tile.direction, null);
+      assert.equal(tile.deltaValue, null);
+      assert.equal(tile.isGood, false);
+    }
+  });
+
+  it('reads a tiny change as stable, never good', () => {
+    const tiles = buildUpTiles(
+      summary({ weightDeltaKg: 0.1, waistDeltaCm: -0.2 }),
+      'lose',
+    );
+    const weight = tiles.find((tile) => tile.key === 'weight')!;
+    const waist = tiles.find((tile) => tile.key === 'waist')!;
+    assert.equal(weight.direction, 'stable');
+    assert.equal(weight.isGood, false);
+    assert.equal(waist.direction, 'stable');
+    assert.equal(waist.isGood, false);
+  });
+
+  it('marks waist down, chest up and arm up as good for a gain (muscle) goal — weight is never colored', () => {
+    const tiles = buildUpTiles(
+      summary({ weightDeltaKg: -1, waistDeltaCm: -1, chestDeltaCm: 1, armDeltaCm: 1 }),
+      'gain',
+    );
+    const byKey = Object.fromEntries(tiles.map((tile) => [tile.key, tile]));
+    assert.equal(byKey.weight!.direction, 'down');
+    assert.equal(byKey.weight!.isGood, false);
+    assert.equal(byKey.waist!.direction, 'down');
+    assert.equal(byKey.waist!.isGood, true);
+    assert.equal(byKey.chest!.direction, 'up');
+    assert.equal(byKey.chest!.isGood, true);
+    assert.equal(byKey.arm!.direction, 'up');
+    assert.equal(byKey.arm!.isGood, true);
+  });
+
+  it('marks the opposite directions as neutral, never red, for a gain goal', () => {
+    const tiles = buildUpTiles(
+      summary({ waistDeltaCm: 1, chestDeltaCm: -1, armDeltaCm: -1 }),
+      'gain',
+    );
+    for (const tile of tiles) {
+      if (tile.key === 'weight') continue;
+      assert.equal(tile.isGood, false);
+    }
+  });
+
+  it('marks weight down and waist down as good for a lose goal — chest/arm are never colored', () => {
+    const tiles = buildUpTiles(
+      summary({ weightDeltaKg: -1, waistDeltaCm: -1, chestDeltaCm: -1, armDeltaCm: 1 }),
+      'lose',
+    );
+    const byKey = Object.fromEntries(tiles.map((tile) => [tile.key, tile]));
+    assert.equal(byKey.weight!.isGood, true);
+    assert.equal(byKey.waist!.isGood, true);
+    assert.equal(byKey.chest!.isGood, false);
+    assert.equal(byKey.arm!.isGood, false);
+  });
+});
+
+describe('formatBuildUpTileValue', () => {
+  const t = makeT('de');
+
+  it('returns null without data, so the tile can show "–"', () => {
+    const [weight] = buildUpTiles(summary(), 'gain');
+    assert.equal(formatBuildUpTileValue(weight!, 'metric', 'de', t), null);
+  });
+
+  it('returns the stable label for a tiny change', () => {
+    const [weight] = buildUpTiles(summary({ weightDeltaKg: 0.1 }), 'gain');
+    assert.equal(formatBuildUpTileValue(weight!, 'metric', 'de', t), 'stabil');
+  });
+
+  it('formats a real delta with its unit', () => {
+    const tiles = buildUpTiles(summary({ weightDeltaKg: -1.4, waistDeltaCm: -1.7 }), 'lose');
+    const weight = tiles.find((tile) => tile.key === 'weight')!;
+    const waist = tiles.find((tile) => tile.key === 'waist')!;
+    assert.equal(formatBuildUpTileValue(weight, 'metric', 'de', t), '−1,4 kg');
+    assert.equal(formatBuildUpTileValue(waist, 'metric', 'de', t), '−1,5 cm');
+  });
+});
+
+describe('topExerciseGains', () => {
+  function gain(overrides: Partial<BuildUpExerciseGain>): BuildUpExerciseGain {
+    return { exerciseId: 'x', exerciseName: 'Exercise', kind: 'reps', delta: 1, ...overrides };
+  }
+
+  it('sorts by the largest improvement first', () => {
+    const gains = topExerciseGains(
+      [
+        gain({ exerciseId: 'a', exerciseName: 'A', delta: 1 }),
+        gain({ exerciseId: 'b', exerciseName: 'B', delta: 3 }),
+        gain({ exerciseId: 'c', exerciseName: 'C', delta: 2 }),
+      ],
+      3,
+    );
+    assert.deepEqual(
+      gains.map((g) => g.exerciseId),
+      ['b', 'c', 'a'],
+    );
+  });
+
+  it('keeps at most two by default', () => {
+    const gains = topExerciseGains([
+      gain({ exerciseId: 'a', delta: 1 }),
+      gain({ exerciseId: 'b', delta: 2 }),
+      gain({ exerciseId: 'c', delta: 3 }),
+    ]);
+    assert.equal(gains.length, 2);
+  });
+
+  it('breaks ties by name', () => {
+    const gains = topExerciseGains([
+      gain({ exerciseId: 'z', exerciseName: 'Zeta', delta: 2 }),
+      gain({ exerciseId: 'a', exerciseName: 'Alpha', delta: 2 }),
+    ]);
+    assert.deepEqual(
+      gains.map((g) => g.exerciseId),
+      ['a', 'z'],
+    );
+  });
+});
+
+describe('formatExerciseGainDelta', () => {
+  it('formats reps with the reps unit', () => {
+    const g: BuildUpExerciseGain = { exerciseId: 'a', exerciseName: 'A', kind: 'reps', delta: 2 };
+    assert.equal(formatExerciseGainDelta(g, 'de', makeT('de')), '+2 Wdh.');
+    assert.equal(formatExerciseGainDelta(g, 'en', makeT('en')), '+2 reps');
+    assert.equal(formatExerciseGainDelta(g, 'es', makeT('es')), '+2 rep.');
+  });
+
+  it('formats time gains with seconds', () => {
+    const g: BuildUpExerciseGain = { exerciseId: 'a', exerciseName: 'A', kind: 'time', delta: 5 };
+    assert.equal(formatExerciseGainDelta(g, 'de', makeT('de')), '+5 s');
   });
 });
