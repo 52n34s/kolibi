@@ -518,6 +518,16 @@ export type HistorySummaryStats = {
  * Summary over closed days only (excludes today). Days without meals are
  * omitted from averages but counted in the denominator for "X of Y logged".
  */
+/** Protein goal reached on a logged day — the rule behind `proteinHitDays`. */
+export function isProteinGoalHit(day: HistoryDayRow): boolean {
+  if (!day.hasMeals) {
+    return false;
+  }
+  const goal = day.scaledGoal?.proteinG ?? day.goal?.proteinG ?? null;
+  const actual = day.macros.proteinG;
+  return goal != null && actual != null && actual >= goal;
+}
+
 export function buildHistorySummaryStats(
   days: HistoryDayRow[],
   todayKey: string = localDateKey(),
@@ -540,7 +550,7 @@ export function buildHistorySummaryStats(
     const actual = day.macros.proteinG;
     if (goal != null && actual != null) {
       proteinTrackedDays += 1;
-      if (actual >= goal) {
+      if (isProteinGoalHit(day)) {
         proteinHitDays += 1;
       }
     }

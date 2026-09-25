@@ -1035,6 +1035,84 @@ export async function fetchSessionsContainingExercise(
   }
 }
 
+/** One workout session's sets of the requested exercises, with its calendar day. */
+export type ExerciseProgressUnit = {
+  sessionId: string;
+  loggedOn: string;
+  sets: SessionSet[];
+};
+
+const PROGRESS_PAGE_SIZE = 1000;
+
+/**
+ * Every set of the given exercises (e.g. all rungs of a ladder) with the
+ * session's logged_on, oldest first. Paged, so long histories are not cut off
+ * at Supabase's row limit.
+ */
+export async function fetchExerciseProgressUnits(
+  exerciseIds: readonly string[],
+): Promise<ExerciseProgressUnit[]> {
+  if (exerciseIds.length === 0) {
+    return [];
+  }
+  try {
+    const userId = await requireUserId();
+    const rows: SessionSetRow[] = [];
+    for (let from = 0; ; from += PROGRESS_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from('session_sets')
+        .select(
+          `id, session_id, user_id, exercise_id, exercise_name, exercise_position, set_index, kind,
+           per_side, target_reps, target_reps_max, target_seconds, target_seconds_max, target_weight_kg,
+           reps, seconds, seconds_other_side, weight_kg, completed_at`,
+        )
+        .eq('user_id', userId)
+        .in('exercise_id', [...exerciseIds])
+        .order('completed_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PROGRESS_PAGE_SIZE - 1);
+      if (error) {
+        throw error;
+      }
+      const page = (data ?? []) as SessionSetRow[];
+      rows.push(...page);
+      if (page.length < PROGRESS_PAGE_SIZE) {
+        break;
+      }
+    }
+
+    const sessionIds = [...new Set(rows.map((row) => row.session_id))];
+    const loggedOnById = new Map<string, string>();
+    for (let i = 0; i < sessionIds.length; i += PROGRESS_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from('workout_sessions')
+        .select('id, logged_on')
+        .eq('user_id', userId)
+        .in('id', sessionIds.slice(i, i + PROGRESS_PAGE_SIZE));
+      if (error) {
+        throw error;
+      }
+      for (const row of (data ?? []) as { id: string; logged_on: string }[]) {
+        loggedOnById.set(row.id, row.logged_on);
+      }
+    }
+
+    const units = new Map<string, ExerciseProgressUnit>();
+    for (const row of rows) {
+      const loggedOn = loggedOnById.get(row.session_id);
+      if (!loggedOn) {
+        continue;
+      }
+      const unit = units.get(row.session_id) ?? { sessionId: row.session_id, loggedOn, sets: [] };
+      unit.sets.push(mapSessionSet(row));
+      units.set(row.session_id, unit);
+    }
+    return [...units.values()];
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
 export async function fetchExerciseHistory(
   exerciseId: string,
   limit = 40,

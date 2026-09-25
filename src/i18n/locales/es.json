@@ -1725,5 +1725,77 @@
     "overYear": "Peso objetivo en más de un año",
     "notLosing": "Con estos ajustes no adelgazas.",
     "notGaining": "Con estos ajustes no ganas peso."
+  },
+  "share": {
+    "title": "Compartir como sticker",
+    "actions": {
+      "save": "Guardar imagen",
+      "copy": "Copiar",
+      "share": "Compartir"
+    },
+    "variant": {
+      "light": "Claro",
+      "dark": "Oscuro"
+    },
+    "format": {
+      "sticker": "Sticker",
+      "story": "Tarjeta para historia"
+    },
+    "options": {
+      "showBest": "Mejor serie",
+      "showLevel": "Nivel",
+      "showPrevious": "Nivel anterior",
+      "showDate": "Fecha",
+      "showTopExercises": "Mejores ejercicios",
+      "showBiggestGain": "Mayor progreso",
+      "showProtein": "Objetivo de proteína"
+    },
+    "newBest": "Nueva marca personal",
+    "firstTime": "Primera vez",
+    "newLevel": "Nuevo nivel",
+    "level": "Nivel {{n}} de {{total}}",
+    "previousLevel": "antes: {{name}}",
+    "bestSet": "Mejor serie: {{value}}",
+    "myWeek": "Mi semana",
+    "myMonth": "Mi mes",
+    "minutes": "{{n}} min",
+    "biggestGain": "Mayor progreso",
+    "protein_one": "Objetivo de proteína cumplido {{count}} día",
+    "protein_other": "Objetivo de proteína cumplido {{count}} días",
+    "stats": {
+      "sessions": "Sesiones",
+      "reps": "Repeticiones",
+      "seconds": "Segundos",
+      "bests": "Marcas personales",
+      "levels": "Nuevos niveles",
+      "duration": "Duración"
+    },
+    "status": {
+      "saved": "Guardado",
+      "copied": "Copiado",
+      "permissionDenied": "Kolibi no tiene permiso para guardar en tus fotos.",
+      "failed": "No ha funcionado. Inténtalo de nuevo."
+    },
+    "openSettings": "Abrir Ajustes",
+    "exercisesTitle": "Ejercicios",
+    "shareExercise": "Compartir {{name}}",
+    "shareLevel": "Compartir nuevo nivel {{name}}",
+    "menu": {
+      "image": "Compartir como imagen",
+      "text": "Exportar como texto",
+      "cancel": "Cancelar"
+    },
+    "perSide": "por lado",
+    "progress": {
+      "title": "Mi progreso",
+      "weeksAgo_one": "Hace {{count}} semana",
+      "weeksAgo_other": "Hace {{count}} semanas",
+      "sinceStart": "Desde el inicio",
+      "today": "Hoy",
+      "periodWeeks_one": "{{count}} semana",
+      "periodWeeks_other": "{{count}} semanas",
+      "notEnough": "Para un sticker de progreso hacen falta al menos dos sesiones de este ejercicio.",
+      "share": "Compartir progreso de {{name}}"
+    }
   }
 }

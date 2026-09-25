@@ -1,7 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { Href, router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { MiniSparkline } from '@/components/history/mini-sparkline';
@@ -15,12 +18,25 @@ import {
   getOnboardingIdleCardStyle,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
+import { ShareStickerSheet } from '@/components/share/ShareStickerSheet';
 import { ExerciseThumb } from '@/components/training/ExerciseThumb';
 import { exerciseStubFromSessionSet } from '@/components/training/exercise-stub';
-import { TEXT_SECONDARY } from '@/constants/brand';
+import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 import { useProgressionEvents } from '@/hooks/use-progression-events';
 import { useExercises } from '@/hooks/use-exercises';
 import { parseDateOnly } from '@/lib/day-window';
+import {
+  acceptedLevelUps,
+  bestSessionSets,
+  buildExerciseSticker,
+  buildLevelSticker,
+  buildProgressSticker,
+  progressExerciseIds,
+  type StickerData,
+} from '@/lib/share/sticker-data';
+import { workoutQueryKeys } from '@/lib/workouts/query-keys';
+import { fetchExerciseProgressUnits } from '@/lib/workouts/workouts-api';
+import { useAuthStore } from '@/stores/auth-store';
 import { formatDistanceKm, useUnitSystem } from '@/lib/measure-units';
 import { displayExerciseName, resolveExerciseName } from '@/lib/workouts/exercise-name';
 import {
@@ -36,8 +52,9 @@ import type { WorkoutSession } from '@/lib/workouts/types';
 import {
   buildWeekDayMarkers,
   buildWeekDayMarkersForKeys,
-  countDistinctTrainingDaysMerged,
+  trainingCardSessionCount,
   weekDateKeysFromMonday,
+  weekStartsNewestFirst,
   type WeekDayMarker,
 } from '@/lib/workouts/week-day-markers';
 
@@ -60,33 +77,6 @@ type HistoryTrainingSectionProps = {
   onOpenTrainingTab?: () => void;
   canOpenTrainingTab?: boolean;
 };
-
-function mondayOnOrBefore(dateKey: string): string {
-  const date = parseDateOnly(dateKey);
-  const weekday = date.getDay();
-  const daysSinceMonday = weekday === 0 ? 6 : weekday - 1;
-  date.setDate(date.getDate() - daysSinceMonday);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function weekStartsNewestFirst(startKey: string, endKey: string): string[] {
-  const firstMonday = mondayOnOrBefore(startKey);
-  const lastMonday = mondayOnOrBefore(endKey);
-  const starts: string[] = [];
-  const cursor = parseDateOnly(firstMonday);
-  const last = parseDateOnly(lastMonday);
-  while (cursor.getTime() <= last.getTime()) {
-    const y = cursor.getFullYear();
-    const m = String(cursor.getMonth() + 1).padStart(2, '0');
-    const d = String(cursor.getDate()).padStart(2, '0');
-    starts.push(`${y}-${m}-${d}`);
-    cursor.setDate(cursor.getDate() + 7);
-  }
-  return starts.reverse();
-}
 
 function sessionDurationMinutes(session: WorkoutSession): number {
   const end = Date.parse(session.finishedAt ?? new Date().toISOString());
@@ -172,17 +162,56 @@ export function HistoryTrainingSection({
   });
   const { data: allExercises = [] } = useExercises();
 
+  const [sticker, setSticker] = useState<StickerData | null>(null);
+  const [loadingProgressId, setLoadingProgressId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.session?.user?.id);
+
+  /** Loads the whole history of the exercise (all rungs of its ladder), then opens the sheet. */
+  async function openProgressSticker(exerciseId: string) {
+    if (!userId || loadingProgressId) {
+      return;
+    }
+    const ids = progressExerciseIds(exerciseId, allExercises);
+    setLoadingProgressId(exerciseId);
+    try {
+      const units = await queryClient.fetchQuery({
+        queryKey: workoutQueryKeys.exerciseProgress(userId, ids),
+        staleTime: 5 * 60 * 1000,
+        queryFn: () => fetchExerciseProgressUnits(ids),
+      });
+      setSticker(
+        buildProgressSticker({
+          exerciseId,
+          exercises: allExercises,
+          units,
+          todayKey,
+          lang: i18n.language,
+        }),
+      );
+    } catch (error) {
+      Sentry.captureException(error);
+    } finally {
+      setLoadingProgressId(null);
+    }
+  }
+
   const levelUps = useMemo(() => {
-    return progressionEvents
-      .filter((ev) => ev.status === 'accepted' && ev.kind === 'variant_up')
+    return acceptedLevelUps(progressionEvents)
       .map((ev) => {
-        const ex =
-          allExercises.find((row) => row.id === ev.toExerciseId) ??
-          allExercises.find((row) => row.id === ev.fromExerciseId);
+        const toEx = allExercises.find((row) => row.id === ev.toExerciseId);
+        const fromEx = allExercises.find((row) => row.id === ev.fromExerciseId);
+        const ex = toEx ?? fromEx;
         return {
           id: ev.id,
           name: ex ? resolveExerciseName(ex, i18n.language) : (ev.toExerciseId ?? ''),
           createdAt: ev.createdAt,
+          sticker: buildLevelSticker({
+            toExercise: toEx,
+            fromExercise: fromEx,
+            lang: i18n.language,
+            ladder: allExercises,
+          }),
         };
       })
       .filter((row) => row.name.length > 0);
@@ -201,18 +230,17 @@ export function HistoryTrainingSection({
     [workoutSessions, rangeStartKey, todayKey],
   );
 
-  const currentWeekKeys = useMemo(() => {
-    const monday = mondayOnOrBefore(todayKey);
-    return weekDateKeysFromMonday(monday);
-  }, [todayKey]);
-
-  const sessionsThisWeek = useMemo(() => {
-    const weekSet = new Set(currentWeekKeys);
-    return countDistinctTrainingDaysMerged(
-      manualSessions.filter((s) => weekSet.has(s.loggedOn)),
-      workoutSessions.filter((s) => weekSet.has(s.loggedOn)),
-    );
-  }, [manualSessions, workoutSessions, currentWeekKeys]);
+  const sessionsThisWeek = useMemo(
+    () =>
+      trainingCardSessionCount({
+        rangeDays: 7,
+        rangeStartKey,
+        todayKey,
+        manualSessions,
+        workoutSessions,
+      }),
+    [manualSessions, workoutSessions, rangeStartKey, todayKey],
+  );
 
   const weekMarkers = useMemo(
     () => buildWeekDayMarkers(manualSessions, workoutSessions, parseDateOnly(todayKey)),
@@ -451,19 +479,46 @@ export function HistoryTrainingSection({
             <Text className="mb-3 text-sm font-semibold text-gray-900">
               {t('history.training.bestsTitle')}
             </Text>
-            {levelUps.map((row) => (
-              <Text
-                key={row.id}
-                className="py-2 text-sm font-semibold"
-                style={{ color: '#4F46E5' }}>
-                {t('history.training.newLevel', { name: row.name })}
-              </Text>
-            ))}
+            {levelUps.map((row) => {
+              const levelSticker = row.sticker;
+              return (
+                <View key={row.id} className="flex-row items-center gap-3 py-2">
+                  <Text
+                    className="min-w-0 flex-1 text-sm font-semibold"
+                    style={{ color: '#4F46E5' }}>
+                    {t('history.training.newLevel', { name: row.name })}
+                  </Text>
+                  {levelSticker ? (
+                    <ShareIconButton
+                      testID={`history.training.shareLevel.${row.id}`}
+                      label={t('share.shareLevel', { name: row.name })}
+                      onPress={() => setSticker(levelSticker)}
+                    />
+                  ) : null}
+                </View>
+              );
+            })}
             {visibleBests.map((best) => (
               <BestRow
                 key={best.exerciseId ?? `name:${best.exerciseName}`}
                 best={best}
                 t={t}
+                onShare={() => {
+                  const sets = bestSessionSets(sessionsInRange, best);
+                  setSticker(
+                    buildExerciseSticker({
+                      exercise:
+                        best.exerciseId != null ? exercisesById.get(best.exerciseId) : undefined,
+                      fallbackName: best.exerciseName,
+                      lang: i18n.language,
+                      exerciseKind: best.kind,
+                      perSide: sets.perSide,
+                      values: sets.values,
+                      ladder: allExercises,
+                      milestone: 'newBest',
+                    }),
+                  );
+                }}
               />
             ))}
             {bests.length > 3 ? (
@@ -604,6 +659,14 @@ export function HistoryTrainingSection({
                       </Text>
                     </View>
                     <MiniSparkline values={row.series} />
+                    {row.best.exerciseId != null ? (
+                      <ShareIconButton
+                        testID={`history.training.shareProgress.${row.best.exerciseId}`}
+                        label={t('share.progress.share', { name: row.best.exerciseName })}
+                        busy={loadingProgressId === row.best.exerciseId}
+                        onPress={() => void openProgressSticker(row.best.exerciseId!)}
+                      />
+                    ) : null}
                   </>
                 );
                 if (row.best.exerciseId == null) {
@@ -649,16 +712,48 @@ export function HistoryTrainingSection({
           </View>
         </View>
       ) : null}
+      <ShareStickerSheet data={sticker} onClose={() => setSticker(null)} allowStory />
     </>
+  );
+}
+
+function ShareIconButton({
+  testID,
+  label,
+  onPress,
+  busy = false,
+}: {
+  testID: string;
+  label: string;
+  onPress: () => void;
+  busy?: boolean;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={8}
+      onPress={onPress}
+      className="h-8 w-8 items-center justify-center rounded-full"
+      style={{ backgroundColor: 'rgba(79,70,229,0.1)' }}>
+      {busy ? (
+        <ActivityIndicator size="small" color={BRAND_INDIGO} />
+      ) : (
+        <Ionicons name="share-outline" size={16} color={BRAND_INDIGO} />
+      )}
+    </Pressable>
   );
 }
 
 function BestRow({
   best,
   t,
+  onShare,
 }: {
   best: PersonalBest;
   t: (key: string, opts?: Record<string, unknown>) => string;
+  onShare: () => void;
 }) {
   const stub = exerciseStubFromSessionSet({
     id: best.exerciseId ?? best.exerciseName,
@@ -693,6 +788,11 @@ function BestRow({
           {formatBestImprovement(best, t)}
         </Text>
       </View>
+      <ShareIconButton
+        testID={`history.training.shareBest.${best.exerciseId ?? best.exerciseName}`}
+        label={t('share.shareExercise', { name: best.exerciseName })}
+        onPress={onShare}
+      />
     </View>
   );
 }

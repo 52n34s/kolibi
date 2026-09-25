@@ -1725,5 +1725,77 @@
     "overYear": "Zielgewicht in mehr als einem Jahr",
     "notLosing": "Mit diesen Einstellungen nimmst du nicht ab.",
     "notGaining": "Mit diesen Einstellungen nimmst du nicht zu."
+  },
+  "share": {
+    "title": "Als Sticker teilen",
+    "actions": {
+      "save": "Als Bild sichern",
+      "copy": "Kopieren",
+      "share": "Teilen"
+    },
+    "variant": {
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
+    "format": {
+      "sticker": "Sticker",
+      "story": "Story-Karte"
+    },
+    "options": {
+      "showBest": "Bester Satz",
+      "showLevel": "Stufe",
+      "showPrevious": "Vorherige Stufe",
+      "showDate": "Datum",
+      "showTopExercises": "Beste Übungen",
+      "showBiggestGain": "Größter Fortschritt",
+      "showProtein": "Protein-Ziel"
+    },
+    "newBest": "Neuer Bestwert",
+    "firstTime": "Zum ersten Mal",
+    "newLevel": "Neue Stufe",
+    "level": "Stufe {{n}} von {{total}}",
+    "previousLevel": "vorher: {{name}}",
+    "bestSet": "Bester Satz: {{value}}",
+    "myWeek": "Meine Woche",
+    "myMonth": "Mein Monat",
+    "minutes": "{{n}} Min",
+    "biggestGain": "Größter Fortschritt",
+    "protein_one": "Protein-Ziel an {{count}} Tag erreicht",
+    "protein_other": "Protein-Ziel an {{count}} Tagen erreicht",
+    "stats": {
+      "sessions": "Einheiten",
+      "reps": "Wiederholungen",
+      "seconds": "Sekunden",
+      "bests": "Bestwerte",
+      "levels": "Neue Stufen",
+      "duration": "Dauer"
+    },
+    "status": {
+      "saved": "Gespeichert",
+      "copied": "Kopiert",
+      "permissionDenied": "Kolibi darf nichts in deinen Fotos sichern.",
+      "failed": "Das hat nicht geklappt. Bitte versuch es noch einmal."
+    },
+    "openSettings": "Einstellungen öffnen",
+    "exercisesTitle": "Übungen",
+    "shareExercise": "{{name}} teilen",
+    "shareLevel": "Neue Stufe {{name}} teilen",
+    "menu": {
+      "image": "Als Bild teilen",
+      "text": "Als Text exportieren",
+      "cancel": "Abbrechen"
+    },
+    "perSide": "pro Seite",
+    "progress": {
+      "title": "Mein Fortschritt",
+      "weeksAgo_one": "Vor {{count}} Woche",
+      "weeksAgo_other": "Vor {{count}} Wochen",
+      "sinceStart": "Seit Beginn",
+      "today": "Heute",
+      "periodWeeks_one": "{{count}} Woche",
+      "periodWeeks_other": "{{count}} Wochen",
+      "notEnough": "Für einen Fortschritts-Sticker braucht es mindestens zwei Einheiten dieser Übung.",
+      "share": "Fortschritt bei {{name}} teilen"
+    }
   }
 }

@@ -40,8 +40,8 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "NSHealthShareUsageDescription": "Kolibi liest aus Apple Health Aktivenergie, Herzfrequenz, Schritte, Gehstrecke/Laufstrecke, Taillenumfang, Körperfettanteil, magere Körpermasse und Workouts, damit Tages- und Bewegungsziele deine Aktivität berücksichtigen können.",
-        "NSHealthUpdateUsageDescription": "Kolibi schreibt deinen erfassten Taillenumfang nach Apple Health, damit er dort zusammen mit deinen anderen Gesundheitsdaten sichtbar ist."
+        "NSHealthShareUsageDescription": "Kolibi reads active energy, heart rate, steps, walking/running distance, waist circumference, body fat percentage, lean body mass and workouts from Apple Health so that your daily and movement goals can take your activity into account.",
+        "NSHealthUpdateUsageDescription": "Kolibi writes your logged waist circumference to Apple Health so that it is visible there together with your other health data."
       }
     },
     "android": {
@@ -52,7 +52,19 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.steffen.kolibi"
+      "package": "com.steffen.kolibi",
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION"
+      ]
+    },
+    "locales": {
+      "de": "./locales/de.json",
+      "en": "./locales/en.json",
+      "es": "./locales/es.json"
     },
     "web": {
       "bundler": "metro",
@@ -90,9 +102,19 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow Kolibi to access your photos to set a profile picture.",
-          "cameraPermission": "Allow Kolibi to access your camera to take photos of your meals, scan barcodes, and set a profile picture."
+          "cameraPermission": "Allow Kolibi to access your camera to take photos of your meals, scan barcodes, and set a profile picture.",
+          "microphonePermission": false
         }
       ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Kolibi saves your stickers to your photo library.",
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": []
+        }
+      ],
+      "./plugins/with-add-only-media-permissions.js",
       [
         "expo-camera",
         {
@@ -105,7 +127,12 @@
       "./plugins/with-ios-modular-headers.js",
       "@bacons/apple-targets",
       "expo-asset",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       [
         "@sentry/react-native/expo",
         {

@@ -114,3 +114,64 @@ export function countDistinctTrainingDaysMerged(
   }
   return days.size;
 }
+
+function parseKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1);
+}
+
+/** Monday on or before a local date key. */
+export function mondayOnOrBefore(key: string): string {
+  const date = parseKey(key);
+  const weekday = date.getDay();
+  date.setDate(date.getDate() - (weekday === 0 ? 6 : weekday - 1));
+  return dateKey(date);
+}
+
+/** Monday keys of every week touching [startKey, endKey], newest first. */
+export function weekStartsNewestFirst(startKey: string, endKey: string): string[] {
+  const starts: string[] = [];
+  const cursor = parseKey(mondayOnOrBefore(startKey));
+  const last = parseKey(mondayOnOrBefore(endKey));
+  while (cursor.getTime() <= last.getTime()) {
+    starts.push(dateKey(cursor));
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return starts.reverse();
+}
+
+/**
+ * Days the sessions card of the progress tab covers: the current Mon–Sun week
+ * for 7 days, every displayed week row (Monday before the range start through
+ * this week) for 30 days.
+ */
+export function trainingCardDayKeys(params: {
+  rangeDays: 7 | 30;
+  rangeStartKey: string;
+  todayKey: string;
+}): string[] {
+  if (params.rangeDays === 7) {
+    return weekDateKeysFromMonday(mondayOnOrBefore(params.todayKey));
+  }
+  return weekStartsNewestFirst(params.rangeStartKey, params.todayKey).flatMap(
+    weekDateKeysFromMonday,
+  );
+}
+
+/**
+ * Training days the sessions card shows as filled dots — one per calendar day,
+ * manual sessions and workouts merged.
+ */
+export function trainingCardSessionCount(params: {
+  rangeDays: 7 | 30;
+  rangeStartKey: string;
+  todayKey: string;
+  manualSessions: readonly ManualLike[];
+  workoutSessions: readonly ManualLike[];
+}): number {
+  const keys = new Set(trainingCardDayKeys(params));
+  return countDistinctTrainingDaysMerged(
+    params.manualSessions.filter((s) => keys.has(s.loggedOn)),
+    params.workoutSessions.filter((s) => keys.has(s.loggedOn)),
+  );
+}

@@ -3,8 +3,10 @@ import { Href, router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -32,6 +34,16 @@ import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
 import { useHistory } from '@/hooks/use-history';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useTrainingSessionsRange } from '@/hooks/use-training-sessions-range';
+import { useExercises } from '@/hooks/use-exercises';
+import { useProgressionEvents } from '@/hooks/use-progression-events';
+import { ShareStickerSheet } from '@/components/share/ShareStickerSheet';
+import {
+  buildRecapSticker,
+  localDayStartIso,
+  recapWindow,
+  type StickerData,
+} from '@/lib/share/sticker-data';
+import { displayExerciseName } from '@/lib/workouts/exercise-name';
 import {
   useBalanceSupplementHistory,
   useTopContributingFoods,
@@ -58,6 +70,7 @@ import {
   filterWeightLogsInRange,
   getLatestWeightKg,
   getLatestWaistCm,
+  isProteinGoalHit,
   waistChangeInRange,
   weighSpanDaysInLastMonth,
   weightChangeInRange,
@@ -238,6 +251,12 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
   const { data: beforeBests = {} } = useExerciseBestsBefore({
     beforeKey: historyRangeWindow.startKey,
   });
+  // From local midnight of the window start; the recap filters by local day.
+  const { data: progressionEvents = [] } = useProgressionEvents({
+    since: localDayStartIso(recapWindow(rangeDays === 30 ? 'month' : 'week', todayKey).startKey),
+  });
+  const { data: allExercises = [] } = useExercises();
+  const [recapSticker, setRecapSticker] = useState<StickerData | null>(null);
   const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
   const canOpenTrainingTab =
     Boolean(onOpenTrainingTab) && resolveTrainingTabEnabled(trainingTabFlag);
@@ -1494,6 +1513,60 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       ? profile.training_sessions_per_week
       : null;
 
+  function openRecapSticker() {
+    const exercisesById = new Map(allExercises.map((ex) => [ex.id, ex]));
+    setRecapSticker(
+      // Rolling window: "7 Tage" is "Meine Woche", "30 Tage" is "Mein Monat".
+      buildRecapSticker(rangeDays === 30 ? 'month' : 'week', {
+        todayKey,
+        workoutSessions,
+        manualSessions: trainingSessions,
+        beforeBests,
+        events: progressionEvents,
+        proteinDays: (data?.days ?? []).map((day) => ({
+          date: day.date,
+          hit: isProteinGoalHit(day),
+        })),
+        nameOf: (best) =>
+          displayExerciseName({
+            exerciseId: best.exerciseId,
+            storedName: best.exerciseName,
+            exercise: best.exerciseId != null ? exercisesById.get(best.exerciseId) : undefined,
+            lang: i18n.language,
+          }),
+      }),
+    );
+  }
+
+  function openTextExport() {
+    router.push(`/koli/export?days=${rangeDays}&section=${resolvedArea}` as Href);
+  }
+
+  /** Image recap for everyone; the text export behind it stays premium. */
+  function openShareMenu() {
+    const image = t('share.menu.image');
+    const text = t('share.menu.text');
+    const cancel = t('share.menu.cancel');
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: [image, text, cancel], cancelButtonIndex: 2 },
+        (index) => {
+          if (index === 0) {
+            openRecapSticker();
+          } else if (index === 1) {
+            openTextExport();
+          }
+        },
+      );
+      return;
+    }
+    Alert.alert(t('share.actions.share'), undefined, [
+      { text: image, onPress: openRecapSticker },
+      { text, onPress: openTextExport },
+      { text: cancel, style: 'cancel' },
+    ]);
+  }
+
   function openDayDetail(index: number) {
     const day = data?.days[index];
     if (day?.date == null) {
@@ -1564,12 +1637,8 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
         <Pressable
           testID="history.export"
           accessibilityRole="button"
-          accessibilityLabel={t('export.title')}
-          onPress={() =>
-            router.push(
-              `/koli/export?days=${rangeDays}&section=${resolvedArea}` as Href,
-            )
-          }
+          accessibilityLabel={t('share.actions.share')}
+          onPress={openShareMenu}
           hitSlop={8}
           className="h-10 w-10 items-center justify-center rounded-full"
           style={{ backgroundColor: 'rgba(79,70,229,0.1)' }}>
@@ -1959,6 +2028,11 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       {showNutrition && userId ? (
         <SupplementHistorySection userId={userId} rangeDays={rangeDays} />
       ) : null}
+      <ShareStickerSheet
+        data={recapSticker}
+        onClose={() => setRecapSticker(null)}
+        allowStory
+      />
     </ScrollView>
   );
 }

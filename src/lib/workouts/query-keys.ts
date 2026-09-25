@@ -13,6 +13,8 @@ export const workoutQueryKeys = {
   exerciseBestsBefore: (userId: string, beforeKey: string) =>
     ['workout-exercise-bests-before', userId, beforeKey] as const,
   ladder: (ladderKey: string) => ['workout-ladder', ladderKey] as const,
+  exerciseProgress: (userId: string, exerciseIds: readonly string[]) =>
+    ['workout-exercise-progress', userId, ...exerciseIds] as const,
   progressionEvents: (userId: string) =>
     ['workout-progression-events', userId] as const,
 };
