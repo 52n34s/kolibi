@@ -1726,7 +1726,9 @@
     },
     "overYear": "Target weight in more than a year",
     "notLosing": "With these settings you will not lose weight.",
-    "notGaining": "With these settings you will not gain weight."
+    "notGaining": "With these settings you will not gain weight.",
+    "stalled": "Your weight trend is taking a breather. Once it heads toward your goal, you'll see a time frame here.",
+    "stalledWithPlan": "Your weight trend is taking a breather. With your calorie goal you'll reach your target weight {{eta}}."
   },
   "share": {
     "title": "Share as sticker",

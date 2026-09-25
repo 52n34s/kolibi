@@ -1726,7 +1726,9 @@
     },
     "overYear": "Zielgewicht in mehr als einem Jahr",
     "notLosing": "Mit diesen Einstellungen nimmst du nicht ab.",
-    "notGaining": "Mit diesen Einstellungen nimmst du nicht zu."
+    "notGaining": "Mit diesen Einstellungen nimmst du nicht zu.",
+    "stalled": "Dein Gewichtstrend legt gerade eine Pause ein. Sobald er Richtung Ziel zeigt, siehst du hier einen Zeitraum.",
+    "stalledWithPlan": "Dein Gewichtstrend legt gerade eine Pause ein. Mit deinem Kalorienziel erreichst du dein Zielgewicht {{eta}}."
   },
   "share": {
     "title": "Als Sticker teilen",

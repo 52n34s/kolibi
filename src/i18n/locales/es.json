@@ -1726,7 +1726,9 @@
     },
     "overYear": "Peso objetivo en más de un año",
     "notLosing": "Con estos ajustes no adelgazas.",
-    "notGaining": "Con estos ajustes no ganas peso."
+    "notGaining": "Con estos ajustes no ganas peso.",
+    "stalled": "Tu tendencia de peso se está tomando un respiro. En cuanto vaya hacia tu objetivo, verás aquí un periodo.",
+    "stalledWithPlan": "Tu tendencia de peso se está tomando un respiro. Con tu objetivo de calorías alcanzarás tu peso objetivo {{eta}}."
   },
   "share": {
     "title": "Compartir como sticker",
