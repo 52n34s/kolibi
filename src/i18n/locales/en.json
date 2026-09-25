@@ -2158,7 +2158,8 @@
       "exerciseSeconds": "{{name}} +{{delta}} s",
       "footnote": "Weight as a 7-day average, strength from levels and best sets.",
       "empty": "Weigh in, measure waist, chest and upper arm and keep training – this is where you will see how you build up.",
-      "measureCta": "Log measurements"
+      "measureCta": "Log measurements",
+      "weighCta": "Log weight"
     }
   },
   "muscles": {

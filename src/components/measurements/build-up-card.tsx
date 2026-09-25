@@ -16,6 +16,8 @@ import { BUILD_UP_WEEK_OPTIONS, formatBuildUpSentence, type BuildUpWeeks } from 
 export type BuildUpCardProps = {
   /** Opens the measurements sheet; the button is hidden without it. */
   onOpenMeasurements?: () => void;
+  /** Opens the weight sheet (Today shows this card instead of the weight card). */
+  onOpenWeight?: () => void;
   className?: string;
 };
 
@@ -23,7 +25,7 @@ export type BuildUpCardProps = {
  * "Aufbau": weight (7-day average), waist, chest, upper arm and strength over
  * 4/8/12 weeks as one sentence. In-app only — never on a shareable image.
  */
-export function BuildUpCard({ onOpenMeasurements, className }: BuildUpCardProps) {
+export function BuildUpCard({ onOpenMeasurements, onOpenWeight, className }: BuildUpCardProps) {
   const { t, i18n } = useTranslation();
   const unitSystem = useUnitSystem();
   const [weeks, setWeeks] = useState<BuildUpWeeks>(4);
@@ -72,6 +74,19 @@ export function BuildUpCard({ onOpenMeasurements, className }: BuildUpCardProps)
         ) : (
           <Text className="mt-3 text-sm text-gray-500">{t('measurements.buildUp.empty')}</Text>
         )}
+        {onOpenWeight ? (
+          <Pressable
+            testID="buildUp.weigh"
+            accessibilityRole="button"
+            accessibilityLabel={t('measurements.buildUp.weighCta')}
+            onPress={onOpenWeight}
+            className="mt-3 flex-row items-center self-start">
+            <Ionicons name="scale-outline" size={16} color={ONBOARDING_ACCENT} />
+            <Text className="ml-1.5 text-sm font-semibold" style={{ color: ONBOARDING_ACCENT }}>
+              {t('measurements.buildUp.weighCta')}
+            </Text>
+          </Pressable>
+        ) : null}
         {onOpenMeasurements ? (
           <Pressable
             accessibilityRole="button"

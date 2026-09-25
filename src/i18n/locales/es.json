@@ -2158,7 +2158,8 @@
       "exerciseSeconds": "{{name}} +{{delta}} s",
       "footnote": "Peso como media de 7 días, fuerza según niveles y mejores series.",
       "empty": "Pésate, mide cintura, pecho y brazo y sigue entrenando: aquí verás cómo vas ganando.",
-      "measureCta": "Anotar medidas"
+      "measureCta": "Anotar medidas",
+      "weighCta": "Registrar peso"
     }
   },
   "muscles": {

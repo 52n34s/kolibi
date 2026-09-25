@@ -2158,7 +2158,8 @@
       "exerciseSeconds": "{{name}} +{{delta}} s",
       "footnote": "Gewicht als 7-Tage-Schnitt, Kraft aus Stufen und besten Sätzen.",
       "empty": "Wieg dich, miss Taille, Brust und Oberarm und trainier weiter – hier siehst du dann, wie du aufbaust.",
-      "measureCta": "Maße eintragen"
+      "measureCta": "Maße eintragen",
+      "weighCta": "Gewicht eintragen"
     }
   },
   "muscles": {
