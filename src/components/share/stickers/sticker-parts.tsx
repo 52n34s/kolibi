@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { createContext, useContext, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +54,8 @@ export const STICKER_PALETTES: Record<StickerVariant, StickerPalette> = {
 
 /** First guess for the story card; `StoryFrame` then fits the content to the card. */
 export const STORY_CONTENT_SCALE = 1.5;
+/** Content scale on a story photo: readable, and most of the photo stays visible. */
+export const STORY_PHOTO_CONTENT_SCALE = 1.3;
 /** Re-measure passes before the fit stops (wrapping can make it oscillate). */
 const STORY_FIT_PASSES = 6;
 /** Changes below this are not worth another layout pass. */
@@ -111,15 +114,22 @@ const STORY_BACKGROUNDS: Record<StickerVariant, [string, string]> = {
 export function StickerFrame({
   variant,
   format = 'sticker',
+  storyPhotoUri = null,
   children,
 }: {
   variant: StickerVariant;
   format?: StickerFormat;
+  /** Local photo behind the story card (meal right after the scan). */
+  storyPhotoUri?: string | null;
   children: ReactNode;
 }) {
   const palette = STICKER_PALETTES[variant];
   if (format === 'story') {
-    return <StoryFrame variant={variant}>{children}</StoryFrame>;
+    return (
+      <StoryFrame variant={variant} photoUri={storyPhotoUri}>
+        {children}
+      </StoryFrame>
+    );
   }
   return (
     <View style={styles.sticker}>
@@ -136,12 +146,30 @@ export function StickerFrame({
  * fills about two thirds of the height, whatever the sticker type — between
  * 1× and 2× the sticker size.
  */
-function StoryFrame({ variant, children }: { variant: StickerVariant; children: ReactNode }) {
+/** Scrim over a story photo so the type stays readable in both variants. */
+const STORY_PHOTO_SCRIMS: Record<StickerVariant, [string, string]> = {
+  light: ['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.6)'],
+  dark: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.75)'],
+};
+
+function StoryFrame({
+  variant,
+  photoUri = null,
+  children,
+}: {
+  variant: StickerVariant;
+  photoUri?: string | null;
+  children: ReactNode;
+}) {
   const palette = STICKER_PALETTES[variant];
-  const [scale, setScale] = useState<number>(STORY_CONTENT_SCALE);
+  const [scale, setScale] = useState<number>(photoUri ? STORY_PHOTO_CONTENT_SCALE : STORY_CONTENT_SCALE);
   const passes = useRef(0);
 
   function onContentLayout(event: LayoutChangeEvent) {
+    // On a photo the content stays compact at the bottom; the photo is the picture.
+    if (photoUri) {
+      return;
+    }
     const next = nextStoryScale({
       scale,
       contentHeight: event.nativeEvent.layout.height,
@@ -158,12 +186,25 @@ function StoryFrame({ variant, children }: { variant: StickerVariant; children: 
     setScale(next);
   }
 
+  const background = photoUri ? (
+    <>
+      <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      <LinearGradient
+        colors={STORY_PHOTO_SCRIMS[variant]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </>
+  ) : null;
+
   return (
     <LinearGradient
       colors={STORY_BACKGROUNDS[variant]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={styles.story}>
+      style={[styles.story, photoUri ? styles.storyOnPhoto : null]}>
+      {background}
       <View onLayout={onContentLayout}>
         {/* Remount per scale: iOS shrink-to-fit text keeps a stale size otherwise. */}
         <View key={scale}>
@@ -359,6 +400,12 @@ const styles = StyleSheet.create({
     height: STORY_LAYOUT_HEIGHT,
     paddingHorizontal: 24,
     justifyContent: 'center',
+  },
+  storyOnPhoto: {
+    // The photo stays visible above the content; the labels sit in the lower part.
+    justifyContent: 'flex-end',
+    paddingBottom: 96,
+    overflow: 'hidden',
   },
   storyBrand: {
     position: 'absolute',

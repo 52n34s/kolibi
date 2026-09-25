@@ -1,5 +1,6 @@
 import { ExerciseSticker } from '@/components/share/stickers/ExerciseSticker';
 import { LevelSticker } from '@/components/share/stickers/LevelSticker';
+import { MealSticker } from '@/components/share/stickers/MealSticker';
 import { ProgressSticker } from '@/components/share/stickers/ProgressSticker';
 import { RecapSticker } from '@/components/share/stickers/RecapSticker';
 import { SessionSticker } from '@/components/share/stickers/SessionSticker';
@@ -30,5 +31,7 @@ export function StickerView({ data, variant, options, format }: StickerViewProps
       return <RecapSticker data={data} variant={variant} options={options} format={format} />;
     case 'progress':
       return <ProgressSticker data={data} variant={variant} options={options} format={format} />;
+    case 'meal':
+      return <MealSticker data={data} variant={variant} options={options} format={format} />;
   }
 }
