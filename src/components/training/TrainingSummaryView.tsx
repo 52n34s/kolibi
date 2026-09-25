@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 import { useQueryClient, useQueries } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProgressionSuggestionCard } from '@/components/training/ProgressionSuggestionCard';
 import {
@@ -112,10 +113,13 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
   const labelOf = (item: ActiveExercise) =>
     displayActiveExerciseName(item, i18n.language);
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
+  // The home container pads the bottom by this much; the fade reaches into
+  // it so it ends at the screen edge instead of in a visible seam.
+  const containerBottomPad = Math.max(insets.bottom, 24);
   const userId = useAuthStore((s) => s.session?.user?.id);
   const finishSession = useWorkoutSessionStore((s) => s.finishSession);
   const templatesQuery = useWorkoutTemplates();
-  const insets = useSafeAreaInsets();
   const resumeSession = useWorkoutSessionStore((state) => state.resumeSession);
 
   // These four live on the session, not in component state: leaving the
@@ -1080,10 +1084,30 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       </ScrollView>
 
       {/* Fixed footer: the summary grew past one screen, and a "Fertig" that
-          scrolls out of reach silently loses the intensity. */}
+          scrolls out of reach silently loses the intensity. No box of its own:
+          the content fades out into the background above the buttons, over the
+          full screen width. The home container already pads the safe area. */}
       <View
-        onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
-        style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        onLayout={(event) =>
+          setFooterHeight(
+            event.nativeEvent.layout.height - containerBottomPad - FOOTER_FADE_OVERSHOOT,
+          )
+        }
+        style={[
+          styles.footer,
+          // Overshoots the screen edge: outer containers add their own bottom
+          // space, and a fade that stops short shows as a line.
+          {
+            bottom: -(containerBottomPad + FOOTER_FADE_OVERSHOOT),
+            paddingBottom: containerBottomPad + FOOTER_FADE_OVERSHOOT + 4,
+          },
+        ]}>
+        <LinearGradient
+          pointerEvents="none"
+          colors={FOOTER_FADE_COLORS}
+          locations={FOOTER_FADE_LOCATIONS}
+          style={StyleSheet.absoluteFill}
+        />
         {progressError ? (
           <Pressable
             accessibilityRole="button"
@@ -1129,6 +1153,19 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** Horizontal padding of the home tab around the panel (px-6). */
+const SCREEN_GUTTER = 24;
+/** Transparent → background (SURFACE_BASE, white) behind the footer buttons. */
+const FOOTER_FADE_COLORS = [
+  'rgba(255, 255, 255, 0)',
+  'rgba(255, 255, 255, 0.9)',
+  'rgba(255, 255, 255, 0.97)',
+  'rgba(255, 255, 255, 0.97)',
+] as const;
+// Opaque enough by the "Zurück zur Einheit" link that content never reads through.
+const FOOTER_FADE_LOCATIONS = [0, 0.14, 0.25, 1] as const;
+const FOOTER_FADE_OVERSHOOT = 60;
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -1138,11 +1175,12 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   footer: {
-    paddingTop: 12,
+    position: 'absolute',
+    left: -SCREEN_GUTTER,
+    right: -SCREEN_GUTTER,
+    paddingHorizontal: SCREEN_GUTTER,
+    paddingTop: 36,
     gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(79, 70, 229, 0.18)',
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
   },
   openCard: {
     paddingHorizontal: 16,
