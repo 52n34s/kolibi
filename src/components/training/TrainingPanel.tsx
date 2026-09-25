@@ -5,7 +5,6 @@ import { StyleSheet, View } from 'react-native';
 import { TrainingActiveView } from '@/components/training/TrainingActiveView';
 import { TrainingIdleView } from '@/components/training/TrainingIdleView';
 import { TrainingSummaryView } from '@/components/training/TrainingSummaryView';
-import { useTrainingKeepAwake } from '@/hooks/use-training-keep-awake';
 import { flushWorkoutSyncQueue } from '@/lib/workouts/sync-queue-runtime';
 import type { ActiveSession, WorkoutTemplate } from '@/lib/workouts/types';
 import { useWorkoutSessionStore } from '@/stores/workout-session-store';
@@ -19,9 +18,6 @@ export function TrainingPanel({ onEditPlan }: TrainingPanelProps) {
   const active = useWorkoutSessionStore((s) => s.active);
   const startSession = useWorkoutSessionStore((s) => s.startSession);
   const [retainedSummary, setRetainedSummary] = useState<ActiveSession | null>(null);
-
-  const sessionActive = active?.phase === 'active';
-  useTrainingKeepAwake(Boolean(sessionActive));
 
   useEffect(() => {
     void flushWorkoutSyncQueue().catch(() => {

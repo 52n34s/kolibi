@@ -76,6 +76,7 @@ import {
 import { ensureWorkoutSyncListeners } from '@/lib/workouts/sync-queue-runtime';
 import { useAppDayRollover } from '@/hooks/use-app-day-rollover';
 import { useTouchUserActivity } from '@/hooks/use-touch-user-activity';
+import { useTrainingKeepAwake } from '@/hooks/use-training-keep-awake';
 
 // Lock before first paint — GlassView / UIKit follow this, not only ThemeProvider.
 Appearance.setColorScheme('light');
@@ -95,6 +96,7 @@ function navigateFromPushData(data: unknown) {
 function AppLifecycle({ userId }: { userId: string | null }) {
   useAppDayRollover(userId);
   useTouchUserActivity(userId);
+  useTrainingKeepAwake();
 
   useEffect(() => {
     ensureWorkoutSyncListeners();
