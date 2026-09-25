@@ -31,7 +31,7 @@ import {
   isTrainingDay,
 } from '@/lib/recommendations/recommendations';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
-import { recommendForMuscles } from '@/lib/workouts/muscle-recommendation';
+import { hasEnoughMuscleData, recommendForMuscles } from '@/lib/workouts/muscle-recommendation';
 import {
   countMuscleSets,
   muscleStatus,
@@ -208,6 +208,12 @@ export function useRecommendations(): {
     }
     const recentFrom = shiftLocalDateKey(todayKey, -MUSCLE_HINT_RECENT_DAYS);
     if (!sessions.some((session) => session.loggedOn >= recentFrom)) {
+      return [];
+    }
+    const sessionDays = sessions
+      .filter((session) => session.sets.length > 0)
+      .map((session) => session.loggedOn);
+    if (!hasEnoughMuscleData(sessionDays, todayKey)) {
       return [];
     }
     try {

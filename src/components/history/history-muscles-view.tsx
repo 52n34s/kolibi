@@ -19,6 +19,7 @@ import { rangeWindowKeys } from '@/lib/history-body-metrics';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import {
+  hasEnoughMuscleData,
   planUnitAdoption,
   recommendForMuscles,
   type MuscleRecommendation,
@@ -107,14 +108,20 @@ export function HistoryMusclesView({ todayKey, initialDays, goalType }: HistoryM
     const recentSets = sessions.flatMap((session) =>
       session.sets.map((set) => ({ exerciseId: set.exerciseId, completedAt: set.completedAt })),
     );
+    const sessionDays = sessions
+      .filter((session) => session.sets.length > 0)
+      .map((session) => session.loggedOn);
     return {
       rows: statusRows,
-      recommendations: recommendForMuscles(statusRows, {
-        units,
-        recentSets,
-        exercises,
-        equipment: readStoredPlanEquipment(userId),
-      }),
+      // After a single unit nearly every group is below target; wait for data.
+      recommendations: hasEnoughMuscleData(sessionDays, todayKey)
+        ? recommendForMuscles(statusRows, {
+            units,
+            recentSets,
+            exercises,
+            equipment: readStoredPlanEquipment(userId),
+          })
+        : [],
     };
   }, [setInputs, lookup, todayKey, units, days, target, sessions, exercises, userId]);
 

@@ -6,6 +6,7 @@ import {
   exerciseForMuscle,
   isDayBeforeSameMuscles,
   planUnitAdoption,
+  hasEnoughMuscleData,
   recommendForMuscles,
   unitSessionsPerWeek,
 } from './muscle-recommendation.ts';
@@ -180,6 +181,35 @@ describe('recommendForMuscles', () => {
     assert.equal(recs[0]!.group, 'chest');
     assert.equal(recs[0]!.setsToAdd, 4);
     assert.equal(recs[0]!.exercise.catalogSlug, 'archer_push_up');
+  });
+});
+
+describe('recommendForMuscles – largest gaps only', () => {
+  it('keeps the two largest gaps, largest first', () => {
+    const recs = recommendForMuscles(
+      [status('chest', 6), status('back', 1), status('quads', 4), status('shoulders', 9)],
+      { units: [], recentSets: [], exercises: CATALOG },
+    );
+    assert.deepEqual(
+      recs.map((rec) => [rec.group, rec.setsToAdd]),
+      [
+        ['back', 9],
+        ['quads', 6],
+      ],
+    );
+  });
+});
+
+describe('hasEnoughMuscleData', () => {
+  const today = '2026-09-25';
+  it('waits for three units or seven days of training data', () => {
+    assert.equal(hasEnoughMuscleData([], today), false);
+    assert.equal(hasEnoughMuscleData([today], today), false);
+    assert.equal(hasEnoughMuscleData(['2026-09-24', today], today), false);
+    assert.equal(hasEnoughMuscleData(['2026-09-23', '2026-09-24', today], today), true);
+    // First unit six days ago: day 7 of training data.
+    assert.equal(hasEnoughMuscleData(['2026-09-19'], today), true);
+    assert.equal(hasEnoughMuscleData(['2026-09-20'], today), false);
   });
 });
 

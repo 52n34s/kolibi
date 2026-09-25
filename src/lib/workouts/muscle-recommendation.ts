@@ -147,6 +147,35 @@ export function exerciseForMuscle(group: MuscleGroup, ctx: Context): Exercise | 
   return catalogFallback(group, ctx.exercises, ctx.equipment);
 }
 
+/** Muscle hints wait for this many units … */
+export const MUSCLE_HINT_MIN_SESSIONS = 3;
+/** … or for training data spanning this many days (first unit to today). */
+export const MUSCLE_HINT_MIN_DAYS = 7;
+/** Recommendations show the largest gaps only. */
+export const MUSCLE_RECOMMENDATIONS_MAX = 2;
+
+function dayIndex(key: string): number {
+  const [y, m, d] = key.split('-').map(Number);
+  return Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1) / 86_400_000;
+}
+
+/**
+ * Enough training data for muscle hints: after one unit nearly every group
+ * is below its weekly target, which says nothing yet. `sessionDays` holds the
+ * logged_on of each unit with at least one set.
+ */
+export function hasEnoughMuscleData(sessionDays: readonly string[], todayKey: string): boolean {
+  if (sessionDays.length >= MUSCLE_HINT_MIN_SESSIONS) {
+    return true;
+  }
+  if (sessionDays.length === 0) {
+    return false;
+  }
+  const first = sessionDays.reduce((min, day) => (day < min ? day : min));
+  return dayIndex(todayKey) - dayIndex(first) + 1 >= MUSCLE_HINT_MIN_DAYS;
+}
+
+/** Groups below target, largest gap first, at most MUSCLE_RECOMMENDATIONS_MAX. */
 export function recommendForMuscles(
   rows: readonly MuscleStatus[],
   ctx: Context,
@@ -168,7 +197,8 @@ export function recommendForMuscles(
       exercise,
     });
   }
-  return out;
+  // Stable sort: equal gaps keep the group order.
+  return out.sort((a, b) => b.setsToAdd - a.setsToAdd).slice(0, MUSCLE_RECOMMENDATIONS_MAX);
 }
 
 // ---------------------------------------------------------------------------
