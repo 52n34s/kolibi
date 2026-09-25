@@ -1,4 +1,4 @@
--- Release 1.4: which of the eleven migrations have run. Read-only.
+-- Release 1.4: which of the fifteen migrations have run. Read-only.
 -- One statement, one row per migration, so the SQL Editor shows everything
 -- in one result. Only catalog views (information_schema, pg_proc, pg_enum,
 -- pg_policies, pg_class) are read for the new objects, so the query also
@@ -112,5 +112,33 @@ from (
                   where table_schema = 'public' and table_name = 'profiles'
                     and column_name = 'usage_purpose'),
          'Spalte profiles.usage_purpose'
+
+  union all
+  select 12, '20260927100000_profiles_focus_areas',
+         exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name = 'profiles'
+                    and column_name = 'focus_areas'),
+         'Spalte profiles.focus_areas'
+
+  union all
+  select 13, '20260927101000_profiles_deload',
+         (select count(*) from information_schema.columns
+           where table_schema = 'public' and table_name = 'profiles'
+             and column_name in ('deload_until', 'deload_suggested_at')) = 2,
+         'Spalten profiles.deload_until und deload_suggested_at'
+
+  union all
+  select 14, '20260927102000_training_sessions_is_manual',
+         exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name = 'training_sessions'
+                    and column_name = 'is_manual'),
+         'Spalte training_sessions.is_manual'
+
+  union all
+  select 15, '20260927103000_daily_health_stats_sport_energy',
+         exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name = 'daily_health_stats'
+                    and column_name = 'sport_energy_kcal'),
+         'Spalte daily_health_stats.sport_energy_kcal'
 ) as checks
 order by nr;
