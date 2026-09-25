@@ -1799,5 +1799,25 @@
       "notEnough": "Para un sticker de progreso hacen falta al menos dos sesiones de este ejercicio.",
       "share": "Compartir progreso de {{name}}"
     }
+  },
+  "mealGroups": {
+    "slot": {
+      "breakfast": "Desayuno",
+      "lunch": "Comida",
+      "afternoonSnack": "Merienda",
+      "snack": "Tentempié",
+      "dinner": "Cena"
+    },
+    "meta": "{{time}} · {{kcal}} kcal · {{protein}} g de proteína",
+    "metaKcalOnly": "{{time}} · {{kcal}} kcal",
+    "entries_one": "{{count}} registro",
+    "entries_other": "{{count}} registros",
+    "showEntries": "Mostrar registros",
+    "hideEntries": "Ocultar registros",
+    "timingHint": {
+      "breakfast": "Por la mañana tomaste de media {{average}} g de proteína. Con {{from}}–{{to}} g más en el desayuno alcanzas tu objetivo más fácilmente.",
+      "lunch": "A mediodía tomaste de media {{average}} g de proteína. Con {{from}}–{{to}} g más en la comida alcanzas tu objetivo más fácilmente.",
+      "dinner": "Por la noche tomaste de media {{average}} g de proteína. Con {{from}}–{{to}} g más en la cena alcanzas tu objetivo más fácilmente."
+    }
   }
 }

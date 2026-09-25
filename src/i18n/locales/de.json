@@ -1799,5 +1799,25 @@
       "notEnough": "Für einen Fortschritts-Sticker braucht es mindestens zwei Einheiten dieser Übung.",
       "share": "Fortschritt bei {{name}} teilen"
     }
+  },
+  "mealGroups": {
+    "slot": {
+      "breakfast": "Frühstück",
+      "lunch": "Mittagessen",
+      "afternoonSnack": "Snack",
+      "snack": "Snack",
+      "dinner": "Abendessen"
+    },
+    "meta": "{{time}} · {{kcal}} kcal · {{protein}} g Protein",
+    "metaKcalOnly": "{{time}} · {{kcal}} kcal",
+    "entries_one": "{{count}} Eintrag",
+    "entries_other": "{{count}} Einträge",
+    "showEntries": "Einträge anzeigen",
+    "hideEntries": "Einträge ausblenden",
+    "timingHint": {
+      "breakfast": "Morgens hattest du im Schnitt {{average}} g Protein. Mit {{from}}–{{to}} g mehr zum Frühstück erreichst du dein Ziel leichter.",
+      "lunch": "Mittags hattest du im Schnitt {{average}} g Protein. Mit {{from}}–{{to}} g mehr zum Mittagessen erreichst du dein Ziel leichter.",
+      "dinner": "Abends hattest du im Schnitt {{average}} g Protein. Mit {{from}}–{{to}} g mehr zum Abendessen erreichst du dein Ziel leichter."
+    }
   }
 }
