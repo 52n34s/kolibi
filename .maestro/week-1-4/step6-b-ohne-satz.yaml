@@ -1,0 +1,28 @@
+# Schritt 6 · Beenden ohne Satz: nur Verwerfen und Weiter trainieren.
+appId: com.steffen.kolibi
+env:
+  SHOT: step6
+---
+# Voraussetzung: Training-Tab ist offen.
+- extendedWaitUntil:
+    visible:
+      id: "training.next.start"
+    timeout: 30000
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.active.finish"
+    timeout: 15000
+- tapOn:
+    id: "training.active.finish"
+- extendedWaitUntil:
+    visible: "Gespeichert wird ab dem ersten Satz."
+    timeout: 5000
+- assertNotVisible: "Speichern"
+- takeScreenshot: ${SHOT}/03-beenden-ohne-satz
+- tapOn: "Verwerfen"
+- extendedWaitUntil:
+    visible:
+      id: "training.next.start"
+    timeout: 15000

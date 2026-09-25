@@ -1,0 +1,32 @@
+# Schritt 6 · Einheit beenden: zwei Sätze, Beenden → Speichern, Intensität,
+# "Fertig" doppelt getippt (die Phantom-Zeile entstand genau so).
+appId: com.steffen.kolibi
+env:
+  SHOT: step6
+---
+# Startet die nächste Einheit im Training-Tab (der Tab ist schon offen).
+- extendedWaitUntil:
+    visible:
+      id: "training.next.start"
+    timeout: 30000
+- tapOn:
+    id: "training.next.start"
+- runFlow: common/set-done.yaml
+- runFlow: common/set-done.yaml
+- tapOn:
+    id: "training.active.finish"
+- tapOn: "Speichern"
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.intensity.normal"
+    timeout: 15000
+- tapOn:
+    id: "training.summary.intensity.normal"
+- takeScreenshot: ${SHOT}/01-zusammenfassung
+- tapOn:
+    id: "training.summary.done"
+    repeat: 2
+    delay: 60
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/02-nach-fertig
