@@ -5,6 +5,7 @@ import {
   unitMuscleProfile,
   type MuscleGroup,
 } from './muscles';
+import { getPlanCatalogEntry, hasPlanEquipment, type PlanEquipment } from './plan-catalog';
 import type { Exercise, WorkoutTemplate } from './types';
 import type { SaveTemplateInput } from './workouts-api';
 
@@ -36,6 +37,11 @@ type Context = {
   recentSets: readonly RecentSet[];
   /** Catalog + own exercises (fetchExercises). */
   exercises: readonly Exercise[];
+  /**
+   * Gear from the plan wizard, when the user answered it. The catalog
+   * fallback then only suggests exercises that gear allows.
+   */
+  equipment?: readonly PlanEquipment[] | null;
 };
 
 function sortedUnitExercises(units: readonly WorkoutTemplate[]): Exercise[] {
@@ -86,12 +92,25 @@ export function currentRungs(ctx: Context): Map<string, Exercise> {
 
 const CATALOG_ORDER = Object.keys(CATALOG_MUSCLES);
 
-function catalogFallback(group: MuscleGroup, exercises: readonly Exercise[]): Exercise | null {
+function allowedByEquipment(exercise: Exercise, equipment: readonly PlanEquipment[] | null | undefined) {
+  if (equipment == null || exercise.catalogSlug == null) {
+    return true;
+  }
+  const entry = getPlanCatalogEntry(exercise.catalogSlug);
+  return entry == null || hasPlanEquipment(entry, equipment);
+}
+
+function catalogFallback(
+  group: MuscleGroup,
+  exercises: readonly Exercise[],
+  equipment?: readonly PlanEquipment[] | null,
+): Exercise | null {
   const candidates = exercises.filter(
     (exercise) =>
       exercise.catalogSlug != null &&
       exercise.archivedAt == null &&
-      musclesForExercise(exercise).primary.includes(group),
+      musclesForExercise(exercise).primary.includes(group) &&
+      allowedByEquipment(exercise, equipment),
   );
   candidates.sort((a, b) => {
     const kindA = a.kind === 'time' ? 1 : 0;
@@ -125,7 +144,7 @@ export function exerciseForMuscle(group: MuscleGroup, ctx: Context): Exercise | 
       return resolve(rung);
     }
   }
-  return catalogFallback(group, ctx.exercises);
+  return catalogFallback(group, ctx.exercises, ctx.equipment);
 }
 
 export function recommendForMuscles(
@@ -156,7 +175,10 @@ export function recommendForMuscles(
 // "In Einheit übernehmen"
 // ---------------------------------------------------------------------------
 
-export const MAX_TARGET_SETS = 20;
+/** One exercise in one unit stays at or below this many sets. */
+export const MAX_TARGET_SETS = 6;
+/** One adoption adds at most this many sets per session; the rest follows next weeks. */
+export const MAX_ADDED_SETS_PER_SESSION = 2;
 
 export type UnitAdoption = {
   unit: WorkoutTemplate;
@@ -192,6 +214,20 @@ export function isDayBeforeSameMuscles(
   );
 }
 
+/** How often a unit runs per week: its weekdays, else the weekly goal over the rotating units. */
+export function unitSessionsPerWeek(
+  unit: Pick<WorkoutTemplate, 'weekdays'>,
+  unitCount: number,
+  sessionsPerWeek: number | null | undefined,
+): number {
+  if (unit.weekdays.length > 0) {
+    return unit.weekdays.length;
+  }
+  const units = Math.max(1, unitCount);
+  const goal = sessionsPerWeek != null && sessionsPerWeek > 0 ? sessionsPerWeek : units;
+  return Math.max(1, Math.round(goal / units));
+}
+
 function totalSets(unit: WorkoutTemplate): number {
   return unit.exercises.reduce((sum, item) => sum + item.targetSets, 0);
 }
@@ -200,17 +236,20 @@ function totalSets(unit: WorkoutTemplate): number {
  * Picks the unit for a recommendation and builds the save input.
  *
  * Candidates: every active unit that is not the day before a unit with the
- * same group and still has room (≤ 20 sets per exercise).
+ * same group and still has room (≤ MAX_TARGET_SETS sets per exercise).
  * Order: best match (share of the unit's weighted sets on the group, one
  * decimal), then fewest target sets, then position.
- * Sets per session = weekly sets ÷ sessions per week (weekdays, at least 1),
- * rounded up. A unit that already holds a rung of the same ladder gets the
+ * Sets per session = weekly sets ÷ how often the unit runs per week, rounded
+ * up and capped at MAX_ADDED_SETS_PER_SESSION. How often: its weekdays, or in
+ * a rotating plan the weekly training goal spread over the active units. A unit that already holds a rung of the same ladder gets the
  * extra sets on that rung instead of a second rung.
  */
 export function planUnitAdoption(params: {
   recommendation: Pick<MuscleRecommendation, 'group' | 'setsToAdd' | 'exercise'>;
   units: readonly WorkoutTemplate[];
   lookup?: (exerciseId: string) => Exercise | undefined;
+  /** profiles.training_sessions_per_week; rotating plans use it to spread the sets. */
+  sessionsPerWeek?: number | null;
 }): UnitAdoption | null {
   const { recommendation, units, lookup } = params;
   const { group, exercise } = recommendation;
@@ -242,8 +281,11 @@ export function planUnitAdoption(params: {
   }
 
   const unit = best.unit;
-  const sessionsPerWeek = Math.max(1, unit.weekdays.length);
-  const perSession = Math.max(1, Math.ceil(recommendation.setsToAdd / sessionsPerWeek));
+  const timesPerWeek = unitSessionsPerWeek(unit, units.length, params.sessionsPerWeek);
+  const perSession = Math.min(
+    MAX_ADDED_SETS_PER_SESSION,
+    Math.max(1, Math.ceil(recommendation.setsToAdd / timesPerWeek)),
+  );
   const existing = findTarget(unit, exercise, group);
   const ordered = [...unit.exercises].sort((a, b) => a.position - b.position);
   const exercises = ordered.map((item) => ({

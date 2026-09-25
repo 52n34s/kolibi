@@ -4,6 +4,7 @@ import { createMMKV } from 'react-native-mmkv';
 import { isMissingSchemaError } from '@/lib/missing-schema';
 import { supabase } from '@/lib/supabase';
 import type { PlanWizardAnswers } from '@/lib/workouts/plan-builder';
+import type { PlanEquipment } from '@/lib/workouts/plan-catalog';
 import {
   initialPlanWizardAnswers,
   parseStoredPlanWizardAnswers,
@@ -20,6 +21,15 @@ function readLocal(userId: string): unknown {
   } catch {
     return null;
   }
+}
+
+/** Gear from the last wizard run on this device, or null when it never ran here. */
+export function readStoredPlanEquipment(userId: string | null | undefined): PlanEquipment[] | null {
+  if (!userId) {
+    return null;
+  }
+  const parsed = parseStoredPlanWizardAnswers(readLocal(userId));
+  return parsed?.equipment ? [...parsed.equipment] : null;
 }
 
 /**

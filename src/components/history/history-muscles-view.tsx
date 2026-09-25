@@ -11,6 +11,7 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 import { useExercises } from '@/hooks/use-exercises';
+import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { useRequirePlan } from '@/hooks/use-require-plan';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
@@ -32,6 +33,7 @@ import {
   type MuscleWindowDays,
 } from '@/lib/workouts/muscle-volume';
 import { unitMuscleProfile } from '@/lib/workouts/muscles';
+import { readStoredPlanEquipment } from '@/lib/workouts/plan-wizard-storage';
 import { saveTemplate } from '@/lib/workouts/workouts-api';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -54,6 +56,8 @@ export function HistoryMusclesView({ todayKey, initialDays, goalType }: HistoryM
   const requirePlan = useRequirePlan();
   const queryClient = useQueryClient();
   const userId = useAuthStore((state) => state.session?.user?.id);
+  const { data: profileSettings } = useProfileSettings(userId);
+  const sessionsPerWeek = profileSettings?.profile?.training_sessions_per_week ?? null;
   const [days, setDays] = useState<MuscleWindowDays>(initialDays);
   const [savingGroup, setSavingGroup] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -105,9 +109,14 @@ export function HistoryMusclesView({ todayKey, initialDays, goalType }: HistoryM
     );
     return {
       rows: statusRows,
-      recommendations: recommendForMuscles(statusRows, { units, recentSets, exercises }),
+      recommendations: recommendForMuscles(statusRows, {
+        units,
+        recentSets,
+        exercises,
+        equipment: readStoredPlanEquipment(userId),
+      }),
     };
-  }, [setInputs, lookup, todayKey, units, days, target, sessions, exercises]);
+  }, [setInputs, lookup, todayKey, units, days, target, sessions, exercises, userId]);
 
   const maxValue = Math.max(target * 1.5, ...rows.map((row) => row.sets));
 
@@ -116,7 +125,7 @@ export function HistoryMusclesView({ todayKey, initialDays, goalType }: HistoryM
   }
 
   function adopt(rec: MuscleRecommendation) {
-    const plan = planUnitAdoption({ recommendation: rec, units, lookup });
+    const plan = planUnitAdoption({ recommendation: rec, units, lookup, sessionsPerWeek });
     if (!plan) {
       return;
     }
@@ -238,7 +247,7 @@ export function HistoryMusclesView({ todayKey, initialDays, goalType }: HistoryM
               {recommendations.map((rec) => {
                 const canAdopt =
                   !adoptedGroups.has(rec.group) &&
-                  planUnitAdoption({ recommendation: rec, units, lookup }) != null;
+                  planUnitAdoption({ recommendation: rec, units, lookup, sessionsPerWeek }) != null;
                 return (
                   <View key={rec.group} className="py-3">
                     <Text className="text-sm text-gray-900">

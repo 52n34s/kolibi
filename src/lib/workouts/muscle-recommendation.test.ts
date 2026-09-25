@@ -7,6 +7,7 @@ import {
   isDayBeforeSameMuscles,
   planUnitAdoption,
   recommendForMuscles,
+  unitSessionsPerWeek,
 } from './muscle-recommendation.ts';
 import type { MuscleStatus } from './muscle-volume.ts';
 import type { Exercise, TemplateExercise, WorkoutTemplate } from './types.ts';
@@ -155,6 +156,19 @@ describe('exerciseForMuscle', () => {
   });
 });
 
+describe('exerciseForMuscle with gear from the plan wizard', () => {
+  it('suggests only exercises the gear allows', () => {
+    const ctx = { units: [], recentSets: [], exercises: CATALOG };
+    assert.equal(exerciseForMuscle('back', ctx)?.catalogSlug, 'inverted_row_bent_knees');
+    const noGear = exerciseForMuscle('back', { ...ctx, equipment: [] });
+    assert.notEqual(noGear?.catalogSlug, 'inverted_row_bent_knees');
+    assert.equal(
+      exerciseForMuscle('back', { ...ctx, equipment: ['bar'] })?.catalogSlug,
+      'inverted_row_bent_knees',
+    );
+  });
+});
+
 describe('recommendForMuscles', () => {
   it('recommends the missing sets for every group below target', () => {
     const units = [unit('push', 0, [], [te('archer_push_up', 0, 3)])];
@@ -253,11 +267,39 @@ describe('planUnitAdoption', () => {
     assert.equal(plan?.unit.id, 'tue');
   });
 
+  // Plans from the wizard have no weekdays: the week's gap used to land in one
+  // exercise at once ("from 2 to 12 sets").
+  it('adds at most two sets per session in a rotating plan', () => {
+    const a = unit('a', 0, [], [te('push_up', 0, 2)]);
+    const b = unit('b', 1, [], [te('box_squat', 0, 2)]);
+    const plan = planUnitAdoption({
+      recommendation: { ...rec, setsToAdd: 10 },
+      units: [a, b],
+      sessionsPerWeek: 2,
+    });
+    assert.equal(plan?.unit.id, 'a');
+    assert.equal(plan?.fromSets, 2);
+    assert.equal(plan?.toSets, 4);
+  });
+
+  it('spreads the weekly gap over the weekly goal in a rotating plan', () => {
+    assert.equal(unitSessionsPerWeek({ weekdays: [] }, 2, 4), 2);
+    assert.equal(unitSessionsPerWeek({ weekdays: [] }, 2, null), 1);
+    assert.equal(unitSessionsPerWeek({ weekdays: [1, 3, 5] }, 2, 4), 3);
+    const a = unit('a', 0, [], [te('push_up', 0, 3)]);
+    const plan = planUnitAdoption({
+      recommendation: { ...rec, setsToAdd: 2 },
+      units: [a, unit('b', 1, [], [te('box_squat', 0, 3)])],
+      sessionsPerWeek: 4,
+    });
+    assert.equal(plan?.toSets, 4);
+  });
+
   it('returns null when no unit qualifies', () => {
     const daily = unit('daily', 0, [1, 2, 3, 4, 5, 6, 7], [te('push_up', 0, 3)]);
     assert.equal(planUnitAdoption({ recommendation: rec, units: [daily] }), null);
     assert.equal(planUnitAdoption({ recommendation: rec, units: [] }), null);
-    const full = unit('full', 0, [], [te('archer_push_up', 0, 20)]);
+    const full = unit('full', 0, [], [te('archer_push_up', 0, 6)]);
     assert.equal(planUnitAdoption({ recommendation: rec, units: [full] }), null);
   });
 });

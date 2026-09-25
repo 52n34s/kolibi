@@ -42,6 +42,7 @@ import { unitMuscleProfile } from '@/lib/workouts/muscles';
 import { isAscentKind } from '@/lib/workouts/progression-ui';
 import { pickNextTemplateForReadiness } from '@/lib/workouts/progression-readiness';
 import { resolveTrainingTabEnabled } from '@/lib/workouts/training-release';
+import { readStoredPlanEquipment } from '@/lib/workouts/plan-wizard-storage';
 import { useAuthStore } from '@/stores/auth-store';
 
 /** Same window as TrainingIdleView and useReadiness, so the sessions query is shared. */
@@ -225,7 +226,12 @@ export function useRecommendations(): {
       const recentSets = sessions.flatMap((session) =>
         session.sets.map((set) => ({ exerciseId: set.exerciseId, completedAt: set.completedAt })),
       );
-      return recommendForMuscles(rows, { units: templates, recentSets, exercises }).map((rec) => ({
+      return recommendForMuscles(rows, {
+        units: templates,
+        recentSets,
+        exercises,
+        equipment: readStoredPlanEquipment(userId),
+      }).map((rec) => ({
         group: rec.group,
         groupName: t(`muscles.groups.${rec.group}`),
         setsToAdd: rec.setsToAdd,
