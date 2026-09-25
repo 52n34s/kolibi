@@ -4,8 +4,11 @@ import { describe, it } from 'node:test';
 import {
   dayDifference,
   finishedAtFromDuration,
+  sessionDurationFromTimestamps,
   shiftTimestampToDate,
 } from './session-detail-utils.ts';
+import { SESSION_DURATION_MAX_MINUTES } from './session-logic.ts';
+import type { WorkoutSession } from './types.ts';
 
 describe('dayDifference', () => {
   it('counts whole days in both directions', () => {
@@ -75,5 +78,23 @@ describe('shiftTimestampToDate', () => {
       Date.parse(movedFinish) - Date.parse(movedStart),
       Date.parse(finishedAt) - Date.parse(startedAt),
     );
+  });
+});
+
+describe('sessionDurationFromTimestamps', () => {
+  const session = (minutes: number) =>
+    ({
+      startedAt: '2026-09-22T09:00:00.000Z',
+      finishedAt: new Date(Date.parse('2026-09-22T09:00:00.000Z') + minutes * 60_000).toISOString(),
+    }) as WorkoutSession;
+
+  it('reads the stored minutes', () => {
+    assert.equal(sessionDurationFromTimestamps(session(12)), 12);
+  });
+
+  // Week test: a 12 min session left on the summary was stored with 593 min.
+  // List, detail and export all show the same capped value.
+  it(`caps an old overlong session at ${SESSION_DURATION_MAX_MINUTES} min`, () => {
+    assert.equal(sessionDurationFromTimestamps(session(593)), SESSION_DURATION_MAX_MINUTES);
   });
 });
