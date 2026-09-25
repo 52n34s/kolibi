@@ -27,7 +27,8 @@ import {
 import { allSetsHitUpperBound } from '@/lib/workouts/format-target';
 import { applyProgression } from '@/lib/workouts/apply-progression';
 import { suggestGymIntensityFromSetPace } from '@/lib/workouts/intensity-pace';
-import { activeItemToHistoryUnit } from '@/lib/workouts/progression-history';
+import { activeItemToHistoryUnit, withoutSession } from '@/lib/workouts/progression-history';
+import { newSessionBest } from '@/lib/workouts/session-bests';
 import { suggestProgression, type ProgressionSuggestion } from '@/lib/workouts/progression';
 import {
   isAscentKind,
@@ -42,7 +43,6 @@ import type {
   Exercise,
   GymIntensity,
   ProgressionEvent,
-  SessionSet,
 } from '@/lib/workouts/types';
 import {
   fetchExerciseById,
@@ -78,27 +78,6 @@ type SuggestionRow = {
   suggestion: ProgressionSuggestion;
   toName: string | null;
 };
-
-function bestPriorValue(history: SessionSet[], kind: 'reps' | 'weighted' | 'time'): number | null {
-  let best: number | null = null;
-  for (const set of history) {
-    const value = kind === 'time' ? set.seconds : set.reps;
-    if (value == null || !Number.isFinite(value)) {
-      continue;
-    }
-    if (best == null || value > best) {
-      best = value;
-    }
-  }
-  return best;
-}
-
-function bestSessionValue(values: number[]): number | null {
-  if (values.length === 0) {
-    return null;
-  }
-  return Math.max(...values);
-}
 
 export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewProps) {
   const { t, i18n } = useTranslation();
@@ -266,7 +245,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       }
       const ladder =
         exercise.ladderKey != null ? (laddersByKey.get(exercise.ladderKey) ?? []) : [];
-      const past = historyUnitQueries[index]?.data ?? [];
+      const past = withoutSession(historyUnitQueries[index]?.data ?? [], session.sessionId);
       const currentUnit = activeItemToHistoryUnit(
         item,
         session.sessionId,
@@ -330,7 +309,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       if (!exercise?.ladderStep || !exercise.ladderKey) {
         return;
       }
-      const past = historyUnitQueries[index]?.data ?? [];
+      const past = withoutSession(historyUnitQueries[index]?.data ?? [], session.sessionId);
       if (past.length > 0) {
         return;
       }
@@ -350,18 +329,18 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       );
     });
     return hints;
-  }, [session.items, exerciseQueries, historyUnitQueries, allEvents, t]);
+  }, [session.items, session.sessionId, exerciseQueries, historyUnitQueries, allEvents, t]);
 
   const prs = useMemo(() => {
     const rows: { name: string; value: string }[] = [];
     session.items.forEach((item, index) => {
-      const values = doneSetValues(item);
-      const sessionBest = bestSessionValue(values);
+      const sessionBest = newSessionBest({
+        values: doneSetValues(item),
+        history: historyQueries[index]?.data ?? [],
+        kind: item.kind,
+        sessionId: session.sessionId,
+      });
       if (sessionBest == null) {
-        return;
-      }
-      const prior = bestPriorValue(historyQueries[index]?.data ?? [], item.kind);
-      if (prior != null && sessionBest <= prior) {
         return;
       }
       rows.push({
@@ -370,7 +349,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       });
     });
     return rows;
-  }, [historyQueries, session.items, i18n.language]);
+  }, [historyQueries, session.items, session.sessionId, i18n.language]);
 
   const adoptCandidates = useMemo(
     () =>
