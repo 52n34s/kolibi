@@ -1,0 +1,33 @@
+# Share sheet (iOS modal, content missing from Maestro's hierarchy): tap by
+# point. Hell, Dunkel, "Als Bild sichern" (+ Photos permission), "Kopieren".
+# Screenshots go to ${SHOT}/${PREFIX}-*.
+appId: com.steffen.kolibi
+---
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    point: "24%,62%"
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/${PREFIX}-hell
+- tapOn:
+    point: "59%,62%"
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/${PREFIX}-dunkel
+- tapOn:
+    point: "17%,76%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/${PREFIX}-sichern
+- tapOn:
+    text: "(Zugriff auf alle Fotos erlauben|Allow Full Access|Nur Hinzufügen erlauben|Hinzufügen erlauben|Erlauben|Allow|OK)"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/${PREFIX}-gesichert
+- tapOn:
+    point: "41%,76%"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/${PREFIX}-kopiert

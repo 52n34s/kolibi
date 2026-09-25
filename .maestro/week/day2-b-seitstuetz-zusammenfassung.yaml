@@ -1,0 +1,58 @@
+# TAG 2b · Seitstütz (Zeit pro Seite), Zusammenfassung, Übungs-Sticker.
+# Setzt die laufende Einheit aus day2-a fort.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag2
+---
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.done|training.hold.start"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: ".*Satz 1/2.*"
+    commands:
+      - runFlow:
+          file: common/hold-both-sides.yaml
+          env:
+            LEFT: "00:30"
+            RIGHT: "00:32"
+      - takeScreenshot: ${SHOT}/11-seitstuetz-satz1
+- runFlow:
+    when:
+      visible: ".*Satz 2/2.*"
+    commands:
+      - runFlow:
+          file: common/hold-both-sides.yaml
+          env:
+            LEFT: "00:28"
+            RIGHT: "00:30"
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.done"
+    timeout: 25000
+- takeScreenshot: ${SHOT}/12-zusammenfassung
+- tapOn:
+    id: "training.summary.intensity.normal"
+    optional: true
+- scrollUntilVisible:
+    element:
+      id: "training.summary.shareExercise.0"
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+    optional: true
+- takeScreenshot: ${SHOT}/13-zusammenfassung-uebungen
+- assertVisible: ".*Zum ersten Mal.*"
+- tapOn:
+    id: "training.summary.shareExercise.0"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/14-sticker-uebung
+- runFlow:
+    file: common/share-sheet.yaml
+    env:
+      PREFIX: "15-uebung"

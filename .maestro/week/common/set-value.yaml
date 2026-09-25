@@ -1,0 +1,35 @@
+# Enter VALUE directly for the current set, mark it done, skip the rest.
+appId: com.steffen.kolibi
+---
+- extendedWaitUntil:
+    visible:
+      id: "training.input.value"
+    timeout: 25000
+- tapOn:
+    id: "training.input.value"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.valueInput"
+    timeout: 8000
+- eraseText
+- inputText: ${VALUE}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: "training.input.value"
+      text: ${VALUE}
+    timeout: 8000
+- tapOn:
+    id: "training.input.done"
+- waitForAnimationToEnd:
+    timeout: 1500
+- runFlow:
+    when:
+      visible:
+        id: "training.timerBar.skip"
+    commands:
+      - tapOn:
+          id: "training.timerBar.skip"
+      - waitForAnimationToEnd:
+          timeout: 1500
+- runFlow: ../../training/common/allow-notifications.yaml

@@ -1,0 +1,123 @@
+# TAG 1b · Training tab empty state → own unit "Push" with four catalog
+# exercises and the user's targets.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag1
+---
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: ${SHOT}/10-training-leer
+- swipe:
+    start: "50%,75%"
+    end: "50%,25%"
+    duration: 800
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/11-training-leer-eigener-plan
+- tapOn:
+    id: "training.starter.custom"
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.name"
+    timeout: 20000
+- takeScreenshot: ${SHOT}/12-neue-einheit
+- tapOn:
+    id: "training.templateEdit.name"
+- inputText: "Push"
+- tapOn:
+    id: "training.templateEdit.shortLabel"
+- eraseText: 3
+- inputText: "P"
+- pressKey: Enter
+- tapOn:
+    id: "training.templateEdit.addExercises"
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.search"
+    timeout: 20000
+- takeScreenshot: ${SHOT}/13-katalog
+- runFlow:
+    file: common/catalog-pick.yaml
+    env:
+      NAME: "Liegestütze"
+      SLUG: "push_up"
+- runFlow:
+    file: common/catalog-pick.yaml
+    env:
+      NAME: "Barren-Dips"
+      SLUG: "parallel_bar_dip"
+- runFlow:
+    file: common/catalog-pick.yaml
+    env:
+      NAME: "Pike Push-ups"
+      SLUG: "pike_push_up"
+- runFlow:
+    file: common/catalog-pick.yaml
+    env:
+      NAME: "Hollow Hold"
+      SLUG: "hollow_hold"
+- takeScreenshot: ${SHOT}/14-katalog-auswahl
+- tapOn:
+    id: "training.catalog.confirmSelection"
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.exercise.0.sets"
+    timeout: 20000
+- takeScreenshot: ${SHOT}/15-einheit-mit-uebungen
+# Targets: Liegestütze 3 × 8–12, Barren-Dips 3 × 7–10, Pike 3 × 6–10, Hollow Hold 2 × 20–30 s
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.0.max"
+      VALUE: "12"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.1.min"
+      VALUE: "7"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.1.max"
+      VALUE: "10"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.2.min"
+      VALUE: "6"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.2.max"
+      VALUE: "10"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.3.sets"
+      VALUE: "2"
+- takeScreenshot: ${SHOT}/16-push-zielwerte
+# Weekdays Mo / Do / Sa
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "50%,35%"
+          end: "50%,85%"
+          duration: 500
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: "training.templateEdit.weekday.1"
+- tapOn:
+    id: "training.templateEdit.weekday.4"
+- tapOn:
+    id: "training.templateEdit.weekday.6"
+- takeScreenshot: ${SHOT}/19-push-wochentage
+- tapOn:
+    id: "training.templateEdit.save"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: ${SHOT}/20-nach-speichern

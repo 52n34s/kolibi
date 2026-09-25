@@ -1,0 +1,204 @@
+# TAG 2a · Second unit "Pull & Legs" and the first workout.
+# Klimmzüge 3 × 3–8, Barren-Rudern 3 × 8–12, Bulgarian Split Squats 3 × 8–12
+# pro Seite, Seitstütz 2 × 20–40 s pro Seite. Tue/Fri.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag2
+---
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+- tapOn:
+    id: "training.idle.newWorkout"
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.name"
+    timeout: 20000
+- tapOn:
+    id: "training.templateEdit.name"
+- inputText: "Pull & Legs"
+- tapOn:
+    id: "training.templateEdit.shortLabel"
+- eraseText: 3
+- inputText: "PL"
+- pressKey: Enter
+- tapOn:
+    id: "training.templateEdit.color.teal"
+    optional: true
+- tapOn:
+    id: "training.templateEdit.weekday.2"
+- tapOn:
+    id: "training.templateEdit.weekday.5"
+- tapOn:
+    id: "training.templateEdit.addExercises"
+- extendedWaitUntil:
+    visible:
+      id: "training.catalog.search"
+    timeout: 20000
+- runFlow:
+    file: common/catalog-pick.yaml
+    env:
+      NAME: "Klimmzüge"
+      SLUG: "pull_up"
+- runFlow:
+    file: common/catalog-pick.yaml
+    env:
+      NAME: "Barren-Rudern"
+      SLUG: "inverted_row"
+- runFlow:
+    file: common/catalog-pick.yaml
+    env:
+      NAME: "Bulgarian"
+      SLUG: "bulgarian_split_squat"
+- runFlow:
+    file: common/catalog-pick.yaml
+    env:
+      NAME: "Seitstütz"
+      SLUG: "side_plank"
+- tapOn:
+    id: "training.catalog.confirmSelection"
+- extendedWaitUntil:
+    visible:
+      id: "training.templateEdit.exercise.0.sets"
+    timeout: 20000
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.0.min"
+      VALUE: "3"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.0.max"
+      VALUE: "8"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.1.min"
+      VALUE: "8"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.1.max"
+      VALUE: "12"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.2.min"
+      VALUE: "8"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.2.max"
+      VALUE: "12"
+- runFlow:
+    file: common/stepper-to.yaml
+    env:
+      ID: "training.templateEdit.exercise.3.sets"
+      VALUE: "2"
+- takeScreenshot: ${SHOT}/01-pull-legs-zielwerte
+- tapOn:
+    id: "training.templateEdit.save"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: ${SHOT}/02-plan-zwei-einheiten
+# --- Start Pull & Legs -------------------------------------------------------
+- scrollUntilVisible:
+    element:
+      id: "training.template.PL.start"
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: "training.template.PL.start"
+    commands:
+      - tapOn:
+          id: "training.template.PL.start"
+- runFlow:
+    when:
+      notVisible:
+        id: "training.input.done"
+    commands:
+      - tapOn:
+          id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+- takeScreenshot: ${SHOT}/03-einheit-gestartet
+# Klimmzüge set 1 (6), then the rest timer: +30, pause, resume, skip
+- tapOn:
+    id: "training.input.value"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.valueInput"
+    timeout: 8000
+- eraseText
+- inputText: "6"
+- pressKey: Enter
+- tapOn:
+    id: "training.input.done"
+- runFlow: ../training/common/allow-notifications.yaml
+- extendedWaitUntil:
+    visible:
+      id: "training.timerBar.time"
+    timeout: 10000
+- takeScreenshot: ${SHOT}/04-pause-laeuft
+- tapOn:
+    id: "training.timerBar.plus30"
+- takeScreenshot: ${SHOT}/05-pause-plus30
+- tapOn:
+    id: "training.timerBar.pause"
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/06-pause-angehalten
+- tapOn:
+    id: "training.timerBar.resume"
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/07-pause-weiter
+- tapOn:
+    id: "training.timerBar.skip"
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/08-pause-uebersprungen
+- runFlow:
+    file: common/set-value.yaml
+    env:
+      VALUE: "5"
+- runFlow:
+    file: common/set-value.yaml
+    env:
+      VALUE: "5"
+- runFlow:
+    file: common/set-value.yaml
+    env:
+      VALUE: "10"
+- runFlow:
+    file: common/set-value.yaml
+    env:
+      VALUE: "9"
+- runFlow:
+    file: common/set-value.yaml
+    env:
+      VALUE: "9"
+- takeScreenshot: ${SHOT}/09-bulgarian-pro-seite
+- runFlow:
+    file: common/set-value.yaml
+    env:
+      VALUE: "10"
+- runFlow:
+    file: common/set-value.yaml
+    env:
+      VALUE: "10"
+- runFlow:
+    file: common/set-value.yaml
+    env:
+      VALUE: "9"
+- takeScreenshot: ${SHOT}/10-seitstuetz
+# continues in day2-b-seitstuetz-zusammenfassung.yaml

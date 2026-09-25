@@ -1,0 +1,40 @@
+# One timed set per side: hold to LEFT, switch, hold to RIGHT, then done.
+appId: com.steffen.kolibi
+---
+# The rest bar covers the hold timer's Start button; skip the rest first.
+- runFlow:
+    when:
+      visible:
+        id: "training.timerBar.skip"
+    commands:
+      - tapOn:
+          id: "training.timerBar.skip"
+      - waitForAnimationToEnd:
+          timeout: 1500
+- tapOn:
+    id: "training.hold.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: ${LEFT}
+    timeout: 60000
+- tapOn:
+    id: "training.hold.stop"
+- tapOn:
+    id: "training.hold.switchSide"
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: "training.hold.start"
+    commands:
+      - tapOn:
+          id: "training.hold.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: ${RIGHT}
+    timeout: 60000
+- tapOn:
+    id: "training.hold.stop"
+- runFlow: ../../training/common/set-done.yaml

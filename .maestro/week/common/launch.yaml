@@ -1,0 +1,26 @@
+# Relaunch without clearing state. Closes the dev menu and the dev-build
+# RevenueCat toast (invalid local key), which both swallow taps.
+appId: com.steffen.kolibi
+---
+- launchApp:
+    clearState: false
+    clearKeychain: false
+- runFlow: confirm-open.yaml
+- waitForAnimationToEnd:
+    timeout: 8000
+- runFlow:
+    when:
+      visible: "Reload"
+    commands:
+      - tapOn:
+          point: "90%,48%"
+      - waitForAnimationToEnd:
+          timeout: 2000
+- runFlow:
+    when:
+      visible: ".*RevenueCat.*"
+    commands:
+      - tapOn:
+          point: "96%,94%"
+      - waitForAnimationToEnd:
+          timeout: 2000

@@ -1,0 +1,100 @@
+# TAG 1a · Onboarding (fresh anonymous user): vegan, male, ~30, 180 cm, 86 kg,
+# lightly active, muscle gain, metric.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag1
+---
+- runFlow: common/launch.yaml
+- extendedWaitUntil:
+    visible: "Wie ernährst du dich?"
+    timeout: 90000
+- takeScreenshot: ${SHOT}/01-onboarding-ernaehrung
+- tapOn: ".*Vegan.*"
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Was ist dein biologisches Geschlecht?"
+    timeout: 10000
+- tapOn: ".*Männlich.*"
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Wann bist du geboren?"
+    timeout: 10000
+# Picker opened and closed without turning it: does the shown date count?
+- tapOn: "Geburtsdatum wählen"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/02-geburtsdatum-picker
+- tapOn: "Fertig"
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn: "Weiter"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/03-geburtsdatum-ohne-drehen
+# Now turn the year wheel so the picker reports a date.
+- runFlow:
+    when:
+      visible: "Wann bist du geboren?"
+    commands:
+      - tapOn: "Geburtsdatum wählen"
+      - waitForAnimationToEnd:
+          timeout: 3000
+      # Year wheel down to roughly 30 years ago (~5 rows).
+      - repeat:
+          times: 3
+          commands:
+            - swipe:
+                start: "80%,80%"
+                end: "80%,88%"
+                duration: 500
+            - waitForAnimationToEnd:
+                timeout: 1500
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - takeScreenshot: ${SHOT}/04-geburtsdatum-gedreht
+      - tapOn: "Fertig"
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Wie groß bist du?"
+    timeout: 10000
+- tapOn: "Größe (cm)"
+- inputText: "180"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Wie viel wiegst du aktuell?"
+    timeout: 10000
+- tapOn: "Gewicht (kg)"
+- inputText: "86"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/05-gewicht
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Wie aktiv bist du?"
+    timeout: 10000
+- tapOn: ".*Leicht aktiv.*"
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Was ist dein Ziel?"
+    timeout: 10000
+- tapOn: ".*Muskelaufbau.*"
+- takeScreenshot: ${SHOT}/06-ziel
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Dein Tagesziel"
+    timeout: 10000
+- takeScreenshot: ${SHOT}/07-zusammenfassung
+- tapOn: "Loslegen"
+- extendedWaitUntil:
+    visible:
+      id: "home.tab.today"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: ${SHOT}/08-heute-nach-onboarding

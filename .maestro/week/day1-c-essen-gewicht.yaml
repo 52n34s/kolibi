@@ -1,0 +1,66 @@
+# TAG 1c · Essen and weight for the fresh anonymous user.
+# - "Manuell" leads an anonymous user to signup (documented, no entry made).
+# - Photo scan from the gallery: the iOS picker opens with a delay; the
+#   simulator only has Apple's sample photos (simctl addmedia hangs on
+#   Xcode 27 / iOS 26.5), so the scan returns "Nichts erkannt".
+# - Weight 86,4 kg. The scan and weight sheets are iOS modals whose content
+#   is missing from Maestro's hierarchy, so their buttons are tapped by point.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag1
+---
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.today"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Manual entry as an anonymous user
+- tapOn: ".*Manuell.*"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/30-manuell-anonym
+- runFlow: common/launch.yaml
+# Photo scan from the gallery (1 photo)
+- tapOn: ".*Mahlzeit scannen.*"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/31-scan-geoeffnet
+- tapOn:
+    point: "50%,93%"
+- extendedWaitUntil:
+    visible: "Fotos"
+    timeout: 30000
+- tapOn: "Fotos"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/35-picker-fotos
+- tapOn:
+    point: "83%,40%"
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Nichts erkannt"
+    timeout: 90000
+    optional: true
+- takeScreenshot: ${SHOT}/37-scan-ergebnis
+- tapOn:
+    point: "50%,20%"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Weight
+- tapOn: "Aktuelles Gewicht"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/38-gewicht-sheet
+- eraseText: 6
+- inputText: "86,4"
+- tapOn:
+    point: "87%,88%"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/41-gewicht-eingegeben
+- tapOn:
+    point: "50%,92%"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/42-heute-nach-gewicht

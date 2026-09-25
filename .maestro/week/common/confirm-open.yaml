@@ -1,0 +1,8 @@
+# Confirms the iOS "In „Kolibi“ öffnen?" prompt a deep link raises.
+appId: com.steffen.kolibi
+---
+- runFlow:
+    when:
+      visible: "Öffnen"
+    commands:
+      - tapOn: "Öffnen"

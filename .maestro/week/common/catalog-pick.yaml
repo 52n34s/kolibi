@@ -1,0 +1,14 @@
+# In the exercise catalog: search NAME and tick the row of catalog SLUG.
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "training.catalog.search"
+- eraseText: 40
+- inputText: ${NAME}
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: "training.catalog.item.${SLUG}"
+- waitForAnimationToEnd:
+    timeout: 1000

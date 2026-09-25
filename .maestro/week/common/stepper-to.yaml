@@ -1,0 +1,40 @@
+# Scroll stepper ID into view and set it to VALUE: press ID.minus until VALUE
+# shows (or the floor stops it), then ID.plus until VALUE shows.
+# Starting values differ between catalog rows, so no direction is assumed.
+appId: com.steffen.kolibi
+---
+- scrollUntilVisible:
+    element:
+      id: ${ID}
+    direction: DOWN
+    timeout: 8000
+    centerElement: true
+    optional: true
+- scrollUntilVisible:
+    element:
+      id: ${ID}
+    direction: UP
+    timeout: 8000
+    centerElement: true
+    optional: true
+- repeat:
+    times: 25
+    while:
+      notVisible:
+        id: ${ID}
+        text: ${VALUE}
+    commands:
+      - tapOn:
+          id: ${ID}.minus
+- repeat:
+    times: 25
+    while:
+      notVisible:
+        id: ${ID}
+        text: ${VALUE}
+    commands:
+      - tapOn:
+          id: ${ID}.plus
+- assertVisible:
+    id: ${ID}
+    text: ${VALUE}
