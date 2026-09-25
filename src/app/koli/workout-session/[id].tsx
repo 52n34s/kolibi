@@ -36,10 +36,13 @@ import {
   TRAINING_UNIT_COLORS,
 } from '@/constants/brand';
 import { useExercises } from '@/hooks/use-exercises';
+import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
+import { useRequirePlan } from '@/hooks/use-require-plan';
 import { useWorkoutSession } from '@/hooks/use-workout-session';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { newId } from '@/lib/id';
 import { formatAppDate } from '@/lib/onboarding';
+import { resolveActionAccess } from '@/lib/product-access';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import { updateTrainingSession } from '@/lib/training-sessions';
 import { displayExerciseName, resolveExerciseName } from '@/lib/workouts/exercise-name';
@@ -97,6 +100,24 @@ export default function WorkoutSessionDetailScreen() {
   const [durationDraft, setDurationDraft] = useState<string | null>(null);
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState('');
+
+  // Without a plan the session is view-only; every edit asks for the plan
+  // first (AGB Ziffer 10 Abs. 5), like the day detail.
+  const requirePlan = useRequirePlan();
+  const { isAnonymousUser, productAccessStatus } = useGatePremiumAccess();
+  const editLocked =
+    resolveActionAccess({
+      status: productAccessStatus,
+      isAnonymous: isAnonymousUser,
+      action: 'editSession',
+    }) === 'paywall';
+  const withEdit = (run: () => void) => () => {
+    void requirePlan('editSession').then((allowed) => {
+      if (allowed) {
+        run();
+      }
+    });
+  };
 
   const session = sessionQuery.data ?? null;
   const todayKey = localDateKey();
@@ -648,13 +669,20 @@ export default function WorkoutSessionDetailScreen() {
           <Text style={styles.fieldLabel}>{t('home.training.dateLabel')}</Text>
           <OnboardingFieldPressable
             testID="training.sessionDetail.date"
-            onPress={openDatePicker}>
+            onPress={withEdit(openDatePicker)}>
             <Text style={styles.dateValue}>
               {formatAppDate(parseDateOnly(session.loggedOn), i18n.language)}
             </Text>
           </OnboardingFieldPressable>
 
           <Text style={styles.fieldLabel}>{t('home.training.durationLabel')}</Text>
+          {editLocked ? (
+            <OnboardingFieldPressable
+              testID="training.sessionDetail.duration"
+              onPress={withEdit(() => {})}>
+              <Text style={styles.dateValue}>{String(sessionDurationFromTimestamps(session))}</Text>
+            </OnboardingFieldPressable>
+          ) : (
           <OnboardingField
             testID="training.sessionDetail.duration"
             value={
@@ -676,6 +704,7 @@ export default function WorkoutSessionDetailScreen() {
               }
             }}
           />
+          )}
           <NumberInputAccessory nativeID={DURATION_ACCESSORY} />
 
           <Text style={styles.fieldLabel}>{t('home.training.intensityLabel')}</Text>
@@ -687,7 +716,7 @@ export default function WorkoutSessionDetailScreen() {
                   key={key}
                   testID={`training.sessionDetail.intensity.${key}`}
                   accessibilityRole="button"
-                  onPress={() => void persistMeta({ intensity: key })}
+                  onPress={withEdit(() => void persistMeta({ intensity: key }))}
                   style={[styles.intensityChip, selected && styles.intensityChipOn]}>
                   <Text
                     style={[
@@ -740,13 +769,13 @@ export default function WorkoutSessionDetailScreen() {
                 <View style={styles.moveCol}>
                   <Pressable
                     accessibilityRole="button"
-                    onPress={() => void moveExercise(group, -1)}
+                    onPress={withEdit(() => void moveExercise(group, -1))}
                     hitSlop={8}>
                     <Ionicons name="chevron-up" size={18} color={BRAND_INDIGO} />
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    onPress={() => void moveExercise(group, 1)}
+                    onPress={withEdit(() => void moveExercise(group, 1))}
                     hitSlop={8}>
                     <Ionicons name="chevron-down" size={18} color={BRAND_INDIGO} />
                   </Pressable>
@@ -770,7 +799,7 @@ export default function WorkoutSessionDetailScreen() {
                     <Pressable
                       testID={`training.sessionDetail.set.${exKey}.${set.setIndex}`}
                       accessibilityRole="button"
-                      onPress={() => promptSetValue(group, set)}
+                      onPress={withEdit(() => promptSetValue(group, set))}
                       style={styles.setValuePress}>
                       <Text style={styles.setValue}>
                         {t('training.sessionDetail.setLabel', {
@@ -783,7 +812,7 @@ export default function WorkoutSessionDetailScreen() {
                   <Pressable
                     testID={`training.sessionDetail.removeSet.${exKey}.${set.setIndex}`}
                     accessibilityRole="button"
-                    onPress={() => void removeSet(group, set)}
+                    onPress={withEdit(() => void removeSet(group, set))}
                     hitSlop={8}>
                     <Ionicons name="trash-outline" size={18} color={TEXT_SECONDARY} />
                   </Pressable>
@@ -794,13 +823,13 @@ export default function WorkoutSessionDetailScreen() {
                 <Pressable
                   testID={`training.sessionDetail.addSet.${exKey}`}
                   accessibilityRole="button"
-                  onPress={() => void addSet(group)}>
+                  onPress={withEdit(() => void addSet(group))}>
                   <Text style={styles.link}>{t('training.panel.addSet')}</Text>
                 </Pressable>
                 <Pressable
                   testID={`training.sessionDetail.removeExercise.${exKey}`}
                   accessibilityRole="button"
-                  onPress={() => void removeExercise(group)}>
+                  onPress={withEdit(() => void removeExercise(group))}>
                   <Text style={styles.dangerLink}>
                     {t('training.sessionDetail.removeExercise')}
                   </Text>
@@ -813,7 +842,7 @@ export default function WorkoutSessionDetailScreen() {
         <Pressable
           testID="training.sessionDetail.addExercise"
           accessibilityRole="button"
-          onPress={() => router.push('/koli/exercises?select=1' as Href)}
+          onPress={withEdit(() => router.push('/koli/exercises?select=1' as Href))}
           style={styles.addExercise}>
           <Text style={styles.link}>{t('training.panel.addExercise')}</Text>
         </Pressable>
@@ -821,7 +850,7 @@ export default function WorkoutSessionDetailScreen() {
         <Pressable
           testID="training.sessionDetail.delete"
           accessibilityRole="button"
-          onPress={confirmDelete}
+          onPress={withEdit(confirmDelete)}
           style={styles.deleteBtn}
           disabled={saving}>
           <Text style={styles.deleteText}>{t('training.sessionDetail.delete')}</Text>

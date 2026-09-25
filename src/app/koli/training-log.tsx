@@ -27,6 +27,7 @@ import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import { useRequirePlan } from '@/hooks/use-require-plan';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import { hasMatchingTrainingWorkoutOnDate } from '@/lib/health';
 import { formatAppDate } from '@/lib/onboarding';
@@ -59,6 +60,7 @@ export default function TrainingLogScreen() {
   const { data: homeData } = useHomeDashboard();
   const { data: healthConnected = false } = useHealthConnectedPreference(userId);
 
+  const requirePlan = useRequirePlan();
   const todayKey = localDateKey();
   const weekKeys = useMemo(() => localWeekDateKeys(), []);
   const minDate = parseDateOnly(weekKeys[0]);
@@ -134,6 +136,10 @@ export default function TrainingLogScreen() {
     if (!userId || isSaving || healthBlocked) {
       return;
     }
+    // The log is open to view; a new entry needs the plan (AGB Ziffer 10 Abs. 5).
+    if (!(await requirePlan('logTraining'))) {
+      return;
+    }
 
     if (weightKg == null || !(weightKg > 0)) {
       Alert.alert(t('settings.errors.title'), t('home.training.needsWeight'));
@@ -178,8 +184,11 @@ export default function TrainingLogScreen() {
     }
   }
 
-  function handleDelete(sessionRow: TrainingSession) {
+  async function handleDelete(sessionRow: TrainingSession) {
     if (!userId || isSaving) {
+      return;
+    }
+    if (!(await requirePlan('editSession'))) {
       return;
     }
 
@@ -277,7 +286,7 @@ export default function TrainingLogScreen() {
                     <Pressable
                       accessibilityRole="button"
                       disabled={isSaving}
-                      onPress={() => handleDelete(row)}
+                      onPress={() => void handleDelete(row)}
                       hitSlop={8}>
                       <Text className="text-sm font-medium text-red-600">
                         {t('home.training.delete')}

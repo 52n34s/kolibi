@@ -602,13 +602,8 @@ export default function HomeScreen() {
             switchHomeTab('training');
             return;
           }
-          void (async () => {
-            if (!isAnonymousUser && !(await gatePremiumAccess())) {
-              openPaywall({ withValuePitch: true });
-              return;
-            }
-            router.push('/koli/training-log' as Href);
-          })();
+          // The log is history: open to view, adding asks for the plan there.
+          router.push('/koli/training-log' as Href);
         },
       });
     }

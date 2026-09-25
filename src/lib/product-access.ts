@@ -37,7 +37,11 @@ export type ProductAction =
   | 'enterWeight'
   | 'startSession'
   | 'backfillSession'
-  | 'editPlan';
+  | 'editPlan'
+  /** Changing or deleting a saved unit or training entry (viewing stays open). */
+  | 'editSession'
+  /** A new entry in the training log. */
+  | 'logTraining';
 
 export type ActionAccess = 'allowed' | 'paywall' | 'loading';
 
@@ -66,6 +70,8 @@ const OPEN_KOLI_ROUTE_PATTERNS: RegExp[] = [
   /^\/koli\/export\/?$/,
   /^\/koli\/workout-session\/[^/]+\/?$/,
   /^\/koli\/exercise-progress\/[^/]+\/?$/,
+  // Training history; adding and deleting entries ask for the plan in the screen.
+  /^\/koli\/training-log\/?$/,
 ];
 
 export type KoliRouteAccess = 'open' | 'needsPlan';

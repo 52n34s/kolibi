@@ -81,6 +81,8 @@ describe('resolveActionAccess (AGB Ziffer 10 Abs. 5)', () => {
     'startSession',
     'backfillSession',
     'editPlan',
+    'editSession',
+    'logTraining',
   ] as const;
 
   it('opens the paywall for every new entry and training action without a plan', () => {
@@ -128,6 +130,7 @@ describe('koliRouteAccess', () => {
       '/koli/export',
       '/koli/workout-session/abc',
       '/koli/exercise-progress/push_up',
+      '/koli/training-log',
     ]) {
       assert.equal(koliRouteAccess(path, undefined), 'open', path);
     }
@@ -146,7 +149,6 @@ describe('koliRouteAccess', () => {
       '/koli/workout-backfill',
       '/koli/exercise-edit',
       '/koli/exercises',
-      '/koli/training-log',
       '/koli/supplements',
       '/koli/calorie-goal',
     ]) {
