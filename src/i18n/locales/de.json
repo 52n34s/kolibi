@@ -1734,7 +1734,9 @@
     "actions": {
       "save": "Als Bild sichern",
       "copy": "Kopieren",
-      "share": "Teilen"
+      "share": "Teilen",
+      "instagram": "Instagram",
+      "instagramA11y": "In deiner Instagram-Story teilen"
     },
     "variant": {
       "light": "Hell",

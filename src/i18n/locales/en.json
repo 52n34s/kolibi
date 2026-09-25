@@ -1734,7 +1734,9 @@
     "actions": {
       "save": "Save image",
       "copy": "Copy",
-      "share": "Share"
+      "share": "Share",
+      "instagram": "Instagram",
+      "instagramA11y": "Share to your Instagram Story"
     },
     "variant": {
       "light": "Light",

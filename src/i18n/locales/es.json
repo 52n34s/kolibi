@@ -1734,7 +1734,9 @@
     "actions": {
       "save": "Guardar imagen",
       "copy": "Copiar",
-      "share": "Compartir"
+      "share": "Compartir",
+      "instagram": "Instagram",
+      "instagramA11y": "Compartir en tu historia de Instagram"
     },
     "variant": {
       "light": "Claro",
