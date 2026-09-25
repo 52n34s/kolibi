@@ -22,6 +22,7 @@ export function activeItemToHistoryUnit(
         targetSeconds: item.targetSeconds,
         targetSecondsMax: item.targetSecondsMax,
         done: set.done,
+        rir: set.rir ?? null,
       }),
     ),
   };
@@ -39,6 +40,7 @@ export function withoutSession<T extends { sessionId: string }>(rows: T[], sessi
 export function sessionSetsToHistoryUnits(
   sets: SessionSet[],
   intensityBySessionId: Record<string, GymIntensity | null>,
+  shortfallBySessionId: Record<string, readonly string[] | null> = {},
 ): ProgressionHistoryUnit[] {
   const order: string[] = [];
   const bySession = new Map<string, SessionSet[]>();
@@ -57,6 +59,7 @@ export function sessionSetsToHistoryUnits(
     return {
       sessionId,
       intensity: intensityBySessionId[sessionId] ?? null,
+      shortfallReasons: shortfallBySessionId[sessionId] ?? null,
       sets: sessionSets.map(
         (set): ProgressionHistorySet => ({
           reps: set.reps,
@@ -67,6 +70,7 @@ export function sessionSetsToHistoryUnits(
           targetSeconds: set.targetSeconds,
           targetSecondsMax: set.targetSecondsMax,
           done: true,
+          rir: set.rir ?? null,
         }),
       ),
     };
