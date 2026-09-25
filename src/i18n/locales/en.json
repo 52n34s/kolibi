@@ -1415,7 +1415,14 @@
     },
     "macro": {
       "sectionTitle": "Macro trend",
-      "empty": "Your macros show up here once you log meals in this period."
+      "empty": "Your macros show up here once you log meals in this period.",
+      "bubble": "{{day}} · {{value}} of {{goal}} g",
+      "bubbleNoGoal": "{{day}} · {{value}} g",
+      "goalAdjusted": "Goal adjusted",
+      "summary_one": "Ø {{avg}} g · goal {{goal}} g · {{hit}} of {{count}} day on target",
+      "summary_other": "Ø {{avg}} g · goal {{goal}} g · {{hit}} of {{count}} days on target",
+      "summaryNoGoal": "Ø {{avg}} g",
+      "openDay": "Open day"
     }
   },
   "macro": {

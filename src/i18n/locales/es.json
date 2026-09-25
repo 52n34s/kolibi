@@ -1415,7 +1415,14 @@
     },
     "macro": {
       "sectionTitle": "Evolución de macros",
-      "empty": "Tus macros aparecen aquí en cuanto registres comidas en este periodo."
+      "empty": "Tus macros aparecen aquí en cuanto registres comidas en este periodo.",
+      "bubble": "{{day}} · {{value}} de {{goal}} g",
+      "bubbleNoGoal": "{{day}} · {{value}} g",
+      "goalAdjusted": "Objetivo ajustado",
+      "summary_one": "Ø {{avg}} g · objetivo {{goal}} g · {{hit}} de {{count}} día en el objetivo",
+      "summary_other": "Ø {{avg}} g · objetivo {{goal}} g · {{hit}} de {{count}} días en el objetivo",
+      "summaryNoGoal": "Ø {{avg}} g",
+      "openDay": "Abrir día"
     }
   },
   "macro": {

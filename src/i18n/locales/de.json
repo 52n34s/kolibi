@@ -1415,7 +1415,14 @@
     },
     "macro": {
       "sectionTitle": "Makro-Verlauf",
-      "empty": "Deine Makros erscheinen hier, sobald du in diesem Zeitraum Mahlzeiten erfasst."
+      "empty": "Deine Makros erscheinen hier, sobald du in diesem Zeitraum Mahlzeiten erfasst.",
+      "bubble": "{{day}} · {{value}} von {{goal}} g",
+      "bubbleNoGoal": "{{day}} · {{value}} g",
+      "goalAdjusted": "Ziel angepasst",
+      "summary_one": "Ø {{avg}} g · Ziel {{goal}} g · {{hit}} von {{count}} Tag im Ziel",
+      "summary_other": "Ø {{avg}} g · Ziel {{goal}} g · {{hit}} von {{count}} Tagen im Ziel",
+      "summaryNoGoal": "Ø {{avg}} g",
+      "openDay": "Tag öffnen"
     }
   },
   "macro": {
