@@ -25,7 +25,8 @@ export type StickerAnalyticsType =
   | 'session'
   | 'recap_week'
   | 'recap_month'
-  | 'progress';
+  | 'progress'
+  | 'meal';
 export type StickerFormat = 'sticker' | 'story';
 export type RecapPeriod = 'week' | 'month';
 
@@ -140,12 +141,27 @@ export type ProgressStickerData = {
   period: ProgressPeriod;
 };
 
+/**
+ * A meal right after the photo scan. The photo is only a local file URI that
+ * lives while the result screen is open; it is never stored or uploaded.
+ */
+export type MealStickerData = {
+  kind: 'meal';
+  /** Ingredient labels, largest share of kcal first. */
+  labels: string[];
+  kcal: number;
+  /** Null when no ingredient has a protein value. */
+  proteinG: number | null;
+  photoUri: string | null;
+};
+
 export type StickerData =
   | ExerciseStickerData
   | LevelStickerData
   | SessionStickerData
   | RecapStickerData
-  | ProgressStickerData;
+  | ProgressStickerData
+  | MealStickerData;
 
 /** Optional lines on a sticker; each sticker reads the ones that apply to it. */
 export type StickerOptions = {
@@ -189,6 +205,8 @@ export function availableStickerOptions(data: StickerData): StickerOptionKey[] {
       ];
     case 'progress':
       return data.views[data.period]?.levelChanged ? ['showLevel'] : [];
+    case 'meal':
+      return data.proteinG != null ? ['showProtein'] : [];
   }
 }
 
@@ -740,4 +758,31 @@ export function nextStoryScale(params: {
   const target = params.cardHeight * STORY_FILL_TARGET;
   const next = (params.scale * target) / params.contentHeight;
   return Math.min(STORY_SCALE_MAX, Math.max(STORY_SCALE_MIN, next));
+}
+
+/** More labels crowd the photo; the rest of the plate is in kcal and protein. */
+export const MEAL_STICKER_MAX_LABELS = 6;
+
+export function buildMealSticker(params: {
+  items: readonly { name: string; kcal: number; proteinG: number | null }[];
+  portionFactor: number;
+  photoUri: string | null;
+}): MealStickerData {
+  const factor = Number.isFinite(params.portionFactor) && params.portionFactor > 0
+    ? params.portionFactor
+    : 1;
+  const named = params.items
+    .map((item) => ({ ...item, name: item.name.trim() }))
+    .filter((item) => item.name.length > 0);
+  const labels = [...named]
+    .sort((a, b) => b.kcal - a.kcal)
+    .slice(0, MEAL_STICKER_MAX_LABELS)
+    .map((item) => item.name);
+  const kcal = Math.round(params.items.reduce((sum, item) => sum + item.kcal, 0) * factor);
+  const withProtein = params.items.filter((item) => item.proteinG != null);
+  const proteinG =
+    withProtein.length > 0
+      ? Math.round(withProtein.reduce((sum, item) => sum + (item.proteinG ?? 0), 0) * factor)
+      : null;
+  return { kind: 'meal', labels, kcal, proteinG, photoUri: params.photoUri };
 }

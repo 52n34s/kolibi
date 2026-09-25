@@ -7,6 +7,7 @@ import {
   biggestGain,
   buildExerciseSticker,
   buildLevelSticker,
+  buildMealSticker,
   buildProgressSticker,
   buildRecapSticker,
   buildSessionSticker,
@@ -641,5 +642,44 @@ describe('nextStoryScale', () => {
     assert.equal(nextStoryScale({ scale: 1, contentHeight: 100, cardHeight: 640 }), 2);
     assert.equal(nextStoryScale({ scale: 1, contentHeight: 600, cardHeight: 640 }), 1);
     assert.equal(nextStoryScale({ scale: 1.2, contentHeight: 0, cardHeight: 640 }), 1.2);
+  });
+});
+
+describe('buildMealSticker', () => {
+  const items = [
+    { name: ' Reis ', kcal: 260, proteinG: 5 },
+    { name: 'Hähnchen', kcal: 330, proteinG: 38 },
+    { name: '', kcal: 20, proteinG: null },
+    { name: 'Brokkoli', kcal: 40, proteinG: 3 },
+  ];
+
+  it('lists named ingredients by kcal and sums kcal and protein', () => {
+    const data = buildMealSticker({ items, portionFactor: 1, photoUri: 'file:///tmp/a.jpg' });
+    assert.deepEqual(data.labels, ['Hähnchen', 'Reis', 'Brokkoli']);
+    assert.equal(data.kcal, 650);
+    assert.equal(data.proteinG, 46);
+    assert.equal(data.photoUri, 'file:///tmp/a.jpg');
+    assert.equal(stickerAnalyticsType(data), 'meal');
+  });
+
+  it('applies the portion factor', () => {
+    const data = buildMealSticker({ items, portionFactor: 0.5, photoUri: null });
+    assert.equal(data.kcal, 325);
+    assert.equal(data.proteinG, 23);
+  });
+
+  it('leaves protein out when no ingredient has a value', () => {
+    const data = buildMealSticker({
+      items: [{ name: 'Apfel', kcal: 80, proteinG: null }],
+      portionFactor: 1,
+      photoUri: null,
+    });
+    assert.equal(data.proteinG, null);
+    assert.deepEqual(availableStickerOptions(data), []);
+  });
+
+  it('shows at most six labels', () => {
+    const many = Array.from({ length: 9 }, (_, i) => ({ name: `Zutat ${i}`, kcal: 100 - i, proteinG: 1 }));
+    assert.equal(buildMealSticker({ items: many, portionFactor: 1, photoUri: null }).labels.length, 6);
   });
 });
