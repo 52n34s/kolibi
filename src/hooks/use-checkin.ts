@@ -60,6 +60,28 @@ function useSkippedOn(userId: string | undefined): string | null {
   return cached !== undefined ? cached : readCheckinSkippedOn(userId);
 }
 
+type OpenRequestState = {
+  /** Local day on which the questions were asked for (recommendation "Check-in starten"). */
+  requestedOn: string | null;
+  request: (dateKey: string) => void;
+};
+
+const useOpenRequestStore = create<OpenRequestState>((set) => ({
+  requestedOn: null,
+  request: (dateKey) => set({ requestedOn: dateKey }),
+}));
+
+/** Shows the check-in questions again today, also after the 12:00 window. */
+export function useRequestCheckinQuestions() {
+  const request = useOpenRequestStore((state) => state.request);
+  return useCallback(() => request(localDateKey()), [request]);
+}
+
+export function useCheckinQuestionsRequested(): boolean {
+  const requestedOn = useOpenRequestStore((state) => state.requestedOn);
+  return requestedOn != null && requestedOn === localDateKey();
+}
+
 export function useCheckinSettings() {
   const userId = useAuthStore((state) => state.session?.user?.id);
   return useQuery({
