@@ -47,6 +47,7 @@ import {
 import { allSetsHitUpperBound } from '@/lib/workouts/format-target';
 import { applyProgression } from '@/lib/workouts/apply-progression';
 import { suggestGymIntensityFromSetPace } from '@/lib/workouts/intensity-pace';
+import { afterProgress, finishOutcome } from '@/lib/workouts/summary-done';
 import { activeItemToHistoryUnit, withoutSession } from '@/lib/workouts/progression-history';
 import {
   buildCelebration,
@@ -666,6 +667,9 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
 
   async function persistProgressions(sessionId: string): Promise<void> {
     if (!template) {
+      // The plan changed while the unit ran: nothing to write, but the
+      // summary must still close (it used to stay open with "Fertig").
+      onDismiss?.();
       return;
     }
 
@@ -753,9 +757,9 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       });
     }
 
-    const celeb = buildCelebration(accepted);
-    if (celeb) {
-      setCelebration(celeb);
+    const next = afterProgress({ templateFound: true, celebration: buildCelebration(accepted) });
+    if (next.kind === 'celebrate') {
+      setCelebration(next.celebration);
     } else {
       onDismiss?.();
     }
@@ -771,7 +775,13 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     const sessionId = session.sessionId;
     try {
       const result = await finishSession(intensity, queryClient);
-      if (!result.ok) {
+      const outcome = finishOutcome(result);
+      if (outcome === 'alreadySaved') {
+        // Saved on an earlier tap; the summary only stayed open.
+        onDismiss?.();
+        return;
+      }
+      if (outcome === 'failed') {
         setError(t('training.panel.finishError'));
         return;
       }
