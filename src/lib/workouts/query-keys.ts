@@ -4,6 +4,7 @@ export const workoutQueryKeys = {
   templates: (userId: string) => ['workout-templates', userId] as const,
   archivedTemplates: (userId: string) =>
     ['workout-templates-archived', userId] as const,
+  ownTemplates: (userId: string) => ['workout-templates-own', userId] as const,
   sessionsRange: (userId: string, startKey: string, endKey: string) =>
     ['workout-sessions-range', userId, startKey, endKey] as const,
   exerciseHistory: (userId: string, exerciseId: string) =>
