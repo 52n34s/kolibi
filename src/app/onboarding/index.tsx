@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   View,
@@ -21,6 +22,8 @@ import {
   ONBOARDING_LEGAL_NOTICE_HEIGHT,
 } from '@/components/onboarding/onboarding-legal-notice';
 import { OnboardingReviewCancelButton } from '@/components/onboarding/onboarding-review-cancel-button';
+import { ONBOARDING_ACCENT } from '@/components/onboarding/onboarding-styles';
+import { useOpenPlanWizard } from '@/components/training/PlanWizardEntryCard';
 import { NumberInputAccessory } from '@/components/ui/keyboard-accessory';
 import { OnboardingKoliCompanion } from '@/components/onboarding/onboarding-koli-companion';
 import { HeightInput } from '@/components/onboarding/height-input';
@@ -37,10 +40,32 @@ import {
 } from '@/lib/weight-goal-eta';
 import {
   ActivityOptionIcon,
-  DietOptionIcon,
   GoalOptionIcon,
-  SexOptionIcon,
+  PurposeOptionIcon,
 } from '@/components/onboarding/step-icons';
+import {
+  DEFAULT_GOAL_TYPE_BY_CATEGORY,
+  goalCategoryForGoalType,
+  goalTypeForCategory,
+  isLegacyGoalType,
+  visibleGoalCategories,
+  type GoalCategory,
+} from '@/lib/goal-category';
+import { setPlanWizardPending } from '@/lib/onboarding-local-state';
+import {
+  displayedGoalType,
+  fetchUsagePurpose,
+  recordWrittenGoalType,
+  resolveWritableGoalType,
+  saveUsagePurpose,
+} from '@/lib/onboarding-profile-extras';
+import {
+  buildOnboardingSteps,
+  resolveOnboardingPreviewStep,
+  type OnboardingStepId,
+} from '@/lib/onboarding-steps';
+import { PLAN_WIZARD_AVAILABLE, resolvePostOnboardingWizard } from '@/lib/plan-wizard';
+import { USAGE_PURPOSES, type UsagePurpose } from '@/lib/usage-purpose';
 import {
   type ActivityLevel,
   type BiologicalSex,
@@ -65,19 +90,11 @@ import {
 } from '@/lib/onboarding';
 import { fetchProfileSettings } from '@/lib/profile';
 import { parseWeightInputToKg } from '@/lib/weight-parse';
-import {
-  DIET_PREFERENCE_OPTIONS,
-  type DietPreferenceValue,
-} from '@/components/settings/food-context-controls';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
 import { useRecentActiveEnergy } from '@/hooks/use-recent-active-energy';
 import { useAuthStore } from '@/stores/auth-store';
 import { useOnboardingStore } from '@/stores/onboarding-store';
 import { formatKcal } from '@/utils/format';
-
-const TOTAL_STEPS = 8;
-
-const DIET_OPTIONS = DIET_PREFERENCE_OPTIONS.filter((option) => option.id !== 'none');
 
 const ACTIVITY_LEVELS: ActivityLevel[] = [
   'mostly_sitting',
@@ -86,23 +103,6 @@ const ACTIVITY_LEVELS: ActivityLevel[] = [
   'very_active',
 ];
 
-/** Record keeps this onboarding list exhaustive when GoalType grows. */
-const GOAL_TYPES_BY_ORDER = {
-  maintain: true,
-  lose_weight: true,
-  gain_weight: true,
-  build_muscle: true,
-  faster_weight_loss: true,
-  endurance: true,
-  custom: true,
-} as const satisfies Record<GoalType, true>;
-
-const GOAL_TYPES = Object.keys(GOAL_TYPES_BY_ORDER) as GoalType[];
-
-function getGoalHint(goal: GoalType, t: (key: string) => string): string {
-  return t(`onboarding.goal.${goal}Hint`);
-}
-
 const SEX_OPTIONS: BiologicalSex[] = ['male', 'female', 'prefer_not_to_say'];
 
 function resolveReviewMode(mode: string | string[] | undefined): boolean {
@@ -110,10 +110,18 @@ function resolveReviewMode(mode: string | string[] | undefined): boolean {
   return value === 'review';
 }
 
-function StepHeader({ step, title, subtitle }: { step: number; title: string; subtitle: string }) {
+function StepHeader({
+  stepId,
+  title,
+  subtitle,
+}: {
+  stepId: OnboardingStepId;
+  title: string;
+  subtitle: string;
+}) {
   return (
     <View className="mb-6">
-      <OnboardingKoliCompanion step={step} />
+      <OnboardingKoliCompanion stepId={stepId} />
       <Text className="mb-2 text-2xl font-bold text-gray-900">{title}</Text>
       <Text className="text-base text-gray-500">{subtitle}</Text>
     </View>
@@ -138,8 +146,13 @@ export default function OnboardingScreen() {
   );
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const unitSystem = useOnboardingStore((state) => state.unitSystem);
+  const steps = useMemo(() => buildOnboardingSteps({ isReviewMode }), [isReviewMode]);
   const [step, setStep] = useState(0);
-  const [dietPreference, setDietPreference] = useState<DietPreferenceValue>(null);
+  const currentStep = steps[Math.min(step, steps.length - 1)]!;
+  const openPlanWizard = useOpenPlanWizard();
+  const [usagePurpose, setUsagePurpose] = useState<UsagePurpose | null>(null);
+  /** Goal stored before this run — kept when its category is picked again (gain_weight, custom, …). */
+  const [initialGoalType, setInitialGoalType] = useState<GoalType | null>(null);
   const [biologicalSex, setBiologicalSex] = useState<BiologicalSex | null>(null);
   const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [heightCm, setHeightCm] = useState('');
@@ -174,10 +187,11 @@ export default function OnboardingScreen() {
           setBiologicalSex(profile.biological_sex);
         }
 
-        setDietPreference(
-          DIET_PREFERENCE_OPTIONS.find((option) => option.value === profile.diet_preference)
-            ?.value ?? null,
-        );
+        const purpose = await fetchUsagePurpose(session!.user!.id);
+        if (cancelled) {
+          return;
+        }
+        setUsagePurpose(purpose);
 
         if (profile.birth_date) {
           setBirthDate(parseDateOnly(profile.birth_date));
@@ -195,8 +209,10 @@ export default function OnboardingScreen() {
           setActivityLevel(profile.activity_level);
         }
 
-        if (profile.goal_type) {
-          setGoalType(profile.goal_type);
+        const shownGoalType = displayedGoalType(session!.user!.id, profile.goal_type);
+        if (shownGoalType) {
+          setGoalType(shownGoalType);
+          setInitialGoalType(shownGoalType);
         }
 
         const caloriePrefill = resolveReviewCaloriePrefill({
@@ -439,27 +455,27 @@ export default function OnboardingScreen() {
     }
 
     const raw = Array.isArray(previewStepParam) ? previewStepParam[0] : previewStepParam;
-    const parsed = raw != null ? Number(raw) : Number.NaN;
+    const index = resolveOnboardingPreviewStep(raw, steps);
 
-    if (Number.isInteger(parsed) && parsed >= 0 && parsed < TOTAL_STEPS) {
-      setStep(parsed);
+    if (index != null) {
+      setStep(index);
     }
-  }, [previewStepParam]);
+  }, [previewStepParam, steps]);
 
   useEffect(() => {
     initializeUnitSystem();
   }, [initializeUnitSystem]);
 
   useEffect(() => {
-    if (step !== 2) {
+    if (currentStep.id !== 'about') {
       setShowDatePicker(false);
     }
-  }, [step]);
+  }, [currentStep.id]);
 
   useEffect(() => {
-    // Recalculate whenever inputs change — not only while step 7 is visible —
-    // so a goal-type change on step 6 updates the summary before the user opens it.
-    // Skip when the user typed a custom target on step 7 (or chose goal type custom).
+    // Recalculate whenever inputs change — not only while the summary is visible —
+    // so a goal change updates the summary before the user opens it.
+    // Skip when the user typed a custom target on the summary (or chose goal type custom).
     if (
       !shouldRecalculateOnboardingDailyGoal({
         summaryManuallyEdited,
@@ -501,12 +517,10 @@ export default function OnboardingScreen() {
   ]);
 
   function validateCurrentStep(): string | null {
-    switch (step) {
-      case 0:
+    switch (currentStep.id) {
+      case 'purpose':
         return null;
-      case 1:
-        return null;
-      case 2:
+      case 'about':
         if (!birthDate) {
           return t('onboarding.errors.birthDateRequired');
         }
@@ -517,7 +531,7 @@ export default function OnboardingScreen() {
           }
         }
         return null;
-      case 3:
+      case 'height':
         if (!heightCm.trim()) {
           return t('onboarding.errors.heightRequired');
         }
@@ -525,7 +539,7 @@ export default function OnboardingScreen() {
           return t('onboarding.errors.heightInvalid');
         }
         return null;
-      case 4:
+      case 'weight':
         if (!weightKg.trim()) {
           return t('onboarding.errors.weightRequired');
         }
@@ -533,12 +547,12 @@ export default function OnboardingScreen() {
           return t('onboarding.errors.weightInvalid');
         }
         return null;
-      case 5:
+      case 'activity':
         if (!activityLevel) {
           return t('onboarding.errors.activityRequired');
         }
         return null;
-      case 6:
+      case 'goal':
         if (!goalType) {
           return t('onboarding.errors.goalRequired');
         }
@@ -554,7 +568,7 @@ export default function OnboardingScreen() {
           }
         }
         return null;
-      case 7:
+      case 'summary':
         if (!isValidDailyCalorieGoalInput(parsedDailyCalories)) {
           return t('onboarding.errors.summaryCaloriesInvalid', {
             min: HARD_MINIMUM_DAILY_CALORIES,
@@ -575,7 +589,7 @@ export default function OnboardingScreen() {
     }
 
     setErrorMessage(null);
-    setStep((current) => Math.min(current + 1, TOTAL_STEPS - 1));
+    setStep((current) => Math.min(current + 1, steps.length - 1));
   }
 
   function handleBack() {
@@ -613,7 +627,7 @@ export default function OnboardingScreen() {
 
     try {
       if (skipped) {
-        await skipOnboarding(currentUserId, dietPreference);
+        await skipOnboarding(currentUserId);
       } else {
         if (!birthDate || !activityLevel || !goalType || parsedWeight == null) {
           throw new Error(t('onboarding.errors.saveFailed'));
@@ -621,19 +635,25 @@ export default function OnboardingScreen() {
 
         const calorieGoalSource =
           goalType === 'custom' || summaryManuallyEdited ? 'custom' : 'calculated';
+        // 'strength' is written as build_muscle until its enum migration ran.
+        const writtenGoalType = await resolveWritableGoalType(goalType);
 
         await completeOnboarding(currentUserId, {
-          dietPreference,
           biologicalSex: effectiveSex,
           birthDate,
           heightCm: parsedHeight,
           weightKg: parsedWeight,
           activityLevel,
-          goalType,
+          goalType: writtenGoalType,
           calorieGoalSource,
           dailyCalorieGoal: parsedDailyCalories,
           tdee: maintenanceCalories,
         });
+        recordWrittenGoalType(currentUserId, { chosen: goalType, written: writtenGoalType });
+      }
+
+      if (usagePurpose) {
+        await saveUsagePurpose(currentUserId, usagePurpose);
       }
 
       await useAuthStore.getState().refreshOnboardingStatus();
@@ -642,7 +662,18 @@ export default function OnboardingScreen() {
         return;
       }
 
+      const wizardAction = resolvePostOnboardingWizard({
+        purpose: usagePurpose,
+        wizardAvailable: PLAN_WIZARD_AVAILABLE,
+        isReviewMode,
+      });
+      setPlanWizardPending(currentUserId, wizardAction === 'pending_training_tab');
+
       router.replace('/home' as Href);
+      if (wizardAction === 'open_now') {
+        // Wizard sits on top of home, so closing or skipping it lands there.
+        openPlanWizard();
+      }
     } catch {
       setErrorMessage(t('onboarding.errors.saveFailed'));
     } finally {
@@ -669,67 +700,54 @@ export default function OnboardingScreen() {
     void finishOnboarding(false);
   }
 
-  function renderStepContent() {
-    switch (step) {
-      case 0:
-        return (
-          <View>
-            <StepHeader
-              step={0}
-              title={t('onboarding.diet.title')}
-              subtitle={t('onboarding.diet.subtitle')}
-            />
-            <View className="gap-3">
-              {DIET_OPTIONS.map((option) => {
-                const value = option.value as Exclude<DietPreferenceValue, null>;
+  function selectGoalCategory(category: GoalCategory) {
+    const nextGoal = goalTypeForCategory(category, initialGoalType);
+    if (nextGoal === goalType) {
+      return;
+    }
 
-                return (
-                  <OptionCard
-                    key={option.id}
-                    icon={
-                      <DietOptionIcon option={value} selected={dietPreference === value} />
-                    }
-                    label={t(`settings.profile.foodContext.diet.${option.id}`)}
-                    layout="row"
-                    selected={dietPreference === value}
-                    onPress={() => setDietPreference(value)}
-                  />
-                );
-              })}
-            </View>
-          </View>
-        );
-      case 1:
+    setGoalType(nextGoal);
+    // A goal-type change invalidates a typed/custom summary target.
+    const nextFlag = summaryManuallyEditedAfterGoalTypeChange(nextGoal);
+    if (nextFlag !== null) {
+      setSummaryManuallyEdited(nextFlag);
+    }
+  }
+
+  function renderStepContent() {
+    switch (currentStep.id) {
+      case 'purpose':
         return (
           <View>
             <StepHeader
-              step={1}
-              title={t('onboarding.sex.title')}
-              subtitle={t('onboarding.sex.subtitle')}
+              stepId="purpose"
+              title={t('onboarding2.purpose.title')}
+              subtitle={t('onboarding2.purpose.subtitle')}
             />
             <View className="gap-3">
-              {SEX_OPTIONS.map((option) => (
+              {USAGE_PURPOSES.map((purpose) => (
                 <OptionCard
-                  key={option}
-                  icon={<SexOptionIcon option={option} selected={biologicalSex === option} />}
-                  label={t(
-                    `onboarding.sex.${option === 'prefer_not_to_say' ? 'preferNotToSay' : option}`,
-                  )}
+                  key={purpose}
+                  icon={
+                    <PurposeOptionIcon purpose={purpose} selected={usagePurpose === purpose} />
+                  }
+                  label={t(`onboarding2.purpose.${purpose}`)}
+                  hint={t(`onboarding2.purpose.${purpose}Hint`)}
                   layout="row"
-                  selected={biologicalSex === option}
-                  onPress={() => setBiologicalSex(option)}
+                  selected={usagePurpose === purpose}
+                  onPress={() => setUsagePurpose(purpose)}
                 />
               ))}
             </View>
           </View>
         );
-      case 2:
+      case 'about':
         return (
           <View>
             <StepHeader
-              step={2}
-              title={t('onboarding.birthDate.title')}
-              subtitle={t('onboarding.birthDate.subtitle')}
+              stepId="about"
+              title={t('onboarding2.about.title')}
+              subtitle={t('onboarding2.about.subtitle')}
             />
             <OnboardingFieldPressable onPress={openDatePicker}>
               <Text className="text-base text-gray-900">
@@ -738,24 +756,53 @@ export default function OnboardingScreen() {
                   : t('onboarding.birthDate.selectDate')}
               </Text>
             </OnboardingFieldPressable>
+            <Text className="mb-2 mt-6 text-sm font-medium text-gray-700">
+              {t('onboarding2.about.sexLabel')}
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {SEX_OPTIONS.map((option) => {
+                const selected = biologicalSex === option;
+                return (
+                  <Pressable
+                    key={option}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    className="rounded-full px-4 py-2"
+                    style={{
+                      borderWidth: 1,
+                      borderColor: selected ? ONBOARDING_ACCENT : 'rgba(255, 255, 255, 0.78)',
+                      backgroundColor: selected ? ONBOARDING_ACCENT : 'rgba(255, 255, 255, 0.5)',
+                    }}
+                    onPress={() => setBiologicalSex(option)}>
+                    <Text
+                      className="text-sm font-medium"
+                      style={{ color: selected ? '#FFFFFF' : '#111827' }}>
+                      {t(
+                        `onboarding.sex.${option === 'prefer_not_to_say' ? 'preferNotToSay' : option}`,
+                      )}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         );
-      case 3:
+      case 'height':
         return (
           <View>
             <StepHeader
-              step={3}
+              stepId="height"
               title={t('onboarding.height.title')}
               subtitle={t('onboarding.height.subtitle')}
             />
             <HeightInput heightCm={heightCm} onChangeHeightCm={setHeightCm} />
           </View>
         );
-      case 4:
+      case 'weight':
         return (
           <View>
             <StepHeader
-              step={4}
+              stepId="weight"
               title={t('onboarding.weight.title')}
               subtitle={
                 unitSystem === 'imperial'
@@ -766,11 +813,11 @@ export default function OnboardingScreen() {
             <WeightInput weightKg={weightKg} onChangeWeightKg={setWeightKg} />
           </View>
         );
-      case 5:
+      case 'activity':
         return (
           <View>
             <StepHeader
-              step={5}
+              stepId="activity"
               title={t('onboarding.activity.title')}
               subtitle={t('onboarding.activity.subtitle')}
             />
@@ -795,41 +842,41 @@ export default function OnboardingScreen() {
             </View>
           </View>
         );
-      case 6:
+      case 'goal': {
+        const selectedCategory = goalCategoryForGoalType(goalType);
         return (
           <View>
             <StepHeader
-              step={6}
-              title={t('onboarding.goal.title')}
-              subtitle={t('onboarding.goal.subtitle')}
+              stepId="goal"
+              title={t('onboarding2.goal.title')}
+              subtitle={t('onboarding2.goal.subtitle')}
             />
             <View className="flex-row flex-wrap gap-3">
-              {GOAL_TYPES.map((goal) => (
-                <View key={goal} className="w-[48%] self-stretch">
+              {visibleGoalCategories(initialGoalType).map((category) => (
+                <View key={category} className="w-[48%] self-stretch">
                   <OptionCard
-                    hint={getGoalHint(goal, t)}
-                    icon={<GoalOptionIcon goal={goal} selected={goalType === goal} />}
-                    label={t(`onboarding.goal.${goal}`)}
+                    hint={t(`onboarding2.goal.${category}Hint`)}
+                    icon={
+                      <GoalOptionIcon
+                        goal={DEFAULT_GOAL_TYPE_BY_CATEGORY[category]}
+                        selected={selectedCategory === category}
+                      />
+                    }
+                    label={t(`onboarding2.goal.${category}`)}
                     layout="grid"
-                    selected={goalType === goal}
-                    onPress={() => {
-                      if (goal === goalType) {
-                        return;
-                      }
-
-                      setGoalType(goal);
-                      // A goal-type change invalidates a typed/custom summary target.
-                      const nextFlag = summaryManuallyEditedAfterGoalTypeChange(goal);
-                      if (nextFlag !== null) {
-                        setSummaryManuallyEdited(nextFlag);
-                      }
-                    }}
+                    selected={selectedCategory === category}
+                    onPress={() => selectGoalCategory(category)}
                   />
                 </View>
               ))}
             </View>
+            {goalType != null && goalType !== 'custom' && isLegacyGoalType(goalType) ? (
+              <Text className="mt-3 text-sm text-gray-600">
+                {t('onboarding2.goal.legacyKept', { name: t(`onboarding.goal.${goalType}`) })}
+              </Text>
+            ) : null}
             {goalType === 'faster_weight_loss' && (
-              <Text className="mb-3 text-sm text-amber-700">
+              <Text className="mb-3 mt-2 text-sm text-amber-700">
                 {t('onboarding.goal.faster_weight_lossWarning')}
               </Text>
             )}
@@ -860,11 +907,12 @@ export default function OnboardingScreen() {
             )}
           </View>
         );
-      case 7:
+      }
+      case 'summary':
         return (
           <View>
             <StepHeader
-              step={7}
+              stepId="summary"
               title={t('onboarding.summary.title')}
               subtitle={t('onboarding.summary.subtitle')}
             />
@@ -924,7 +972,7 @@ export default function OnboardingScreen() {
     }
   }
 
-  const progress = ((step + 1) / TOTAL_STEPS) * 100;
+  const progress = ((step + 1) / steps.length) * 100;
 
   return (
     <OnboardingLayout>
@@ -939,7 +987,7 @@ export default function OnboardingScreen() {
             />
           </View>
           <Text className="mb-4 text-sm text-gray-500">
-            {t('onboarding.stepOf', { current: step + 1, total: TOTAL_STEPS })}
+            {t('onboarding.stepOf', { current: step + 1, total: steps.length })}
           </Text>
           <View
             className="overflow-hidden rounded-full"
@@ -972,7 +1020,7 @@ export default function OnboardingScreen() {
               paddingTop: 12,
               paddingBottom:
                 ONBOARDING_FOOTER_ESTIMATED_HEIGHT +
-                (step === 0 && !isReviewMode ? ONBOARDING_LEGAL_NOTICE_HEIGHT : 0) +
+                (currentStep.showsLegalNotice ? ONBOARDING_LEGAL_NOTICE_HEIGHT : 0) +
                 16,
             }}
             keyboardShouldPersistTaps="always">
@@ -991,11 +1039,11 @@ export default function OnboardingScreen() {
             bottom: 0,
             backgroundColor: 'transparent',
           }}>
-          {/* IMPORTANT: Legal notice must remain on step 0 only (first onboarding step, non-review). Do not remove during redesigns. Do not show on steps 1–7 or in review mode. */}
-          {step === 0 && !isReviewMode ? <OnboardingLegalNotice /> : null}
+          {/* IMPORTANT: Legal notice must remain on the first onboarding step only (non-review), see buildOnboardingSteps. Do not remove during redesigns. Do not show on later steps or in review mode. */}
+          {currentStep.showsLegalNotice ? <OnboardingLegalNotice /> : null}
           <OnboardingFooter
             step={step}
-            totalSteps={TOTAL_STEPS}
+            totalSteps={steps.length}
             isSubmitting={isSubmitting}
             actionsDisabled={isFooterDisabled}
             errorMessage={errorMessage}
@@ -1003,7 +1051,7 @@ export default function OnboardingScreen() {
             skipLabel={t('onboarding.skip')}
             nextLabel={t('onboarding.next')}
             finishLabel={isReviewMode ? t('settings.onboardingReview.save') : t('onboarding.finish')}
-            hideSkip={isReviewMode}
+            hideSkip={!currentStep.skippable}
             onBack={handleBack}
             onSkip={handleSkip}
             onNext={handleNext}

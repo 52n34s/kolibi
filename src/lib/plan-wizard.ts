@@ -4,11 +4,10 @@ import { usesTraining, type UsagePurpose } from '@/lib/usage-purpose';
 export const PLAN_WIZARD_ROUTE = '/koli/plan-wizard';
 
 /**
- * TODO(integrator): set to true when the block that adds
- * src/app/koli/plan-wizard.tsx is merged. Until then the onboarding never
- * navigates there and only leaves the "wizard pending" marker behind.
+ * src/app/koli/plan-wizard.tsx is on release/1.4 (block 2.3). Set to false
+ * to fall back to the "wizard pending" marker only.
  */
-export const PLAN_WIZARD_AVAILABLE = false;
+export const PLAN_WIZARD_AVAILABLE = true;
 
 export type PostOnboardingWizardAction =
   /** Push the wizard right after /home. */

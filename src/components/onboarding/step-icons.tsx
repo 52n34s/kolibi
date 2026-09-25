@@ -6,6 +6,7 @@ import {
   type BiologicalSex,
   type GoalType,
 } from '@/lib/onboarding';
+import type { UsagePurpose } from '@/lib/usage-purpose';
 
 import { getOptionIconColor } from './option-card';
 
@@ -32,6 +33,22 @@ export function SexOptionIcon({
   };
 
   return <OptionIcon name={icons[option]} size={ICON_SIZE_ROW} />;
+}
+
+export function PurposeOptionIcon({
+  purpose,
+  selected: _selected,
+}: {
+  purpose: UsagePurpose;
+  selected: boolean;
+}) {
+  const icons: Record<UsagePurpose, IoniconName> = {
+    nutrition: 'restaurant-outline',
+    training: 'barbell-outline',
+    both: 'sparkles-outline',
+  };
+
+  return <OptionIcon name={icons[purpose]} size={ICON_SIZE_ROW} />;
 }
 
 export function DietOptionIcon({
