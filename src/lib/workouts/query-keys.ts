@@ -4,6 +4,7 @@ export const workoutQueryKeys = {
   templates: (userId: string) => ['workout-templates', userId] as const,
   archivedTemplates: (userId: string) =>
     ['workout-templates-archived', userId] as const,
+  ownTemplates: (userId: string) => ['workout-templates-own', userId] as const,
   sessionsRange: (userId: string, startKey: string, endKey: string) =>
     ['workout-sessions-range', userId, startKey, endKey] as const,
   exerciseHistory: (userId: string, exerciseId: string) =>
@@ -13,8 +14,11 @@ export const workoutQueryKeys = {
   exerciseBestsBefore: (userId: string, beforeKey: string) =>
     ['workout-exercise-bests-before', userId, beforeKey] as const,
   ladder: (ladderKey: string) => ['workout-ladder', ladderKey] as const,
+  exerciseProgress: (userId: string, exerciseIds: readonly string[]) =>
+    ['workout-exercise-progress', userId, ...exerciseIds] as const,
   progressionEvents: (userId: string) =>
     ['workout-progression-events', userId] as const,
+  skillGoal: (userId: string) => ['workout-skill-goal', userId] as const,
 };
 
 /** Manual training_sessions rows (legacy logger / kcal). */

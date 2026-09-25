@@ -8,8 +8,15 @@ import {
   IdleProgressionOverlay,
   useDeferredProgressions,
 } from '@/components/training/IdleProgressionOverlay';
+import {
+  PlanWizardEntryCard,
+  useOpenPlanWizard,
+} from '@/components/training/PlanWizardEntryCard';
 import { RestTimerCard } from '@/components/training/RestTimerCard';
+import { SkillGoalCard } from '@/components/training/SkillGoalCard';
 import { StarterPlanPicker } from '@/components/training/StarterPlanPicker';
+import { useRequirePlan } from '@/hooks/use-require-plan';
+import type { ProductAction } from '@/lib/product-access';
 import {
   countTemplateExercises,
   daysSinceLoggedOn,
@@ -22,7 +29,8 @@ import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { localDateKey, shiftLocalDateKey } from '@/lib/day-window';
-import { pickNextTemplate } from '@/lib/workouts/next-template';
+import { useReadiness } from '@/hooks/use-checkin';
+import { pickNextTemplateForReadiness } from '@/lib/workouts/progression-readiness';
 import { resolveTrainingTabEnabled } from '@/lib/workouts/training-release';
 import type { WorkoutTemplate } from '@/lib/workouts/types';
 
@@ -57,6 +65,15 @@ function openPlanEditor() {
 
 export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps) {
   const { t } = useTranslation();
+  const requirePlan = useRequirePlan();
+  // Plan edits and backfill need an active plan (AGB Ziffer 10 Abs. 5).
+  const withPlan = (action: ProductAction, run: () => void) => () => {
+    void requirePlan(action).then((allowed) => {
+      if (allowed) {
+        run();
+      }
+    });
+  };
   const todayKey = localDateKey();
   const startKey = shiftLocalDateKey(todayKey, -90);
   const templatesQuery = useWorkoutTemplates();
@@ -65,15 +82,36 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
   const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
   const showEditPlan = Boolean(resolveTrainingTabEnabled(trainingTabFlag) && onEditPlan);
   const [showProgressionOverlay, setShowProgressionOverlay] = useState(false);
+  const openPlanWizard = useOpenPlanWizard();
 
   const templates = templatesQuery.data ?? [];
   const archived = archivedQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
 
-  const next = useMemo(
-    () => pickNextTemplate(templates, sessions, todayKey),
-    [templates, sessions, todayKey],
+  const readiness = useReadiness();
+  // Without a check-in and without notable data this is plain pickNextTemplate.
+  const nextPick = useMemo(
+    () => pickNextTemplateForReadiness(templates, sessions, todayKey, readiness),
+    [templates, sessions, todayKey, readiness],
   );
+  const next = nextPick.template;
+
+  function readinessHint(): string | null {
+    if (nextPick.adjustment === 'alternative' && next && nextPick.plannedTemplate) {
+      return t('checkin.next.alternative', {
+        name: next.name,
+        planned: nextPick.plannedTemplate.name,
+      });
+    }
+    if (nextPick.adjustment === 'lighterUnit' && nextPick.plannedTemplate) {
+      return t('checkin.next.lighterUnit', { planned: nextPick.plannedTemplate.name });
+    }
+    if (nextPick.adjustment === 'lighterVariant') {
+      return t('checkin.next.lighterVariant');
+    }
+    return null;
+  }
+  const nextHint = readinessHint();
 
   const deferredProgressions = useDeferredProgressions(next);
 
@@ -120,13 +158,14 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
             <Pressable
               testID="training.idle.openArchivedPlan"
               accessibilityRole="button"
-              onPress={onEditPlan ?? openPlanEditor}
+              onPress={withPlan('editPlan', onEditPlan ?? openPlanEditor)}
               style={styles.archivedHintBtn}>
               <Text style={styles.archivedHintBtnText}>
                 {t('training.panel.emptyArchivedOpenPlan')}
               </Text>
             </Pressable>
           </GlassCard>
+          <PlanWizardEntryCard testID="training.idle.planWizard" />
           <RestTimerCard />
         </ScrollView>
       );
@@ -136,7 +175,8 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
       <ScrollView
         contentContainerStyle={styles.empty}
         showsVerticalScrollIndicator={false}>
-        <StarterPlanPicker onCustom={openNewWorkout} />
+        <PlanWizardEntryCard testID="training.idle.planWizard" />
+        <StarterPlanPicker onCustom={withPlan('editPlan', openNewWorkout)} />
         <RestTimerCard />
       </ScrollView>
     );
@@ -164,6 +204,11 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
             <Text style={styles.nextName}>{next.name}</Text>
             <Text style={styles.muted}>{lastLabel(next.id)}</Text>
             <Text style={styles.muted}>{metaLabel(next)}</Text>
+            {nextHint ? (
+              <Text testID="training.next.readiness" style={styles.readinessHint}>
+                {nextHint}
+              </Text>
+            ) : null}
             {deferredProgressions.length > 0 ? (
               <Pressable
                 testID="training.next.progression"
@@ -192,6 +237,13 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
             </Pressable>
           </GlassCard>
         ) : null}
+
+        <SkillGoalCard
+          testID="training.skillGoal"
+          renderContainer={(children) => (
+            <GlassCard style={styles.goalCard}>{children}</GlassCard>
+          )}
+        />
 
         {others.length > 0 ? (
           <View style={styles.section}>
@@ -234,7 +286,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
         <Pressable
           testID="training.backfill.open"
           accessibilityRole="button"
-          onPress={() => router.push('/koli/workout-backfill' as Href)}
+          onPress={withPlan('backfillSession', () => router.push('/koli/workout-backfill' as Href))}
           style={styles.linkWrap}>
           <Text style={styles.link}>{t('training.backfill.open')}</Text>
         </Pressable>
@@ -244,19 +296,27 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
             <Pressable
               testID="training.idle.newWorkout"
               accessibilityRole="button"
-              onPress={openNewWorkout}
+              onPress={withPlan('editPlan', openNewWorkout)}
               style={styles.linkWrap}>
               <Text style={styles.link}>{t('training.panel.newWorkout')}</Text>
             </Pressable>
             <Pressable
               testID="training.idle.editPlan"
               accessibilityRole="button"
-              onPress={onEditPlan}
+              onPress={onEditPlan ? withPlan('editPlan', onEditPlan) : undefined}
               style={styles.linkWrap}>
               <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
             </Pressable>
           </View>
         ) : null}
+
+        <Pressable
+          testID="training.idle.planWizardLink"
+          accessibilityRole="button"
+          onPress={openPlanWizard}
+          style={styles.linkWrap}>
+          <Text style={styles.link}>{t('planWizard.title')}</Text>
+        </Pressable>
       </ScrollView>
 
       {showProgressionOverlay && next ? (
@@ -313,6 +373,9 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 8,
   },
+  goalCard: {
+    padding: 16,
+  },
   nextTitle: {
     fontSize: 13,
     fontWeight: '700',
@@ -350,6 +413,12 @@ const styles = StyleSheet.create({
   muted: {
     color: TEXT_SECONDARY,
     fontSize: 14,
+  },
+  readinessHint: {
+    color: BRAND_INDIGO,
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 6,
   },
   mutedSm: {
     color: TEXT_SECONDARY,

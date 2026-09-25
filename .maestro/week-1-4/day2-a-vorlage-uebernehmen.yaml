@@ -1,0 +1,37 @@
+# Tag 2a · Kolibi-Vorlage übernehmen (Push aus "Push / Pull & Legs
+# Fortgeschritten").
+appId: com.steffen.kolibi
+env:
+  SHOT: tag2
+---
+- openLink: "kolibi:///koli/workout-plan"
+- extendedWaitUntil:
+    visible:
+      id: "training.plan.templates"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "templates.kolibi.push_pull_legs_advanced:0"
+    direction: DOWN
+- takeScreenshot: ${SHOT}/01-vorlagen
+- tapOn:
+    id: "templates.kolibi.push_pull_legs_advanced:0"
+- extendedWaitUntil:
+    visible:
+      id: "templates.createUnit"
+    timeout: 10000
+- takeScreenshot: ${SHOT}/02-vorlage-vorschau
+- tapOn:
+    id: "templates.createUnit"
+- extendedWaitUntil:
+    visible: ".*ist in deinem Plan.*"
+    timeout: 20000
+- takeScreenshot: ${SHOT}/03-einheit-erstellt
+- tapOn: "OK"
+- waitForAnimationToEnd:
+    timeout: 2000
+- swipe:
+    direction: DOWN
+- swipe:
+    direction: DOWN
+- takeScreenshot: ${SHOT}/04-plan-mit-push

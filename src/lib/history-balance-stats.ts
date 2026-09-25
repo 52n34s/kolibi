@@ -1,5 +1,6 @@
 import type { HistorySummaryStats } from '@/lib/history';
 import { FAT_G_PER_KG_FLOOR } from '@/lib/macro-rules';
+import { groupMeals, type MealSlot } from '@/lib/meal-groups';
 
 export type BalanceNutrient = 'protein' | 'fiber' | 'fat';
 
@@ -39,7 +40,18 @@ const PROTEIN_DISTRIBUTION_MIN_MEAL_KCAL = 100;
 
 export type ProteinDistributionMeal = {
   date: string;
+  /** Logged timestamp; entries are grouped into meals by it. */
+  eatenAt: string;
   totalCalories: number;
+  proteinG: number | null;
+};
+
+/** One automatically grouped meal with summed calories and protein. */
+export type ProteinMealGroup = {
+  date: string;
+  slot: MealSlot;
+  totalCalories: number;
+  /** Null when an entry of at least 100 kcal has no protein data. */
   proteinG: number | null;
 };
 
@@ -213,8 +225,48 @@ function isOutsideUpperTolerance(actual: number, goal: number): boolean {
 }
 
 /**
- * Protein-rich meal distribution across logged days. Meals below 100 kcal do
- * not count; a day is eligible only when every remaining meal has protein data.
+ * Groups logged entries into meals (see meal-groups) and sums them. Entries
+ * under 100 kcal without protein data count as 0 g; a larger entry without
+ * protein data makes the whole meal's protein unknown.
+ */
+export function groupProteinMeals(
+  meals: readonly ProteinDistributionMeal[],
+): ProteinMealGroup[] {
+  return groupMeals(meals, {
+    eatenAt: (meal) => meal.eatenAt,
+    kcal: (meal) => meal.totalCalories,
+  }).map((group) => {
+    const proteinUnknown = group.entries.some(
+      (meal) =>
+        meal.proteinG == null && meal.totalCalories >= PROTEIN_DISTRIBUTION_MIN_MEAL_KCAL,
+    );
+    return {
+      date: group.dateKey,
+      slot: group.slot,
+      totalCalories: group.totalKcal,
+      proteinG: proteinUnknown
+        ? null
+        : group.entries.reduce((sum, meal) => sum + (meal.proteinG ?? 0), 0),
+    };
+  });
+}
+
+/**
+ * Meals (grouped entries) of at least 100 kcal that carry protein data —
+ * shared basis for the protein distribution and the time-of-day analysis.
+ */
+export function proteinCountableMealGroups(
+  meals: readonly ProteinDistributionMeal[],
+): ProteinMealGroup[] {
+  return groupProteinMeals(meals).filter(
+    (group) => group.totalCalories >= PROTEIN_DISTRIBUTION_MIN_MEAL_KCAL,
+  );
+}
+
+/**
+ * Protein-rich meal distribution across logged days. Entries are first
+ * grouped into meals (45-minute chain rule); meals below 100 kcal do not
+ * count; a day is eligible only when every remaining meal has protein data.
  */
 export function computeProteinDistributionStats(
   meals: ProteinDistributionMeal[],
@@ -229,12 +281,9 @@ export function computeProteinDistributionStats(
       (PROTEIN_DISTRIBUTION_G_PER_KG * referenceWeightKg) /
         PROTEIN_DISTRIBUTION_ROUND_TO_G,
     ) * PROTEIN_DISTRIBUTION_ROUND_TO_G;
-  const mealsByDay = new Map<string, ProteinDistributionMeal[]>();
+  const mealsByDay = new Map<string, ProteinMealGroup[]>();
 
-  for (const meal of meals) {
-    if (!(meal.totalCalories >= PROTEIN_DISTRIBUTION_MIN_MEAL_KCAL)) {
-      continue;
-    }
+  for (const meal of proteinCountableMealGroups(meals)) {
     const dayMeals = mealsByDay.get(meal.date) ?? [];
     dayMeals.push(meal);
     mealsByDay.set(meal.date, dayMeals);

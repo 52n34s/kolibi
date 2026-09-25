@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  formatWeightDeltaForDisplay,
   parseWeightInputToKg,
   resolveTargetWeightUpdateRow,
 } from './weight-parse.ts';
@@ -67,5 +68,14 @@ describe('resolveTargetWeightUpdateRow', () => {
       () => resolveTargetWeightUpdateRow({ data: null, error: supabaseError }),
       (err: unknown) => err === supabaseError,
     );
+  });
+});
+
+describe('formatWeightDeltaForDisplay', () => {
+  const labels = { kgLabel: 'kg', lbsLabel: 'lbs' };
+  it('uses the typographic minus like every other delta', () => {
+    assert.equal(formatWeightDeltaForDisplay({ deltaKg: -1.24, unitSystem: 'metric', ...labels }), '−1.2 kg');
+    assert.equal(formatWeightDeltaForDisplay({ deltaKg: 0.5, unitSystem: 'metric', ...labels }), '+0.5 kg');
+    assert.equal(formatWeightDeltaForDisplay({ deltaKg: 0.01, unitSystem: 'metric', ...labels }), null);
   });
 });

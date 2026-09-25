@@ -265,6 +265,7 @@ export type ProfileGoalForZiel =
   | 'maintain'
   | 'gain_weight'
   | 'build_muscle'
+  | 'strength'
   | 'endurance';
 
 const PROFILE_GOALS_FOR_ZIEL = [
@@ -273,6 +274,7 @@ const PROFILE_GOALS_FOR_ZIEL = [
   'maintain',
   'gain_weight',
   'build_muscle',
+  'strength',
   'endurance',
 ] as const satisfies readonly ProfileGoalForZiel[];
 
@@ -283,7 +285,7 @@ function isProfileGoalForZiel(value: string): value is ProfileGoalForZiel {
 /**
  * Maps recommendation ziel into profiles.goal_type.
  *
- * Several goal types share one ziel (gain_weight/build_muscle → MUSKELAUFBAU,
+ * Several goal types share one ziel (gain_weight/build_muscle/strength → MUSKELAUFBAU,
  * lose_weight/faster_weight_loss → ABNEHMEN), so `currentGoalType` keeps the
  * one the user already has. Without it, saving macros silently rewrites their
  * goal — and with it their calorie target — to this function's default pick.
@@ -328,6 +330,7 @@ export function mapProfileGoalToEmpfehlungsZiel(
       return MacroEmpfehlungsZiel.HALTEN;
     case 'gain_weight':
     case 'build_muscle':
+    case 'strength':
       return MacroEmpfehlungsZiel.MUSKELAUFBAU;
     case 'endurance':
     case 'AUSDAUERLEISTUNG':

@@ -1,0 +1,50 @@
+# Schritt 6 · Onboarding-Datum: Auswahl öffnen und ohne Drehen schließen.
+# Frischer anonymer Nutzer (App-Daten und Schlüsselbund des QA-Simulators).
+appId: com.steffen.kolibi
+env:
+  SHOT: step6
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    stopApp: true
+- openLink: "kolibi://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082"
+# First launch after a reset shows the dev menu sheet over the app.
+- runFlow:
+    when:
+      visible: "Runtime version.*"
+    commands:
+      - tapOn:
+          point: "90%,48%"
+- extendedWaitUntil:
+    visible: ".*Schritt.*"
+    timeout: 120000
+- runFlow:
+    when:
+      visible: ".*RevenueCat.*"
+    commands:
+      - tapOn:
+          point: "96%,93%"
+- runFlow:
+    when:
+      visible: "Schritt 2 von 7"
+    commands:
+      - tapOn: "Zurück"
+- extendedWaitUntil:
+    visible: "Wofür nutzt du Kolibi?"
+    timeout: 90000
+- tapOn: ".*Beides.*"
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Geburtsdatum wählen"
+    timeout: 10000
+- tapOn: "Geburtsdatum wählen"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/04-datum-offen
+# "Fertig" without turning a wheel.
+- tapOn: "Fertig"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertNotVisible: "Geburtsdatum wählen"
+- takeScreenshot: ${SHOT}/05-datum-uebernommen

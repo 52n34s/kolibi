@@ -128,7 +128,8 @@ function parseTargetWeightKg(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export async function skipOnboarding(userId: string, dietPreference: string | null = null) {
+/** `dietPreference` undefined leaves the column untouched (diet moved to the meals area). */
+export async function skipOnboarding(userId: string, dietPreference?: string | null) {
   const now = new Date().toISOString();
   const resolved = await resolveOnboardingProfile(userId);
   userId = resolved.userId;
@@ -141,7 +142,11 @@ export async function skipOnboarding(userId: string, dietPreference: string | nu
 
   const { data, error } = await supabase
     .from('profiles')
-    .update({ onboarded_at: now, diet_preference: dietPreference })
+    .update(
+      dietPreference === undefined
+        ? { onboarded_at: now }
+        : { onboarded_at: now, diet_preference: dietPreference },
+    )
     .eq('id', userId)
     .is('onboarded_at', null)
     .select('id, onboarded_at, diet_preference')
@@ -180,7 +185,8 @@ export async function skipOnboarding(userId: string, dietPreference: string | nu
 export async function completeOnboarding(
   userId: string,
   data: {
-    dietPreference: string | null;
+    /** undefined leaves diet_preference untouched. */
+    dietPreference?: string | null;
     biologicalSex: BiologicalSex;
     birthDate: Date;
     heightCm: number;
@@ -201,7 +207,7 @@ export async function completeOnboarding(
   };
 
   const profilePayload: {
-    diet_preference: string | null;
+    diet_preference?: string | null;
     birth_date: string;
     biological_sex: BiologicalSex;
     height_cm: number;
@@ -211,7 +217,7 @@ export async function completeOnboarding(
     onboarded_at?: string;
     target_weight_kg?: number;
   } = {
-    diet_preference: data.dietPreference,
+    ...(data.dietPreference === undefined ? {} : { diet_preference: data.dietPreference }),
     birth_date: localDateKey(data.birthDate),
     biological_sex: data.biologicalSex,
     height_cm: data.heightCm,

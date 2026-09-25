@@ -21,6 +21,8 @@ export type GoalType =
   | 'lose_weight'
   | 'gain_weight'
   | 'build_muscle'
+  /** Kraft und Skills: same calorie/macro effect as build_muscle. */
+  | 'strength'
   | 'faster_weight_loss'
   | 'endurance'
   | 'custom';
@@ -44,6 +46,8 @@ export const GOAL_WEIGHT_CHANGE_PERCENT_PER_WEEK = {
   gain_weight: 0.375,
   /** Recomposition: muscle macros at maintenance, so no planned weight change. */
   build_muscle: 0,
+  /** Same as build_muscle: maintenance calories. */
+  strength: 0,
   endurance: 0,
 } as const satisfies Record<Exclude<GoalType, 'custom'>, number>;
 

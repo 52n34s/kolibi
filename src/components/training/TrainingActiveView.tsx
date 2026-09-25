@@ -14,9 +14,11 @@ import {
 } from '@/components/training/training-panel-utils';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
+import { useSchemaCapability } from '@/hooks/use-schema-capability';
 import { useTimerTick } from '@/hooks/use-timer-tick';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
 import { displayActiveExerciseName } from '@/lib/workouts/exercise-name';
+import { hasDoneSet } from '@/lib/workouts/session-logic';
 import { useWorkoutSyncStatus } from '@/lib/workouts/sync-queue-runtime';
 import type { ActiveSession, Exercise } from '@/lib/workouts/types';
 import { useRestTimerStore } from '@/stores/rest-timer-store';
@@ -44,6 +46,9 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   const adjustCurrent = useWorkoutSessionStore((s) => s.adjustCurrent);
   const setCurrent = useWorkoutSessionStore((s) => s.setCurrent);
   const setCurrentSides = useWorkoutSessionStore((s) => s.setCurrentSides);
+  const setCurrentRir = useWorkoutSessionStore((s) => s.setCurrentRir);
+  // Hidden until the rir migration ran — there is nowhere to save it before.
+  const rirAvailable = useSchemaCapability('sessionSetsRir');
   const completeCurrentSet = useWorkoutSessionStore((s) => s.completeCurrentSet);
   const editDoneSet = useWorkoutSessionStore((s) => s.editDoneSet);
   const addSet = useWorkoutSessionStore((s) => s.addSet);
@@ -122,6 +127,21 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   }
 
   function handleFinishPress() {
+    if (!hasDoneSet(session)) {
+      // Without a set there is nothing to save (hasDoneSet).
+      Alert.alert(t('training.panel.finishTitle'), t('training.panel.finishEmptyBody'), [
+        {
+          text: t('training.panel.finishDiscard'),
+          style: 'destructive',
+          onPress: () => discardSession(),
+        },
+        {
+          text: t('training.panel.finishContinue'),
+          style: 'cancel',
+        },
+      ]);
+      return;
+    }
     Alert.alert(t('training.panel.finishTitle'), undefined, [
       {
         text: t('training.panel.finishSave'),
@@ -296,6 +316,8 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
           onSetValue={handleSetValue}
           onSetSides={handleSetSides}
           onDone={handleDone}
+          showRir={rirAvailable}
+          onSetRir={setCurrentRir}
         />
 
       </ScrollView>

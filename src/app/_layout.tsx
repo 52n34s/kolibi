@@ -52,6 +52,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PostHogProvider } from 'posthog-react-native';
 
 import { ExerciseImageViewerHost } from '@/components/training/ExerciseImageViewer';
+import { GlobalPaywallHost } from '@/components/paywall/GlobalPaywallHost';
 import { useAuthStore } from '@/stores/auth-store';
 import { posthog } from '@/lib/analytics';
 import { applyEagerOtaUpdateOnLaunch } from '@/lib/eager-ota-update';
@@ -73,9 +74,12 @@ import {
   refreshRevenueCatCustomerInfo,
   resetRevenueCatCustomerInfoStore,
 } from '@/lib/revenuecat-customer-info';
+import { ensureRestLiveActivitySync } from '@/lib/training/rest-live-activity-runtime';
 import { ensureWorkoutSyncListeners } from '@/lib/workouts/sync-queue-runtime';
 import { useAppDayRollover } from '@/hooks/use-app-day-rollover';
+import { useCheckinReminderSync } from '@/hooks/use-checkin';
 import { useTouchUserActivity } from '@/hooks/use-touch-user-activity';
+import { useTrainingKeepAwake } from '@/hooks/use-training-keep-awake';
 
 // Lock before first paint — GlassView / UIKit follow this, not only ThemeProvider.
 Appearance.setColorScheme('light');
@@ -95,9 +99,12 @@ function navigateFromPushData(data: unknown) {
 function AppLifecycle({ userId }: { userId: string | null }) {
   useAppDayRollover(userId);
   useTouchUserActivity(userId);
+  useTrainingKeepAwake();
+  useCheckinReminderSync(userId);
 
   useEffect(() => {
     ensureWorkoutSyncListeners();
+    ensureRestLiveActivitySync();
   }, []);
 
   useEffect(() => {
@@ -255,6 +262,7 @@ function RootLayout() {
         </Stack>
       </ThemeProvider>
       <ExerciseImageViewerHost />
+      <GlobalPaywallHost />
     </QueryClientProvider>
   );
 

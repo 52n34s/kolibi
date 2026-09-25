@@ -202,6 +202,95 @@
       "farFromTdeeWarning": "This target differs significantly from your estimated needs and may be unhealthy long term."
     }
   },
+  "onboarding2": {
+    "purpose": {
+      "title": "What do you use Kolibi for?",
+      "subtitle": "Kolibi tailors your start to this. You can change it anytime.",
+      "nutrition": "Nutrition",
+      "nutritionHint": "Meals, calories and macros",
+      "training": "Training",
+      "trainingHint": "Workout plan and progress",
+      "both": "Both",
+      "bothHint": "Nutrition and training together"
+    },
+    "about": {
+      "title": "A few basics about you",
+      "subtitle": "Your age and biological sex make your calorie target more precise.",
+      "sexLabel": "Biological sex (optional)"
+    },
+    "goal": {
+      "title": "What's your goal?",
+      "subtitle": "Kolibi sets your calories and macros around it.",
+      "lose": "Lose weight",
+      "loseHint": "Gentle deficit, muscle stays",
+      "muscle": "Build muscle",
+      "muscleHint": "Plenty of protein for growth",
+      "strength": "Strength & skills",
+      "strengthHint": "Get stronger, learn skills",
+      "maintain": "Maintain & eat well",
+      "maintainHint": "Keep your weight, eat well",
+      "endurance": "Endurance",
+      "enduranceHint": "Energy for long sessions",
+      "custom": "Custom target",
+      "customHint": "Your own calorie target",
+      "legacyKept": "Your current goal \"{{name}}\" stays just as it is."
+    },
+    "goalRow": {
+      "title": "Your goal",
+      "notSet": "Still open"
+    },
+    "dietCard": {
+      "title": "Do you eat vegetarian or vegan?",
+      "subtitle": "Kolibi then recognizes your meals even better.",
+      "dismiss": "Close",
+      "saveFailed": "Please try again in a moment."
+    },
+    "focus": {
+      "label": {
+        "protein": "Protein",
+        "fiber": "Fiber",
+        "strength_training": "Strength training",
+        "carbs_around_training": "Carbs around training",
+        "sets_per_muscle": "Sets per muscle",
+        "carbs_before_training": "Carbs before training",
+        "recovery": "Recovery",
+        "daily_readiness": "Daily readiness",
+        "consistency": "Consistency",
+        "carbs_on_run_days": "Carbs on run days"
+      },
+      "reason": {
+        "lose": {
+          "protein": "Protects your muscles while you lose weight.",
+          "fiber": "Keeps you full on fewer calories.",
+          "strength_training": "Tells your body it still needs its muscles."
+        },
+        "muscle": {
+          "protein": "Supplies the building blocks for new muscle.",
+          "carbs_around_training": "Fuels hard sets and refills your stores afterwards.",
+          "sets_per_muscle": "Enough weekly sets per muscle drive the growth."
+        },
+        "strength": {
+          "carbs_before_training": "Powers heavy attempts and clean technique.",
+          "recovery": "Strength grows in the breaks between sessions.",
+          "daily_readiness": "Lets you match the session to how you feel today.",
+          "protein": "Keeps your muscles strong and helps you recover."
+        },
+        "maintain": {
+          "fiber": "Keeps you full and your digestion moving.",
+          "protein": "Spread over the day, it keeps you full and your muscles fit.",
+          "consistency": "Regular meals keep your weight steady with ease."
+        },
+        "endurance": {
+          "carbs_on_run_days": "Fills your stores for long sessions.",
+          "protein": "Helps your muscles recover after training."
+        },
+        "custom": {
+          "protein": "Protects your muscles at any calorie target.",
+          "consistency": "Regular logging shows how well your target fits."
+        }
+      }
+    }
+  },
   "home": {
     "greeting": {
       "morning": "Good morning, {{name}}",
@@ -213,15 +302,10 @@
     },
     "tabs": {
       "today": "Today",
-      "meals": "Meals",
-      "mealsShort": "Meals",
+      "meals": "Nutrition",
+      "mealsShort": "Nutrition",
       "training": "Training",
       "history": "Progress"
-    },
-    "productLock": {
-      "title": "Kolibi Premium required",
-      "message": "Your subscription is inactive. Subscribe to keep using Kolibi, or manage your account below.",
-      "manageAccount": "Account & subscription"
     },
     "activeSessionBar": {
       "label": "Workout in progress · {{shortLabel}} · {{time}}"
@@ -364,7 +448,7 @@
     },
     "meals": {
       "title": "Today's meals",
-      "emptyTitle": "No meals yet today",
+      "emptyTitle": "Your day starts with the first meal",
       "emptySubtitle": "Scan your first meal to start tracking.",
       "unnamedMeal": "Meal",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
@@ -524,7 +608,8 @@
         "analyzing": "Analyzing your meal...",
         "analyzeErrorTitle": "Could not analyze meal",
         "analyzeError": "The meal photos could not be analyzed. Please try again.",
-        "saveError": "Could not save your meal. Please try again."
+        "saveError": "Could not save your meal. Please try again.",
+        "share": "Share"
       },
       "rateLimit": {
         "title": "Scan limit reached",
@@ -697,7 +782,7 @@
       "newWorkout": "New workout",
       "createFirstWorkout": "Create your first workout",
       "emptyFirstWorkout": "Create your first workout. Kolibi counts your training straight into your calories and macros.",
-      "emptyTemplates": "No workout templates yet",
+      "emptyTemplates": "Create your first workout template",
       "emptyArchivedTitle": "Your plan is archived",
       "emptyArchivedBody": "Restore it in the plan editor under “Archived”.",
       "emptyArchivedOpenPlan": "Open plan",
@@ -716,6 +801,7 @@
       "saveSet": "Save",
       "finish": "Finish",
       "finishTitle": "End workout?",
+      "finishEmptyBody": "Your workout is saved from the first set on.",
       "finishSave": "Save",
       "finishDiscard": "Discard",
       "finishContinue": "Keep training",
@@ -777,7 +863,7 @@
       "rangeAll": "All",
       "chartTitle": "Progress",
       "chartLegend": "Line: best set · light: sum",
-      "empty": "No sets for this exercise yet.",
+      "empty": "Your sets for this exercise show up here.",
       "sessionsTitle": "Workouts",
       "sessionSets": "Sets {{values}} · best {{best}}"
     },
@@ -790,7 +876,7 @@
       "filterAll": "All",
       "filterOwn": "Mine",
       "filterCatalog": "Catalog",
-      "empty": "No exercises found",
+      "empty": "Try another search term.",
       "loadFailed": "Couldn’t load exercises.",
       "confirmSelection": "Add ({{count}})"
     },
@@ -846,7 +932,7 @@
       "restHint": "Applies to every exercise without its own rest — the same value as the timer on the Training tab.",
       "unitMeta": "{{count}} exercises · {{days}}",
       "rotating": "rotating",
-      "emptyTitle": "No plan yet",
+      "emptyTitle": "Your plan takes shape here",
       "emptyBody": "Create units — e.g. Push, Pull, Legs — and start them from the Training home tab.",
       "loadFailed": "Couldn’t load the plan.",
       "reorderFailed": "Couldn’t save order.",
@@ -940,7 +1026,7 @@
     "screenTitle": "Supplements",
     "subtitle": "Intake only — no nutrient tracking.",
     "add": "Add supplement",
-    "emptyTitle": "No supplements yet",
+    "emptyTitle": "Your supplements in one place",
     "emptySubtitle": "Add vitamin D, magnesium, and more, then log when you take them.",
     "units": {
       "capsule": "capsule",
@@ -1016,7 +1102,7 @@
       "sectionSubtitle": "Up to three times — only for due supplements you have not logged yet.",
       "add": "Add reminder",
       "maxHint": "Maximum of three reminders. Edit or delete an existing one.",
-      "empty": "No reminders yet.",
+      "empty": "Reminders you add show up here.",
       "untitled": "Reminder",
       "enabled": "On",
       "editor": {
@@ -1036,6 +1122,13 @@
         "saveFailed": "Could not save. Please try again.",
         "deleteFailed": "Could not delete. Please try again.",
         "needSupplements": "Select at least one supplement."
+      },
+      "permissionOff": {
+        "title": "Turn on notifications for Kolibi",
+        "savedTitle": "Reminder saved, switched off for now",
+        "message": "Allow notifications for Kolibi in iOS Settings. Then switch the reminder on here with one tap.",
+        "later": "Later",
+        "openSettings": "Open Settings"
       }
     },
     "homeChip": {
@@ -1244,7 +1337,7 @@
     },
     "summary": {
       "sectionTitle": "Summary",
-      "empty": "No logged days in this period yet.",
+      "empty": "Days you log in this period show up here.",
       "calories": "Calories",
       "calorieGoalHint": "avg of {{goal}}",
       "protein": "Protein",
@@ -1263,7 +1356,7 @@
       "currentWaistLabel": "Current waist",
       "currentBodyFatLabel": "Current body fat",
       "notLogged": "Not logged yet",
-      "empty": "No weight logged yet.",
+      "empty": "Log your weight to see your trend here.",
       "notTracked": "Not tracked yet",
       "latestDated": "{{weight}} · {{date}}",
       "trendNeedsMeasurements": "Kolibi needs about 3 weigh-ins a week for a reliable trend.",
@@ -1285,7 +1378,7 @@
     },
     "calories": {
       "sectionTitle": "Calories",
-      "empty": "No calorie data yet — scan meals to start tracking.",
+      "empty": "Scan meals and your calories show up here.",
       "tapHint": "Tap a day for details."
     },
     "day": {
@@ -1293,7 +1386,7 @@
       "today": "Today",
       "yesterday": "Yesterday",
       "addMeal": "Add meal",
-      "emptyMeals": "No meals on this day.",
+      "emptyMeals": "Meals from this day show up here.",
       "readOnlyHint": "Entries can be edited up to the previous day.",
       "goalNotSet": "Daily goal: Not set",
       "goalProgress": "{{consumed}} / {{goal}} kcal",
@@ -1301,7 +1394,7 @@
     },
     "macro": {
       "sectionTitle": "Macro trend",
-      "empty": "No macros logged in this period yet."
+      "empty": "Your macros show up here once you log meals in this period."
     }
   },
   "macro": {
@@ -1472,7 +1565,7 @@
       "deniedHint": "Notifications are off. Enable them in iOS Settings so reminders can arrive.",
       "saveFailed": "Could not update notification settings. Please try again.",
       "learningHint": "Kolibi learns when you eat from your entries.",
-      "tokenRegistrationFailed": "Notification registration failed. Please try again later.",
+      "tokenRegistrationFailed": "Setting up reminders didn't work just now. Restart Kolibi and it will try again.",
       "meals": {
         "breakfast": "Breakfast",
         "lunch": "Lunch",
@@ -1724,6 +1817,629 @@
     },
     "overYear": "Target weight in more than a year",
     "notLosing": "With these settings you will not lose weight.",
-    "notGaining": "With these settings you will not gain weight."
+    "notGaining": "With these settings you will not gain weight.",
+    "stalled": "Your weight trend is taking a breather. Once it heads toward your goal, you'll see a time frame here.",
+    "stalledWithPlan": "Your weight trend is taking a breather. With your calorie goal you'll reach your target weight {{eta}}."
+  },
+  "share": {
+    "title": "Share as sticker",
+    "actions": {
+      "save": "Save image",
+      "copy": "Copy",
+      "share": "Share",
+      "instagram": "Instagram",
+      "instagramA11y": "Share to your Instagram Story"
+    },
+    "variant": {
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "format": {
+      "sticker": "Sticker",
+      "story": "Story card"
+    },
+    "options": {
+      "showBest": "Best set",
+      "showLevel": "Level",
+      "showPrevious": "Previous level",
+      "showDate": "Date",
+      "showTopExercises": "Top exercises",
+      "showBiggestGain": "Biggest gain",
+      "showProtein": "Protein goal"
+    },
+    "newBest": "New personal best",
+    "firstTime": "First time",
+    "newLevel": "New level",
+    "level": "Level {{n}} of {{total}}",
+    "previousLevel": "before: {{name}}",
+    "bestSet": "Best set: {{value}}",
+    "myWeek": "My week",
+    "myMonth": "My month",
+    "minutes": "{{n}} min",
+    "biggestGain": "Biggest gain",
+    "protein_one": "Protein goal hit on {{count}} day",
+    "protein_other": "Protein goal hit on {{count}} days",
+    "stats": {
+      "sessions": "Sessions",
+      "reps": "Reps",
+      "seconds": "Seconds",
+      "bests": "Personal bests",
+      "levels": "New levels",
+      "duration": "Duration"
+    },
+    "status": {
+      "saved": "Saved",
+      "copied": "Copied",
+      "permissionDenied": "Kolibi isn’t allowed to save to your photos.",
+      "failed": "That didn’t work. Please try again."
+    },
+    "openSettings": "Open Settings",
+    "exercisesTitle": "Exercises",
+    "shareExercise": "Share {{name}}",
+    "shareLevel": "Share new level {{name}}",
+    "menu": {
+      "image": "Share as image",
+      "text": "Export as text",
+      "cancel": "Cancel"
+    },
+    "perSide": "per side",
+    "progress": {
+      "title": "My progress",
+      "weeksAgo_one": "{{count}} week ago",
+      "weeksAgo_other": "{{count}} weeks ago",
+      "sinceStart": "Since start",
+      "today": "Today",
+      "periodWeeks_one": "{{count}} week",
+      "periodWeeks_other": "{{count}} weeks",
+      "notEnough": "A progress sticker needs at least two sessions of this exercise.",
+      "share": "Share progress for {{name}}"
+    },
+    "meal": {
+      "title": "My meal",
+      "kcal": "{{value}} kcal",
+      "protein": "{{value}} g protein"
+    }
+  },
+  "mealGroups": {
+    "slot": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "afternoonSnack": "Snack",
+      "snack": "Snack",
+      "dinner": "Dinner"
+    },
+    "meta": "{{time}} · {{kcal}} kcal · {{protein}} g protein",
+    "metaKcalOnly": "{{time}} · {{kcal}} kcal",
+    "entries_one": "{{count}} entry",
+    "entries_other": "{{count}} entries",
+    "showEntries": "Show entries",
+    "hideEntries": "Hide entries",
+    "timingHint": {
+      "breakfast": "You averaged {{average}} g of protein at breakfast. Adding {{from}}–{{to}} g in the morning makes your goal easier to hit.",
+      "lunch": "You averaged {{average}} g of protein at lunch. Adding {{from}}–{{to}} g at midday makes your goal easier to hit.",
+      "dinner": "You averaged {{average}} g of protein at dinner. Adding {{from}}–{{to}} g in the evening makes your goal easier to hit."
+    }
+  },
+  "rir": {
+    "question": "How many more could you have done?",
+    "shortfallTitle": "What happened?",
+    "reasonTooHard": "Too hard twice in a row – the easier rung helps you build a solid base.",
+    "reason": {
+      "tired": "tired",
+      "pain": "pain",
+      "technique": "technique",
+      "short_on_time": "short on time",
+      "too_hard": "too hard"
+    }
+  },
+  "planWizard": {
+    "title": "Create plan",
+    "entry": {
+      "title": "Your plan in two minutes",
+      "subtitle": "A few quick questions and you get a plan that fits you.",
+      "cta": "Create plan"
+    },
+    "stepCounter": "Step {{current}} of {{total}}",
+    "back": "Back",
+    "next": "Next",
+    "steps": {
+      "goal": {
+        "title": "What's your goal?",
+        "options": {
+          "muscle": "Build muscle",
+          "strength_skills": "Strength and skills",
+          "fat_loss": "Lose fat",
+          "fitness": "Stay fit"
+        }
+      },
+      "days": {
+        "title": "How many days per week?",
+        "option": "{{count}} days"
+      },
+      "minutes": {
+        "title": "How long per session?",
+        "option": "{{count}} minutes",
+        "optionMax": "75+ minutes"
+      },
+      "equipment": {
+        "title": "What do you have available?",
+        "hint": "Pick everything you have.",
+        "options": {
+          "none": "Just my body",
+          "bar": "Pull-up bar",
+          "parallettes": "Parallettes",
+          "rings": "Rings",
+          "backpack": "Backpack as weight"
+        }
+      },
+      "assessment": {
+        "title": "Where are you right now?",
+        "hint": "A rough guess is perfect, you can adjust everything later.",
+        "push": {
+          "question": "How many push-ups can you do in a row?",
+          "l0": "0",
+          "l1": "1–5",
+          "l2": "6–15",
+          "l3": "16+"
+        },
+        "pull": {
+          "question": "How many pull-ups?",
+          "l0": "0",
+          "l1": "1–3",
+          "l2": "4–8",
+          "l3": "9+"
+        },
+        "legs": {
+          "question": "How many squats in a row?",
+          "l0": "under 10",
+          "l1": "10–25",
+          "l2": "26–50",
+          "l3": "more"
+        }
+      },
+      "focus": {
+        "title": "What do you want to focus on?",
+        "options": {
+          "balanced": "Balanced",
+          "upper": "Upper body",
+          "chest_shoulders": "Chest and shoulders",
+          "back": "Back",
+          "legs": "Legs"
+        }
+      },
+      "cardio": {
+        "title": "Do you also do cardio?",
+        "hint": "Like running, cycling or swimming.",
+        "options": {
+          "none": "No",
+          "some": "1–2 × per week",
+          "lots": "3 × or more"
+        }
+      },
+      "scope": {
+        "title": "What would you like to create?",
+        "options": {
+          "full": "Full plan",
+          "single": "Just one workout"
+        },
+        "hints": {
+          "full": "All workouts for your training week",
+          "single": "One workout matching your focus"
+        }
+      }
+    },
+    "result": {
+      "title": "Your plan",
+      "subtitleFull": "{{days}} training days per week, {{count}} workouts in rotation",
+      "subtitleSingle": "One workout matching your focus",
+      "sessionMeta": "{{count}} exercises · ~{{minutes}} min",
+      "rest": "{{seconds}} s rest",
+      "swap": "Swap",
+      "remove": "Remove",
+      "swapTitle": "Swap exercise",
+      "pullAlternative": "With a pull-up bar or rings, pull-ups and rows join your plan.",
+      "emptySession": "We'll skip this workout when saving.",
+      "add": "Add to my workouts",
+      "replace": "Replace my plan",
+      "save": "Use this plan",
+      "replaceConfirmTitle": "Replace plan?",
+      "replaceConfirmBody": "Your current workouts move to the archive. You can bring them back anytime in your training plan.",
+      "replaceConfirm": "Replace",
+      "cancel": "Cancel",
+      "saveFailed": "Saving needs another try. Give it a moment and tap again.",
+      "editAnswers": "Change answers"
+    },
+    "sessions": {
+      "full_a": "Full Body A",
+      "full_b": "Full Body B",
+      "full": "Full Body",
+      "push": "Push",
+      "pull_legs": "Pull & Legs",
+      "pull": "Pull",
+      "legs": "Legs",
+      "upper": "Upper Body",
+      "chest_shoulders": "Chest and Shoulders",
+      "back": "Back"
+    },
+    "sessionShort": {
+      "full_a": "A",
+      "full_b": "B",
+      "full": "FB",
+      "push": "Ps",
+      "pull_legs": "PL",
+      "pull": "Pl",
+      "legs": "Lg",
+      "upper": "Up",
+      "chest_shoulders": "CS",
+      "back": "Bk"
+    },
+    "presets": {
+      "full_body_beginner": {
+        "title": "Full Body Beginner",
+        "subtitle": "2 × per week · bodyweight only"
+      },
+      "push_pull_legs_advanced": {
+        "title": "Push / Pull & Legs Advanced",
+        "subtitle": "4 × per week · with pull-up bar"
+      },
+      "chest_shoulders_focus": {
+        "title": "Chest and Shoulders Focus",
+        "subtitle": "One workout · bodyweight only"
+      },
+      "short_20": {
+        "title": "Quick Workout 20 Minutes",
+        "subtitle": "One workout · bodyweight only"
+      }
+    }
+  },
+  "templates": {
+    "title": "Templates",
+    "kolibi": "Kolibi templates",
+    "mine": "My templates",
+    "previous": "My previous workouts",
+    "createUnit": "Create workout from this",
+    "saveAsTemplate": "Save as template",
+    "restore": "Restore",
+    "rename": "Rename",
+    "renamePrompt": "New name for the template",
+    "delete": "Delete",
+    "deleteTitle": "Delete template?",
+    "deleteBody": "Your workouts stay as they are.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "exercises": "{{count}} exercises · about {{minutes}} min",
+    "exercisesOnly": "{{count}} exercises",
+    "created": "“{{name}}” is now in your plan.",
+    "savedAsTemplate": "“{{name}}” is now in your templates.",
+    "failed": "That didn't work just now. Try again in a moment.",
+    "mineEmpty": "Save a workout as a template in the plan editor and you'll find it here."
+  },
+  "measurements": {
+    "title": "Measurements",
+    "open": "Log measurements",
+    "subtitle": "Everything is optional. Measure in the morning, relaxed, always at the same spot.",
+    "moreLabel": "More measurements",
+    "fields": {
+      "chest": "Chest",
+      "arm": "Upper arm",
+      "waist": "Waist",
+      "hip": "Hips",
+      "thigh": "Thigh"
+    },
+    "fieldHints": {
+      "chest": "Level with the nipples, arms relaxed.",
+      "arm": "Widest point, arm hanging loosely.",
+      "waist": "At navel height, breathe out normally."
+    },
+    "units": {
+      "cm": "cm",
+      "in": "in",
+      "kg": "kg",
+      "lbs": "lbs"
+    },
+    "invalid": "Please check the value for {{field}}.",
+    "saveFailed": "Give it another try in a moment to save.",
+    "saved": "Measurements saved",
+    "lastMeasured": "Last measured: {{date}}",
+    "buildUp": {
+      "title": "Build-up",
+      "weeksOption": "{{count}} weeks",
+      "sentence": "You're building up: {{parts}}.",
+      "weightStable": "weight steady",
+      "weightDelta": "weight {{delta}}",
+      "waistStable": "waist steady",
+      "waistDelta": "waist {{delta}}",
+      "chestStable": "chest steady",
+      "chestDelta": "chest {{delta}}",
+      "armStable": "upper arm steady",
+      "armDelta": "upper arm {{delta}}",
+      "levelUps_one": "+{{count}} level",
+      "levelUps_other": "+{{count}} levels",
+      "exerciseReps": "{{name}}: +{{delta}}",
+      "exerciseSeconds": "{{name}}: +{{delta}} s",
+      "footnote": "Weight as a 7-day average, strength from levels and best sets.",
+      "empty": "Weigh in, measure waist, chest and upper arm and keep training – this is where you will see how you build up.",
+      "measureCta": "Log measurements",
+      "weighCta": "Log weight"
+    }
+  },
+  "muscles": {
+    "groups": {
+      "chest": "Chest",
+      "shoulders": "Shoulders",
+      "triceps": "Triceps",
+      "back": "Back",
+      "biceps": "Biceps",
+      "core": "Core",
+      "quads": "Quads",
+      "hamstrings": "Hamstrings",
+      "glutes": "Glutes",
+      "calves": "Calves"
+    },
+    "segments": {
+      "sessions": "Sessions",
+      "muscles": "Muscles",
+      "exercises": "Exercises"
+    },
+    "title": "Sets per muscle group",
+    "window7": "7 days",
+    "window30": "30 days",
+    "hint7": "Your sets of the last 7 days. The mark sits at {{target}} sets per week.",
+    "hint30": "Your sets per week, averaged over the last 30 days. The mark sits at {{target}} sets per week.",
+    "value": "{{sets}} / {{target}}",
+    "reached": "Done",
+    "empty": "As soon as you log sets, you see here how much each muscle group trains.",
+    "recommendationsTitle": "How to get there",
+    "recommendation_one": "{{group}}: {{sets}} of {{target}} sets. Add {{count}} set of {{exercise}} per week and you are there.",
+    "recommendation_other": "{{group}}: {{sets}} of {{target}} sets. Add {{count}} sets of {{exercise}} per week and you are there.",
+    "adopt": "Add to a workout",
+    "adoptTitle": "Add to a workout",
+    "adoptRaise": "{{unit}}: {{exercise}} from {{from}} to {{to}} sets.",
+    "adoptAdd_one": "{{unit}}: add {{exercise}} with {{count}} set.",
+    "adoptAdd_other": "{{unit}}: add {{exercise}} with {{count}} sets.",
+    "adoptConfirm": "Add",
+    "adoptCancel": "Cancel",
+    "adoptSaved": "Added to {{unit}}.",
+    "adoptFailed": "Saving hit a snag. Give it another try in a moment.",
+    "editor": {
+      "label": "Muscle groups",
+      "hint": "Tap once for main muscle, twice for assisting.",
+      "primary": "Main",
+      "secondary": "Assist"
+    }
+  },
+  "checkin": {
+    "card": {
+      "title": "How are you today?",
+      "save": "Done",
+      "skipToday": "Not today",
+      "dontShowAgain": "Don't show again",
+      "saveFailed": "Try again in a moment – the connection is a bit slow.",
+      "editHint": "Tap to change"
+    },
+    "questions": {
+      "sleep": "Sleep",
+      "energy": "Energy",
+      "soreness": "Soreness",
+      "stress": "Stress"
+    },
+    "scale": {
+      "sleep": {
+        "low": "short",
+        "high": "restful"
+      },
+      "energy": {
+        "low": "low",
+        "high": "high"
+      },
+      "soreness": {
+        "low": "barely",
+        "high": "strong"
+      },
+      "stress": {
+        "low": "relaxed",
+        "high": "high"
+      },
+      "stepLabel": "{{question}}: {{value}} of 5"
+    },
+    "level": {
+      "ready": "Ready",
+      "normal": "Normal",
+      "gentle": "Take it easy"
+    },
+    "learning": "Kolibi is still getting to know you.",
+    "dataOnly": "Based on your training and food data.",
+    "status": {
+      "open": "Check-in still open"
+    },
+    "readiness": {
+      "ready": {
+        "sentence": "Great shape today.",
+        "action": "The next level fits."
+      },
+      "normal": {
+        "sentence": "Solid day.",
+        "action": "Train as planned."
+      },
+      "gentle": {
+        "sentence": "Today is for taking it easier.",
+        "action": "Pick a lighter variant today."
+      },
+      "reason": {
+        "sleep": {
+          "sentence": "The night was short."
+        },
+        "highLoad": {
+          "sentence": "Lots of training in the last few days.",
+          "action": "A lighter session fits today."
+        },
+        "performanceDrop": {
+          "sentence": "Your last session felt tough.",
+          "action": "Pick a lighter variant today."
+        },
+        "lowCalories": {
+          "sentence": "The last few days were well below your calorie goal.",
+          "action": "Eat well today and keep training light."
+        },
+        "lowProtein": {
+          "sentence": "Protein was on the low side the last few days.",
+          "action": "Plan a protein-rich meal today."
+        }
+      },
+      "sore": {
+        "general": "Quite a bit of soreness today.",
+        "generalAction": "Pick a session for other muscles today.",
+        "swapAction": "{{alternative}} fits better than {{planned}} today.",
+        "lighterAction": "A session for other muscles fits today.",
+        "muscle": {
+          "legs": "Your legs are quite sore.",
+          "chest": "Your chest is quite sore.",
+          "back": "Your back is quite sore.",
+          "shoulders": "Your shoulders are quite sore.",
+          "arms": "Your arms are quite sore.",
+          "core": "Your core is quite sore.",
+          "glutes": "Your glutes are quite sore."
+        }
+      }
+    },
+    "next": {
+      "alternative": "{{name}} fits better than {{planned}} today.",
+      "lighterUnit": "A lighter session fits better than {{planned}} today.",
+      "lighterVariant": "Feel free to go one level lighter or do one set less today."
+    },
+    "progression": {
+      "waiting": "Today is for taking it easy. The next level waits for a fresh day."
+    },
+    "settings": {
+      "sectionTitle": "Morning check-in",
+      "show": "Morning check-in",
+      "reminder": "Reminder",
+      "time": "Time",
+      "hint": "Four quick questions on the Today screen, until noon.",
+      "reminderHint": "Kolibi reminds you every morning at this time.",
+      "saveFailed": "Try again in a moment – the connection is a bit slow.",
+      "permissionOff": "Notifications are off in the iOS settings. Turn them on there to get the reminder.",
+      "openSettings": "Open iOS settings"
+    },
+    "reminder": {
+      "title": "Good morning!",
+      "body": "How are you today? Your check-in takes ten seconds."
+    }
+  },
+  "skillGoal": {
+    "title": "Skill goal",
+    "setCta": "Set a skill goal",
+    "setHint": "Pick an exercise and your target – for example 10 archer pull-ups or a 30 s L-sit.",
+    "edit": "Change",
+    "share": "Share goal",
+    "targetReps": "Goal: {{value}} reps",
+    "targetSeconds": "Goal: {{value}} s",
+    "currentReps": "Now: {{value}} reps",
+    "currentSeconds": "Now: {{value}} s",
+    "currentRepsOn": "Now: {{value}} reps of {{name}}",
+    "currentSecondsOn": "Now: {{value}} s of {{name}}",
+    "start": "Your first set on this ladder already counts.",
+    "achieved": "You did it! Time for your next goal.",
+    "tooLittleSessions_one": "{{count}} more session on this ladder and you'll see a time frame here.",
+    "tooLittleSessions_other": "{{count}} more sessions on this ladder and you'll see a time frame here.",
+    "tooLittleDays_one": "Keep training for {{count}} more day and you'll see a time frame here.",
+    "tooLittleDays_other": "Keep training for {{count}} more days and you'll see a time frame here.",
+    "noTrend": "You're holding your level right now. Once it climbs, you'll see a time frame here.",
+    "beyondYear": "A big goal – likely more than a year away.",
+    "progressA11y": "{{percent}}% done",
+    "period": {
+      "single": "likely {{part}} {{month}}",
+      "sameMonth": "likely {{from}} to {{to}} {{month}}",
+      "range": "likely {{fromPart}} {{fromMonth}} to {{toPart}} {{toMonth}}"
+    },
+    "part": {
+      "early": "early",
+      "mid": "mid",
+      "late": "late"
+    },
+    "sheet": {
+      "pickTitle": "Pick an exercise",
+      "searchPlaceholder": "Search exercises",
+      "suggested": "From your training",
+      "all": "All exercises",
+      "targetTitle": "Your target",
+      "targetLabelReps": "Reps",
+      "targetLabelSeconds": "Seconds",
+      "save": "Save goal",
+      "otherExercise": "Other exercise",
+      "remove": "Remove goal",
+      "invalid": "Enter a value between 1 and 10000.",
+      "saveFailed": "Please try again in a moment."
+    },
+    "sticker": {
+      "badge": "My goal",
+      "achievedBadge": "Goal reached"
+    }
+  },
+  "liveActivity": {
+    "title": "Rest",
+    "nextSet": "Set {{set}} of {{sets}}",
+    "paused": "Paused",
+    "done": "Rest’s over – let’s go!"
+  },
+  "today": {
+    "nutrition": {
+      "kcalLeft": "kcal left today",
+      "kcalOver": "kcal over",
+      "protein": "Protein",
+      "proteinOf": "{{eaten}} / {{target}} g",
+      "proteinOnly": "{{eaten}} g"
+    },
+    "training": {
+      "next": "Up next",
+      "start": "Start",
+      "restDay": "Rest day",
+      "restDayBody": "Today is for recovery. It moves you forward too.",
+      "week": "{{done}} of {{goal}} workouts this week",
+      "weekNoGoal": "{{done}} workouts this week",
+      "createPlan": "Create plan",
+      "openTraining": "Go to training"
+    }
+  },
+  "recommendations": {
+    "title": "For you today",
+    "dismiss": "Hide",
+    "protein": {
+      "message": "{{grams}} g of protein to reach your goal",
+      "action": "Log protein"
+    },
+    "fiber": {
+      "message": "{{grams}} g of fiber to reach your goal",
+      "action": "Log a meal"
+    },
+    "carbs": {
+      "message": "Training day: carbs before your session give you more power",
+      "action": "Log a meal"
+    },
+    "restDay": {
+      "message": "A rest day or an easy session fits your form today",
+      "action": "View training"
+    },
+    "nextLevel": {
+      "message": "{{exercise}}: you're ready for the next level",
+      "action": "View exercise"
+    },
+    "muscleDeficit": {
+      "message": "{{group}}: {{count}} more sets this week, for example with {{exercise}}",
+      "action": "View exercise"
+    },
+    "weight": {
+      "message": "Time to weigh in – it keeps your trend up to date",
+      "messageFirst": "Your first weigh-in makes your progress visible",
+      "action": "Weigh in now"
+    },
+    "measurements": {
+      "message": "Time for new measurements – see how you're changing",
+      "action": "Add measurements"
+    },
+    "checkin": {
+      "message": "Your check-in takes a moment and tunes today's training to you",
+      "action": "Start check-in"
+    }
   }
 }

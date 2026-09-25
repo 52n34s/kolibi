@@ -44,6 +44,11 @@ export type WeightGoalEtaOk = {
 export type WeightGoalEtaResult =
   | WeightGoalEtaOk
   | { status: 'over_year'; method: 'trend' | 'theoretical' }
+  /**
+   * ≥14 days of trend, but it is flat or heads away from the target (plateau,
+   * water swings). `plan` is the calorie-plan date when calorie data exists.
+   */
+  | { status: 'stalled'; plan: WeightGoalEtaOk | null }
   | { status: 'not_losing' }
   | { status: 'not_gaining' }
   | { status: 'unavailable' };
@@ -324,6 +329,8 @@ function trendEta(params: {
   /** Still surface not_losing when theory says deficit ≤ 0 even if trend exists. */
   dailyCalorieGoal?: number | null;
   maintenanceCalories?: number | null;
+  /** Calorie-plan date shown next to a plateau; null without calorie data. */
+  planForStalledTrend: () => WeightGoalEtaOk | null;
 }): WeightGoalEtaResult {
   const {
     smoothed,
@@ -332,6 +339,7 @@ function trendEta(params: {
     today,
     dailyCalorieGoal,
     maintenanceCalories,
+    planForStalledTrend,
   } = params;
 
   if (
@@ -352,10 +360,6 @@ function trendEta(params: {
   }
 
   const slope = theilSenSlopeKgPerDay(smoothed);
-  if (slope == null || Math.abs(slope) < 1e-6) {
-    return { status: 'unavailable' };
-  }
-
   const current = smoothed[smoothed.length - 1]!.weightKg;
   const remaining = targetWeightKg - current; // negative when losing toward lower target
 
@@ -363,9 +367,9 @@ function trendEta(params: {
     if (remaining >= -0.05) {
       return { status: 'unavailable' };
     }
-    // Need negative slope (losing).
-    if (slope >= 0) {
-      return { status: 'unavailable' };
+    // Need negative slope (losing). A flat or rising trend is a plateau.
+    if (slope == null || slope > -1e-6) {
+      return { status: 'stalled', plan: planForStalledTrend() };
     }
     const days = remaining / slope; // both negative → positive
     return buildOkResult(days, 'trend', today);
@@ -375,8 +379,8 @@ function trendEta(params: {
     if (remaining <= 0.05) {
       return { status: 'unavailable' };
     }
-    if (slope <= 0) {
-      return { status: 'unavailable' };
+    if (slope == null || slope < 1e-6) {
+      return { status: 'stalled', plan: planForStalledTrend() };
     }
     const days = remaining / slope;
     return buildOkResult(days, 'trend', today);
@@ -401,6 +405,30 @@ export function computeWeightGoalEta(input: WeightGoalEtaInput): WeightGoalEtaRe
   const smoothed = trailingMovingAverage(points);
   const span = spanDays(smoothed.length >= 2 ? smoothed : points);
 
+  const currentWeightKg =
+    input.currentWeightKg ??
+    (points.length > 0 ? points[points.length - 1]!.weightKg : null);
+
+  const theoretical = (): WeightGoalEtaResult => {
+    if (
+      currentWeightKg == null ||
+      input.dailyCalorieGoal == null ||
+      input.maintenanceCalories == null ||
+      !(input.dailyCalorieGoal > 0) ||
+      !(input.maintenanceCalories > 0)
+    ) {
+      return { status: 'unavailable' };
+    }
+    return theoreticalEta({
+      currentWeightKg,
+      targetWeightKg,
+      dailyCalorieGoal: input.dailyCalorieGoal,
+      maintenanceCalories: input.maintenanceCalories,
+      goalDirection,
+      today,
+    });
+  };
+
   if (span >= WEIGHT_ETA_MIN_TREND_SPAN_DAYS && smoothed.length >= 2) {
     return trendEta({
       smoothed,
@@ -409,31 +437,14 @@ export function computeWeightGoalEta(input: WeightGoalEtaInput): WeightGoalEtaRe
       today,
       dailyCalorieGoal: input.dailyCalorieGoal,
       maintenanceCalories: input.maintenanceCalories,
+      planForStalledTrend: () => {
+        const plan = theoretical();
+        return plan.status === 'ok' ? plan : null;
+      },
     });
   }
 
-  const currentWeightKg =
-    input.currentWeightKg ??
-    (points.length > 0 ? points[points.length - 1]!.weightKg : null);
-
-  if (
-    currentWeightKg == null ||
-    input.dailyCalorieGoal == null ||
-    input.maintenanceCalories == null ||
-    !(input.dailyCalorieGoal > 0) ||
-    !(input.maintenanceCalories > 0)
-  ) {
-    return { status: 'unavailable' };
-  }
-
-  return theoreticalEta({
-    currentWeightKg,
-    targetWeightKg,
-    dailyCalorieGoal: input.dailyCalorieGoal,
-    maintenanceCalories: input.maintenanceCalories,
-    goalDirection,
-    today,
-  });
+  return theoretical();
 }
 
 export function fuzzyMonthPart(date: Date): FuzzyMonthPart {

@@ -1,5 +1,6 @@
 import { newId } from '../id';
 import { resolveExerciseName } from './exercise-name';
+import { normalizeRir } from './session-set-row';
 import {
   emptySummaryDraft,
   type ActiveExercise,
@@ -35,6 +36,8 @@ export type SessionSetUpsertPayload = {
   secondsOtherSide: number | null;
   weightKg: number | null;
   completedAt: string;
+  /** Reps in reserve; the API writes it only once the column exists. */
+  rir?: number | null;
 };
 
 /** Lower-bound target for set prefill (never history, never max). */
@@ -204,6 +207,23 @@ export function setCurrentSides(
     value: Math.min(a, b),
     secondsOtherSide: Math.max(a, b),
   }));
+}
+
+/**
+ * "Wie viele wären noch gegangen?" for the current open set. null clears it;
+ * values outside 0–3 and time exercises are ignored.
+ */
+export function setCurrentRir(session: ActiveSession, rir: number | null): ActiveSession {
+  const item = session.items[session.cursor.exerciseIndex];
+  const set = item?.sets[session.cursor.setIndex];
+  if (!item || !set || set.done || item.kind === 'time') {
+    return session;
+  }
+  const next = rir == null ? null : normalizeRir(rir);
+  if (rir != null && next == null) {
+    return session;
+  }
+  return withCurrentSet(session, (set) => ({ ...set, rir: next }));
 }
 
 /** Open = has an unfinished set AND was not skipped. */
@@ -629,7 +649,16 @@ export function toSessionSetUpsert(
     secondsOtherSide: isTime && exercise.perSide ? set.secondsOtherSide : null,
     weightKg: exercise.kind === 'weighted' ? exercise.targetWeightKg : null,
     completedAt: set.completedAt,
+    rir: isTime ? null : (set.rir ?? null),
   };
+}
+
+/**
+ * A unit counts as training from its first done set. Without one there is
+ * nothing to save: no workout session, no training_sessions row, no energy.
+ */
+export function hasDoneSet(session: Pick<ActiveSession, 'items'>): boolean {
+  return session.items.some((item) => item.sets.some((set) => set.done));
 }
 
 export function allDoneSetUpserts(session: ActiveSession): SessionSetUpsertPayload[] {

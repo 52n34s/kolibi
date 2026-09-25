@@ -1,0 +1,19 @@
+# Aktuellen Satz mit "Satz fertig" abschliessen.
+#
+# Die Pause wird NICHT übersprungen: der schwebende Expo-Dev-Button unten
+# rechts hat ein grösseres Trefferfeld als sein Bild und fängt Taps auf
+# training.timerBar.skip ab — dann öffnet sich das Dev-Menü mitten im Lauf.
+# Eine laufende Pause stört das Loggen des nächsten Satzes nicht.
+#
+# Warten ist Pflicht: wenn die Pausenleiste erscheint oder verschwindet,
+# rutscht das Layout und ein sofortiger Tap greift ins Leere.
+appId: com.steffen.kolibi
+---
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+- tapOn:
+    id: "training.input.done"
+- waitForAnimationToEnd:
+    timeout: 1500

@@ -149,7 +149,7 @@ export function suggestInitialTargetWeightKg(params: {
       factor = 1.05;
       break;
     default:
-      // maintain, build_muscle, endurance, custom, null, unknown → unchanged
+      // maintain, build_muscle, strength, endurance, custom, null, unknown → unchanged
       factor = 1;
       break;
   }

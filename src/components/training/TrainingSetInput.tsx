@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 
 import { HoldTimer } from '@/components/training/HoldTimer';
-import { BRAND_INDIGO } from '@/constants/brand';
+import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import {
   holdResetNeedsConfirm,
@@ -35,7 +35,18 @@ type TrainingSetInputProps = {
   onDone: () => void;
   /** When true, set is already completed — edits persist via parent editDoneSet path. */
   isEditingDone: boolean;
+  /** Show "Wie viele wären noch gegangen?" (open rep sets, rir column present). */
+  showRir?: boolean;
+  onSetRir?: (rir: number | null) => void;
 };
+
+/** 3 stands for "3 or more". */
+const RIR_OPTIONS = [
+  { value: 0, label: '0' },
+  { value: 1, label: '1' },
+  { value: 2, label: '2' },
+  { value: 3, label: '3+' },
+] as const;
 
 export function TrainingSetInput({
   item,
@@ -45,6 +56,8 @@ export function TrainingSetInput({
   onSetSides,
   onDone,
   isEditingDone,
+  showRir = false,
+  onSetRir,
 }: TrainingSetInputProps) {
   const { t } = useTranslation();
   const keyboardHeight = useKeyboardHeight();
@@ -187,6 +200,33 @@ export function TrainingSetInput({
         </View>
       )}
 
+      {!showHold && showRir && !isEditingDone && item.kind !== 'time' && onSetRir ? (
+        <View style={styles.rir} testID="training.input.rir">
+          <Text style={styles.rirQuestion}>{t('rir.question')}</Text>
+          <View style={styles.rirRow}>
+            {RIR_OPTIONS.map((option) => {
+              const selected = set.rir === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  testID={`training.input.rir.${option.value}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t('rir.question')} ${option.label}`}
+                  accessibilityState={{ selected }}
+                  hitSlop={6}
+                  // Tapping the picked value again clears it: the row stays optional.
+                  onPress={() => onSetRir(selected ? null : option.value)}
+                  style={[styles.rirChip, selected && styles.rirChipSelected]}>
+                  <Text style={[styles.rirChipText, selected && styles.rirChipTextSelected]}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
       {!showHold ? (
         <Pressable
           testID="training.input.done"
@@ -244,6 +284,39 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: BRAND_INDIGO,
     paddingVertical: 4,
+  },
+  rir: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  rirQuestion: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+  },
+  rirRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  rirChip: {
+    minWidth: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    alignItems: 'center',
+    backgroundColor: 'rgba(79, 70, 229, 0.08)',
+  },
+  rirChipSelected: {
+    backgroundColor: BRAND_INDIGO,
+  },
+  rirChipText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: BRAND_INDIGO,
+    fontVariant: ['tabular-nums'],
+  },
+  rirChipTextSelected: {
+    color: '#FFFFFF',
   },
   done: {
     paddingHorizontal: 28,

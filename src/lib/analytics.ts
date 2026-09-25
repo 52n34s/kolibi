@@ -78,3 +78,12 @@ export function identifyAndTrackSignupIfNew(
   }
 }
 
+
+/** Sticker shared: kind, look and action only — never what the sticker shows. */
+export function trackShareStickerCreated(props: {
+  type: 'exercise' | 'level' | 'session' | 'recap_week' | 'recap_month' | 'progress' | 'meal' | 'goal';
+  variant: 'light' | 'dark';
+  action: 'save' | 'copy' | 'share' | 'instagram';
+}) {
+  posthog?.capture('share_sticker_created', props);
+}

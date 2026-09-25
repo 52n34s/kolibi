@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import type { QueryClient } from '@tanstack/react-query';
 
 import { finishActiveSession, type FinishSessionDeps } from './finish-session.ts';
-import { buildActiveSessionFromTemplate, completeCurrentSet } from './session-logic.ts';
+import { buildActiveSessionFromTemplate, completeCurrentSet, hasDoneSet } from './session-logic.ts';
 import type { Exercise, TemplateExercise, WorkoutTemplate } from './types.ts';
 
 function exercise(partial: Partial<Exercise> & Pick<Exercise, 'id' | 'kind'>): Exercise {
@@ -245,6 +245,99 @@ describe('finishActiveSession', () => {
     );
     assert.equal(result.ok, true);
     assert.equal(insertedDuration, 55);
+  });
+});
+
+describe('finishActiveSession without a done set', () => {
+  it('writes nothing: no workout session, no training_sessions row', async () => {
+    const template: WorkoutTemplate = {
+      id: 'tmpl',
+      name: 'Push',
+      shortLabel: 'P',
+      colorKey: 'indigo',
+      weekdays: [],
+      position: 0,
+      exercises: [
+        {
+          id: 'te1',
+          exerciseId: 'e1',
+          exercise: exercise({ id: 'e1', kind: 'reps' }),
+          position: 0,
+          targetSets: 2,
+          targetReps: 8,
+          targetRepsMax: null,
+          targetSeconds: null,
+          targetSecondsMax: null,
+          targetWeightKg: null,
+          restSeconds: 60,
+        },
+      ],
+    };
+    const empty = buildActiveSessionFromTemplate(template, {
+      loggedOn: '2026-09-25',
+      startedAt: '2026-09-25T18:00:00.000Z',
+    });
+    assert.equal(hasDoneSet(empty), false);
+    assert.equal(hasDoneSet(makeSession()), true);
+    const calls: string[] = [];
+    const result = await finishActiveSession(
+      empty,
+      { intensity: 'normal', userId: 'u1', queryClient: {} as QueryClient },
+      baseDeps({
+        enqueueUpsertSession: () => calls.push('enqueue'),
+        insertTrainingSession: async () => {
+          calls.push('insert');
+          return { id: 'ts' };
+        },
+        upsertWorkoutSession: async () => {
+          calls.push('link');
+        },
+      }),
+    );
+    assert.equal(result.ok, false);
+    assert.deepEqual(calls, []);
+  });
+});
+
+describe('finishActiveSession – shortfall reasons (Block 2.5)', () => {
+  function withValue(value: number, reasons?: string[]) {
+    const session = makeSession();
+    const item = session.items[0]!;
+    return {
+      ...session,
+      items: [{ ...item, sets: item.sets.map((set) => ({ ...set, value })) }],
+      summaryDraft: { ...session.summaryDraft, shortfallReasons: reasons },
+    };
+  }
+
+  async function sent(session: ReturnType<typeof withValue>) {
+    const enqueued: unknown[] = [];
+    const linked: unknown[] = [];
+    await finishActiveSession(
+      session,
+      { intensity: 'normal', userId: 'u1', queryClient: {} as QueryClient },
+      baseDeps({
+        enqueueUpsertSession: (payload) => {
+          enqueued.push(payload.shortfallReasons);
+        },
+        upsertWorkoutSession: async (input) => {
+          linked.push(input.shortfallReasons);
+        },
+      }),
+    );
+    return { enqueued, linked };
+  }
+
+  it('clearly below + picks → reasons go with the session upsert and the link', async () => {
+    const { enqueued, linked } = await sent(withValue(3, ['too_hard', 'bogus']));
+    assert.deepEqual(enqueued, [['too_hard']]);
+    assert.deepEqual(linked, [['too_hard']]);
+  });
+
+  it('nothing picked, or no clear shortfall → field left out', async () => {
+    assert.deepEqual((await sent(withValue(3, []))).enqueued, [undefined]);
+    assert.deepEqual((await sent(withValue(8, ['tired']))).enqueued, [undefined]);
+    assert.deepEqual((await sent(withValue(3))).linked, [undefined]);
   });
 });
 

@@ -354,6 +354,23 @@ export async function updateTrainingSessionsPerWeek(params: {
   }
 }
 
+/** Diet only (first-use card in the meals area). Refreshes macros like updateFoodContext. */
+export async function updateDietPreference(params: {
+  userId: string;
+  dietPreference: string | null;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ diet_preference: params.dietPreference })
+    .eq('id', params.userId);
+
+  if (error) {
+    throw error;
+  }
+
+  await refreshMacrosKeepingCalorieGoal(params.userId);
+}
+
 export async function fetchDietPreference(userId: string): Promise<string | null> {
   const { data, error } = await supabase
     .from('profiles')

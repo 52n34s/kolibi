@@ -72,9 +72,10 @@ export async function fetchStarterCatalogBySlugs(
   return bySlug;
 }
 
-function targetsForExercise(
+/** Plan min/max → template target columns for the catalog kind. */
+export function targetsForExercise(
   kind: ExerciseKind,
-  exercise: StarterPlanExercise,
+  exercise: Pick<StarterPlanExercise, 'targetMin' | 'targetMax'>,
 ): {
   targetReps: number | null;
   targetRepsMax: number | null;

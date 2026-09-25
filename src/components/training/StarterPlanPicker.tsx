@@ -17,6 +17,7 @@ import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, TEXT_SECONDARY, TRAINING_UNIT_COLORS } from '@/constants/brand';
 import { applyStarterPlan, fetchStarterCatalogBySlugs } from '@/lib/workouts/apply-starter-plan';
+import { useRequirePlan } from '@/hooks/use-require-plan';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
 import {
@@ -35,6 +36,7 @@ type StarterPlanPickerProps = {
 };
 
 export function StarterPlanPicker({ onCustom, onApplied }: StarterPlanPickerProps) {
+  const requirePlan = useRequirePlan();
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.session?.user?.id);
@@ -65,6 +67,9 @@ export function StarterPlanPicker({ onCustom, onApplied }: StarterPlanPickerProp
   );
 
   async function handleApply() {
+    if (!(await requirePlan('editPlan'))) {
+      return;
+    }
     if (!previewPlan || !userId || applying) {
       return;
     }

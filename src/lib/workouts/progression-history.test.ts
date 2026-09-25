@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { exerciseMilestone } from '../share/sticker-data.ts';
 import { suggestProgression, type ProgressionHistoryUnit } from './progression.ts';
 import { withoutSession } from './progression-history.ts';
 import type { Exercise } from './types.ts';
@@ -51,6 +52,21 @@ describe('withoutSession', () => {
   it('drops the rows of the given session and keeps the order of the rest', () => {
     const rows = [{ sessionId: 'now', n: 1 }, { sessionId: 'old', n: 2 }, { sessionId: 'now', n: 3 }];
     assert.deepEqual(withoutSession(rows, 'now'), [{ sessionId: 'old', n: 2 }]);
+  });
+
+  // Week test, day 2: the sets of the running session are synced before the
+  // summary loads the history, so the session met itself in its own history.
+  it('a first session is "Zum ersten Mal" although its sets are already synced', () => {
+    const synced = [{ sessionId: 'now', reps: 6 }, { sessionId: 'now', reps: 5 }];
+    const prior = withoutSession(synced, 'now').map((set) => set.reps);
+    assert.equal(
+      exerciseMilestone({
+        sessionBest: 6,
+        priorBest: prior.length > 0 ? Math.max(...prior) : null,
+        historyLoaded: true,
+      }),
+      'firstTime',
+    );
   });
 
   it('a hard session does not count as its own previous success', () => {

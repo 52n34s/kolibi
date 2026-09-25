@@ -47,16 +47,30 @@ export function formatWeightGoalEtaMessage(
   if (result.status === 'over_year') {
     return t('weightGoalEta.overYear');
   }
+  if (result.status === 'stalled') {
+    return result.plan == null
+      ? t('weightGoalEta.stalled')
+      : t('weightGoalEta.stalledWithPlan', {
+          eta: formatFuzzyEta(result.plan.etaDate, t, locale),
+        });
+  }
 
-  const parts = fuzzyEtaParts(result.etaDate);
-  const month = localizedMonthName(parts.monthDate, locale);
-  const partLabel = t(`weightGoalEta.part.${parts.part}`);
-  const fuzzy = t('weightGoalEta.fuzzy', {
-    part: partLabel,
-    month,
+  return t('weightGoalEta.reachedAround', {
+    eta: formatFuzzyEta(result.etaDate, t, locale),
+  });
+}
+
+function formatFuzzyEta(
+  etaDate: Date,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  locale: string,
+): string {
+  const parts = fuzzyEtaParts(etaDate);
+  return t('weightGoalEta.fuzzy', {
+    part: t(`weightGoalEta.part.${parts.part}`),
+    month: localizedMonthName(parts.monthDate, locale),
     year: parts.year,
   });
-  return t('weightGoalEta.reachedAround', { eta: fuzzy });
 }
 
 export function WeightGoalEtaMessage({

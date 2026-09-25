@@ -1,0 +1,18 @@
+# Settings → Einstellungen → Sprache LANG (EN, DE or ES), then back home.
+# SETTINGS is the tab label in the current language.
+appId: com.steffen.kolibi
+---
+# Needs the app running on Metro (a cold start shows the dev launcher).
+- openLink: "kolibi:///koli"
+- runFlow: confirm-open.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: ${SETTINGS}
+- scrollUntilVisible:
+    element: "^${LANG}$"
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+- tapOn: "^${LANG}$"
+- waitForAnimationToEnd:
+    timeout: 3000

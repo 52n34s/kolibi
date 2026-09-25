@@ -1,0 +1,24 @@
+# Relaunch the app WITHOUT clearing state or keychain.
+# The test account stays logged in across every flow.
+#
+# The dev build shows a permanent red toast
+# "[RevenueCat] configure failed: Error: Invalid API key" on ~[10,800]-[392,822].
+# It swallows taps on fixed bottom buttons (catalog "Hinzufügen", plan
+# "Speichern"), so it gets closed right after every launch.
+appId: com.steffen.kolibi
+---
+- launchApp:
+    clearState: false
+    clearKeychain: false
+- extendedWaitUntil:
+    visible:
+      id: "home.tab.today"
+    timeout: 90000
+- runFlow:
+    when:
+      visible: ".*RevenueCat.*"
+    commands:
+      - tapOn:
+          point: "96%,94%"
+      - waitForAnimationToEnd:
+          timeout: 2000

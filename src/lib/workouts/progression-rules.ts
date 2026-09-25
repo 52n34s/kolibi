@@ -29,3 +29,16 @@ export const PROGRESSION_NO_UPPER_BONUS = 2;
  * sessions exist since that event before suggesting K again.
  */
 export const PROGRESSION_DECLINED_COOLDOWN_SESSIONS = 2;
+
+/**
+ * Reps in reserve that turn an upper-bound session into a clear success:
+ * with at least one set at this rir, "hart" no longer waits for a second
+ * successful session.
+ */
+export const PROGRESSION_RIR_CLEAR_RESERVE = 2;
+
+/** "Clearly below target": best set under this share of the lower bound … */
+export const SHORTFALL_BEST_RATIO = 0.7;
+
+/** … or at least this many sets under the lower bound. */
+export const SHORTFALL_SETS_BELOW = 2;

@@ -1,0 +1,91 @@
+# Tag 1b · Plan-Assistent als absoluter Einsteiger ohne Ausrüstung
+# (fit bleiben, 2 Tage, 30 Minuten, Einstufung 0/0/0), geöffnet über
+# "Plan erstellen" auf Heute.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag1
+---
+- runFlow:
+    when:
+      notVisible:
+        id: "planWizard.goal.fitness"
+    commands:
+      - tapOn:
+          id: "home.tab.today"
+      - tapOn: ".*Plan erstellen.*"
+- extendedWaitUntil:
+    visible:
+      id: "planWizard.goal.fitness"
+    timeout: 60000
+- takeScreenshot: ${SHOT}/05-assistent-ziel
+# Single-choice steps move on by themselves; equipment and assessment have "Weiter".
+- tapOn:
+    id: "planWizard.goal.fitness"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "planWizard.days.2"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "planWizard.minutes.30"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "planWizard.equipment.none"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "planWizard.next"
+- tapOn:
+    id: "planWizard.assessment.push.0"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "planWizard.assessment.pull.0"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "planWizard.assessment.legs.0"
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/06-assistent-einstufung
+- tapOn:
+    id: "planWizard.next"
+- tapOn:
+    id: "planWizard.focus.balanced"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "planWizard.cardio.none"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "planWizard.scope.full"
+- waitForAnimationToEnd:
+    timeout: 1500
+- runFlow:
+    when:
+      visible:
+        id: "planWizard.next"
+    commands:
+      - tapOn:
+          id: "planWizard.next"
+- extendedWaitUntil:
+    visible:
+      id: "planWizard.session.full_a"
+    timeout: 20000
+- takeScreenshot: ${SHOT}/07-assistent-plan
+- scrollUntilVisible:
+    element:
+      id: "planWizard.save"
+    direction: DOWN
+- tapOn:
+    id: "planWizard.save"
+- extendedWaitUntil:
+    visible:
+      id: "home.tab.today"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/08-heute

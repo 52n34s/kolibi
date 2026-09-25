@@ -3,9 +3,19 @@ import * as Sentry from '@sentry/react-native';
 import { newId } from '@/lib/id';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { sessionSetsToHistoryUnits } from '@/lib/workouts/progression-history';
+import {
+  createCapabilityCache,
+  SCHEMA_CAPABILITY_COLUMNS,
+  withOptionalColumn,
+  type SchemaCapability,
+} from '@/lib/workouts/schema-capabilities';
+import { normalizeRir, toSessionSetRow } from '@/lib/workouts/session-set-row';
+import { normalizeShortfallReasons } from '@/lib/workouts/shortfall';
 import type { ProgressionHistoryUnit } from '@/lib/workouts/progression';
 import { uploadImageToStorage } from '@/lib/storage-upload';
 import { supabase } from '@/lib/supabase';
+import { createSchemaProbe } from '@/lib/db-schema-errors';
+import { isMuscleGroup } from '@/lib/workouts/muscles';
 import {
   isExerciseKind,
   isGymIntensity,
@@ -16,6 +26,7 @@ import {
   type Exercise,
   type ExerciseKind,
   type GymIntensity,
+  type MuscleGroup,
   type ProgressionEvent,
   type ProgressionEventKind,
   type ProgressionEventStatus,
@@ -52,6 +63,8 @@ type ExerciseRow = {
   ladder_step: number | null;
   progression_kind: string;
   time_cap_seconds: number | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
 };
 
 type TemplateRow = {
@@ -62,6 +75,7 @@ type TemplateRow = {
   weekdays: number[] | null;
   position: number;
   archived_at: string | null;
+  is_template?: boolean | null;
 };
 
 type TemplateExerciseRow = {
@@ -114,7 +128,30 @@ type SessionSetRow = {
   seconds_other_side: number | null;
   weight_kg: number | string | null;
   completed_at: string;
+  /** Only selected once the rir migration ran. */
+  rir?: number | null;
 };
+
+/**
+ * Optional columns (rir, shortfall_reasons) are probed once per app run and
+ * written only when present — before the migration PostgREST would reject
+ * the whole row (PGRST204) and every queued set would stall.
+ */
+const schemaCapabilities = createCapabilityCache(async (capability) => {
+  const { table, column } = SCHEMA_CAPABILITY_COLUMNS[capability];
+  const { error } = await supabase.from(table).select(column).limit(0);
+  return { error };
+});
+
+/** true / false once known; rejects on transient errors (retry later). */
+export function checkSchemaCapability(capability: SchemaCapability): Promise<boolean> {
+  return schemaCapabilities.check(capability);
+}
+
+/** Like checkSchemaCapability, but any failure means "leave the column out". */
+function hasSchemaCapability(capability: SchemaCapability): Promise<boolean> {
+  return schemaCapabilities.checkOrFalse(capability);
+}
 
 function captureAndThrow(error: unknown): never {
   Sentry.captureException(error);
@@ -161,7 +198,17 @@ function mapExercise(row: ExerciseRow): Exercise {
     ladderStep: row.ladder_step,
     progressionKind,
     timeCapSeconds: row.time_cap_seconds,
+    ...(row.primary_muscles !== undefined || row.secondary_muscles !== undefined
+      ? {
+          primaryMuscles: muscleList(row.primary_muscles),
+          secondaryMuscles: muscleList(row.secondary_muscles),
+        }
+      : {}),
   };
+}
+
+function muscleList(values: string[] | null | undefined): MuscleGroup[] {
+  return (values ?? []).filter(isMuscleGroup);
 }
 
 function nestExercise(value: ExerciseRow | ExerciseRow[] | null): ExerciseRow | null {
@@ -196,6 +243,7 @@ function mapSessionSet(row: SessionSetRow): SessionSet {
     secondsOtherSide: row.seconds_other_side,
     weightKg: row.weight_kg == null ? null : Number(row.weight_kg),
     completedAt: row.completed_at,
+    rir: normalizeRir(row.rir),
   };
 }
 
@@ -223,12 +271,27 @@ function mapWorkoutSession(row: WorkoutSessionRow, sets: SessionSet[] = []): Wor
 const EXERCISE_SELECT =
   'id, user_id, catalog_slug, names, kind, per_side, default_sets, default_reps, default_reps_max, default_seconds, default_seconds_max, default_rest_seconds, image_asset, image_path, note, archived_at, ladder_key, ladder_step, progression_kind, time_cap_seconds';
 
+/**
+ * exercises.primary_muscles / secondary_muscles come with migration
+ * 20260926143400. Until it runs, own exercises have no muscles and the
+ * selection in the exercise editor stays hidden.
+ */
+export const hasExerciseMuscles = createSchemaProbe(() =>
+  supabase.from('exercises').select('primary_muscles, secondary_muscles').limit(0),
+);
+
+async function exerciseSelect(): Promise<string> {
+  return (await hasExerciseMuscles())
+    ? `${EXERCISE_SELECT}, primary_muscles, secondary_muscles`
+    : EXERCISE_SELECT;
+}
+
 export async function fetchExercises(): Promise<Exercise[]> {
   try {
     const userId = await requireUserId();
     const { data, error } = await supabase
       .from('exercises')
-      .select(EXERCISE_SELECT)
+      .select(await exerciseSelect())
       .is('archived_at', null)
       .or(`user_id.is.null,user_id.eq.${userId}`);
 
@@ -236,7 +299,7 @@ export async function fetchExercises(): Promise<Exercise[]> {
       throw error;
     }
 
-    const mapped = ((data ?? []) as ExerciseRow[]).map(mapExercise);
+    const mapped = ((data ?? []) as unknown as ExerciseRow[]).map(mapExercise);
     mapped.sort((a, b) => {
       const aOwn = a.userId != null ? 0 : 1;
       const bOwn = b.userId != null ? 0 : 1;
@@ -262,12 +325,16 @@ export type CreateExerciseInput = {
   defaultRestSeconds?: number | null;
   imageAsset?: string | null;
   note?: string | null;
+  /** Saved only once migration 20260926143400 ran. */
+  primaryMuscles?: MuscleGroup[];
+  secondaryMuscles?: MuscleGroup[];
 };
 
 export async function createExercise(input: CreateExerciseInput): Promise<Exercise> {
   try {
     const userId = await requireUserId();
     const id = input.id ?? newId();
+    const withMuscles = await hasExerciseMuscles();
     const { data, error } = await supabase
       .from('exercises')
       .insert({
@@ -283,14 +350,20 @@ export async function createExercise(input: CreateExerciseInput): Promise<Exerci
         default_rest_seconds: input.defaultRestSeconds ?? null,
         image_asset: input.imageAsset ?? null,
         note: input.note ?? null,
+        ...(withMuscles
+          ? {
+              primary_muscles: input.primaryMuscles ?? [],
+              secondary_muscles: input.secondaryMuscles ?? [],
+            }
+          : {}),
       })
-      .select(EXERCISE_SELECT)
+      .select(await exerciseSelect())
       .single();
 
     if (error) {
       throw error;
     }
-    return mapExercise(data as ExerciseRow);
+    return mapExercise(data as unknown as ExerciseRow);
   } catch (error) {
     captureAndThrow(error);
   }
@@ -307,6 +380,9 @@ export type UpdateExerciseInput = {
   imagePath?: string | null;
   imageAsset?: string | null;
   note?: string | null;
+  /** Saved only once migration 20260926143400 ran. */
+  primaryMuscles?: MuscleGroup[];
+  secondaryMuscles?: MuscleGroup[];
 };
 
 export async function updateExercise(
@@ -328,19 +404,23 @@ export async function updateExercise(
     if (input.imagePath !== undefined) patch.image_path = input.imagePath;
     if (input.imageAsset !== undefined) patch.image_asset = input.imageAsset;
     if (input.note !== undefined) patch.note = input.note;
+    if (await hasExerciseMuscles()) {
+      if (input.primaryMuscles !== undefined) patch.primary_muscles = input.primaryMuscles;
+      if (input.secondaryMuscles !== undefined) patch.secondary_muscles = input.secondaryMuscles;
+    }
 
     const { data, error } = await supabase
       .from('exercises')
       .update(patch)
       .eq('id', exerciseId)
       .eq('user_id', userId)
-      .select(EXERCISE_SELECT)
+      .select(await exerciseSelect())
       .single();
 
     if (error) {
       throw error;
     }
-    return mapExercise(data as ExerciseRow);
+    return mapExercise(data as unknown as ExerciseRow);
   } catch (error) {
     captureAndThrow(error);
   }
@@ -406,15 +486,83 @@ export async function getExerciseImageSignedUrl(
   }
 }
 
+const TEMPLATE_SELECT = 'id, name, short_label, color_key, weekdays, position, archived_at';
+
+/**
+ * workout_templates.is_template comes with migration 20260925190000. Until it
+ * runs, every row is a unit and "Meine Vorlagen" stays hidden.
+ */
+export const hasTemplateFlag = createSchemaProbe(() =>
+  supabase.from('workout_templates').select('is_template').limit(0),
+);
+
+/**
+ * Active units of the plan. Everything that trains, picks "Als Nächstes",
+ * fills the week card, progress or recap reads units through here.
+ */
 export async function fetchTemplates(): Promise<WorkoutTemplate[]> {
   try {
     const userId = await requireUserId();
+    const withFlag = await hasTemplateFlag();
+    let query = supabase
+      .from('workout_templates')
+      .select(withFlag ? `${TEMPLATE_SELECT}, is_template` : TEMPLATE_SELECT)
+      .eq('user_id', userId)
+      .is('archived_at', null);
+    if (withFlag) {
+      query = query.eq('is_template', false);
+    }
+    const { data: templates, error } = await query.order('position', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return mapTemplatesWithExercises((templates ?? []) as unknown as TemplateRow[]);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+/** Soft-archived units ("Meine früheren Einheiten"), newest archive first. */
+export async function fetchArchivedTemplates(): Promise<WorkoutTemplate[]> {
+  try {
+    const userId = await requireUserId();
+    const withFlag = await hasTemplateFlag();
+    let query = supabase
+      .from('workout_templates')
+      .select(withFlag ? `${TEMPLATE_SELECT}, is_template` : TEMPLATE_SELECT)
+      .eq('user_id', userId)
+      .not('archived_at', 'is', null);
+    if (withFlag) {
+      query = query.eq('is_template', false);
+    }
+    const { data: templates, error } = await query.order('archived_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return mapTemplatesWithExercises((templates ?? []) as unknown as TemplateRow[]);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+/** "Meine Vorlagen": own templates, alphabetical. Empty until the migration ran. */
+export async function fetchOwnTemplates(): Promise<WorkoutTemplate[]> {
+  try {
+    if (!(await hasTemplateFlag())) {
+      return [];
+    }
+    const userId = await requireUserId();
     const { data: templates, error } = await supabase
       .from('workout_templates')
-      .select('id, name, short_label, color_key, weekdays, position, archived_at')
+      .select(`${TEMPLATE_SELECT}, is_template`)
       .eq('user_id', userId)
+      .eq('is_template', true)
       .is('archived_at', null)
-      .order('position', { ascending: true });
+      .order('name', { ascending: true });
 
     if (error) {
       throw error;
@@ -426,22 +574,18 @@ export async function fetchTemplates(): Promise<WorkoutTemplate[]> {
   }
 }
 
-/** Soft-archived units, newest archive first. */
-export async function fetchArchivedTemplates(): Promise<WorkoutTemplate[]> {
+export async function setTemplateFlag(templateId: string, isTemplate: boolean): Promise<void> {
   try {
     const userId = await requireUserId();
-    const { data: templates, error } = await supabase
+    const { error } = await supabase
       .from('workout_templates')
-      .select('id, name, short_label, color_key, weekdays, position, archived_at')
-      .eq('user_id', userId)
-      .not('archived_at', 'is', null)
-      .order('archived_at', { ascending: false });
+      .update({ is_template: isTemplate, updated_at: new Date().toISOString() })
+      .eq('id', templateId)
+      .eq('user_id', userId);
 
     if (error) {
       throw error;
     }
-
-    return mapTemplatesWithExercises((templates ?? []) as TemplateRow[]);
   } catch (error) {
     captureAndThrow(error);
   }
@@ -453,12 +597,13 @@ async function mapTemplatesWithExercises(templateRows: TemplateRow[]): Promise<W
   }
 
   const templateIds = templateRows.map((row) => row.id);
+  const exerciseColumns = await exerciseSelect();
   const { data: teRows, error: teError } = await supabase
     .from('template_exercises')
     .select(
       `id, template_id, exercise_id, position, target_sets, target_reps, target_reps_max,
        target_seconds, target_seconds_max, target_weight_kg, rest_seconds,
-       exercises (${EXERCISE_SELECT})`,
+       exercises (${exerciseColumns})`,
     )
     .in('template_id', templateIds)
     .order('position', { ascending: true });
@@ -468,7 +613,7 @@ async function mapTemplatesWithExercises(templateRows: TemplateRow[]): Promise<W
   }
 
   const byTemplate = new Map<string, TemplateExercise[]>();
-  for (const raw of (teRows ?? []) as TemplateExerciseRow[]) {
+  for (const raw of (teRows ?? []) as unknown as TemplateExerciseRow[]) {
     const exerciseRow = nestExercise(raw.exercises);
     if (!exerciseRow) {
       continue;
@@ -503,6 +648,7 @@ async function mapTemplatesWithExercises(templateRows: TemplateRow[]): Promise<W
       weekdays: row.weekdays ?? [],
       position: row.position,
       archivedAt: row.archived_at,
+      isTemplate: row.is_template === true,
       exercises: byTemplate.get(row.id) ?? [],
     };
   });
@@ -589,11 +735,15 @@ export async function archiveTemplate(templateId: string): Promise<void> {
 export async function restoreTemplate(templateId: string): Promise<void> {
   try {
     const userId = await requireUserId();
-    const { data: activeRows, error: activeError } = await supabase
+    let activeQuery = supabase
       .from('workout_templates')
       .select('position')
       .eq('user_id', userId)
-      .is('archived_at', null)
+      .is('archived_at', null);
+    if (await hasTemplateFlag()) {
+      activeQuery = activeQuery.eq('is_template', false);
+    }
+    const { data: activeRows, error: activeError } = await activeQuery
       .order('position', { ascending: false })
       .limit(1);
 
@@ -677,6 +827,8 @@ export type UpsertWorkoutSessionInput = {
   finishedAt?: string | null;
   intensity?: GymIntensity | null;
   trainingSessionId?: string | null;
+  /** Omitted = column untouched. Dropped until the migration ran. */
+  shortfallReasons?: string[] | null;
 };
 
 export async function upsertWorkoutSession(
@@ -685,22 +837,32 @@ export async function upsertWorkoutSession(
   try {
     // user_id comes from the operation, not from auth.uid(): a queued write
     // belongs to whoever started the session.
+    const row: Record<string, unknown> = {
+      id: input.id,
+      user_id: input.userId,
+      template_id: input.templateId ?? null,
+      template_name: input.templateName,
+      short_label: input.shortLabel,
+      color_key: input.colorKey,
+      logged_on: input.loggedOn,
+      started_at: input.startedAt,
+      finished_at: input.finishedAt ?? null,
+      intensity: input.intensity ?? null,
+      training_session_id: input.trainingSessionId ?? null,
+    };
+    if (input.shortfallReasons !== undefined) {
+      const reasons = normalizeShortfallReasons(input.shortfallReasons ?? []);
+      row.shortfall_reasons = reasons.length > 0 ? reasons : null;
+    }
     const { data, error } = await supabase
       .from('workout_sessions')
       .upsert(
-        {
-          id: input.id,
-          user_id: input.userId,
-          template_id: input.templateId ?? null,
-          template_name: input.templateName,
-          short_label: input.shortLabel,
-          color_key: input.colorKey,
-          logged_on: input.loggedOn,
-          started_at: input.startedAt,
-          finished_at: input.finishedAt ?? null,
-          intensity: input.intensity ?? null,
-          training_session_id: input.trainingSessionId ?? null,
-        },
+        withOptionalColumn(
+          row,
+          'shortfall_reasons',
+          input.shortfallReasons !== undefined &&
+            (await hasSchemaCapability('workoutSessionsShortfallReasons')),
+        ),
         { onConflict: 'id' },
       )
       .select(
@@ -738,6 +900,7 @@ export type UpsertSessionSetInput = {
   secondsOtherSide?: number | null;
   weightKg?: number | null;
   completedAt?: string;
+  rir?: number | null;
 };
 
 export async function upsertSessionSets(
@@ -747,27 +910,8 @@ export async function upsertSessionSets(
     if (sets.length === 0) {
       return [];
     }
-    const rows = sets.map((set) => ({
-      id: set.id,
-      session_id: set.sessionId,
-      user_id: set.userId,
-      exercise_id: set.exerciseId ?? null,
-      exercise_name: set.exerciseName,
-      exercise_position: set.exercisePosition,
-      set_index: set.setIndex,
-      kind: set.kind,
-      per_side: set.perSide ?? false,
-      target_reps: set.targetReps ?? null,
-      target_reps_max: set.targetRepsMax ?? null,
-      target_seconds: set.targetSeconds ?? null,
-      target_seconds_max: set.targetSecondsMax ?? null,
-      target_weight_kg: set.targetWeightKg ?? null,
-      reps: set.reps ?? null,
-      seconds: set.seconds ?? null,
-      seconds_other_side: set.secondsOtherSide ?? null,
-      weight_kg: set.weightKg ?? null,
-      completed_at: set.completedAt ?? new Date().toISOString(),
-    }));
+    const withRir = await hasSchemaCapability('sessionSetsRir');
+    const rows = sets.map((set) => toSessionSetRow(set, { withRir }));
 
     const { data, error } = await supabase
       .from('session_sets')
@@ -787,7 +931,14 @@ export async function upsertSessionSets(
   }
 }
 
-export async function deleteWorkoutSession(sessionId: string): Promise<void> {
+/**
+ * Deletes the session and its training_sessions row. `unlinkedTrainingSessionId`
+ * covers a row inserted by a finish whose link step never landed.
+ */
+export async function deleteWorkoutSession(
+  sessionId: string,
+  unlinkedTrainingSessionId?: string | null,
+): Promise<void> {
   try {
     const userId = await requireUserId();
     const { data: session, error: fetchError } = await supabase
@@ -801,7 +952,13 @@ export async function deleteWorkoutSession(sessionId: string): Promise<void> {
       throw fetchError;
     }
 
-    const trainingSessionId = session?.training_session_id ?? null;
+    const trainingSessionIds = [
+      ...new Set(
+        [session?.training_session_id ?? null, unlinkedTrainingSessionId ?? null].filter(
+          (id): id is string => id != null,
+        ),
+      ),
+    ];
 
     const { error } = await supabase
       .from('workout_sessions')
@@ -813,11 +970,11 @@ export async function deleteWorkoutSession(sessionId: string): Promise<void> {
       throw error;
     }
 
-    if (trainingSessionId) {
+    if (trainingSessionIds.length > 0) {
       const { error: tsError } = await supabase
         .from('training_sessions')
         .delete()
-        .eq('id', trainingSessionId)
+        .in('id', trainingSessionIds)
         .eq('user_id', userId);
       if (tsError) {
         throw tsError;
@@ -1035,6 +1192,84 @@ export async function fetchSessionsContainingExercise(
   }
 }
 
+/** One workout session's sets of the requested exercises, with its calendar day. */
+export type ExerciseProgressUnit = {
+  sessionId: string;
+  loggedOn: string;
+  sets: SessionSet[];
+};
+
+const PROGRESS_PAGE_SIZE = 1000;
+
+/**
+ * Every set of the given exercises (e.g. all rungs of a ladder) with the
+ * session's logged_on, oldest first. Paged, so long histories are not cut off
+ * at Supabase's row limit.
+ */
+export async function fetchExerciseProgressUnits(
+  exerciseIds: readonly string[],
+): Promise<ExerciseProgressUnit[]> {
+  if (exerciseIds.length === 0) {
+    return [];
+  }
+  try {
+    const userId = await requireUserId();
+    const rows: SessionSetRow[] = [];
+    for (let from = 0; ; from += PROGRESS_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from('session_sets')
+        .select(
+          `id, session_id, user_id, exercise_id, exercise_name, exercise_position, set_index, kind,
+           per_side, target_reps, target_reps_max, target_seconds, target_seconds_max, target_weight_kg,
+           reps, seconds, seconds_other_side, weight_kg, completed_at`,
+        )
+        .eq('user_id', userId)
+        .in('exercise_id', [...exerciseIds])
+        .order('completed_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PROGRESS_PAGE_SIZE - 1);
+      if (error) {
+        throw error;
+      }
+      const page = (data ?? []) as SessionSetRow[];
+      rows.push(...page);
+      if (page.length < PROGRESS_PAGE_SIZE) {
+        break;
+      }
+    }
+
+    const sessionIds = [...new Set(rows.map((row) => row.session_id))];
+    const loggedOnById = new Map<string, string>();
+    for (let i = 0; i < sessionIds.length; i += PROGRESS_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from('workout_sessions')
+        .select('id, logged_on')
+        .eq('user_id', userId)
+        .in('id', sessionIds.slice(i, i + PROGRESS_PAGE_SIZE));
+      if (error) {
+        throw error;
+      }
+      for (const row of (data ?? []) as { id: string; logged_on: string }[]) {
+        loggedOnById.set(row.id, row.logged_on);
+      }
+    }
+
+    const units = new Map<string, ExerciseProgressUnit>();
+    for (const row of rows) {
+      const loggedOn = loggedOnById.get(row.session_id);
+      if (!loggedOn) {
+        continue;
+      }
+      const unit = units.get(row.session_id) ?? { sessionId: row.session_id, loggedOn, sets: [] };
+      unit.sets.push(mapSessionSet(row));
+      units.set(row.session_id, unit);
+    }
+    return [...units.values()];
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
 export async function fetchExerciseHistory(
   exerciseId: string,
   limit = 40,
@@ -1068,13 +1303,16 @@ export async function fetchExerciseHistoryUnits(
 ): Promise<ProgressionHistoryUnit[]> {
   try {
     const userId = await requireUserId();
+    const [withRir, withShortfall] = await Promise.all([
+      hasSchemaCapability('sessionSetsRir'),
+      hasSchemaCapability('workoutSessionsShortfallReasons'),
+    ]);
+    const columns: string = `id, session_id, user_id, exercise_id, exercise_name, exercise_position, set_index, kind,
+         per_side, target_reps, target_reps_max, target_seconds, target_seconds_max, target_weight_kg,
+         reps, seconds, seconds_other_side, weight_kg, completed_at${withRir ? ', rir' : ''}`;
     const { data, error } = await supabase
       .from('session_sets')
-      .select(
-        `id, session_id, user_id, exercise_id, exercise_name, exercise_position, set_index, kind,
-         per_side, target_reps, target_reps_max, target_seconds, target_seconds_max, target_weight_kg,
-         reps, seconds, seconds_other_side, weight_kg, completed_at`,
-      )
+      .select(columns)
       .eq('user_id', userId)
       .eq('exercise_id', exerciseId)
       .order('completed_at', { ascending: false })
@@ -1084,7 +1322,7 @@ export async function fetchExerciseHistoryUnits(
       throw error;
     }
 
-    const sets = ((data ?? []) as SessionSetRow[]).map(mapSessionSet);
+    const sets = ((data ?? []) as unknown as SessionSetRow[]).map(mapSessionSet);
     const sessionIds: string[] = [];
     const seen = new Set<string>();
     for (const set of sets) {
@@ -1098,22 +1336,29 @@ export async function fetchExerciseHistoryUnits(
     }
 
     const intensityBySessionId: Record<string, GymIntensity | null> = {};
+    const shortfallBySessionId: Record<string, string[] | null> = {};
     if (sessionIds.length > 0) {
       const { data: sessions, error: sessionError } = await supabase
         .from('workout_sessions')
-        .select('id, intensity')
+        .select(withShortfall ? 'id, intensity, shortfall_reasons' : 'id, intensity')
         .eq('user_id', userId)
         .in('id', sessionIds);
       if (sessionError) {
         throw sessionError;
       }
-      for (const row of (sessions ?? []) as { id: string; intensity: string | null }[]) {
+      for (const row of (sessions ?? []) as unknown as {
+        id: string;
+        intensity: string | null;
+        shortfall_reasons?: unknown;
+      }[]) {
         intensityBySessionId[row.id] =
           row.intensity != null && isGymIntensity(row.intensity) ? row.intensity : null;
+        const reasons = normalizeShortfallReasons(row.shortfall_reasons);
+        shortfallBySessionId[row.id] = reasons.length > 0 ? reasons : null;
       }
     }
 
-    const units = sessionSetsToHistoryUnits(sets, intensityBySessionId);
+    const units = sessionSetsToHistoryUnits(sets, intensityBySessionId, shortfallBySessionId);
     return units.filter((unit) => sessionIds.includes(unit.sessionId)).slice(0, limitSessions);
   } catch (error) {
     captureAndThrow(error);

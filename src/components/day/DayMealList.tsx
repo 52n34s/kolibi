@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -17,6 +18,7 @@ import {
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { TEXT_SECONDARY } from '@/constants/brand';
 import { useDayMeals } from '@/hooks/use-day-meals';
+import { groupMeals, isMealGroupExpanded, mealGroupLabel, sumMealGroupTotals } from '@/lib/meal-groups';
 import {
   buildMealListTitle,
   formatTodayMealQuantityLabel,
@@ -87,6 +89,79 @@ export function DayMealList({
   }, [initializeUnitSystem]);
 
   const mealRows = useMemo(() => meals ?? [], [meals]);
+  /** Newest meal first, like the entry list before; entries inside stay chronological. */
+  const mealGroups = useMemo(
+    () =>
+      groupMeals(mealRows, {
+        eatenAt: (meal) => meal.eaten_at,
+        kcal: (meal) => meal.total_kcal,
+      }).reverse(),
+    [mealRows],
+  );
+  // Keys the user tapped; see isMealGroupExpanded for the start state.
+  const [toggledGroupKeys, setToggledGroupKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const toggleGroup = useCallback((groupKey: string) => {
+    setToggledGroupKeys((current) => {
+      const next = new Set(current);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
+  }, []);
+
+  const renderMealEntry = (meal: TodayMeal) => {
+    const summary = buildMealListTitle(meal);
+    const timeLabel = formatMealTime(meal.eaten_at, i18n.language);
+    const macrosLine = formatMealMacrosLine(meal, t);
+    const content = (
+      <View className="px-4 py-3">
+        <Text
+          className="text-base font-semibold text-gray-900"
+          numberOfLines={1}
+          ellipsizeMode="tail">
+          {summary || t('home.meals.unnamedMeal')}
+        </Text>
+        <Text className="mt-1 text-sm text-gray-500">
+          {t('home.meals.rowMeta', {
+            quantity: formatTodayMealQuantityLabel(meal, t, unitSystem),
+            kcal: formatKcal(meal.total_kcal),
+            time: timeLabel,
+          })}
+        </Text>
+        {macrosLine ? (
+          <Text style={styles.macrosLine} numberOfLines={1} ellipsizeMode="tail">
+            {macrosLine}
+          </Text>
+        ) : null}
+      </View>
+    );
+
+    if (!editable || onMealPress == null) {
+      return (
+        <View key={meal.id} style={styles.groupEntry}>
+          {content}
+        </View>
+      );
+    }
+
+    return (
+      <Pressable
+        key={meal.id}
+        accessibilityRole="button"
+        onPress={() => onMealPress(meal)}
+        style={({ pressed }) => [
+          styles.groupEntry,
+          pressed ? { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor } : null,
+        ]}>
+        {content}
+      </Pressable>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -109,7 +184,7 @@ export function DayMealList({
               contentFit="contain"
             />
             <Text className="text-center text-base font-semibold text-gray-900">
-              {t('home.meals.emptyTitle')}
+              {t('history.day.emptyMeals')}
             </Text>
             <Text className="mt-2 text-center text-sm text-gray-500">
               {t('home.meals.emptySubtitle')}
@@ -118,47 +193,58 @@ export function DayMealList({
         </View>
       ) : (
         <View style={{ gap: 10 }}>
-          {mealRows.map((meal) => {
-            const summary = buildMealListTitle(meal);
-            const timeLabel = formatMealTime(meal.eaten_at, i18n.language);
-            const macrosLine = formatMealMacrosLine(meal, t);
-            const content = (
-              <View
-                style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-                <View className="px-4 py-3">
-                  <Text
-                    className="text-base font-semibold text-gray-900"
-                    numberOfLines={1}
-                    ellipsizeMode="tail">
-                    {summary || t('home.meals.unnamedMeal')}
-                  </Text>
-                  <Text className="mt-1 text-sm text-gray-500">
-                    {t('home.meals.rowMeta', {
-                      quantity: formatTodayMealQuantityLabel(meal, t, unitSystem),
-                      kcal: formatKcal(meal.total_kcal),
-                      time: timeLabel,
-                    })}
-                  </Text>
-                  {macrosLine ? (
-                    <Text style={styles.macrosLine} numberOfLines={1} ellipsizeMode="tail">
-                      {macrosLine}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
+          {mealGroups.map((group) => {
+            const groupKey = group.entries[0]!.id;
+            const expanded = isMealGroupExpanded(group, groupKey, toggledGroupKeys);
+            const totals = sumMealGroupTotals(
+              group.entries.map((meal) => ({
+                kcal: meal.total_kcal,
+                proteinG: getMealMacroDisplay(meal).proteinG,
+              })),
             );
-
-            if (!editable || onMealPress == null) {
-              return <View key={meal.id}>{content}</View>;
-            }
+            const time = formatMealTime(group.startAt.toISOString(), i18n.language);
+            const meta =
+              totals.proteinG != null
+                ? t('mealGroups.meta', {
+                    time,
+                    kcal: formatKcal(totals.kcal),
+                    protein: Math.round(totals.proteinG),
+                  })
+                : t('mealGroups.metaKcalOnly', { time, kcal: formatKcal(totals.kcal) });
 
             return (
-              <Pressable
-                key={meal.id}
-                accessibilityRole="button"
-                onPress={() => onMealPress(meal)}>
-                {content}
-              </Pressable>
+              <View
+                key={groupKey}
+                style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded }}
+                  accessibilityHint={t(
+                    expanded ? 'mealGroups.hideEntries' : 'mealGroups.showEntries',
+                  )}
+                  onPress={() => toggleGroup(groupKey)}
+                  className="flex-row items-center px-4 py-3">
+                  <View className="flex-1">
+                    <Text className="text-base font-semibold text-gray-900">
+                      {t(`mealGroups.slot.${mealGroupLabel(group)}`)}
+                    </Text>
+                    <Text className="mt-1 text-sm text-gray-500">{meta}</Text>
+                    <Text style={styles.macrosLine}>
+                      {t('mealGroups.entries', { count: group.entries.length })}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={expanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={TEXT_SECONDARY}
+                  />
+                </Pressable>
+                {expanded ? (
+                  <View style={styles.groupEntries}>
+                    {group.entries.map((meal) => renderMealEntry(meal))}
+                  </View>
+                ) : null}
+              </View>
             );
           })}
         </View>
@@ -195,5 +281,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: TEXT_SECONDARY,
+  },
+  groupEntries: {
+    paddingBottom: 4,
+  },
+  groupEntry: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(17, 24, 39, 0.08)',
   },
 });

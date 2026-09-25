@@ -85,9 +85,15 @@ function resolveDayNutrientCoverage(
 
 type DaySummaryBlockProps = {
   date: string;
+  /**
+   * One-line summary for the Today tab: kcal left (or over) and protein, from
+   * the same numbers as the full card. Tapping calls onPress (opens Ernährung).
+   */
+  compact?: boolean;
+  onPress?: () => void;
 };
 
-export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
+export function DaySummaryBlock({ date, compact = false, onPress }: DaySummaryBlockProps) {
   const { t } = useTranslation();
   const lastWidgetSnapshotJsonRef = useRef<string | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
@@ -444,6 +450,52 @@ export function DaySummaryBlock({ date }: DaySummaryBlockProps) {
     );
   }
 
+  if (compact && calorieGoalDisplay) {
+    const protein = nutrientTiles.find((tile) => tile.key === 'protein');
+    return (
+      <View style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+        <Pressable
+          testID="today.nutrition"
+          accessibilityRole="button"
+          onPress={onPress}
+          style={({ pressed }) => [pressed && { opacity: 0.85 }]}
+          className="flex-row items-center px-5 py-4">
+          <View className="flex-1">
+            <Text
+              style={[
+                styles.compactValue,
+                {
+                  color: calorieGoalDisplay.isOverGoal
+                    ? CALORIE_OVER_GOAL_COLOR
+                    : CALORIE_GOAL_ACCENT,
+                },
+              ]}>
+              {formatKcal(calorieGoalDisplay.mainValue)}
+            </Text>
+            <Text className="text-sm text-gray-500">
+              {calorieGoalDisplay.isOverGoal
+                ? t('today.nutrition.kcalOver')
+                : t('today.nutrition.kcalLeft')}
+            </Text>
+          </View>
+          {protein && protein.value != null ? (
+            <View className="items-end">
+              <Text className="text-base font-semibold text-gray-900">
+                {protein.goalValue != null
+                  ? t('today.nutrition.proteinOf', {
+                      eaten: Math.round(protein.value),
+                      target: Math.round(protein.goalValue),
+                    })
+                  : t('today.nutrition.proteinOnly', { eaten: Math.round(protein.value) })}
+              </Text>
+              <Text className="text-sm text-gray-500">{t('today.nutrition.protein')}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+      </View>
+    );
+  }
+
   if (calorieGoalDisplay) {
     const canOpenBreakdown =
       calorieGoalDisplay.mode === 'dynamic' &&
@@ -541,5 +593,10 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: '700',
     lineHeight: 52,
+  },
+  compactValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 32,
   },
 });

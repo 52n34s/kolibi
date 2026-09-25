@@ -18,6 +18,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import { BarcodeScanButton } from '@/components/home/BarcodeScanButton';
+import { CheckinCard } from '@/components/home/CheckinCard';
+import { TodayRecommendations } from '@/components/home/RecommendationsCard';
 import { HistoryKoliButton } from '@/components/home/history-koli-button';
 import { ManualEntryButton } from '@/components/home/ManualEntryButton';
 import { ScanMealButton } from '@/components/home/ScanMealButton';
@@ -52,6 +54,7 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { getGlassPillStyle } from '@/components/ui/glass-styles';
 import { DayMealList } from '@/components/day/DayMealList';
+import { DietPreferenceCard } from '@/components/home/DietPreferenceCard';
 import { DaySummaryBlock } from '@/components/day/DaySummaryBlock';
 import { HistoryPanel } from '@/components/history/history-panel';
 import { HomeActiveSessionBar } from '@/components/home/HomeActiveSessionBar';
@@ -64,12 +67,19 @@ import {
   weightGoalProgressPercent,
 } from '@/components/home/weight-progress-card';
 import { WeightInputSheet } from '@/components/home/weight-update-sheet';
+import { BuildUpCard } from '@/components/measurements/build-up-card';
+import { MeasurementsSheet } from '@/components/measurements/measurements-sheet';
 import { PaywallSheet } from '@/components/paywall/PaywallSheet';
-import { RegisteredHomeProductLock } from '@/components/premium/RegisteredHomeProductLock';
 import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useTrialStatus } from '@/hooks/use-premium-access';
 import { useHealthConnectedPreference } from '@/hooks/use-health-connected-preference';
+import { useBodyMeasurementsAvailable } from '@/hooks/use-build-up';
+import { useProfileSettings } from '@/hooks/use-profile-settings';
+import { isBuildUpGoal } from '@/lib/build-up';
+import { goalCategoryForGoalType } from '@/lib/goal-category';
+import { todayBodyCard, todaySectionOrder } from '@/lib/today-layout';
+import { TodayTrainingCard } from '@/components/home/TodayTrainingCard';
 import { useTrainingSessionsWeek } from '@/hooks/use-training-sessions-week';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
@@ -147,12 +157,21 @@ import {
 } from '@/services/mealVision/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { useWorkoutSessionStore } from '@/stores/workout-session-store';
+import { useRequirePlan } from '@/hooks/use-require-plan';
+import type { WorkoutTemplate } from '@/lib/workouts/types';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 
 const MAX_WEIGHT_KG = 699.9;
 const SIGNUP_ROUTE = '/(auth)/login' as Href;
 
 type HomeTab = 'today' | 'meals' | 'training' | 'history';
+
+const HOME_TAB_ICONS = {
+  today: 'sunny-outline',
+  meals: 'restaurant-outline',
+  training: 'barbell-outline',
+  history: 'stats-chart-outline',
+} as const satisfies Record<HomeTab, string>;
 type WeightSheetKind = 'current' | null;
 
 function navigateToSignup() {
@@ -186,6 +205,12 @@ export default function HomeScreen() {
   const unitSystem = useUnitSystem();
   const { data, isLoading, isError, error } = useHomeDashboard();
   const { data: healthConnectedPreference = false } = useHealthConnectedPreference(userId);
+  const { data: profileSettings } = useProfileSettings(userId);
+  // Read-only: muscle gain goals get the build-up card on Today.
+  const showBuildUpToday = isBuildUpGoal(profileSettings?.profile?.goal_type);
+  const goalCategory = goalCategoryForGoalType(profileSettings?.profile?.goal_type);
+  const measurementsAvailable = useBodyMeasurementsAvailable(showBuildUpToday);
+  const [showMeasurementsSheet, setShowMeasurementsSheet] = useState(false);
   const movementGoalType = data?.profile?.movement_goal_type ?? null;
   const movementGoalValue = data?.profile?.movement_goal_value ?? null;
   const movementGoalPeriod = data?.profile?.movement_goal_period ?? null;
@@ -249,6 +274,8 @@ export default function HomeScreen() {
   const [scanPhotoCount, setScanPhotoCount] = useState(1);
   const [isAnalyzingMeal, setIsAnalyzingMeal] = useState(false);
   const [showMealConfirmation, setShowMealConfirmation] = useState(false);
+  /** Scanned photo kept on the device only while the result sheet is open (for "Teilen"). */
+  const [resultPhotoUris, setResultPhotoUris] = useState<string[]>([]);
   const [visionItems, setVisionItems] = useState<EditableMealItem[]>([]);
   const [labelContext, setLabelContext] = useState<MealLabelContext | null>(null);
   const [isSavingMeal, setIsSavingMeal] = useState(false);
@@ -294,9 +321,9 @@ export default function HomeScreen() {
   const homeTabIndex = homeTabs.indexOf(homeTab);
   // The scan bar belongs to the food flow. On the training tab it covered
   // "Einheit nachtragen" and "Plan bearbeiten", so it stays hidden there.
-  // Registered users without entitlement never see capture controls.
+  // Without a plan the bar stays visible; a tap opens the paywall
+  // (requirePremiumAccessToCapture, AGB Ziffer 10 Abs. 5).
   const hideScanButtons =
-    isRegisteredProductLocked ||
     isProductAccessLoading ||
     homeTab === 'training' ||
     homeTab === 'history';
@@ -391,14 +418,7 @@ export default function HomeScreen() {
   const switchHomeTab = useCallback(
     (tab: HomeTab) => {
       void (async () => {
-        // Registered users without entitlement cannot use any product tab.
-        // Anonymous users keep tab access (scan limits are handled separately).
-        if (!isAnonymousUser) {
-          if (!(await gatePremiumAccess())) {
-            openPaywall({ withValuePitch: true });
-            return;
-          }
-        }
+        // Viewing a tab never needs a plan; new entries and training do.
         // Training is only a valid home tab while the feature is enabled.
         if (tab === 'training' && !trainingTabEnabled) {
           return;
@@ -406,7 +426,22 @@ export default function HomeScreen() {
         setHomeTab(tab);
       })();
     },
-    [gatePremiumAccess, isAnonymousUser, openPaywall, trainingTabEnabled],
+    [trainingTabEnabled],
+  );
+
+  const requirePlan = useRequirePlan();
+  /** "Start" on Today: same plan check as the training tab, then show the session. */
+  const startUnitFromToday = useCallback(
+    (template: WorkoutTemplate) => {
+      void requirePlan('startSession').then((allowed) => {
+        if (!allowed) {
+          return;
+        }
+        useWorkoutSessionStore.getState().startSession(template, { lang: i18n.language });
+        switchHomeTab('training');
+      });
+    },
+    [i18n.language, requirePlan, switchHomeTab],
   );
 
   const homeTabSwipeGesture = useMemo(
@@ -447,7 +482,7 @@ export default function HomeScreen() {
     }
   }, [session, isAnonymousUser, openPaywall]);
 
-  // If entitlement lapses, leave product tabs and surface the paywall.
+  // If entitlement lapses, surface the paywall once; the tabs stay viewable.
   useEffect(() => {
     if (isAnonymousUser) {
       return;
@@ -456,7 +491,6 @@ export default function HomeScreen() {
       return;
     }
 
-    setHomeTab('today');
     openPaywall({ withValuePitch: true });
   }, [isAnonymousUser, isRegisteredProductLocked, openPaywall]);
 
@@ -568,13 +602,8 @@ export default function HomeScreen() {
             switchHomeTab('training');
             return;
           }
-          void (async () => {
-            if (!isAnonymousUser && !(await gatePremiumAccess())) {
-              openPaywall({ withValuePitch: true });
-              return;
-            }
-            router.push('/koli/training-log' as Href);
-          })();
+          // The log is history: open to view, adding asks for the plan there.
+          router.push('/koli/training-log' as Href);
         },
       });
     }
@@ -982,7 +1011,12 @@ export default function HomeScreen() {
       }
 
       setShowMealConfirmation(true);
-      await deleteMealPhotoUris(photoUris);
+      if (result.kind === 'label') {
+        await deleteMealPhotoUris(photoUris);
+      } else {
+        // Deleted in handleMealConfirmationClose; never stored or uploaded for sharing.
+        setResultPhotoUris(photoUris);
+      }
       setPendingPhotoUris([]);
       setShowParseErrorSheet(false);
       setShowApiErrorSheet(false);
@@ -1070,6 +1104,10 @@ export default function HomeScreen() {
   function handleMealConfirmationClose() {
     setShowMealConfirmation(false);
     setVisionItems([]);
+    if (resultPhotoUris.length > 0) {
+      void deleteMealPhotoUris(resultPhotoUris);
+      setResultPhotoUris([]);
+    }
   }
 
   async function handleMealSave(items: EditableMealItem[], portionFactor = 1) {
@@ -1441,15 +1479,7 @@ export default function HomeScreen() {
         />
       </View>
       <View className="flex-1">
-        {isRegisteredProductLocked || isProductAccessLoading ? (
-          <View className="flex-1 px-6" style={{ paddingTop: contentTopPadding }}>
-            <Text className="mb-4 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
-            <RegisteredHomeProductLock
-              isLoading={isProductAccessLoading}
-              onSubscribe={() => openPaywall({ withValuePitch: true })}
-            />
-          </View>
-        ) : (
+        {/* AGB Ziffer 10 Abs. 5: every tab stays viewable without a plan. */}
         <GestureDetector gesture={homeTabSwipeGesture}>
           <View className="flex-1">
             <View className="px-6" style={{ paddingTop: contentTopPadding }}>
@@ -1485,6 +1515,7 @@ export default function HomeScreen() {
                   segments={homeTabs.map((tab) => ({
                     id: tab,
                     testID: `home.tab.${tab}`,
+                    icon: HOME_TAB_ICONS[tab],
                     label:
                       tab === 'meals' && homeTabs.length >= 4
                         ? t('home.tabs.mealsShort')
@@ -1524,46 +1555,82 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}>
                 {homeTab === 'today' ? (
                   <>
-                    <DaySummaryBlock date={localDateKey()} />
+                    <CheckinCard />
 
-                    {activityRows.length > 0 ? (
-                      <View
-                        className="mt-4"
-                        style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-                        <View className="px-5 py-4">
-                          <HomeProgressRows rows={activityRows} />
-                        </View>
+                    <TodayRecommendations
+                      onOpenMeals={() => switchHomeTab('meals')}
+                      onOpenWeightSheet={openCurrentWeightSheet}
+                      onOpenMeasurements={() => setShowMeasurementsSheet(true)}
+                      onOpenTraining={() => switchHomeTab('training')}
+                    />
+
+                    {/* Order by goal: weight goals lead with nutrition and body, muscle and strength with training. */}
+                    {todaySectionOrder(goalCategory).map((section) => (
+                      <View key={section} className="mt-4">
+                        {section === 'training' ? (
+                          trainingTabEnabled ? (
+                            <TodayTrainingCard
+                              onStart={startUnitFromToday}
+                              onOpenTraining={() => switchHomeTab('training')}>
+                              {activityRows.length > 0 ? (
+                                <HomeProgressRows rows={activityRows} />
+                              ) : null}
+                            </TodayTrainingCard>
+                          ) : activityRows.length > 0 ? (
+                            <View
+                              style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+                              <View className="px-5 py-4">
+                                <HomeProgressRows rows={activityRows} />
+                              </View>
+                            </View>
+                          ) : null
+                        ) : section === 'nutrition' ? (
+                          <DaySummaryBlock
+                            date={localDateKey()}
+                            compact
+                            onPress={() => switchHomeTab('meals')}
+                          />
+                        ) : todayBodyCard(goalCategory) === 'buildUp' ? (
+                          <BuildUpCard
+                            onOpenWeight={openCurrentWeightSheet}
+                            onOpenMeasurements={
+                              measurementsAvailable ? () => setShowMeasurementsSheet(true) : undefined
+                            }
+                          />
+                        ) : (
+                          <WeightProgressCard
+                            currentValue={weightLabel}
+                            dailyValue={dailyWeightLabel}
+                            startLabel={t('home.weight.startTitle')}
+                            startValue={startWeightLabel}
+                            targetLabel={t('home.weight.targetTitle')}
+                            targetValue={targetWeightLabel}
+                            progressPercent={weightProgressPercent}
+                            accessibilityLabel={t('home.weight.label')}
+                            onPress={openCurrentWeightSheet}
+                          />
+                        )}
                       </View>
-                    ) : null}
-
-                    <View className="mt-6">
-                      <WeightProgressCard
-                        currentValue={weightLabel}
-                        dailyValue={dailyWeightLabel}
-                        startLabel={t('home.weight.startTitle')}
-                        startValue={startWeightLabel}
-                        targetLabel={t('home.weight.targetTitle')}
-                        targetValue={targetWeightLabel}
-                        progressPercent={weightProgressPercent}
-                        accessibilityLabel={t('home.weight.label')}
-                        onPress={openCurrentWeightSheet}
-                      />
-                    </View>
-
-                    <HomeSupplementChips />
+                    ))}
                   </>
                 ) : (
-                  <DayMealList
-                    date={localDateKey()}
-                    editable
-                    onMealPress={handleTodayMealPress}
-                  />
+                  <>
+                    <DaySummaryBlock date={localDateKey()} />
+                    <View className="mt-4">
+                      <DietPreferenceCard />
+                    </View>
+                    <DayMealList
+                      date={localDateKey()}
+                      editable
+                      onMealPress={handleTodayMealPress}
+                    />
+                    <HomeSupplementChips />
+                  </>
                 )}
               </ScrollView>
             )}
           </View>
         </GestureDetector>
-        )}
 
         {!hideScanButtons ? (
         <View
@@ -1646,6 +1713,7 @@ export default function HomeScreen() {
         onClose={handleMealConfirmationClose}
         onDismissed={handleMealSheetDismissed}
         onSave={(items, portionFactor) => void handleMealSave(items, portionFactor)}
+        photoUri={resultPhotoUris[0] ?? null}
       />
 
       <ScanRateLimitSheet
@@ -1707,6 +1775,10 @@ export default function HomeScreen() {
       />
 
 
+      <MeasurementsSheet
+        visible={showMeasurementsSheet}
+        onClose={() => setShowMeasurementsSheet(false)}
+      />
       <WeightInputSheet
         visible={weightSheet != null}
         title={t('home.weight.modalTitle')}

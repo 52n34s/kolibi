@@ -17,11 +17,9 @@ import { useQuery } from '@tanstack/react-query';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import { PillSegmentSwitcher } from '@/components/koli/pill-segment-switcher';
-import { PaywallSheet } from '@/components/paywall/PaywallSheet';
 import { SettingsBackButton } from '@/components/settings/settings-back-button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
-import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
 import { buildExportMarkdown } from '@/lib/export/build-export';
 import { buildExportLabels } from '@/lib/export/export-labels';
 import { exportRangeKeys, fetchExportData } from '@/lib/export/fetch-export-data';
@@ -53,11 +51,8 @@ export default function ExportScreen() {
   const { t, i18n } = useTranslation();
   const { contentTopPadding } = useMeshScreenInsets();
   const userId = useAuthStore((s) => s.session?.user?.id);
-  const { isAnonymousUser, isPremiumEntitlementActive, gatePremiumAccess } =
-    useGatePremiumAccess();
   const unitSystem = useUnitSystem();
   const params = useLocalSearchParams<{ days?: string; section?: string }>();
-  const [showPaywall, setShowPaywall] = useState(false);
 
   const [days, setDays] = useState<ExportDays>(() => parseDays(params.days));
   const [sections, setSections] = useState<ExportSections>(() => {
@@ -88,24 +83,6 @@ export default function ExportScreen() {
   const range = useMemo(() => exportRangeKeys(days), [days]);
   const labels = useMemo(() => buildExportLabels(t, unitSystem), [t, unitSystem]);
 
-  const [premiumAllowed, setPremiumAllowed] = useState(isAnonymousUser || isPremiumEntitlementActive);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const allowed = await gatePremiumAccess();
-      if (cancelled) {
-        return;
-      }
-      setPremiumAllowed(allowed);
-      if (!allowed) {
-        setShowPaywall(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [gatePremiumAccess]);
 
   const exportQuery = useQuery({
     queryKey: [
@@ -118,7 +95,8 @@ export default function ExportScreen() {
       i18n.language,
       unitSystem,
     ],
-    enabled: Boolean(userId) && premiumAllowed,
+    // AGB Ziffer 10 Abs. 5: the export stays open without an active plan.
+    enabled: Boolean(userId),
     staleTime: 60_000,
     queryFn: () =>
       fetchExportData({
@@ -171,10 +149,6 @@ export default function ExportScreen() {
 
   async function handleShare() {
     if (!markdown.trim()) {
-      return;
-    }
-    if (!(await gatePremiumAccess())) {
-      setShowPaywall(true);
       return;
     }
     try {
@@ -266,12 +240,6 @@ export default function ExportScreen() {
           <Text style={styles.shareText}>{t('export.share')}</Text>
         </Pressable>
       </ScrollView>
-      <PaywallSheet
-        visible={showPaywall}
-        userId={userId}
-        withValuePitch
-        onClose={() => setShowPaywall(false)}
-      />
     </HomeLayout>
   );
 }

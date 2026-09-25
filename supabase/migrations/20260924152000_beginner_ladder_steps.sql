@@ -1,6 +1,10 @@
 -- Absolute beginner rungs below existing ladders. Renumber in place (no gaps):
 -- stepNeighbor requires consecutive ladder_step values starting at 1.
 -- Do not run via CLI until reviewed; paste into SQL Editor inside begin/commit as needed.
+--
+-- Safe to run again: every update sets a fixed step per catalog_slug, the new
+-- rungs are upserted by catalog_slug and the whole file is one transaction.
+-- Whether it ran: supabase/checks/release-1.4.sql (beginner_ladder_steps).
 
 begin;
 

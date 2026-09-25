@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, ScrollView, Text } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import {
   getAvailableQuantityOptions,
@@ -33,6 +33,8 @@ import { MealItemsSheetBody, MEAL_SHEET_MAX_HEIGHT_RATIO } from '@/components/sc
 import { MealPortionFactorChips } from '@/components/scan/MealPortionFactorChips';
 import { QuantityPresetPills } from '@/components/scan/QuantityPresetPills';
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
+import { ShareStickerSheet } from '@/components/share/ShareStickerSheet';
+import { buildMealSticker, type MealStickerData } from '@/lib/share/sticker-data';
 import {
   createManualEditableItem,
   type EditableMealItem,
@@ -57,6 +59,11 @@ type MealConfirmationSheetProps = {
   onClose: () => void;
   onDismissed?: () => void;
   onSave: (items: EditableMealItem[], portionFactor: number) => void;
+  /**
+   * Local URI of the scanned photo while this sheet is open. Enables "Teilen";
+   * the caller deletes the file once the sheet closes.
+   */
+  photoUri?: string | null;
 };
 
 function createItemId(): string {
@@ -71,6 +78,7 @@ export function MealConfirmationSheet({
   onClose,
   onDismissed,
   onSave,
+  photoUri = null,
 }: MealConfirmationSheetProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<ScrollView>(null);
@@ -79,6 +87,7 @@ export function MealConfirmationSheet({
   const [shouldScrollToEnd, setShouldScrollToEnd] = useState(false);
   const [portionFactor, setPortionFactor] = useState(1);
   const [quantityOption, setQuantityOption] = useState<QuantityOption | null>(null);
+  const [mealSticker, setMealSticker] = useState<MealStickerData | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -169,6 +178,16 @@ export function MealConfirmationSheet({
     setShouldScrollToEnd(true);
   }
 
+  function openShare() {
+    setMealSticker(
+      buildMealSticker({
+        items: rowItems.map((item) => ({ name: item.name, kcal: item.kcal, proteinG: item.proteinG })),
+        portionFactor,
+        photoUri,
+      }),
+    );
+  }
+
   function handleSavePress() {
     if (!canSave) {
       return;
@@ -188,6 +207,17 @@ export function MealConfirmationSheet({
         header={
           <>
             <Text style={styles.title}>{t('home.scan.confirmation.title')}</Text>
+            {photoUri && rowItems.length > 0 ? (
+              <Pressable
+                testID="scan.confirmation.share"
+                accessibilityRole="button"
+                accessibilityLabel={t('home.scan.confirmation.share')}
+                onPress={openShare}
+                style={shareStyles.button}>
+                <Ionicons name="share-outline" size={16} color="#4F46E5" />
+                <Text style={shareStyles.label}>{t('home.scan.confirmation.share')}</Text>
+              </Pressable>
+            ) : null}
             <Text style={styles.totalKcal}>{formatKcal(totalKcal)}</Text>
             <Text style={styles.totalLabel}>{t('home.scan.confirmation.totalKcal')}</Text>
             {!labelContext && portionFactor !== 1 ? (
@@ -267,6 +297,27 @@ export function MealConfirmationSheet({
           />
         ))}
       </MealItemsSheetBody>
+      <ShareStickerSheet data={mealSticker} onClose={() => setMealSticker(null)} allowStory />
     </GlassBottomSheet>
   );
 }
+
+const shareStyles = StyleSheet.create({
+  button: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(79,70,229,0.08)',
+  },
+  label: {
+    color: '#4F46E5',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});

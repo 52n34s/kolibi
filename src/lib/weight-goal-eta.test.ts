@@ -183,3 +183,68 @@ describe('WEIGHT_ETA_MAX_DAYS', () => {
     assert.ok(WEIGHT_ETA_MAX_DAYS >= 540 && WEIGHT_ETA_MAX_DAYS <= 560);
   });
 });
+
+describe('computeWeightGoalEta — trend away from the target', () => {
+  // Regression: 3+ weeks of weigh-ins on a plateau made the trend path return
+  // `unavailable`, so the Progress weight card rendered nothing at all although
+  // the entries and a calorie plan were there.
+  function plateauLogs() {
+    const logs = [];
+    for (let i = 21; i >= 0; i -= 1) {
+      logs.push(log(80 + (i % 3 === 0 ? 0.3 : -0.2), -i));
+    }
+    return logs;
+  }
+
+  it('reports a stalled trend with the calorie-plan date instead of nothing', () => {
+    const result = computeWeightGoalEta({
+      logs: plateauLogs(),
+      targetWeightKg: 75,
+      currentWeightKg: 80,
+      dailyCalorieGoal: 1500,
+      maintenanceCalories: 2000,
+      goalDirection: 'loss',
+      today: day(0),
+    });
+    assert.equal(result.status, 'stalled');
+    if (result.status === 'stalled') {
+      assert.ok(result.plan != null);
+      assert.equal(result.plan.method, 'theoretical');
+      assert.equal(result.plan.daysRemaining, 77);
+    }
+  });
+
+  it('reports a stalled trend without a plan when calorie data is missing', () => {
+    const result = computeWeightGoalEta({
+      logs: plateauLogs(),
+      targetWeightKg: 75,
+      goalDirection: 'loss',
+      today: day(0),
+    });
+    assert.deepEqual(result, { status: 'stalled', plan: null });
+  });
+
+  it('reports a stalled trend when the weight moves away from a lower target', () => {
+    const logs = [];
+    for (let i = 20; i >= 0; i -= 1) {
+      logs.push(log(70 + (20 - i) * 0.05, -i));
+    }
+    const result = computeWeightGoalEta({
+      logs,
+      targetWeightKg: 65,
+      goalDirection: 'loss',
+      today: day(0),
+    });
+    assert.equal(result.status, 'stalled');
+  });
+
+  it('keeps unavailable once the target is already reached', () => {
+    const result = computeWeightGoalEta({
+      logs: plateauLogs(),
+      targetWeightKg: 80.5,
+      goalDirection: 'loss',
+      today: day(0),
+    });
+    assert.equal(result.status, 'unavailable');
+  });
+});

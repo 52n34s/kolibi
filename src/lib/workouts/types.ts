@@ -51,6 +51,19 @@ export type ProgressionEvent = {
   createdAt: string;
 };
 
+/** Muscle groups for set counting (Block 3.4). Order = display order. */
+export type MuscleGroup =
+  | 'chest'
+  | 'shoulders'
+  | 'triceps'
+  | 'back'
+  | 'biceps'
+  | 'core'
+  | 'quads'
+  | 'hamstrings'
+  | 'glutes'
+  | 'calves';
+
 export type Exercise = {
   id: string;
   userId: string | null;
@@ -72,6 +85,12 @@ export type Exercise = {
   ladderStep: number | null;
   progressionKind: ProgressionKind;
   timeCapSeconds: number | null;
+  /**
+   * Own exercises only (exercises.primary_muscles, migration 20260926140000).
+   * Absent until the migration ran; catalog exercises use CATALOG_MUSCLES.
+   */
+  primaryMuscles?: MuscleGroup[];
+  secondaryMuscles?: MuscleGroup[];
 };
 
 export type TemplateExercise = {
@@ -98,6 +117,8 @@ export type WorkoutTemplate = {
   position: number;
   /** Soft-archive timestamp; `fetchTemplates` only returns rows with null. */
   archivedAt: string | null;
+  /** Own template ("Meine Vorlagen") instead of a unit of the plan. */
+  isTemplate?: boolean;
   exercises: TemplateExercise[];
 };
 
@@ -138,6 +159,8 @@ export type SessionSet = {
   secondsOtherSide: number | null;
   weightKg: number | null;
   completedAt: string;
+  /** Reps in reserve 0–3 (3 = "3 or more"). Missing before the rir migration. */
+  rir?: number | null;
 };
 
 /** In-progress session snapshot (Zustand store). */
@@ -148,6 +171,11 @@ export type ActiveSet = {
   done: boolean;
   completedAt: string | null;
   secondsOtherSide: number | null;
+  /**
+   * "Wie viele wären noch gegangen?" 0–3 (3 = "3 or more"); null / missing =
+   * not tapped. Optional: sessions persisted before this field load as-is.
+   */
+  rir?: number | null;
 };
 
 export type ActiveExercise = {
@@ -198,6 +226,11 @@ export type SummaryDraft = {
   adopt: Record<number, boolean>;
   addToTemplate: Record<number, boolean>;
   decisions: Record<number, SummaryDecision>;
+  /**
+   * "Was war los?" picks (ShortfallReason values). Optional: drafts persisted
+   * before this field come back without it.
+   */
+  shortfallReasons?: string[];
 };
 
 export function emptySummaryDraft(): SummaryDraft {

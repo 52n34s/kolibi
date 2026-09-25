@@ -210,6 +210,90 @@ describe('createWorkoutSyncQueue', () => {
 });
 
 
+describe('flush while a request is running', () => {
+  function sessionPayload(id: string, templateName: string) {
+    return {
+      id,
+      userId: USER,
+      templateId: null,
+      templateName,
+      shortLabel: 'A',
+      colorKey: 'indigo' as const,
+      loggedOn: '2026-09-25',
+      startedAt: '2026-09-25T17:00:00.000Z',
+    };
+  }
+
+  it('keeps an op enqueued during a request and a second flush waits until it is sent', async () => {
+    const storage = createMemoryKvStorage();
+    const calls: string[] = [];
+    let releaseFirst: () => void = () => {};
+    const api: SyncQueueApi = {
+      upsertWorkoutSession: async (input) => {
+        calls.push(`session:${input.id}:${input.templateName}`);
+        if (calls.length === 1) {
+          await new Promise<void>((resolve) => {
+            releaseFirst = resolve;
+          });
+        }
+      },
+      upsertSessionSets: async (sets) => {
+        calls.push(`sets:${sets.map((s) => s.id).join(',')}`);
+      },
+      deleteSessionSet: async () => {},
+      deleteWorkoutSession: async () => {},
+    };
+    const queue = createWorkoutSyncQueue(storage, api, () => USER);
+    queue.enqueueUpsertSession(sessionPayload('s1', 'start'));
+    const background = queue.flush();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    // Finish while the background flush waits on the network.
+    queue.enqueueUpsertSession(sessionPayload('s1', 'finished'));
+    queue.enqueueUpsertSets([
+      {
+        id: 'last-set',
+        sessionId: 's1',
+        userId: USER,
+        exerciseName: 'Push-up',
+        exercisePosition: 0,
+        setIndex: 0,
+        kind: 'reps',
+        reps: 8,
+      },
+    ]);
+    const finishFlush = queue.flush();
+    releaseFirst();
+    await Promise.all([background, finishFlush]);
+
+    assert.deepEqual(calls, ['session:s1:start', 'session:s1:finished', 'sets:last-set']);
+    assert.equal(queue.peek().length, 0);
+    assert.equal(queue.getStatus(), 'synced');
+  });
+
+  it('a delete carries the unlinked training session of a failed finish', async () => {
+    const storage = createMemoryKvStorage();
+    const deletes: [string, string | null | undefined][] = [];
+    const api: SyncQueueApi = {
+      upsertWorkoutSession: async () => {},
+      upsertSessionSets: async () => {},
+      deleteSessionSet: async () => {},
+      deleteWorkoutSession: async (sessionId, trainingSessionId) => {
+        deletes.push([sessionId, trainingSessionId]);
+      },
+    };
+    const queue = createWorkoutSyncQueue(storage, api, () => USER);
+    queue.enqueueUpsertSession(sessionPayload('s1', 'finished'));
+    queue.enqueueDeleteSession('s1', USER, 'ts-1');
+    queue.enqueueDeleteSession('s2', USER);
+    await queue.flush();
+    assert.deepEqual(deletes, [
+      ['s1', 'ts-1'],
+      ['s2', null],
+    ]);
+  });
+});
+
 describe('account isolation', () => {
   it('splits queued ops by owner', () => {
     const ops = [sessionOp('s1', 'A', 'user-a'), sessionOp('s2', 'B', 'user-b')];

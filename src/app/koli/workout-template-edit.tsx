@@ -37,6 +37,8 @@ import { updateTrainingSessionsPerWeek } from '@/lib/profile';
 import { shouldSeedWeeklyGoal } from '@/lib/should-seed-weekly-goal';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { suggestShortLabel } from '@/lib/workouts/short-label';
+import { useOwnWorkoutTemplates } from '@/hooks/use-own-workout-templates';
+import { useRequirePlan } from '@/hooks/use-require-plan';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import {
   UNIT_COLOR_KEYS,
@@ -44,9 +46,12 @@ import {
   type UnitColorKey,
   type WorkoutTemplate,
 } from '@/lib/workouts/types';
+import { saveAsTemplate } from '@/lib/workouts/unit-templates';
 import {
   archiveTemplate,
+  restoreTemplate,
   saveTemplate,
+  setTemplateFlag,
   type SaveTemplateExerciseInput,
 } from '@/lib/workouts/workouts-api';
 import { useAuthStore } from '@/stores/auth-store';
@@ -204,6 +209,8 @@ export default function WorkoutTemplateEditScreen() {
     () => templatesQuery.data?.find((row) => row.id === paramId),
     [templatesQuery.data, paramId],
   );
+  const { available: templateFlagAvailable } = useOwnWorkoutTemplates();
+  const requirePlan = useRequirePlan();
 
   const [name, setName] = useState('');
   const [shortLabel, setShortLabel] = useState('');
@@ -423,6 +430,29 @@ export default function WorkoutTemplateEditScreen() {
         },
       ],
     );
+  }
+
+  /** Copies the saved unit into "Meine Vorlagen"; the unit itself stays in the plan. */
+  async function handleSaveAsTemplate() {
+    if (!existing || saving || !(await requirePlan('editPlan'))) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveAsTemplate(
+        { saveTemplate, setTemplateFlag, archiveTemplate, restoreTemplate },
+        existing,
+      );
+      if (userId) {
+        await invalidateTrainingQueries(queryClient, userId);
+      }
+      Alert.alert(t('templates.mine'), t('templates.savedAsTemplate', { name: existing.name }));
+    } catch (error) {
+      Sentry.captureException(error);
+      Alert.alert(t('settings.errors.title'), t('templates.failed'));
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function doArchive() {
@@ -764,6 +794,16 @@ export default function WorkoutTemplateEditScreen() {
                 <Text style={styles.primaryText}>{t('training.templateEdit.save')}</Text>
               )}
             </Pressable>
+            {paramId && existing && templateFlagAvailable ? (
+              <Pressable
+                testID="training.templateEdit.saveAsTemplate"
+                accessibilityRole="button"
+                disabled={saving}
+                onPress={() => void handleSaveAsTemplate()}
+                style={styles.secondary}>
+                <Text style={styles.secondaryText}>{t('templates.saveAsTemplate')}</Text>
+              </Pressable>
+            ) : null}
             {paramId ? (
               <Pressable
                 testID="training.templateEdit.archive"

@@ -1,6 +1,7 @@
 import {
   PROGRESSION_DECLINED_COOLDOWN_SESSIONS,
   PROGRESSION_NO_UPPER_BONUS,
+  PROGRESSION_RIR_CLEAR_RESERVE,
   PROGRESSION_REPS_RANGE_DELTA,
   PROGRESSION_REPS_RANGE_MAX,
   PROGRESSION_REPS_RANGE_MIN,
@@ -25,12 +26,16 @@ export type ProgressionHistorySet = {
   targetSeconds: number | null;
   targetSecondsMax: number | null;
   done: boolean;
+  /** Reps in reserve (0–3, 3 = "3 or more"); null / missing = not given. */
+  rir?: number | null;
 };
 
 export type ProgressionHistoryUnit = {
   sessionId: string;
   intensity: GymIntensity | null;
   sets: ProgressionHistorySet[];
+  /** "Was war los?" picks of that session; null / missing = none or unknown. */
+  shortfallReasons?: readonly string[] | null;
 };
 
 export type SuggestProgressionInput = {
@@ -40,6 +45,11 @@ export type SuggestProgressionInput = {
   history: ProgressionHistoryUnit[];
   templateExerciseIds: string[];
   lastEvents: ProgressionEvent[];
+  /**
+   * "zu schwer" picked for this exercise in this and the previous session
+   * containing it (see isTooHardStreak). Suggests the easier rung.
+   */
+  tooHardStreak?: boolean;
 };
 
 export type ProgressionLevel = {
@@ -97,8 +107,8 @@ export function isQualifyingUnit(
 }
 
 export function setPerformanceValue(
-  exercise: Exercise,
-  set: ProgressionHistorySet,
+  exercise: Pick<Exercise, 'kind' | 'perSide'>,
+  set: Pick<ProgressionHistorySet, 'reps' | 'seconds' | 'secondsOtherSide'>,
 ): number | null {
   if (exercise.kind === 'time') {
     if (set.seconds == null || !Number.isFinite(set.seconds)) {
@@ -132,24 +142,48 @@ function upperBound(exercise: Exercise, target: ProgressionTarget): number | nul
   return target.targetRepsMax;
 }
 
+/**
+ * Planned sets decide, extra sets never block. The planned sets are the first
+ * `targetSets` done sets (sets arrive in set order); every done set after
+ * them is an extra set the user added.
+ */
+export function splitPlannedSets(
+  unit: ProgressionHistoryUnit,
+  currentTarget: ProgressionTarget,
+): { planned: ProgressionHistorySet[]; extra: ProgressionHistorySet[] } {
+  const done = unit.sets.filter((s) => s.done);
+  return {
+    planned: done.slice(0, currentTarget.targetSets),
+    extra: done.slice(currentTarget.targetSets),
+  };
+}
+
+/** Value a set needs for success: the upper bound, else lower + bonus. */
+function successThreshold(exercise: Exercise, target: ProgressionTarget): number | null {
+  const lower = lowerBound(exercise, target);
+  if (lower == null) {
+    return null;
+  }
+  const upper = upperBound(exercise, target);
+  return upper != null ? upper : lower + PROGRESSION_NO_UPPER_BONUS;
+}
+
 export function isUnitSuccess(
   exercise: Exercise,
   unit: ProgressionHistoryUnit,
   currentTarget: ProgressionTarget,
 ): boolean {
-  const done = unit.sets.filter((s) => s.done);
-  if (done.length < currentTarget.targetSets) {
+  const { planned } = splitPlannedSets(unit, currentTarget);
+  if (planned.length < currentTarget.targetSets) {
     return false;
   }
 
-  const lower = lowerBound(exercise, currentTarget);
-  const upper = upperBound(exercise, currentTarget);
-  if (lower == null) {
+  const threshold = successThreshold(exercise, currentTarget);
+  if (threshold == null) {
     return false;
   }
 
-  const threshold = upper != null ? upper : lower + PROGRESSION_NO_UPPER_BONUS;
-  for (const set of done) {
+  for (const set of planned) {
     const value = setPerformanceValue(exercise, set);
     if (value == null || value < threshold) {
       return false;
@@ -158,7 +192,44 @@ export function isUnitSuccess(
   return true;
 }
 
-/** More than half of the unit's sets are below the lower target bound. */
+/**
+ * At least one done set left PROGRESSION_RIR_CLEAR_RESERVE or more reps in
+ * reserve. Missing rir never counts — the old rules apply unchanged.
+ */
+export function hasClearReserve(unit: ProgressionHistoryUnit): boolean {
+  return unit.sets.some(
+    (set) => set.done && set.rir != null && set.rir >= PROGRESSION_RIR_CLEAR_RESERVE,
+  );
+}
+
+/**
+ * An extra set at the upper bound (or lower + bonus without one): the user
+ * had more in the tank than planned, a clear success like reps in reserve.
+ */
+export function hasExtraSetAtUpper(
+  exercise: Exercise,
+  unit: ProgressionHistoryUnit,
+  currentTarget: ProgressionTarget,
+): boolean {
+  const threshold = successThreshold(exercise, currentTarget);
+  if (threshold == null) {
+    return false;
+  }
+  return splitPlannedSets(unit, currentTarget).extra.some((set) => {
+    const value = setPerformanceValue(exercise, set);
+    return value != null && value >= threshold;
+  });
+}
+
+/** More done sets than planned. */
+export function hasExtraSets(unit: ProgressionHistoryUnit, currentTarget: ProgressionTarget): boolean {
+  return splitPlannedSets(unit, currentTarget).extra.length > 0;
+}
+
+/**
+ * More than half of the unit's planned sets are below the lower target bound.
+ * Extra sets are left out: a tired last extra set never pulls a unit down.
+ */
 export function isUnitWeak(
   exercise: Exercise,
   unit: ProgressionHistoryUnit,
@@ -168,14 +239,16 @@ export function isUnitWeak(
   if (lower == null || unit.sets.length === 0) {
     return false;
   }
+  // Open (not done) planned sets count as below, as before.
+  const planned = unit.sets.slice(0, Math.max(currentTarget.targetSets, 1));
   let under = 0;
-  for (const set of unit.sets) {
-    const value = setPerformanceValue(exercise, set);
+  for (const set of planned) {
+    const value = set.done ? setPerformanceValue(exercise, set) : null;
     if (value == null || value < lower) {
       under += 1;
     }
   }
-  return under > unit.sets.length / 2;
+  return under > planned.length / 2;
 }
 
 function sortLadder(ladder: Exercise[]): Exercise[] {
@@ -273,7 +346,14 @@ function buildAscent(
   const { exercise, ladder, currentTarget, templateExerciseIds } = input;
   const latest = qualifying[0]!;
   let success = isUnitSuccess(exercise, latest, currentTarget);
-  if (success && latest.intensity === 'hard') {
+  // Upper bound everywhere with reps to spare, or an extra set at the upper
+  // bound, is a clear success: "hart" then no longer waits for a second session.
+  if (
+    success &&
+    latest.intensity === 'hard' &&
+    !hasClearReserve(latest) &&
+    !hasExtraSetAtUpper(exercise, latest, currentTarget)
+  ) {
     const prev = qualifying[1];
     if (prev == null || !isUnitSuccess(exercise, prev, currentTarget)) {
       success = false;
@@ -422,6 +502,63 @@ function buildAscent(
   return null;
 }
 
+/**
+ * The last two sessions both had more done sets than planned: the plan
+ * follows with one more set (up to PROGRESSION_SETS_UP_MAX).
+ */
+function buildSetsUpFromExtras(
+  input: SuggestProgressionInput,
+  qualifying: ProgressionHistoryUnit[],
+): ProgressionSuggestion | null {
+  const { currentTarget } = input;
+  if (qualifying.length < 2 || currentTarget.targetSets >= PROGRESSION_SETS_UP_MAX) {
+    return null;
+  }
+  if (!hasExtraSets(qualifying[0]!, currentTarget) || !hasExtraSets(qualifying[1]!, currentTarget)) {
+    return null;
+  }
+  return {
+    kind: 'sets_up',
+    exerciseId: input.exercise.id,
+    toExerciseId: null,
+    fromTarget: cloneTarget(currentTarget),
+    toTarget: {
+      ...cloneTarget(currentTarget),
+      targetSets: currentTarget.targetSets + 1,
+    },
+    level: null,
+    reasonKey: 'training.progression.reason.setsUp',
+    reasonParams: { sets: currentTarget.targetSets + 1 },
+  };
+}
+
+function variantDown(
+  input: SuggestProgressionInput,
+  reasonKey: string,
+): ProgressionSuggestion | null {
+  const { exercise, ladder, currentTarget, templateExerciseIds } = input;
+  if (exercise.ladderKey == null || exercise.ladderStep == null) {
+    return null;
+  }
+  const prev = stepNeighbor(ladder, exercise.ladderStep, -1);
+  if (prev == null || new Set(templateExerciseIds).has(prev.id)) {
+    return null;
+  }
+  return {
+    kind: 'variant_down',
+    exerciseId: exercise.id,
+    toExerciseId: prev.id,
+    fromTarget: cloneTarget(currentTarget),
+    toTarget: targetFromExerciseDefaults(prev, currentTarget.targetSets),
+    level: levelInfo(exercise.ladderKey, ladder, exercise.ladderStep, prev.ladderStep!),
+    reasonKey,
+    reasonParams: {
+      fromStep: exercise.ladderStep,
+      toStep: prev.ladderStep!,
+    },
+  };
+}
+
 function buildDescent(
   input: SuggestProgressionInput,
   qualifying: ProgressionHistoryUnit[],
@@ -431,7 +568,7 @@ function buildDescent(
   }
   const a = qualifying[0]!;
   const b = qualifying[1]!;
-  const { exercise, ladder, currentTarget, templateExerciseIds } = input;
+  const { exercise, currentTarget } = input;
   if (
     !isUnitWeak(exercise, a, currentTarget) ||
     !isUnitWeak(exercise, b, currentTarget)
@@ -440,25 +577,10 @@ function buildDescent(
   }
 
   const fromTarget = cloneTarget(currentTarget);
-  const inTemplate = new Set(templateExerciseIds);
 
-  if (exercise.ladderKey != null && exercise.ladderStep != null) {
-    const prev = stepNeighbor(ladder, exercise.ladderStep, -1);
-    if (prev != null && !inTemplate.has(prev.id)) {
-      return {
-        kind: 'variant_down',
-        exerciseId: exercise.id,
-        toExerciseId: prev.id,
-        fromTarget,
-        toTarget: targetFromExerciseDefaults(prev, currentTarget.targetSets),
-        level: levelInfo(exercise.ladderKey, ladder, exercise.ladderStep, prev.ladderStep!),
-        reasonKey: 'training.progression.reason.variantDown',
-        reasonParams: {
-          fromStep: exercise.ladderStep,
-          toStep: prev.ladderStep!,
-        },
-      };
-    }
+  const down = variantDown(input, 'training.progression.reason.variantDown');
+  if (down != null) {
+    return down;
   }
 
   if (exercise.kind === 'time') {
@@ -514,9 +636,21 @@ export function suggestProgression(input: SuggestProgressionInput): ProgressionS
     return null;
   }
 
+  if (input.tooHardStreak === true) {
+    const down = variantDown(input, 'rir.reasonTooHard');
+    if (down != null) {
+      return applyDeclineGate(down, qualifying, input.lastEvents);
+    }
+  }
+
   const ascent = buildAscent(input, qualifying);
   if (ascent != null) {
     return applyDeclineGate(ascent, qualifying, input.lastEvents);
+  }
+
+  const moreSets = buildSetsUpFromExtras(input, qualifying);
+  if (moreSets != null) {
+    return applyDeclineGate(moreSets, qualifying, input.lastEvents);
   }
 
   const descent = buildDescent(input, qualifying);

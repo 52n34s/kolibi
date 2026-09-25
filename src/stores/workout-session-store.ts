@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { localDateKey } from '@/lib/day-window';
 import { createMmkvZustandStorage } from '@/lib/mmkv-zustand-storage';
+import { createSingleFlight } from '@/lib/single-flight';
 import {
   type FinishSessionResult,
 } from '@/lib/workouts/finish-session';
@@ -24,6 +25,7 @@ import {
   removeOpenTrailingSet as removeOpenTrailingSetLogic,
   resumeFromSummary,
   setCurrent as setCurrentLogic,
+  setCurrentRir as setCurrentRirLogic,
   setCurrentSides as setCurrentSidesLogic,
   skipExercise as skipExerciseLogic,
   toSessionSetUpsert,
@@ -61,6 +63,8 @@ type WorkoutSessionState = {
   adjustCurrent: (delta: number) => void;
   setCurrent: (value: number) => void;
   setCurrentSides: (seconds: number, secondsOtherSide: number) => void;
+  /** "Wie viele wären noch gegangen?" for the open set; null clears it. */
+  setCurrentRir: (rir: number | null) => void;
   completeCurrentSet: () => CompleteResult | null;
   addSet: (exerciseIndex: number) => void;
   removeLastSet: (exerciseIndex: number) => void;
@@ -118,10 +122,47 @@ function enqueueCompletedSet(
   }
 }
 
+/**
+ * A second tap on "Fertig" gets the running finish instead of a second
+ * training_sessions insert (source of the phantom "Manuell · Krafttraining" rows).
+ */
+const runFinishOnce = createSingleFlight<FinishSessionResult>();
+
 function triggerFlush(): void {
   void flushWorkoutSyncQueue().catch(() => {
     // offline status is set inside flush
   });
+}
+
+async function finishOnce(
+  active: ActiveSession,
+  intensity: GymIntensity,
+  queryClient: QueryClient,
+  set: (partial: Pick<WorkoutSessionState, 'active'>) => void,
+): Promise<FinishSessionResult> {
+  // The session's own owner, never the currently signed-in user: a
+  // session started by A must not be filed under B after a switch.
+  const currentUserId = useAuthStore.getState().session?.user?.id;
+  if (!currentUserId) {
+    const error = new Error('not_authenticated');
+    Sentry.captureException(error);
+    return { ok: false, error, session: active };
+  }
+  if (currentUserId !== active.userId) {
+    const error = new Error('session_owner_mismatch');
+    Sentry.captureException(error);
+    return { ok: false, error, session: active };
+  }
+
+  const result = await runFinishActiveSession(active, {
+    intensity,
+    userId: active.userId,
+    queryClient,
+  });
+
+  // Keeps trainingSessionId on failure, so a retry links instead of inserting again.
+  set({ active: result.ok ? null : result.session });
+  return result;
 }
 
 export const useWorkoutSessionStore = create<WorkoutSessionState>()(
@@ -167,6 +208,14 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
           return;
         }
         set({ active: setCurrentSidesLogic(active, seconds, secondsOtherSide) });
+      },
+
+      setCurrentRir: (rir) => {
+        const active = get().active;
+        if (!active) {
+          return;
+        }
+        set({ active: setCurrentRirLogic(active, rir) });
       },
 
       completeCurrentSet: () => {
@@ -293,40 +342,20 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
         set({ active: resumeFromSummary(active) });
       },
 
-      finishSession: async (intensity, queryClient) => {
+      finishSession: (intensity, queryClient) => {
         const active = get().active;
         if (!active) {
-          return { ok: false, error: new Error('no_active_session'), session: active };
+          return Promise.resolve({
+            ok: false,
+            error: new Error('no_active_session'),
+            session: active,
+          });
         }
-
-        // The session's own owner, never the currently signed-in user: a
-        // session started by A must not be filed under B after a switch.
-        const currentUserId = useAuthStore.getState().session?.user?.id;
-        if (!currentUserId) {
-          const error = new Error('not_authenticated');
-          Sentry.captureException(error);
-          return { ok: false, error, session: active };
-        }
-        if (currentUserId !== active.userId) {
-          const error = new Error('session_owner_mismatch');
-          Sentry.captureException(error);
-          return { ok: false, error, session: active };
-        }
-
-        const result = await runFinishActiveSession(active, {
-          intensity,
-          userId: active.userId,
-          queryClient,
-        });
-
-        if (result.ok) {
-          set({ active: null });
-          return result;
-        }
-
-        set({ active: result.session });
-        return result;
+        return runFinishOnce(active.sessionId, () =>
+          finishOnce(active, intensity, queryClient, set),
+        );
       },
+
 
       discardSession: () => {
         const active = get().active;
@@ -335,7 +364,9 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
         }
         const sessionId = active.sessionId;
         set({ active: null });
-        enqueueDeleteSession(sessionId, active.userId);
+        // A failed finish may have inserted training_sessions already; without
+        // the link, deleting the workout session alone would leave it behind.
+        enqueueDeleteSession(sessionId, active.userId, active.trainingSessionId);
         triggerFlush();
       },
 

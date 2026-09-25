@@ -122,6 +122,8 @@ export const PROTEIN_G_PER_KG_BY_GOAL = {
   maintain: 1.6,
   gain_weight: 1.8,
   build_muscle: 1.8,
+  /** Kraft und Skills: same as build_muscle. */
+  strength: 1.8,
   endurance: 1.5,
   /** Editor / Empfohlenungs-Ziele (same numbers). */
   ABNEHMEN: 1.8,

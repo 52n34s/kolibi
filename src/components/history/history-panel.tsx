@@ -3,8 +3,10 @@ import { Href, router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -29,9 +31,22 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { SupplementHistorySection } from '@/components/supplements/SupplementHistorySection';
 import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
+import { BuildUpCard } from '@/components/measurements/build-up-card';
+import { MeasurementsSheet } from '@/components/measurements/measurements-sheet';
+import { useBodyMeasurementsAvailable } from '@/hooks/use-build-up';
 import { useHistory } from '@/hooks/use-history';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useTrainingSessionsRange } from '@/hooks/use-training-sessions-range';
+import { useExercises } from '@/hooks/use-exercises';
+import { useProgressionEvents } from '@/hooks/use-progression-events';
+import { ShareStickerSheet } from '@/components/share/ShareStickerSheet';
+import {
+  buildRecapSticker,
+  localDayStartIso,
+  recapWindow,
+  type StickerData,
+} from '@/lib/share/sticker-data';
+import { displayExerciseName } from '@/lib/workouts/exercise-name';
 import {
   useBalanceSupplementHistory,
   useTopContributingFoods,
@@ -58,6 +73,7 @@ import {
   filterWeightLogsInRange,
   getLatestWeightKg,
   getLatestWaistCm,
+  isProteinGoalHit,
   waistChangeInRange,
   weighSpanDaysInLastMonth,
   weightChangeInRange,
@@ -104,13 +120,11 @@ import {
   shouldShowWeightChangeDelta,
   TREND_RELIABLE_WEIGH_DAYS_LAST_MONTH,
 } from '@/lib/history-balance';
-import {
-  MacroEmpfehlungsZiel,
-  mapProfileGoalToEmpfehlungsZiel,
-} from '@/lib/macro-recommendations';
 import { resolveProteinRefKg } from '@/lib/macro-rules';
+import { computeProteinTimingStats, pickProteinTimingHint } from '@/lib/meal-protein-timing';
 import {
   calculateTargetWeightForecast,
+  resolveForecastMacroGoalProfile,
   type TargetWeightForecastInput,
 } from '@/lib/target-weight-forecast';
 import {
@@ -238,6 +252,14 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
   const { data: beforeBests = {} } = useExerciseBestsBefore({
     beforeKey: historyRangeWindow.startKey,
   });
+  // From local midnight of the window start; the recap filters by local day.
+  const { data: progressionEvents = [] } = useProgressionEvents({
+    since: localDayStartIso(recapWindow(rangeDays === 30 ? 'month' : 'week', todayKey).startKey),
+  });
+  const { data: allExercises = [] } = useExercises();
+  const [recapSticker, setRecapSticker] = useState<StickerData | null>(null);
+  const [showMeasurementsSheet, setShowMeasurementsSheet] = useState(false);
+  const measurementsAvailable = useBodyMeasurementsAvailable();
   const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
   const canOpenTrainingTab =
     Boolean(onOpenTrainingTab) && resolveTrainingTabEnabled(trainingTabFlag);
@@ -653,7 +675,8 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       (profile?.goal_type === 'lose_weight' ||
         profile?.goal_type === 'faster_weight_loss' ||
         profile?.goal_type === 'gain_weight' ||
-        profile?.goal_type === 'build_muscle')
+        profile?.goal_type === 'build_muscle' ||
+        profile?.goal_type === 'strength')
         ? computeProteinDistributionStats(balanceData.meals, referenceWeightKg)
         : null,
     [balanceData, profile?.goal_type, referenceWeightKg],
@@ -853,11 +876,7 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       observedMaintenanceKcal:
         observedEnergy?.status === 'ready' ? observedEnergy.observedKcal : undefined,
       goalType: profile?.goal_type ?? null,
-      macroGoalProfile:
-        mapProfileGoalToEmpfehlungsZiel(profile?.goal_type) ===
-        MacroEmpfehlungsZiel.MUSKELAUFBAU
-          ? 'muscle'
-          : null,
+      macroGoalProfile: resolveForecastMacroGoalProfile(profile?.goal_type),
       weighDaysLast30: weighDaysLastMonth,
     };
   }, [
@@ -1197,6 +1216,25 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
     balanceSummary.loggedDays >= 2 &&
     balanceRows.length >= 2;
 
+  /** One sentence when a main meal is clearly under its share of the protein goal. */
+  const proteinTimingLine = useMemo(() => {
+    if (!showBalanceCard || !balanceData || !balanceSummary) {
+      return null;
+    }
+    const hint = pickProteinTimingHint({
+      stats: computeProteinTimingStats({ meals: balanceData.meals, todayKey }),
+      dailyProteinGoalG: balanceSummary.proteinGoalAvg,
+    });
+    if (!hint) {
+      return null;
+    }
+    return t(`mealGroups.timingHint.${hint.slot}`, {
+      average: hint.averageProteinG,
+      from: hint.addFromG,
+      to: hint.addToG,
+    });
+  }, [balanceData, balanceSummary, showBalanceCard, t, todayKey]);
+
   const balanceAccuracyHint = useMemo(() => {
     const hint = pickBalanceAccuracyHint({
       weighIns: balanceWeightRate
@@ -1494,6 +1532,60 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       ? profile.training_sessions_per_week
       : null;
 
+  function openRecapSticker() {
+    const exercisesById = new Map(allExercises.map((ex) => [ex.id, ex]));
+    setRecapSticker(
+      // Rolling window: "7 Tage" is "Meine Woche", "30 Tage" is "Mein Monat".
+      buildRecapSticker(rangeDays === 30 ? 'month' : 'week', {
+        todayKey,
+        workoutSessions,
+        manualSessions: trainingSessions,
+        beforeBests,
+        events: progressionEvents,
+        proteinDays: (data?.days ?? []).map((day) => ({
+          date: day.date,
+          hit: isProteinGoalHit(day),
+        })),
+        nameOf: (best) =>
+          displayExerciseName({
+            exerciseId: best.exerciseId,
+            storedName: best.exerciseName,
+            exercise: best.exerciseId != null ? exercisesById.get(best.exerciseId) : undefined,
+            lang: i18n.language,
+          }),
+      }),
+    );
+  }
+
+  function openTextExport() {
+    router.push(`/koli/export?days=${rangeDays}&section=${resolvedArea}` as Href);
+  }
+
+  /** Image recap for everyone; the text export behind it stays premium. */
+  function openShareMenu() {
+    const image = t('share.menu.image');
+    const text = t('share.menu.text');
+    const cancel = t('share.menu.cancel');
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: [image, text, cancel], cancelButtonIndex: 2 },
+        (index) => {
+          if (index === 0) {
+            openRecapSticker();
+          } else if (index === 1) {
+            openTextExport();
+          }
+        },
+      );
+      return;
+    }
+    Alert.alert(t('share.actions.share'), undefined, [
+      { text: image, onPress: openRecapSticker },
+      { text, onPress: openTextExport },
+      { text: cancel, style: 'cancel' },
+    ]);
+  }
+
   function openDayDetail(index: number) {
     const day = data?.days[index];
     if (day?.date == null) {
@@ -1564,12 +1656,8 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
         <Pressable
           testID="history.export"
           accessibilityRole="button"
-          accessibilityLabel={t('export.title')}
-          onPress={() =>
-            router.push(
-              `/koli/export?days=${rangeDays}&section=${resolvedArea}` as Href,
-            )
-          }
+          accessibilityLabel={t('share.actions.share')}
+          onPress={openShareMenu}
           hitSlop={8}
           className="h-10 w-10 items-center justify-center rounded-full"
           style={{ backgroundColor: 'rgba(79,70,229,0.1)' }}>
@@ -1618,6 +1706,9 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
             className="mb-8">
             <View className="px-5 py-5">
               <HomeProgressRows rows={balanceRows} />
+              {proteinTimingLine ? (
+                <Text className="mt-4 text-sm text-gray-600">{proteinTimingLine}</Text>
+              ) : null}
               {bodyFatChangeLines ? (
                 <View className="mt-4 gap-1">
                   <Text
@@ -1934,6 +2025,12 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
           )}
         </View>
       </View>
+      <BuildUpCard
+        className="mt-3"
+        onOpenMeasurements={
+          measurementsAvailable ? () => setShowMeasurementsSheet(true) : undefined
+        }
+      />
         </>
       ) : null}
 
@@ -1951,6 +2048,7 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
           runningKm={runningKmActual ?? null}
           runningKmPeriod={runningKmPeriod}
           healthConnected={healthConnectedPreference === true}
+          goalType={profile?.goal_type ?? null}
           onOpenTrainingTab={onOpenTrainingTab}
           canOpenTrainingTab={canOpenTrainingTab}
         />
@@ -1959,6 +2057,15 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       {showNutrition && userId ? (
         <SupplementHistorySection userId={userId} rangeDays={rangeDays} />
       ) : null}
+      <MeasurementsSheet
+        visible={showMeasurementsSheet}
+        onClose={() => setShowMeasurementsSheet(false)}
+      />
+      <ShareStickerSheet
+        data={recapSticker}
+        onClose={() => setRecapSticker(null)}
+        allowStory
+      />
     </ScrollView>
   );
 }

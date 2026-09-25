@@ -51,6 +51,8 @@ export type HistoryDayRow = {
 /** Individual meal macros retained for period-level analyses. */
 export type HistoryMealEntry = {
   date: string;
+  /** Logged timestamp (ISO); used to group entries into meals. */
+  eatenAt: string;
   totalCalories: number;
   proteinG: number | null;
 };
@@ -202,6 +204,7 @@ export async function fetchHistoryData(
     const totalCalories = Number(row.total_kcal ?? 0);
     meals.push({
       date: dateKey,
+      eatenAt: row.eaten_at,
       totalCalories,
       // Legacy meal rows coalesced missing macros to 0 — treat as unknown.
       proteinG: macroOrEmpty(totalCalories, Number(row.total_protein_g ?? 0)),
@@ -518,6 +521,16 @@ export type HistorySummaryStats = {
  * Summary over closed days only (excludes today). Days without meals are
  * omitted from averages but counted in the denominator for "X of Y logged".
  */
+/** Protein goal reached on a logged day — the rule behind `proteinHitDays`. */
+export function isProteinGoalHit(day: HistoryDayRow): boolean {
+  if (!day.hasMeals) {
+    return false;
+  }
+  const goal = day.scaledGoal?.proteinG ?? day.goal?.proteinG ?? null;
+  const actual = day.macros.proteinG;
+  return goal != null && actual != null && actual >= goal;
+}
+
 export function buildHistorySummaryStats(
   days: HistoryDayRow[],
   todayKey: string = localDateKey(),
@@ -540,7 +553,7 @@ export function buildHistorySummaryStats(
     const actual = day.macros.proteinG;
     if (goal != null && actual != null) {
       proteinTrackedDays += 1;
-      if (actual >= goal) {
+      if (isProteinGoalHit(day)) {
         proteinHitDays += 1;
       }
     }

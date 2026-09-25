@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 import { useQueryClient, useQueries } from '@tanstack/react-query';
 import { Image } from 'expo-image';
@@ -18,6 +19,19 @@ import {
 } from '@/components/training/training-panel-utils';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, BRAND_MINT, TEXT_SECONDARY } from '@/constants/brand';
+import { ShareStickerSheet } from '@/components/share/ShareStickerSheet';
+import {
+  buildExerciseSticker,
+  buildLevelSticker,
+  buildSessionSticker,
+  exerciseMilestone,
+  formatSetsCompact,
+  type ExerciseMilestone,
+  type ExerciseStickerData,
+  type LevelStickerData,
+  type SessionStickerData,
+  type StickerData,
+} from '@/lib/share/sticker-data';
 import { adoptTargetFromMedian } from '@/lib/workouts/adopt-target';
 import {
   openExerciseNames,
@@ -32,8 +46,16 @@ import { allSetsHitUpperBound } from '@/lib/workouts/format-target';
 import { applyProgression } from '@/lib/workouts/apply-progression';
 import { suggestGymIntensityFromSetPace } from '@/lib/workouts/intensity-pace';
 import { activeItemToHistoryUnit, withoutSession } from '@/lib/workouts/progression-history';
-import { newSessionBest } from '@/lib/workouts/session-bests';
+import { bestPriorValue, bestSessionValue } from '@/lib/workouts/session-bests';
 import { suggestProgression, type ProgressionSuggestion } from '@/lib/workouts/progression';
+import {
+  isTooHardStreak,
+  normalizeShortfallReasons,
+  sessionHasClearShortfall,
+  SHORTFALL_REASONS,
+  toggleShortfallReason,
+} from '@/lib/workouts/shortfall';
+import { useSchemaCapability } from '@/hooks/use-schema-capability';
 import {
   isAscentKind,
   isDescentKind,
@@ -64,6 +86,8 @@ import {
   useWorkoutSessionStore,
 } from '@/stores/workout-session-store';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
+import { useReadiness } from '@/hooks/use-checkin';
+import { gateSuggestionByReadiness } from '@/lib/workouts/progression-readiness';
 
 type TrainingSummaryViewProps = {
   session: ActiveSession;
@@ -114,6 +138,13 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     updater: (prev: Record<number, Decision>) => Record<number, Decision>,
   ) => updateSummaryDraft({ decisions: updater(decisions) });
 
+  // "Was war los?": once per session, only after a clear shortfall and only
+  // once shortfall_reasons exists — without the column there is no place to keep it.
+  const shortfallAvailable = useSchemaCapability('workoutSessionsShortfallReasons');
+  const showShortfall = shortfallAvailable && sessionHasClearShortfall(session.items);
+  const shortfallPicked = draft.shortfallReasons;
+  const shortfallReasons = normalizeShortfallReasons(shortfallPicked);
+
   useEffect(() => {
     if (intensity != null) {
       return;
@@ -139,8 +170,10 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     name: string;
     step?: number;
     total?: number;
+    levelSticker?: LevelStickerData;
     praiseKey?: string;
   } | null>(null);
+  const [sticker, setSticker] = useState<StickerData | null>(null);
 
   const stats = exerciseStats(session);
   // Ends at the last set, so the time spent here does not keep counting.
@@ -241,8 +274,12 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
 
   const allEvents = (eventsQuery[0]?.data ?? []) as ProgressionEvent[];
 
-  const suggestionRows = useMemo((): SuggestionRow[] => {
+  const readiness = useReadiness();
+
+  const { suggestionRows, heldBackIndexes } = useMemo(() => {
     const rows: SuggestionRow[] = [];
+    // Level-ups today's readiness holds back (schonen, or normal without a clear success).
+    const heldBack = new Set<number>();
     session.items.forEach((item, index) => {
       const exercise =
         exerciseQueries[index]?.data ??
@@ -261,7 +298,13 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       const lastEvents = allEvents.filter(
         (ev) => ev.fromExerciseId === item.exerciseId || ev.toExerciseId === item.exerciseId,
       );
-      const suggestion = suggestProgression({
+      const tooHardStreak =
+        shortfallAvailable &&
+        isTooHardStreak(item, [
+          { ...currentUnit, shortfallReasons: normalizeShortfallReasons(shortfallPicked) },
+          ...past,
+        ]);
+      const raw = suggestProgression({
         exercise,
         ladder,
         currentTarget: {
@@ -274,7 +317,12 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         history: [currentUnit, ...past],
         templateExerciseIds,
         lastEvents,
+        tooHardStreak,
       });
+      const suggestion = gateSuggestionByReadiness(raw, readiness, currentUnit);
+      if (raw && !suggestion) {
+        heldBack.add(index);
+      }
       if (!suggestion) {
         return;
       }
@@ -287,8 +335,9 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       }
       rows.push({ index, item, exercise, suggestion, toName });
     });
-    return rows;
+    return { suggestionRows: rows, heldBackIndexes: heldBack };
   }, [
+    readiness,
     session.items,
     session.sessionId,
     session.intensity,
@@ -300,6 +349,8 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     templateExerciseIds,
     allEvents,
     i18n.language,
+    shortfallAvailable,
+    shortfallPicked,
   ]);
 
   const ascentRows = suggestionRows.filter((row) => isAscentKind(row.suggestion.kind));
@@ -338,25 +389,93 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     return hints;
   }, [session.items, session.sessionId, exerciseQueries, historyUnitQueries, allEvents, t]);
 
+  // First executions get "Zum ersten Mal", not a best: there is nothing to beat.
+  const milestones = useMemo(
+    (): ExerciseMilestone[] =>
+      session.items.map((item, index) =>
+        exerciseMilestone({
+          sessionBest: bestSessionValue(doneSetValues(item)),
+          priorBest: bestPriorValue(
+            withoutSession(historyQueries[index]?.data ?? [], session.sessionId),
+            item.kind,
+          ),
+          historyLoaded: historyQueries[index]?.isSuccess === true,
+        }),
+      ),
+    [historyQueries, session.items, session.sessionId],
+  );
+
   const prs = useMemo(() => {
-    const rows: { name: string; value: string }[] = [];
+    const rows: { index: number; name: string; value: string }[] = [];
     session.items.forEach((item, index) => {
-      const sessionBest = newSessionBest({
-        values: doneSetValues(item),
-        history: historyQueries[index]?.data ?? [],
-        kind: item.kind,
-        sessionId: session.sessionId,
-      });
-      if (sessionBest == null) {
+      const sessionBest = bestSessionValue(doneSetValues(item));
+      if (sessionBest == null || milestones[index] !== 'newBest') {
         return;
       }
       rows.push({
+        index,
         name: labelOf(item),
         value: item.kind === 'time' ? `${sessionBest} s` : String(sessionBest),
       });
     });
     return rows;
-  }, [historyQueries, session.items, session.sessionId, i18n.language]);
+  }, [milestones, session.items, i18n.language]);
+
+  const exerciseRows = session.items
+    .map((item, index) => ({
+      item,
+      index,
+      sets: formatSetsCompact(doneSetValues(item), item.kind),
+    }))
+    .filter((row) => row.sets.length > 0);
+
+  function exerciseSticker(index: number): ExerciseStickerData {
+    const item = session.items[index];
+    const exercise = exerciseQueries[index]?.data;
+    return buildExerciseSticker({
+      exercise,
+      fallbackName: labelOf(item),
+      lang: i18n.language,
+      exerciseKind: item.kind,
+      perSide: item.perSide,
+      values: doneSetValues(item),
+      ladder: exercise?.ladderKey != null ? (laddersByKey.get(exercise.ladderKey) ?? []) : [],
+      milestone: milestones[index] ?? null,
+    });
+  }
+
+  function sessionSticker(): SessionStickerData {
+    return buildSessionSticker({
+      name: session.templateName,
+      dateKey: session.loggedOn,
+      durationMinutes: sessionDurationMinutes(session),
+      totals: { reps: stats.repsTotal, seconds: stats.secondsTotal },
+      items: session.items.map((item) => ({
+        exerciseId: item.exerciseId,
+        name: labelOf(item),
+        exerciseKind: item.kind,
+        values: doneSetValues(item),
+      })),
+      bestsCount: prs.length,
+      suggestions: suggestionRows.map((row) => ({ index: row.index, kind: row.suggestion.kind })),
+      decisions,
+    });
+  }
+
+  function levelStickerFor(row: SuggestionRow): LevelStickerData | undefined {
+    const ladder =
+      row.exercise.ladderKey != null ? (laddersByKey.get(row.exercise.ladderKey) ?? []) : [];
+    return (
+      buildLevelSticker({
+        toExercise: ladder.find((ex) => ex.id === row.suggestion.toExerciseId),
+        fromExercise: row.exercise,
+        lang: i18n.language,
+        ladder,
+      }) ?? undefined
+    );
+  }
+
+  const shareSheet = <ShareStickerSheet data={sticker} onClose={() => setSticker(null)} allowStory />;
 
   const adoptCandidates = useMemo(
     () =>
@@ -378,7 +497,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
     return session.items
       .map((item, index) => ({ item, index }))
       .filter(({ item, index }) => {
-        if (progressionIndexSet.has(index)) {
+        if (progressionIndexSet.has(index) || heldBackIndexes.has(index)) {
           return false;
         }
         return allSetsHitUpperBound({
@@ -388,7 +507,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           setValues: doneSetValues(item),
         });
       });
-  }, [session.items, progressionIndexSet]);
+  }, [session.items, progressionIndexSet, heldBackIndexes]);
 
   async function persistAdoptAndAdds(): Promise<void> {
     const templateId = session.templateId;
@@ -522,6 +641,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
             name: row.toName ?? labelOf(row.item),
             step: row.suggestion.level.toStep,
             total: row.suggestion.level.total,
+            levelSticker: levelStickerFor(row),
           };
         } else if (
           row.suggestion.kind === 'sets_up' ||
@@ -629,6 +749,16 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
             })}
           </Text>
           <Text style={styles.celebSub}>{t(subtitleKey)}</Text>
+          {celebration.levelSticker ? (
+            <Pressable
+              testID="training.progression.celebration.share"
+              accessibilityRole="button"
+              onPress={() => setSticker(celebration.levelSticker ?? null)}
+              style={styles.shareBtn}>
+              <Ionicons name="share-outline" size={18} color={BRAND_INDIGO} />
+              <Text style={styles.shareText}>{t('share.actions.share')}</Text>
+            </Pressable>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             onPress={() => onDismiss?.()}
@@ -636,6 +766,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
             <Text style={styles.doneText}>{t('training.progression.celebration.continue')}</Text>
           </Pressable>
         </Animated.View>
+        {shareSheet}
       </ScrollView>
     );
   }
@@ -736,11 +867,49 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         })}
       </View>
 
+      {showShortfall ? (
+        <View style={styles.block} testID="training.summary.shortfall">
+          <Text style={styles.blockTitle}>{t('rir.shortfallTitle')}</Text>
+          <View style={styles.shortfallChips}>
+            {SHORTFALL_REASONS.map((reason) => {
+              const selected = shortfallReasons.includes(reason);
+              return (
+                <Pressable
+                  key={reason}
+                  testID={`training.summary.shortfall.${reason}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() =>
+                    updateSummaryDraft({
+                      shortfallReasons: toggleShortfallReason(shortfallReasons, reason),
+                    })
+                  }
+                  style={[styles.shortfallChip, selected && styles.shortfallChipSelected]}>
+                  <Text
+                    style={[
+                      styles.shortfallChipText,
+                      selected && styles.shortfallChipTextSelected,
+                    ]}>
+                    {t(`rir.reason.${reason}`)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
       {firstLevelHints.map((hint) => (
         <Text key={hint} style={styles.firstLevel}>
           {hint}
         </Text>
       ))}
+
+      {heldBackIndexes.size > 0 ? (
+        <Text testID="training.summary.readinessWaiting" style={styles.readinessWaiting}>
+          {t('checkin.progression.waiting')}
+        </Text>
+      ) : null}
 
       {ascentRows.length > 0 || upperBoundReady.length > 0 ? (
         <View style={styles.block}>
@@ -845,6 +1014,44 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
         <Stat label={t('training.panel.seconds')} value={String(stats.secondsTotal)} />
       </GlassCard>
 
+      {exerciseRows.length > 0 ? (
+        <View style={styles.block} testID="training.summary.exercises">
+          <Text style={styles.blockTitle}>{t('share.exercisesTitle')}</Text>
+          {exerciseRows.map(({ item, index, sets }) => (
+            <View key={`${item.exerciseId}-${index}`} style={styles.exerciseRow}>
+              <View style={styles.exerciseNameCol}>
+                <Text style={styles.exerciseName} numberOfLines={1}>
+                  {labelOf(item)}
+                </Text>
+                {milestones[index] ? (
+                  <Text style={styles.exerciseMilestone}>
+                    {milestones[index] === 'newBest' ? t('share.newBest') : t('share.firstTime')}
+                  </Text>
+                ) : null}
+              </View>
+              <Text style={styles.exerciseSets}>{sets}</Text>
+              <Pressable
+                testID={`training.summary.shareExercise.${index}`}
+                accessibilityRole="button"
+                accessibilityLabel={t('share.shareExercise', { name: labelOf(item) })}
+                hitSlop={8}
+                onPress={() => setSticker(exerciseSticker(index))}
+                style={styles.exerciseShare}>
+                <Ionicons name="share-outline" size={18} color={BRAND_INDIGO} />
+              </Pressable>
+            </View>
+          ))}
+          <Pressable
+            testID="training.summary.shareSession"
+            accessibilityRole="button"
+            onPress={() => setSticker(sessionSticker())}
+            style={styles.shareBtn}>
+            <Ionicons name="share-outline" size={18} color={BRAND_INDIGO} />
+            <Text style={styles.shareText}>{t('share.actions.share')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {prs.length > 0 ? (
         <View style={styles.block}>
           <Text style={styles.blockTitle}>{t('training.panel.prs')}</Text>
@@ -896,6 +1103,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
           </>
         )}
       </View>
+      {shareSheet}
     </View>
   );
 }
@@ -1005,6 +1213,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1E1B4B',
   },
+  readinessWaiting: {
+    textAlign: 'center',
+    color: TEXT_SECONDARY,
+    fontSize: 14,
+    marginBottom: 12,
+  },
   firstLevel: {
     textAlign: 'center',
     color: BRAND_INDIGO,
@@ -1065,6 +1279,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E1B4B',
   },
+  shortfallChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  shortfallChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(79, 70, 229, 0.08)',
+  },
+  shortfallChipSelected: {
+    backgroundColor: BRAND_INDIGO,
+  },
+  shortfallChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: BRAND_INDIGO,
+  },
+  shortfallChipTextSelected: {
+    color: '#FFFFFF',
+  },
   checkRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1110,5 +1346,55 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 16,
+  },
+  exerciseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  exerciseNameCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  exerciseName: {
+    fontSize: 14,
+    color: '#1E1B4B',
+  },
+  exerciseMilestone: {
+    marginTop: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: BRAND_INDIGO,
+  },
+  exerciseSets: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    fontVariant: ['tabular-nums'],
+  },
+  exerciseShare: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(79,70,229,0.1)',
+  },
+  shareBtn: {
+    marginTop: 4,
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(79,70,229,0.1)',
+  },
+  shareText: {
+    color: BRAND_INDIGO,
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
