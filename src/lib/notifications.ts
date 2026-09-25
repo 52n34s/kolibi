@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
 import { syncProfileTimezone } from '@/lib/profile-timezone';
+import { savePushToken, type PushTokenBackend } from '@/lib/push-token-store';
 
 const secureStore = createChunkedSecureStoreAdapter();
 
@@ -88,6 +89,40 @@ export type PushRegistrationResult = {
   prompted: boolean;
 };
 
+const pushTokenBackend: PushTokenBackend = {
+  async registerViaRpc({ token, platform, deviceId }) {
+    const { error } = await supabase.rpc('register_push_token', {
+      p_token: token,
+      p_platform: platform,
+      p_device_id: deviceId,
+    });
+    return { error };
+  },
+  async upsertDirect({ userId, token, platform, deviceId }) {
+    // Same device, new token: drop this user's old row for the device first.
+    if (deviceId) {
+      const { error } = await supabase
+        .from('push_tokens')
+        .delete()
+        .eq('user_id', userId)
+        .eq('device_id', deviceId)
+        .neq('expo_push_token', token);
+      if (error) {
+        return { error, rowCount: null };
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('push_tokens')
+      .upsert(
+        { expo_push_token: token, user_id: userId, device_id: deviceId, platform },
+        { onConflict: 'expo_push_token' },
+      )
+      .select('expo_push_token');
+    return { error, rowCount: error ? null : (data?.length ?? 0) };
+  },
+};
+
 async function registerPushToken(userId: string): Promise<'granted' | 'token_failed'> {
   try {
     const projectId = getExpoProjectId();
@@ -116,29 +151,32 @@ async function registerPushToken(userId: string): Promise<'granted' | 'token_fai
       },
     });
 
-    if (deviceId) {
-      await supabase
-        .from('push_tokens')
-        .delete()
-        .eq('user_id', userId)
-        .eq('device_id', deviceId)
-        .neq('expo_push_token', expoPushToken);
-    }
+    const saved = await savePushToken(pushTokenBackend, {
+      userId,
+      token: expoPushToken,
+      platform,
+      deviceId,
+    });
 
-    await supabase.from('push_tokens').upsert(
-      {
-        expo_push_token: expoPushToken,
-        user_id: userId,
-        device_id: deviceId,
-        platform,
-      },
-      { onConflict: 'expo_push_token' },
-    );
+    if (!saved.ok) {
+      Sentry.captureMessage('push token save failed', {
+        level: 'warning',
+        tags: {
+          reason: 'push_token_registration_failed',
+          push_token_via: saved.via,
+          push_token_failure: saved.reason,
+          db_error_code: saved.error?.code ?? 'none',
+        },
+      });
+      console.error('[Notifications] push token save failed:', saved.reason, saved.error);
+      return 'token_failed';
+    }
 
     Sentry.addBreadcrumb({
       category: 'push-debug',
-      message: 'push_tokens upsert done',
+      message: 'push token saved',
       level: 'info',
+      data: { via: saved.via },
     });
 
     await syncProfileTimezone(userId);
@@ -276,18 +314,32 @@ export async function userHasPushToken(userId: string): Promise<boolean> {
   return (data?.length ?? 0) > 0;
 }
 
+/**
+ * Releases this device's token from the user who is signing out, so the next
+ * account on the device can claim it. Must run while that user's session is
+ * still active (RLS). The next sign-in registers the token again.
+ */
 export async function unregisterPushToken(userId: string) {
   try {
     const token = await secureStore.getItem(PUSH_TOKEN_STORAGE_KEY);
-    if (!token) {
+    const deviceId = token ? null : await getDeviceId();
+    if (!token && !deviceId) {
       return;
     }
 
-    await supabase
-      .from('push_tokens')
-      .delete()
-      .eq('expo_push_token', token)
-      .eq('user_id', userId);
+    const query = supabase.from('push_tokens').delete().eq('user_id', userId);
+    const { error } = token
+      ? await query.eq('expo_push_token', token)
+      : await query.eq('device_id', deviceId!);
+
+    if (error) {
+      Sentry.captureMessage('push token release failed', {
+        level: 'warning',
+        tags: { reason: 'push_token_release_failed', db_error_code: error.code ?? 'none' },
+      });
+      console.error('[Notifications] unregister failed:', error);
+      return;
+    }
 
     await secureStore.removeItem(PUSH_TOKEN_STORAGE_KEY);
   } catch (error) {
