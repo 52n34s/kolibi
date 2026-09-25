@@ -2379,5 +2379,24 @@
     "nextSet": "Satz {{set}} von {{sets}}",
     "paused": "Pausiert",
     "done": "Pause vorbei – weiter geht’s!"
+  },
+  "today": {
+    "nutrition": {
+      "kcalLeft": "kcal heute übrig",
+      "kcalOver": "kcal drüber",
+      "protein": "Protein",
+      "proteinOf": "{{eaten}} / {{target}} g",
+      "proteinOnly": "{{eaten}} g"
+    },
+    "training": {
+      "next": "Als Nächstes",
+      "start": "Start",
+      "restDay": "Ruhetag",
+      "restDayBody": "Heute ist Erholung dran. Auch sie bringt dich weiter.",
+      "week": "{{done}} von {{goal}} Einheiten diese Woche",
+      "weekNoGoal": "{{done}} Einheiten diese Woche",
+      "createPlan": "Plan erstellen",
+      "openTraining": "Zum Training"
+    }
   }
 }

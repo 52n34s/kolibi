@@ -2379,5 +2379,24 @@
     "nextSet": "Set {{set}} of {{sets}}",
     "paused": "Paused",
     "done": "Rest’s over – let’s go!"
+  },
+  "today": {
+    "nutrition": {
+      "kcalLeft": "kcal left today",
+      "kcalOver": "kcal over",
+      "protein": "Protein",
+      "proteinOf": "{{eaten}} / {{target}} g",
+      "proteinOnly": "{{eaten}} g"
+    },
+    "training": {
+      "next": "Up next",
+      "start": "Start",
+      "restDay": "Rest day",
+      "restDayBody": "Today is for recovery. It moves you forward too.",
+      "week": "{{done}} of {{goal}} workouts this week",
+      "weekNoGoal": "{{done}} workouts this week",
+      "createPlan": "Create plan",
+      "openTraining": "Go to training"
+    }
   }
 }
