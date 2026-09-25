@@ -29,13 +29,20 @@ export function exerciseStubFromActive(item: ActiveExercise): Exercise {
   };
 }
 
-/** Minimal Exercise for history lists when only SessionSet fields are available. */
-export function exerciseStubFromSessionSet(set: SessionSet): Exercise {
+/**
+ * Minimal Exercise for history lists when only SessionSet fields are available.
+ * Pass the catalog `names` when known, so the thumb letter follows the app language
+ * like the row name next to it.
+ */
+export function exerciseStubFromSessionSet(
+  set: SessionSet,
+  names?: Exercise['names'],
+): Exercise {
   return {
     id: set.exerciseId ?? set.id,
     userId: null,
     catalogSlug: null,
-    names: { de: set.exerciseName },
+    names: names && Object.keys(names).length > 0 ? names : { de: set.exerciseName },
     kind: set.kind,
     perSide: set.perSide,
     defaultSets: 1,
