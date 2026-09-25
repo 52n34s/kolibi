@@ -2043,6 +2043,7 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
           runningKm={runningKmActual ?? null}
           runningKmPeriod={runningKmPeriod}
           healthConnected={healthConnectedPreference === true}
+          goalType={profile?.goal_type ?? null}
           onOpenTrainingTab={onOpenTrainingTab}
           canOpenTrainingTab={canOpenTrainingTab}
         />
