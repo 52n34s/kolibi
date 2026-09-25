@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { localDateKey } from '@/lib/day-window';
+import { shouldStopRestTimer, type SessionTimerEvent } from '@/lib/training/rest-timer';
 import { createMmkvZustandStorage } from '@/lib/mmkv-zustand-storage';
 import { createSingleFlight } from '@/lib/single-flight';
 import type { LastSetsByExercise } from '@/lib/workouts/set-prefill';
@@ -50,6 +51,15 @@ import {
   type WorkoutTemplate,
 } from '@/lib/workouts/types';
 import { useAuthStore } from '@/stores/auth-store';
+import { useRestTimerStore } from '@/stores/rest-timer-store';
+
+/** Ends the previous unit's rest (bar, notification, Live Activity) — see shouldStopRestTimer. */
+function settleRestTimer(event: SessionTimerEvent): void {
+  const timer = useRestTimerStore.getState();
+  if (shouldStopRestTimer(event, timer.status)) {
+    void timer.stop();
+  }
+}
 
 /** Sessions persisted before summaryDraft existed come back without one. */
 export function summaryDraftOf(session: ActiveSession): SummaryDraft {
@@ -166,6 +176,9 @@ async function finishOnce(
 
   // Keeps trainingSessionId on failure, so a retry links instead of inserting again.
   set({ active: result.ok ? null : result.session });
+  if (result.ok) {
+    settleRestTimer('finish');
+  }
   return result;
 }
 
@@ -186,6 +199,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
           lang: opts?.lang,
           lastSetsByExercise: opts?.lastSetsByExercise,
         });
+        settleRestTimer('start');
         set({ active: session });
         enqueueSessionSnapshot(session);
         triggerFlush();
@@ -369,6 +383,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
         }
         const sessionId = active.sessionId;
         set({ active: null });
+        settleRestTimer('discard');
         // A failed finish may have inserted training_sessions already; without
         // the link, deleting the workout session alone would leave it behind.
         enqueueDeleteSession(sessionId, active.userId, active.trainingSessionId);

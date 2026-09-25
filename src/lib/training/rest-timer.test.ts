@@ -13,6 +13,7 @@ import {
   remainingMs,
   restDurationWheelValues,
   restProgress,
+  shouldStopRestTimer,
   snapRestSeconds,
   type RestTimerClockState,
 } from './rest-timer.ts';
@@ -149,5 +150,24 @@ describe('restDurationWheelValues', () => {
     assert.equal(values[0], REST_MIN_SECONDS);
     assert.equal(values[values.length - 1], REST_MAX_SECONDS);
     assert.equal(values.length, (REST_MAX_SECONDS - REST_MIN_SECONDS) / 15 + 1);
+  });
+});
+
+describe('shouldStopRestTimer', () => {
+  it('ends a leftover rest when a unit starts, is saved or discarded', () => {
+    for (const status of ['running', 'paused', 'finished'] as const) {
+      assert.equal(shouldStopRestTimer('start', status), true);
+      assert.equal(shouldStopRestTimer('finish', status), true);
+      assert.equal(shouldStopRestTimer('discard', status), true);
+    }
+  });
+
+  it('keeps the rest through the summary and back into the unit', () => {
+    assert.equal(shouldStopRestTimer('summary', 'running'), false);
+    assert.equal(shouldStopRestTimer('resume', 'running'), false);
+  });
+
+  it('has nothing to stop when idle', () => {
+    assert.equal(shouldStopRestTimer('start', 'idle'), false);
   });
 });

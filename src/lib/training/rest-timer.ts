@@ -96,3 +96,19 @@ export function restProgress(
   const left = remainingMs(state, now);
   return Math.min(1, Math.max(0, 1 - left / durationMs));
 }
+
+/** A unit's lifecycle step that decides what happens to the rest timer. */
+export type SessionTimerEvent = 'start' | 'finish' | 'discard' | 'summary' | 'resume';
+
+/**
+ * The rest belongs to the unit it was started in. A new unit, a saved or a
+ * discarded one ends it — otherwise the next unit opened with the old
+ * "Weiter geht's" bar, and a running rest still rang after the unit was saved.
+ * The summary keeps it: "Zurück zur Einheit" continues the same rest.
+ */
+export function shouldStopRestTimer(event: SessionTimerEvent, status: RestTimerStatus): boolean {
+  if (status === 'idle') {
+    return false;
+  }
+  return event === 'start' || event === 'finish' || event === 'discard';
+}
