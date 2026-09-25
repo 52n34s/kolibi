@@ -1819,5 +1819,53 @@
       "lunch": "Mittags hattest du im Schnitt {{average}} g Protein. Mit {{from}}–{{to}} g mehr zum Mittagessen erreichst du dein Ziel leichter.",
       "dinner": "Abends hattest du im Schnitt {{average}} g Protein. Mit {{from}}–{{to}} g mehr zum Abendessen erreichst du dein Ziel leichter."
     }
+  },
+  "measurements": {
+    "title": "Maße",
+    "open": "Maße eintragen",
+    "subtitle": "Alles optional. Miss morgens, entspannt und immer an derselben Stelle.",
+    "moreLabel": "Mehr Maße",
+    "fields": {
+      "chest": "Brust",
+      "arm": "Oberarm",
+      "waist": "Taille",
+      "hip": "Hüfte",
+      "thigh": "Oberschenkel"
+    },
+    "fieldHints": {
+      "chest": "Auf Höhe der Brustwarzen, Arme locker.",
+      "arm": "Dickste Stelle, Arm locker hängend.",
+      "waist": "Auf Nabelhöhe, normal ausatmen."
+    },
+    "units": {
+      "cm": "cm",
+      "in": "in",
+      "kg": "kg",
+      "lbs": "lbs"
+    },
+    "invalid": "Prüf bitte den Wert bei {{field}}.",
+    "saveFailed": "Versuch es gleich noch mal – dann klappt das Speichern.",
+    "saved": "Maße gespeichert",
+    "lastMeasured": "Zuletzt gemessen: {{date}}",
+    "buildUp": {
+      "title": "Aufbau",
+      "weeksOption": "{{count}} Wochen",
+      "sentence": "Du baust auf: {{parts}}.",
+      "weightStable": "Gewicht stabil",
+      "weightDelta": "Gewicht {{delta}}",
+      "waistStable": "Taille stabil",
+      "waistDelta": "Taille {{delta}}",
+      "chestStable": "Brust stabil",
+      "chestDelta": "Brust {{delta}}",
+      "armStable": "Oberarm stabil",
+      "armDelta": "Oberarm {{delta}}",
+      "levelUps_one": "+{{count}} Stufe",
+      "levelUps_other": "+{{count}} Stufen",
+      "exerciseReps": "{{name}} +{{delta}}",
+      "exerciseSeconds": "{{name}} +{{delta}} s",
+      "footnote": "Gewicht als 7-Tage-Schnitt, Kraft aus Stufen und besten Sätzen.",
+      "empty": "Wieg dich, miss Taille, Brust und Oberarm und trainier weiter – hier siehst du dann, wie du aufbaust.",
+      "measureCta": "Maße eintragen"
+    }
   }
 }
