@@ -4,9 +4,9 @@ import { describe, it } from 'node:test';
 
 const LANGS = ['de', 'en', 'es'] as const;
 const NEGATION: Record<(typeof LANGS)[number], RegExp> = {
-  de: /^(Noch kein|Kein|Nichts)/,
-  en: /^(No |Nothing|None)/,
-  es: /^(Aún no|Todavía no|No hay|Sin |Nada)/,
+  de: /^(Noch kein|Noch nicht|Kein|Nichts)/,
+  en: /^(No |Not |Nothing|None)/,
+  es: /^(Aún no|Todavía no|No |Sin |Nada)/,
 };
 /** Empty states: what the user sees before there is anything to show. */
 const EMPTY_KEYS = [
@@ -22,6 +22,10 @@ const EMPTY_KEYS = [
   'training.plan.emptyTitle',
   'training.progress.empty',
   'training.catalog.empty',
+  'home.calorieGoal.setAction',
+  'home.weight.logAction',
+  'home.mealItemRow.nutrientsEmpty',
+  'home.foodSearch.noResultsHint',
 ];
 
 function lookup(tree: unknown, key: string): unknown {

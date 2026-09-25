@@ -662,7 +662,7 @@ export default function HomeScreen() {
 
   const weightLabel = useMemo(() => {
     if (currentDisplayKg == null) {
-      return t('home.weight.notLogged');
+      return null;
     }
 
     return formatWeightForDisplay({
@@ -1600,6 +1600,7 @@ export default function HomeScreen() {
                         ) : (
                           <WeightProgressCard
                             currentValue={weightLabel}
+                            logLabel={t('home.weight.logAction')}
                             dailyValue={dailyWeightLabel}
                             startLabel={t('home.weight.startTitle')}
                             startValue={startWeightLabel}

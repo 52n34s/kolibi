@@ -5,7 +5,10 @@ import { getOnboardingSecondarySurfaceStyle } from '@/components/onboarding/onbo
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 
 type WeightProgressCardProps = {
-  currentValue: string;
+  /** Null before the first weigh-in: the card is a small "log" row then. */
+  currentValue: string | null;
+  /** Row text while there is no weight, e.g. "Gewicht eintragen". */
+  logLabel: string;
   /** Shown under the main number when trend and today's log differ. */
   dailyValue?: string | null;
   startLabel: string;
@@ -24,6 +27,7 @@ type WeightProgressCardProps = {
  */
 export function WeightProgressCard({
   currentValue,
+  logLabel,
   dailyValue,
   startLabel,
   startValue,
@@ -33,6 +37,24 @@ export function WeightProgressCard({
   onPress,
   accessibilityLabel,
 }: WeightProgressCardProps) {
+  if (currentValue == null) {
+    // Same small link row as the other empty states on Today.
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={logLabel}
+        onPress={onPress}
+        style={({ pressed }) => [
+          getOnboardingSecondarySurfaceStyle(),
+          styles.logRow,
+          pressed && styles.cardPressed,
+        ]}>
+        <Text style={styles.logText}>{logLabel}</Text>
+        <Ionicons name="chevron-forward" size={16} color={BRAND_INDIGO} />
+      </Pressable>
+    );
+  }
+
   const showRange = progressPercent != null;
   const dailyLine =
     dailyValue != null && dailyValue.length > 0 ? (
@@ -118,6 +140,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 14,
+  },
+  logRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  logText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: BRAND_INDIGO,
   },
   cardPressed: {
     backgroundColor: 'rgba(79, 70, 229, 0.07)',

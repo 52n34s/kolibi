@@ -575,13 +575,10 @@ export function DaySummaryBlock({ date, compact = false, onPress }: DaySummaryBl
           pressed && { backgroundColor: GLASS_SURFACE_PRESSED.backgroundColor },
         ]}>
         <View className="flex-row items-center px-4 py-3">
-          <Text className="flex-1 text-sm text-gray-500">
-            {t('home.calorieGoal.emptyPrefix')}
-            <Text className="font-medium text-[#4F46E5]">
-              {t('home.calorieGoal.emptyAction')}
-            </Text>
+          <Text className="flex-1 text-sm font-semibold text-[#4F46E5]">
+            {t('home.calorieGoal.setAction')}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={16} color="#4F46E5" />
         </View>
       </Pressable>
     </View>
