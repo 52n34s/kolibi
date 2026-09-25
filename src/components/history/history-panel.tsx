@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Href, router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActionSheetIOS,
@@ -93,6 +93,9 @@ import {
   HISTORY_MACRO_NUTRIENTS,
   historyMacroActualSeries,
   historyMacroGoalSeries,
+  macroBubbleText,
+  macroGoalChangeIndices,
+  macroTrendSummary,
   type HistoryMacroNutrient,
 } from '@/lib/history-macro-trend';
 import {
@@ -1473,6 +1476,52 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
     [activeMacroNutrient, data?.days],
   );
   const hasMacroActualData = macroActualValues.some((value) => value != null);
+  const macroDates = useMemo(() => data?.days.map((day) => day.date) ?? [], [data?.days]);
+  const macroTodayIndex = macroDates.indexOf(todayKey);
+  const macroGoalChanges = useMemo(() => macroGoalChangeIndices(macroGoalValues), [macroGoalValues]);
+  const macroBubbleFor = useCallback(
+    (index: number) => {
+      const date = macroDates[index];
+      if (!date) {
+        return null;
+      }
+      const text = macroBubbleText({
+        // "Di." → "Di" in the bubble.
+        dayLabel: formatShortDayLabel(date, i18n.language).replace(/\.$/, ''),
+        actual: macroActualValues[index] ?? null,
+        goal: macroGoalValues[index] ?? null,
+        t,
+      });
+      if (!text) {
+        return null;
+      }
+      return {
+        text,
+        note: macroGoalChanges.has(index) ? t('history.macro.goalAdjusted') : null,
+      };
+    },
+    [i18n.language, macroActualValues, macroDates, macroGoalChanges, macroGoalValues, t],
+  );
+  const macroSummaryLine = useMemo(() => {
+    const summary = macroTrendSummary({
+      nutrient: activeMacroNutrient,
+      dates: macroDates,
+      actual: macroActualValues,
+      goal: macroGoalValues,
+      todayKey,
+    });
+    if (summary.avg == null) {
+      return null;
+    }
+    return summary.goal != null
+      ? t('history.macro.summary', {
+          avg: summary.avg,
+          goal: summary.goal,
+          hit: summary.hit,
+          count: summary.days,
+        })
+      : t('history.macro.summaryNoGoal', { avg: summary.avg });
+  }, [activeMacroNutrient, macroActualValues, macroDates, macroGoalValues, t, todayKey]);
 
   const hasWeightData = latestWeightLog != null;
   const hasWeightChartData = weightValues.length > 0;
@@ -1853,6 +1902,15 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
                 actual={macroActualValues}
                 goal={macroGoalValues}
                 width={chartWidth - 32}
+                todayIndex={macroTodayIndex}
+                bubbleFor={macroBubbleFor}
+                onOpenDay={(index) => {
+                  const date = data?.days[index]?.date;
+                  if (date) {
+                    router.push(`/koli/day/${date}` as Href);
+                  }
+                }}
+                openDayLabel={t('history.macro.openDay')}
               />
               <View className="mt-3" style={{ position: 'relative', height: 16 }}>
                 {data?.days.map((day, index) => {
@@ -1878,6 +1936,11 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
                   );
                 })}
               </View>
+              {macroSummaryLine ? (
+                <Text testID="history.macro.summary" className="mt-3 text-sm text-gray-600">
+                  {macroSummaryLine}
+                </Text>
+              ) : null}
             </>
           ) : (
             <View className="items-center py-8">
