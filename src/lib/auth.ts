@@ -18,11 +18,33 @@ import {
   type LinkedOAuthProvider,
 } from '@/lib/auth-errors';
 import { supabase } from '@/lib/supabase';
+import { ensurePushRegistration, unregisterPushToken } from '@/lib/notifications';
 import { requestPaywallAfterSignup } from '@/lib/pending-paywall';
 import { useAuthStore } from '@/stores/auth-store';
 
 const HOME_ROUTE = '/home' as Href;
 const ONBOARDING_ROUTE = { pathname: '/onboarding', params: {} } as Href;
+
+/**
+ * Signing into a different account on the same device: release the push
+ * token from the account that is signed in now (often the anonymous one), so
+ * the next account can claim it. Returns that user's id for restoring.
+ */
+async function releasePushTokenBeforeAccountSwitch(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user?.id ?? null;
+  if (userId) {
+    await unregisterPushToken(userId);
+  }
+  return userId;
+}
+
+/** The switch failed and the previous session is still active: register it again. */
+function restorePushTokenAfterFailedSwitch(userId: string | null) {
+  if (userId) {
+    void ensurePushRegistration(userId, { askIfUndetermined: false });
+  }
+}
 
 export async function navigateAfterLogin() {
   const isOnboarded = await useAuthStore.getState().refreshOnboardingStatus();
@@ -127,6 +149,8 @@ export async function completeExistingIdentitySignIn(
   provider: LinkedOAuthProvider,
   identityToken: string,
 ): Promise<void> {
+  await releasePushTokenBeforeAccountSwitch();
+
   try {
     await supabase.auth.signOut({ scope: 'local' });
   } catch (signOutError) {
@@ -174,8 +198,10 @@ async function finalizeConvertedSignup(userId: string, provider: SignupProvider)
 }
 
 export async function signInWithEmail(email: string, password: string) {
+  const previousUserId = await releasePushTokenBeforeAccountSwitch();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
+    restorePushTokenAfterFailedSwitch(previousUserId);
     throw mapSignInAuthError(error);
   }
   if (data.user?.id) {
