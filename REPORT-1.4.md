@@ -773,7 +773,7 @@ Stand `release/1.4` = `7e29951` (gepusht). main unverändert seit `0db1698`. Kei
 | D | „zuletzt: noch nie“ | `5735d30` | Im Simulator zeigt die Zeile die *nächste* Einheit (z. B. B nach A) – dort stimmt „noch nie“. Konsistent gelöst: Eine Einheit ohne Satz ist kein Training. „Beenden“ ohne Satz bietet nur Verwerfen / Weiter trainieren („Gespeichert wird ab dem ersten Satz.“); `finishActiveSession` lehnt sie ab – keine 1-Minuten-Kraftzeile, keine Energie. |
 | E | Leertexte | `3b4900e` | 12 Leertexte in DE/EN/ES positiv; Test verhindert Verneinungen am Anfang. Die Tagesliste nutzt einen eigenen Tagestext. Status- und Fehlertexte („Noch nicht erfasst“, „Kein Barcode erkannt“) bewusst unverändert. |
 | F | Aufbau-Satz | `7870ae2` | „Bankdips (Knie gebeugt): +3“; ASCII-Minus in `formatWeightDeltaForDisplay` und der Diagrammbeschriftung → „−“. |
-| G | Befund 1 (`history.ts:300`) | – | Ursache eindeutig: Der Verlauf nimmt nur `daily_health_stats.active_energy_kcal`; heute kommen Kolibi-kcal dazu, wenn kein Uhr-Workout gleichen Typs da ist. Welche Workout-Typen an vergangenen Tagen vorlagen, ist nicht gespeichert – Nachrechnen würde an Uhr-Tagen doppelt zählen. **Dokumentiert, nicht behoben.** Vorschlag: Spalte `sport_energy_kcal` in `daily_health_stats`, die der Health-Sync mit `buildSportEnergyDay` füllt; der Verlauf nimmt sie, wenn vorhanden. Braucht Migration → Freigabe. |
+| G | Befund 1 (`history.ts:300`) | – | Ursache eindeutig: Der Verlauf nimmt nur `daily_health_stats.active_energy_kcal`; heute kommen Kolibi-kcal dazu, wenn kein Uhr-Workout gleichen Typs da ist. Welche Workout-Typen an vergangenen Tagen vorlagen, ist nicht gespeichert – Nachrechnen würde an Uhr-Tagen doppelt zählen. **OFFEN – verschoben auf 1.4.1** (Entscheidung 2026-09-25). Vorschlag: Spalte `sport_energy_kcal` in `daily_health_stats`, die der Health-Sync mit `buildSportEnergyDay` füllt; der Verlauf nimmt sie, wenn vorhanden. Braucht Migration → Freigabe. |
 
 ### Schritt 3 – Entscheidungen
 - Umgesetzt: Mahlzeit-Gruppen mit einem Eintrag offen (`98d8419`); Trainingslog frei ansehbar, Eintragen/Löschen → Paywall; Einheit-Detail nur ansehen, jede Bearbeitung und Löschen → Paywall (`cd88f5d`, neue Aktionen `editSession`, `logTraining`); Muskel-Hinweise erst ab 3 Einheiten oder 7 Tagen, höchstens zwei größte Lücken (`f436cb6`, Muskelansicht und Heute).
@@ -826,3 +826,7 @@ aa851f0 fix(onboarding): "Fertig" keeps the shown birth date without turning
 3fd2512 fix(share): progress sticker follows the shared rung, never steps back
 52c9614 fix(training): no phantom "Manuell · Krafttraining" rows
 ```
+
+## Block 6.2 – Freigabe 2026-09-25
+- Progression mit Zusatzsätzen (`b08d983`): geplante Sätze (die ersten `targetSets` erledigten) entscheiden; Zusatzsätze verhindern nie einen Vorschlag und führen nie zu einem Rückschritt; ein Zusatzsatz an der oberen Grenze zählt als klarer Erfolg (auch bei „hart“); zwei Einheiten in Folge mit mehr Sätzen als geplant → `sets_up` (bis 5). 7 Tests.
+- Offen für 1.4.1: Befund G (Verlauf-Ziel an vergangenen Trainingstagen ohne Uhr-Workout).
