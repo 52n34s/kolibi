@@ -1825,7 +1825,9 @@
     "actions": {
       "save": "Save image",
       "copy": "Copy",
-      "share": "Share"
+      "share": "Share",
+      "instagram": "Instagram",
+      "instagramA11y": "Share to your Instagram Story"
     },
     "variant": {
       "light": "Light",
@@ -2371,5 +2373,11 @@
       "badge": "My goal",
       "achievedBadge": "Goal reached"
     }
+  },
+  "liveActivity": {
+    "title": "Rest",
+    "nextSet": "Set {{set}} of {{sets}}",
+    "paused": "Paused",
+    "done": "Rest’s over – let’s go!"
   }
 }

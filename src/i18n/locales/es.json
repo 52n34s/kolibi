@@ -1825,7 +1825,9 @@
     "actions": {
       "save": "Guardar imagen",
       "copy": "Copiar",
-      "share": "Compartir"
+      "share": "Compartir",
+      "instagram": "Instagram",
+      "instagramA11y": "Compartir en tu historia de Instagram"
     },
     "variant": {
       "light": "Claro",
@@ -2371,5 +2373,11 @@
       "badge": "Mi meta",
       "achievedBadge": "Meta alcanzada"
     }
+  },
+  "liveActivity": {
+    "title": "Descanso",
+    "nextSet": "Serie {{set}} de {{sets}}",
+    "paused": "En pausa",
+    "done": "¡Descanso terminado, a por ello!"
   }
 }

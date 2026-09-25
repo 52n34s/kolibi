@@ -19,7 +19,7 @@ import type {
  */
 
 export type StickerVariant = 'light' | 'dark';
-export type StickerAction = 'save' | 'copy' | 'share';
+export type StickerAction = 'save' | 'copy' | 'share' | 'instagram';
 export type StickerAnalyticsType =
   | 'exercise'
   | 'level'

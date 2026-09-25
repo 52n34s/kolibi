@@ -74,6 +74,7 @@ import {
   refreshRevenueCatCustomerInfo,
   resetRevenueCatCustomerInfoStore,
 } from '@/lib/revenuecat-customer-info';
+import { ensureRestLiveActivitySync } from '@/lib/training/rest-live-activity-runtime';
 import { ensureWorkoutSyncListeners } from '@/lib/workouts/sync-queue-runtime';
 import { useAppDayRollover } from '@/hooks/use-app-day-rollover';
 import { useCheckinReminderSync } from '@/hooks/use-checkin';
@@ -103,6 +104,7 @@ function AppLifecycle({ userId }: { userId: string | null }) {
 
   useEffect(() => {
     ensureWorkoutSyncListeners();
+    ensureRestLiveActivitySync();
   }, []);
 
   useEffect(() => {
