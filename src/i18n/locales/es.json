@@ -1799,5 +1799,17 @@
       "notEnough": "Para un sticker de progreso hacen falta al menos dos sesiones de este ejercicio.",
       "share": "Compartir progreso de {{name}}"
     }
+  },
+  "rir": {
+    "question": "¿Cuántas más habrías podido hacer?",
+    "shortfallTitle": "¿Qué pasó?",
+    "reasonTooHard": "Demasiado difícil dos veces seguidas: con el nivel más fácil construyes una base sólida.",
+    "reason": {
+      "tired": "cansancio",
+      "pain": "dolor",
+      "technique": "técnica",
+      "short_on_time": "poco tiempo",
+      "too_hard": "demasiado difícil"
+    }
   }
 }

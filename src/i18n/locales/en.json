@@ -1799,5 +1799,17 @@
       "notEnough": "A progress sticker needs at least two sessions of this exercise.",
       "share": "Share progress for {{name}}"
     }
+  },
+  "rir": {
+    "question": "How many more could you have done?",
+    "shortfallTitle": "What happened?",
+    "reasonTooHard": "Too hard twice in a row – the easier rung helps you build a solid base.",
+    "reason": {
+      "tired": "tired",
+      "pain": "pain",
+      "technique": "technique",
+      "short_on_time": "short on time",
+      "too_hard": "too hard"
+    }
   }
 }

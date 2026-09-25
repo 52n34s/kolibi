@@ -1799,5 +1799,17 @@
       "notEnough": "Für einen Fortschritts-Sticker braucht es mindestens zwei Einheiten dieser Übung.",
       "share": "Fortschritt bei {{name}} teilen"
     }
+  },
+  "rir": {
+    "question": "Wie viele wären noch gegangen?",
+    "shortfallTitle": "Was war los?",
+    "reasonTooHard": "Zweimal in Folge zu schwer – mit der leichteren Stufe baust du eine solide Basis auf.",
+    "reason": {
+      "tired": "müde",
+      "pain": "Schmerzen",
+      "technique": "Technik",
+      "short_on_time": "wenig Zeit",
+      "too_hard": "zu schwer"
+    }
   }
 }
