@@ -1819,5 +1819,50 @@
       "lunch": "You averaged {{average}} g of protein at lunch. Adding {{from}}–{{to}} g at midday makes your goal easier to hit.",
       "dinner": "You averaged {{average}} g of protein at dinner. Adding {{from}}–{{to}} g in the evening makes your goal easier to hit."
     }
+  },
+  "muscles": {
+    "groups": {
+      "chest": "Chest",
+      "shoulders": "Shoulders",
+      "triceps": "Triceps",
+      "back": "Back",
+      "biceps": "Biceps",
+      "core": "Core",
+      "quads": "Quads",
+      "hamstrings": "Hamstrings",
+      "glutes": "Glutes",
+      "calves": "Calves"
+    },
+    "segments": {
+      "sessions": "Sessions",
+      "muscles": "Muscles",
+      "exercises": "Exercises"
+    },
+    "title": "Sets per muscle group",
+    "window7": "7 days",
+    "window30": "30 days",
+    "hint7": "Your sets of the last 7 days. The mark sits at {{target}} sets per week.",
+    "hint30": "Your sets per week, averaged over the last 30 days. The mark sits at {{target}} sets per week.",
+    "value": "{{sets}} / {{target}}",
+    "reached": "Done",
+    "empty": "As soon as you log sets, you see here how much each muscle group trains.",
+    "recommendationsTitle": "How to get there",
+    "recommendation_one": "{{group}}: {{sets}} of {{target}} sets. Add {{count}} set of {{exercise}} per week and you are there.",
+    "recommendation_other": "{{group}}: {{sets}} of {{target}} sets. Add {{count}} sets of {{exercise}} per week and you are there.",
+    "adopt": "Add to a workout",
+    "adoptTitle": "Add to a workout",
+    "adoptRaise": "{{unit}}: {{exercise}} from {{from}} to {{to}} sets.",
+    "adoptAdd_one": "{{unit}}: add {{exercise}} with {{count}} set.",
+    "adoptAdd_other": "{{unit}}: add {{exercise}} with {{count}} sets.",
+    "adoptConfirm": "Add",
+    "adoptCancel": "Cancel",
+    "adoptSaved": "Added to {{unit}}.",
+    "adoptFailed": "Saving hit a snag. Give it another try in a moment.",
+    "editor": {
+      "label": "Muscle groups",
+      "hint": "Tap once for main muscle, twice for assisting.",
+      "primary": "Main",
+      "secondary": "Assist"
+    }
   }
 }

@@ -1819,5 +1819,50 @@
       "lunch": "A mediodía tomaste de media {{average}} g de proteína. Con {{from}}–{{to}} g más en la comida alcanzas tu objetivo más fácilmente.",
       "dinner": "Por la noche tomaste de media {{average}} g de proteína. Con {{from}}–{{to}} g más en la cena alcanzas tu objetivo más fácilmente."
     }
+  },
+  "muscles": {
+    "groups": {
+      "chest": "Pecho",
+      "shoulders": "Hombros",
+      "triceps": "Tríceps",
+      "back": "Espalda",
+      "biceps": "Bíceps",
+      "core": "Core",
+      "quads": "Cuádriceps",
+      "hamstrings": "Isquiotibiales",
+      "glutes": "Glúteos",
+      "calves": "Gemelos"
+    },
+    "segments": {
+      "sessions": "Sesiones",
+      "muscles": "Músculos",
+      "exercises": "Ejercicios"
+    },
+    "title": "Series por grupo muscular",
+    "window7": "7 días",
+    "window30": "30 días",
+    "hint7": "Tus series de los últimos 7 días. La marca está en {{target}} series por semana.",
+    "hint30": "Tus series por semana, media de los últimos 30 días. La marca está en {{target}} series por semana.",
+    "value": "{{sets}} / {{target}}",
+    "reached": "Conseguido",
+    "empty": "En cuanto registres series, aquí ves cuánto entrena cada grupo muscular.",
+    "recommendationsTitle": "Así llegas",
+    "recommendation_one": "{{group}}: {{sets}} de {{target}} series. Con {{count}} serie más de {{exercise}} por semana llegas.",
+    "recommendation_other": "{{group}}: {{sets}} de {{target}} series. Con {{count}} series más de {{exercise}} por semana llegas.",
+    "adopt": "Añadir a una sesión",
+    "adoptTitle": "Añadir a una sesión",
+    "adoptRaise": "{{unit}}: {{exercise}} de {{from}} a {{to}} series.",
+    "adoptAdd_one": "{{unit}}: añade {{exercise}} con {{count}} serie.",
+    "adoptAdd_other": "{{unit}}: añade {{exercise}} con {{count}} series.",
+    "adoptConfirm": "Añadir",
+    "adoptCancel": "Cancelar",
+    "adoptSaved": "Añadido a {{unit}}.",
+    "adoptFailed": "Guardar se atascó un momento. Inténtalo de nuevo en un rato.",
+    "editor": {
+      "label": "Grupos musculares",
+      "hint": "Toca una vez para músculo principal, dos veces para secundario.",
+      "primary": "Principal",
+      "secondary": "Apoyo"
+    }
   }
 }

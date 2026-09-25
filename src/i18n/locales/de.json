@@ -1819,5 +1819,50 @@
       "lunch": "Mittags hattest du im Schnitt {{average}} g Protein. Mit {{from}}–{{to}} g mehr zum Mittagessen erreichst du dein Ziel leichter.",
       "dinner": "Abends hattest du im Schnitt {{average}} g Protein. Mit {{from}}–{{to}} g mehr zum Abendessen erreichst du dein Ziel leichter."
     }
+  },
+  "muscles": {
+    "groups": {
+      "chest": "Brust",
+      "shoulders": "Schultern",
+      "triceps": "Trizeps",
+      "back": "Rücken",
+      "biceps": "Bizeps",
+      "core": "Rumpf",
+      "quads": "Beine vorne",
+      "hamstrings": "Beine hinten",
+      "glutes": "Gesäß",
+      "calves": "Waden"
+    },
+    "segments": {
+      "sessions": "Einheiten",
+      "muscles": "Muskeln",
+      "exercises": "Übungen"
+    },
+    "title": "Sätze pro Muskelgruppe",
+    "window7": "7 Tage",
+    "window30": "30 Tage",
+    "hint7": "Deine Sätze der letzten 7 Tage. Die Marke steht bei {{target}} Sätzen pro Woche.",
+    "hint30": "Deine Sätze pro Woche, Schnitt der letzten 30 Tage. Die Marke steht bei {{target}} Sätzen pro Woche.",
+    "value": "{{sets}} / {{target}}",
+    "reached": "Geschafft",
+    "empty": "Sobald du Sätze einträgst, siehst du hier, welche Muskeln wie viel trainieren.",
+    "recommendationsTitle": "So kommst du hin",
+    "recommendation_one": "{{group}}: {{sets}} von {{target}} Sätzen. Mit {{count}} Satz {{exercise}} mehr pro Woche kommst du hin.",
+    "recommendation_other": "{{group}}: {{sets}} von {{target}} Sätzen. Mit {{count}} Sätzen {{exercise}} mehr pro Woche kommst du hin.",
+    "adopt": "In Einheit übernehmen",
+    "adoptTitle": "In Einheit übernehmen",
+    "adoptRaise": "{{unit}}: {{exercise}} von {{from}} auf {{to}} Sätze.",
+    "adoptAdd_one": "{{unit}}: {{exercise}} mit {{count}} Satz dazu.",
+    "adoptAdd_other": "{{unit}}: {{exercise}} mit {{count}} Sätzen dazu.",
+    "adoptConfirm": "Übernehmen",
+    "adoptCancel": "Abbrechen",
+    "adoptSaved": "Übernommen in {{unit}}.",
+    "adoptFailed": "Das Speichern hat gerade gehakt. Versuch es gleich nochmal.",
+    "editor": {
+      "label": "Muskelgruppen",
+      "hint": "Einmal tippen für Hauptmuskel, zweimal für mittrainiert.",
+      "primary": "Haupt",
+      "secondary": "Mit"
+    }
   }
 }
