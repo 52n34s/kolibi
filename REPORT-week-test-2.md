@@ -58,10 +58,10 @@ Tests gesamt: 1137, 0 fehlgeschlagen (1 übersprungen, alt). tsc: 15 Fehler in `
 | 1 | hoch | Start von Heute ignorierte die Entlastungswoche (volle Sätze statt einem weniger) | behoben `0876851` |
 | 2 | mittel | Pausen-Timer wurde nur beim Abmelden zurückgesetzt: nächste Einheit startete mit „Weiter geht's“, eine laufende Pause klingelte nach dem Speichern | behoben `9f165a9` (`shouldStopRestTimer`) |
 | 3 | mittel | Letzte Einheit archiviert → „Als Nächstes“ springt auf die erste Einheit (A direkt nach A) | behoben `e5cb13c` |
-| 4 | mittel | Skill-Ziel-Blatt: Tastatur verdeckt Feld und „Ziel speichern“ (`SkillGoalSheet` ohne `KeyboardAvoidingView`, `supplements.tsx` hat einen) | offen, reiner Layout-Fix, nicht mit Node-Tests absicherbar |
-| 5 | niedrig | Schwerpunkt „Mehr Ballaststoffe“ wirkt bei Muskelaufbau nicht, weil keine Ballaststoff-Empfehlung entsteht | offen, Produktfrage |
-| 6 | niedrig | Skill-Ziel „Aktuell“ nahm bei zwei Einheiten am Tag die frühere | behoben `91e9959` |
-| 7 | niedrig | Kalorienziel-Karte auf Heute zeigte nach dem Setzen weiter „Kalorienziel festlegen“; nach Neuladen richtig | offen, nicht reproduziert |
+| 4 | mittel | Skill-Ziel-Blatt: Tastatur verdeckt Feld und „Ziel speichern” (`SkillGoalSheet` ohne `KeyboardAvoidingView`, `supplements.tsx` hat einen) | behoben `1458bbd`; alle anderen Blätter mit Zahleneingabe geprüft, nur dieses betroffen |
+| 5 | niedrig | Schwerpunkt „Mehr Ballaststoffe” wirkt bei Muskelaufbau nicht, weil keine Ballaststoff-Empfehlung entsteht | behoben `f7ea702` — Produktentscheidung: ein gewählter Schwerpunkt darf jetzt eine Karte zeigen, die das Ziel allein nicht zeigen würde (fiber, carbs_training), noch vor den eigenen Themen des Ziels |
+| 6 | niedrig | Skill-Ziel „Aktuell” nahm bei zwei Einheiten am Tag die frühere | behoben `91e9959` |
+| 7 | niedrig | Kalorienziel-Karte auf Heute zeigte nach dem Setzen weiter „Kalorienziel festlegen”; nach Neuladen richtig | geprüft: `calorie-goal.tsx` invalidiert `profile-settings`, `home-dashboard`, `macro-goal-editor` bereits korrekt; keine React-Query-Invalidierung ist als Node-Test abbildbar, im Simulator nicht erneut reproduziert |
 | 8 | niedrig | Die Einheit scrollt nach, wenn sich die Höhe der Pausenleiste ändert, und verdeckt dabei den Kopf mit „Beenden“ | offen, bewusster Kompromiss |
 | 9 | Test | Modale Blätter (Vorlagen-Vorschau, Übersicht, Skill-Ziel) sind für Maestro nur per Koordinate erreichbar; eine System-Rückfrage (Einfügen) schließt das Blatt | offen, VoiceOver-Prüfung auf dem Gerät |
 
@@ -78,3 +78,14 @@ Tests gesamt: 1137, 0 fehlgeschlagen (1 übersprungen, alt). tsc: 15 Fehler in `
 ## 5. Empfehlung für den Build
 
 Build 33 ist vertretbar, sobald Befund 4 behoben ist. Das ist eine Zeile Layout in `SkillGoalSheet.tsx`, ohne sie tippt man den Zielwert blind ein. Die drei neuen Fixes sind klein, mit Tests abgesichert und im Simulator bestätigt. Vor dem Einreichen auf dem Gerät noch nachholen: Sprachen DE/EN/ES, Maße und Skill-Ziel-Sticker, Paywall-Zugang.
+
+## 6. Nachtrag vor dem nächsten Build (26.09.2026)
+
+Vor dem für 23:25 angekündigten Build noch auf `main` erledigt:
+
+- **Befund 4** behoben (`1458bbd`): `SkillGoalSheet` bekommt dasselbe `KeyboardAvoidingView` wie `supplements.tsx`. Dabei alle anderen `GlassBottomSheet`-Blätter mit Text-/Zahleneingabe durchsucht (Maße, Gewicht, Kalorienziel, manuelle Mahlzeit, Vorlagen-Umbenennen, Widerruf): Maße/Gewicht nutzen einen eigenen, bereits funktionierenden `bottom: keyboardHeight`-Ausgleich; Kalorienziel ist ein eigener Screen mit eigenem `KeyboardAvoidingView`; manuelle Mahlzeit/Mahlzeit bearbeiten teilen sich `MealItemsSheetBody`, die bereits eines hat; Vorlagen-Umbenennen läuft über `Alert.prompt` (System, betroffen wäre es nicht); Widerruf nutzt die `center`-Darstellung, die bereits gepolstert wird. `SkillGoalSheet` war die einzige betroffene Stelle.
+- **Befund 5** behoben (`f7ea702`), als Produktentscheidung statt „offen": ein gewählter Schwerpunkt kann jetzt eine Karte zeigen, die das Ziel allein nicht zeigen würde (Ballaststoffe, Energie-vor-dem-Training), mit Rang direkt vor den eigenen Themen des Ziels — nicht nur eine Umsortierung bestehender Karten. Ohne eigenen Ziel-Grund (`reason: null`). Test in `recommendations.test.ts` und `week-simulation-1-4.test.ts` (W2-4) angepasst.
+- **Befund 7** geprüft, nicht verändert: `calorie-goal.tsx` invalidiert nach dem Speichern bereits `profile-settings`, `home-dashboard` und `macro-goal-editor` — genau die Abfragen, aus denen sich die Heute-Karte speist. Keine Code-Änderung nötig; React-Query-Invalidierung lässt sich nicht als reiner Node-Test abbilden, im Simulator diesmal nicht erneut reproduziert.
+- Screenshots der Tastatur-Behebung (Simulator „Kolibi QA" und „Kolibi QA klein") sowie die verbleibenden, im Simulator zu prüfenden Punkte (Maße eintragen, Skill-Ziel-Sticker per PIL, Sprachen DE/EN/ES auf Heute/Ernährung/Training/Zusammenfassung) stehen noch aus.
+
+`npm test`: 1154 bestanden, 0 fehlgeschlagen (1 übersprungen). `tsc`: 73 Fehler gesamt, davon weiterhin 15 in `src/` — unverändert zur Baseline oben, keiner durch diese Änderungen verursacht (per `git stash`-Vergleich geprüft).
