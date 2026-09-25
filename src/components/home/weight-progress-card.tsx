@@ -62,46 +62,44 @@ export function WeightProgressCard({
     ) : null;
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      style={({ pressed }) => [
-        getOnboardingSecondarySurfaceStyle(),
-        styles.card,
-        pressed && styles.cardPressed,
-      ]}>
-      {showRange ? (
-        <>
-          <View style={styles.valuesRow}>
-            <View style={styles.edgeLeft}>
-              <Text style={styles.edgeLabel}>{startLabel}</Text>
-              <Text style={styles.edgeValue}>{startValue}</Text>
+    <View style={[getOnboardingSecondarySurfaceStyle(), styles.surface]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        onPress={onPress}
+        style={styles.card}>
+        {showRange ? (
+          <>
+            <View style={styles.valuesRow}>
+              <View style={styles.edgeLeft}>
+                <Text style={styles.edgeLabel}>{startLabel}</Text>
+                <Text style={styles.edgeValue}>{startValue}</Text>
+              </View>
+              <View style={styles.currentSlot}>
+                <Text style={styles.currentValue}>{currentValue}</Text>
+                {dailyLine}
+              </View>
+              <View style={styles.edgeRight}>
+                <Text style={styles.edgeLabel}>{targetLabel}</Text>
+                <Text style={styles.edgeValue}>{targetValue}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
             </View>
-            <View style={styles.currentSlot}>
-              <Text style={styles.currentValue}>{currentValue}</Text>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${progressPercent}%` }]} />
+            </View>
+          </>
+        ) : (
+          <View style={styles.aloneRow}>
+            <View style={styles.aloneCurrent}>
+              <Text style={styles.currentValueAlone}>{currentValue}</Text>
               {dailyLine}
-            </View>
-            <View style={styles.edgeRight}>
-              <Text style={styles.edgeLabel}>{targetLabel}</Text>
-              <Text style={styles.edgeValue}>{targetValue}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
           </View>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${progressPercent}%` }]} />
-          </View>
-        </>
-      ) : (
-        <View style={styles.aloneRow}>
-          <View style={styles.aloneCurrent}>
-            <Text style={styles.currentValueAlone}>{currentValue}</Text>
-            {dailyLine}
-          </View>
-          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-        </View>
-      )}
-    </Pressable>
+        )}
+      </Pressable>
+    </View>
   );
 }
 
@@ -135,14 +133,13 @@ export function weightGoalProgressPercent(params: {
 }
 
 const styles = StyleSheet.create({
-  card: {
+  surface: {
     borderRadius: 14,
+  },
+  card: {
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 14,
-  },
-  cardPressed: {
-    backgroundColor: 'rgba(79, 70, 229, 0.07)',
   },
   valuesRow: {
     flexDirection: 'row',
