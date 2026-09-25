@@ -383,3 +383,57 @@ Entwurfsfragen aus Block 1 bleiben: kein höheres Ziel an Trainingstagen ohne He
 - **Tagesübergänge und echtes Datum:** Die Uhr wurde nicht verstellt. Alle App-Tage liegen am 24./25.09., der Montag-Rückblick nur in Block 1.
 - **Barcode:** Die Simulator-Kamera liefert kein Bild.
 - **Teilen ins Netz (Instagram usw.):** Nur „Als Bild sichern“ und „Kopieren“ geprüft, „Teilen“ nicht ausgelöst.
+
+## Block 5: Paywall nach FREE_SCAN_LIMIT
+
+Stand: `main` bei `c4a9c46` (Worktree, unverändert), Dev-Build 1.3.0 im Simulator „Kolibi QA“, Metro 8082. Keine Code-Änderung, kein Kauf, keine Anmeldung, nichts an Datenbank oder `access_override`. Screenshots: `~/Desktop/kolibi-week-test/paywall/`.
+
+**Frischer Nutzer:** Nach Deinstallation und Neuinstallation war **derselbe anonyme Nutzer wieder da** (alle Daten, `paywall/01-start.png`). Die Supabase-Sitzung liegt im iOS-Schlüsselbund, und der überlebt eine Deinstallation. Für einen frischen Nutzer habe ich den Schlüsselbund des QA-Simulators geleert (Maestro `clearKeychain`), dann das Onboarding durchlaufen (2523 kcal). Nebenwirkung für echte Nutzer: Neu installieren setzt das Scan-Limit **nicht** zurück, das ist für die Paywall gewollt. Ein „frischer Start“ ist aber nur über Abmelden bzw. Kontolöschung möglich.
+
+**Bilder** (Wikimedia Commons, alle **CC0**), in `~/Desktop/kolibi-week-test/media/`:
+- `commons-edgell-nourish-bowl.jpg`: „Edgell Nourish Bowl“, Mx. Granger
+- `commons-rasta-pasta.jpg`: „A dish of Rasta Pasta“, LingLass
+- `commons-malaysian-curry-vegetables.jpg`: „Malaysian Curry Mixed Vegetables (with Boiled Rice) – Ho Chiak 2023-09-17“, Andy Li
+- `commons-tofu-stir-fry.jpg`: „Stir-fry tofu, waxy corn, okra, tomatoes and carrots in lemon grass 01“, JFVelasquez Floro (hochgeladen, aber nicht gebraucht)
+- `meal-1-bowl.jpg`: selbst gezeichnet (vorige Sitzung), für den „Nichts erkannt“-Fall
+
+Scans insgesamt: 5 (4 durchgelaufen, der 5. Versuch öffnet die Paywall ohne Analyse).
+
+| # | Schritt | Erwartet | Tatsächlich | Screenshot |
+|---|---|---|---|---|
+| 1 | Scan 1: gezeichnetes Bild | „Nichts erkannt“, zählt nicht | **Erkannt** als „Kichererbsen-Hummus“ + „Zitronenkuchen“, 680 kcal. In Block 2 lieferte dasselbe Bild „Nichts erkannt“. Sheet ohne Speichern geschlossen. | `paywall/11` |
+| 2 | Scan 2: Kichererbsen-Bowl | Ergebnis, speicherbar | ✔ Kichererbsen 180 g, braune Linsen 150 g, 740 kcal, gespeichert | `paywall/14`, `15` |
+| 3 | Scan 3: Gnocchi/Pasta | Ergebnis | ✔ „Gemüse-Kartoffel-Auflauf“ + „Kichererbsen-Eintopf“, 652 kcal, gespeichert | `paywall/17` |
+| 3a | Hinweis nach Scan 3 | „Noch 1 kostenloser Scan“ | ✔ erscheint unter den Scan-Knöpfen. **Scan 1 wurde also mitgezählt, obwohl nicht gespeichert.** | `paywall/18` |
+| 4 | Scan 4: Curry | Ergebnis | ✔ „Gebratene Nudeln mit Gemüse“ + „Frische Gurke“, 701 kcal, gespeichert. Hinweis danach weg. | `paywall/20`, `21` |
+| 5 | Paywall nach dem 4. Scan | öffnet sich | Öffnet sich **nicht sofort** nach Scan 4, sondern beim Tippen auf „Mahlzeit scannen“ (5. Versuch). Erst Nutzen-Seite, dann Preisseite. So im Code (`openPaywallBecauseScanLimit` vor der Scan-Auswahl). | `paywall/22`, `23` |
+| 6 | Zählt „Nichts erkannt“? | nein | Nicht prüfbar, das Bild wurde diesmal erkannt. Laut Code (`home.tsx`) zählt nur eine erfolgreiche Analyse; Parse-/API-Fehler zählen nicht. **Abgebrochene** erfolgreiche Scans zählen (siehe 3a). | – |
+| 7 | Preise aus StoreKit, Abrechnungsbetrag prominent, Jahresabo 139,99 €, Hinweis 3 Tage Test mit Zahlungsdaten | sichtbar | **Nicht prüfbar:** Preisfeld ist ein grauer Platzhalter, RevenueCat im Dev-Build ohne Schlüssel („Invalid API key“). Nicht umgangen. Braucht TestFlight/Sandbox. | `paywall/23` |
+| 8 | „Später“ schließt die Paywall | zurück zur App | ✔ (im Dev-Build liegt der Expo-Knopf über „Später“, habe ihn weggezogen) | `paywall/25` |
+| 9 | Heute / vergangene Mahlzeiten | sichtbar | ✔ Heute 430 von 2523, „Essen“ zeigt alle drei Mahlzeiten | `paywall/25`, `30` |
+| 10 | Fortschritt | sichtbar | ✔ | `paywall/37` |
+| 11 | Export | zugänglich | ✔ Text-Export öffnet mit den Mahlzeiten | `paywall/38` |
+| 12 | Neuer Scan | gesperrt | ✔ Paywall | `paywall/22` |
+| 13 | Barcode / Manuell | gesperrt | ✔ führen zur Anmeldung | `paywall/35` |
+| 14 | Neuer Gewichtseintrag | gesperrt | **✘ möglich**, Sheet öffnet, Speichern ohne Fehler | `paywall/33`, `34` |
+| 15 | Training | gesperrt | **✘ möglich**, Training-Tab offen, „Erste Einheit anlegen“ öffnet „Neue Einheit“, Trainingsplan erreichbar | `paywall/31`, `32`, `33b` |
+| 16 | Kaltstart, dann Scan | Limit bleibt | ✔ Paywall erscheint wieder | `paywall/40`, `41` |
+
+### Abweichungen (nur dokumentiert, Paywall-/Abo-Logik)
+
+**F14 · Anonym nach 4 Scans: Training und Gewicht bleiben nutzbar** — Schwere **mittel**, **1.3-relevant: ja**.
+- Erwartet laut Aufgabe: Neue Einträge und Training gesperrt, nur Ansehen, Historie, Fortschritt und Export offen.
+- Tatsächlich: Training (Einheiten anlegen) und Gewichtseintrag funktionieren weiter. Der Code will das so: `switchHomeTab` in `src/app/home.tsx` sperrt Tabs nur für registrierte Nutzer ohne Abo („Anonymous users keep tab access (scan limits are handled separately)“). Gesperrt sind für Anonyme nur Scan, Barcode und Manuell.
+- Ob das zu Ziffer 10 Abs. 5 der AGB passt, musst du bzw. rechtlich entscheiden; ich habe den AGB-Text selbst nicht geprüft.
+
+**F15 · Abgebrochener Scan verbraucht einen kostenlosen Scan** — Schwere **niedrig–mittel**, **1.3-relevant: ja**.
+- Der Zähler steigt nach jeder erfolgreichen Analyse, auch wenn das Ergebnis verworfen wird. Wer ein falsch erkanntes Bild schließt, hat trotzdem einen der 4 Scans verbraucht.
+- Kann gewollt sein (die Analyse kostet), sollte aber bewusst entschieden werden.
+
+**F16 · Nicht-Essen wird als Essen erkannt** — Schwere **mittel**, **1.3-relevant: ja**.
+- Ein abstrakt gezeichneter Teller mit drei Farbkreisen wurde als Hummus und Zitronenkuchen (680 kcal) erkannt. Beim ersten Test (Block 2) kam „Nichts erkannt“. Das Ergebnis schwankt also.
+- Das betrifft den Prompt bzw. das Modell, nicht den App-Code.
+
+**Hinweis:** Die Fortschritt-Zusammenfassung zeigt „Noch keine erfassten Tage in diesem Zeitraum“, während das Diagramm den heutigen Tag mit 2093 kcal zeigt (`paywall/37`). Vermutlich zählt nur ein abgeschlossener Tag. Nur notiert.
+
+**Nicht geprüft:** Preise und Texte der Paywall (Schritt 7). Dafür braucht es einen Build mit RevenueCat-Schlüssel (TestFlight oder Sandbox), was ich nicht verwenden durfte.
