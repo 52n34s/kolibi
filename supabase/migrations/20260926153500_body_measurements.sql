@@ -33,12 +33,16 @@ create index if not exists body_measurements_user_id_measured_on_idx
 
 alter table public.body_measurements enable row level security;
 
+drop policy if exists body_measurements_select_own on public.body_measurements;
 create policy body_measurements_select_own on public.body_measurements
   for select to authenticated using (user_id = auth.uid());
+drop policy if exists body_measurements_insert_own on public.body_measurements;
 create policy body_measurements_insert_own on public.body_measurements
   for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists body_measurements_update_own on public.body_measurements;
 create policy body_measurements_update_own on public.body_measurements
   for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists body_measurements_delete_own on public.body_measurements;
 create policy body_measurements_delete_own on public.body_measurements
   for delete to authenticated using (user_id = auth.uid());
 

@@ -22,15 +22,20 @@ create unique index if not exists skill_goals_one_active_per_user
 
 alter table public.skill_goals enable row level security;
 
+drop policy if exists skill_goals_select_own on public.skill_goals;
 create policy skill_goals_select_own on public.skill_goals for select to authenticated
   using (user_id = auth.uid());
+drop policy if exists skill_goals_insert_own on public.skill_goals;
 create policy skill_goals_insert_own on public.skill_goals for insert to authenticated
   with check (user_id = auth.uid());
+drop policy if exists skill_goals_update_own on public.skill_goals;
 create policy skill_goals_update_own on public.skill_goals for update to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists skill_goals_delete_own on public.skill_goals;
 create policy skill_goals_delete_own on public.skill_goals for delete to authenticated
   using (user_id = auth.uid());
 -- The exercise must be a catalog row or one of the user's own.
+drop policy if exists skill_goals_exercise_visible on public.skill_goals;
 create policy skill_goals_exercise_visible on public.skill_goals
   as restrictive for all to authenticated
   using (true)

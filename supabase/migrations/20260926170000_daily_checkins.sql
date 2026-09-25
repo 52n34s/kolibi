@@ -20,12 +20,16 @@ create table if not exists public.daily_checkins (
 
 alter table public.daily_checkins enable row level security;
 
+drop policy if exists daily_checkins_select_own on public.daily_checkins;
 create policy daily_checkins_select_own on public.daily_checkins for select to authenticated
   using (user_id = auth.uid());
+drop policy if exists daily_checkins_insert_own on public.daily_checkins;
 create policy daily_checkins_insert_own on public.daily_checkins for insert to authenticated
   with check (user_id = auth.uid());
+drop policy if exists daily_checkins_update_own on public.daily_checkins;
 create policy daily_checkins_update_own on public.daily_checkins for update to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists daily_checkins_delete_own on public.daily_checkins;
 create policy daily_checkins_delete_own on public.daily_checkins for delete to authenticated
   using (user_id = auth.uid());
 
