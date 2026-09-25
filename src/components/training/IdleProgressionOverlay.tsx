@@ -9,6 +9,7 @@ import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { applyProgression } from '@/lib/workouts/apply-progression';
 import { useReadiness } from '@/hooks/use-checkin';
+import { useIsDeloadActive } from '@/hooks/use-deload';
 import { suggestProgression, type ProgressionSuggestion } from '@/lib/workouts/progression';
 import { gateSuggestionByReadiness } from '@/lib/workouts/progression-readiness';
 import { workoutQueryKeys } from '@/lib/workouts/query-keys';
@@ -36,6 +37,7 @@ export function useDeferredProgressions(template: WorkoutTemplate | null | undef
   const userId = useAuthStore((s) => s.session?.user?.id);
   const { i18n } = useTranslation();
   const readiness = useReadiness();
+  const deloadActive = useIsDeloadActive();
   const exercises = template?.exercises ?? [];
 
   const eventsQuery = useQueries({
@@ -95,7 +97,8 @@ export function useDeferredProgressions(template: WorkoutTemplate | null | undef
   const templateExerciseIds = exercises.map((te) => te.exerciseId);
 
   const rows = useMemo((): IdleProgressionRow[] => {
-    if (!template) {
+    // A lighter week asks for nothing new.
+    if (!template || deloadActive) {
       return [];
     }
     const out: IdleProgressionRow[] = [];
@@ -147,6 +150,7 @@ export function useDeferredProgressions(template: WorkoutTemplate | null | undef
     });
     return out;
   }, [
+    deloadActive,
     readiness,
     template,
     exercises,
