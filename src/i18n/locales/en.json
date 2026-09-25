@@ -448,7 +448,7 @@
     },
     "meals": {
       "title": "Today's meals",
-      "emptyTitle": "No meals yet today",
+      "emptyTitle": "Your day starts with the first meal",
       "emptySubtitle": "Scan your first meal to start tracking.",
       "unnamedMeal": "Meal",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
@@ -782,7 +782,7 @@
       "newWorkout": "New workout",
       "createFirstWorkout": "Create your first workout",
       "emptyFirstWorkout": "Create your first workout. Kolibi counts your training straight into your calories and macros.",
-      "emptyTemplates": "No workout templates yet",
+      "emptyTemplates": "Create your first workout template",
       "emptyArchivedTitle": "Your plan is archived",
       "emptyArchivedBody": "Restore it in the plan editor under “Archived”.",
       "emptyArchivedOpenPlan": "Open plan",
@@ -863,7 +863,7 @@
       "rangeAll": "All",
       "chartTitle": "Progress",
       "chartLegend": "Line: best set · light: sum",
-      "empty": "No sets for this exercise yet.",
+      "empty": "Your sets for this exercise show up here.",
       "sessionsTitle": "Workouts",
       "sessionSets": "Sets {{values}} · best {{best}}"
     },
@@ -876,7 +876,7 @@
       "filterAll": "All",
       "filterOwn": "Mine",
       "filterCatalog": "Catalog",
-      "empty": "No exercises found",
+      "empty": "Try another search term.",
       "loadFailed": "Couldn’t load exercises.",
       "confirmSelection": "Add ({{count}})"
     },
@@ -932,7 +932,7 @@
       "restHint": "Applies to every exercise without its own rest — the same value as the timer on the Training tab.",
       "unitMeta": "{{count}} exercises · {{days}}",
       "rotating": "rotating",
-      "emptyTitle": "No plan yet",
+      "emptyTitle": "Your plan takes shape here",
       "emptyBody": "Create units — e.g. Push, Pull, Legs — and start them from the Training home tab.",
       "loadFailed": "Couldn’t load the plan.",
       "reorderFailed": "Couldn’t save order.",
@@ -1026,7 +1026,7 @@
     "screenTitle": "Supplements",
     "subtitle": "Intake only — no nutrient tracking.",
     "add": "Add supplement",
-    "emptyTitle": "No supplements yet",
+    "emptyTitle": "Your supplements in one place",
     "emptySubtitle": "Add vitamin D, magnesium, and more, then log when you take them.",
     "units": {
       "capsule": "capsule",
@@ -1102,7 +1102,7 @@
       "sectionSubtitle": "Up to three times — only for due supplements you have not logged yet.",
       "add": "Add reminder",
       "maxHint": "Maximum of three reminders. Edit or delete an existing one.",
-      "empty": "No reminders yet.",
+      "empty": "Reminders you add show up here.",
       "untitled": "Reminder",
       "enabled": "On",
       "editor": {
@@ -1337,7 +1337,7 @@
     },
     "summary": {
       "sectionTitle": "Summary",
-      "empty": "No logged days in this period yet.",
+      "empty": "Days you log in this period show up here.",
       "calories": "Calories",
       "calorieGoalHint": "avg of {{goal}}",
       "protein": "Protein",
@@ -1356,7 +1356,7 @@
       "currentWaistLabel": "Current waist",
       "currentBodyFatLabel": "Current body fat",
       "notLogged": "Not logged yet",
-      "empty": "No weight logged yet.",
+      "empty": "Log your weight to see your trend here.",
       "notTracked": "Not tracked yet",
       "latestDated": "{{weight}} · {{date}}",
       "trendNeedsMeasurements": "Kolibi needs about 3 weigh-ins a week for a reliable trend.",
@@ -1378,7 +1378,7 @@
     },
     "calories": {
       "sectionTitle": "Calories",
-      "empty": "No calorie data yet — scan meals to start tracking.",
+      "empty": "Scan meals and your calories show up here.",
       "tapHint": "Tap a day for details."
     },
     "day": {
@@ -1386,7 +1386,7 @@
       "today": "Today",
       "yesterday": "Yesterday",
       "addMeal": "Add meal",
-      "emptyMeals": "No meals on this day.",
+      "emptyMeals": "Meals from this day show up here.",
       "readOnlyHint": "Entries can be edited up to the previous day.",
       "goalNotSet": "Daily goal: Not set",
       "goalProgress": "{{consumed}} / {{goal}} kcal",
@@ -1394,7 +1394,7 @@
     },
     "macro": {
       "sectionTitle": "Macro trend",
-      "empty": "No macros logged in this period yet."
+      "empty": "Your macros show up here once you log meals in this period."
     }
   },
   "macro": {

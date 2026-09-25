@@ -448,7 +448,7 @@
     },
     "meals": {
       "title": "Heutige Mahlzeiten",
-      "emptyTitle": "Noch keine Mahlzeiten heute",
+      "emptyTitle": "Dein Tag startet mit der ersten Mahlzeit",
       "emptySubtitle": "Scanne deine erste Mahlzeit, um zu starten.",
       "unnamedMeal": "Mahlzeit",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
@@ -782,7 +782,7 @@
       "newWorkout": "Neue Einheit",
       "createFirstWorkout": "Erste Einheit anlegen",
       "emptyFirstWorkout": "Leg deine erste Einheit an. Kolibi rechnet dein Training direkt in Kalorien und Makros ein.",
-      "emptyTemplates": "Noch keine Trainingsvorlagen",
+      "emptyTemplates": "Leg deine erste Trainingsvorlage an",
       "emptyArchivedTitle": "Dein Plan ist archiviert",
       "emptyArchivedBody": "Wiederherstellen findest du im Plan-Editor unter „Archiviert“.",
       "emptyArchivedOpenPlan": "Zum Plan",
@@ -863,7 +863,7 @@
       "rangeAll": "Alles",
       "chartTitle": "Verlauf",
       "chartLegend": "Linie: bester Satz · hell: Summe",
-      "empty": "Noch keine Sätze für diese Übung.",
+      "empty": "Deine Sätze dieser Übung erscheinen hier.",
       "sessionsTitle": "Einheiten",
       "sessionSets": "Sätze {{values}} · best {{best}}"
     },
@@ -876,7 +876,7 @@
       "filterAll": "Alle",
       "filterOwn": "Eigene",
       "filterCatalog": "Katalog",
-      "empty": "Keine Übungen gefunden",
+      "empty": "Probier einen anderen Suchbegriff.",
       "loadFailed": "Übungen konnten nicht geladen werden.",
       "confirmSelection": "Hinzufügen ({{count}})"
     },
@@ -932,7 +932,7 @@
       "restHint": "Gilt für alle Übungen ohne eigene Pause – derselbe Wert wie der Timer im Training-Tab.",
       "unitMeta": "{{count}} Übungen · {{days}}",
       "rotating": "im Wechsel",
-      "emptyTitle": "Noch kein Plan",
+      "emptyTitle": "Dein Plan entsteht hier",
       "emptyBody": "Lege Einheiten an – z. B. Push, Pull, Legs – und starte sie vom Home-Tab Training.",
       "loadFailed": "Plan konnte nicht geladen werden.",
       "reorderFailed": "Reihenfolge speichern fehlgeschlagen.",
@@ -1026,7 +1026,7 @@
     "screenTitle": "Supplemente",
     "subtitle": "Nur die Einnahme — ohne Nährwerte.",
     "add": "Supplement hinzufügen",
-    "emptyTitle": "Noch keine Supplemente",
+    "emptyTitle": "Deine Supplemente an einem Ort",
     "emptySubtitle": "Lege Vitamin D, Magnesium und Co. an und erfasse die Einnahme.",
     "units": {
       "capsule": "Kapsel",
@@ -1102,7 +1102,7 @@
       "sectionSubtitle": "Bis zu drei Zeiten — nur für fällige und noch nicht eingetragene Supplemente.",
       "add": "Erinnerung hinzufügen",
       "maxHint": "Maximal drei Erinnerungen. Bearbeite oder lösche eine bestehende.",
-      "empty": "Noch keine Erinnerungen.",
+      "empty": "Erinnerungen, die du anlegst, stehen hier.",
       "untitled": "Erinnerung",
       "enabled": "Aktiv",
       "editor": {
@@ -1337,7 +1337,7 @@
     },
     "summary": {
       "sectionTitle": "Zusammenfassung",
-      "empty": "Noch keine erfassten Tage in diesem Zeitraum.",
+      "empty": "Tage, die du in diesem Zeitraum erfasst, erscheinen hier.",
       "calories": "Kalorien",
       "calorieGoalHint": "Ø von {{goal}}",
       "protein": "Protein",
@@ -1356,7 +1356,7 @@
       "currentWaistLabel": "Aktuelle Taille",
       "currentBodyFatLabel": "Aktuelles Körperfett",
       "notLogged": "Noch nicht erfasst",
-      "empty": "Noch kein Gewicht erfasst.",
+      "empty": "Trag dein Gewicht ein, dann siehst du hier den Verlauf.",
       "notTracked": "Noch nicht getrackt",
       "latestDated": "{{weight}} · {{date}}",
       "trendNeedsMeasurements": "Kolibi braucht etwa 3 Wiegevorgänge pro Woche für einen verlässlichen Trend.",
@@ -1378,7 +1378,7 @@
     },
     "calories": {
       "sectionTitle": "Kalorien",
-      "empty": "Noch keine Kaloriendaten – scanne Mahlzeiten, um zu starten.",
+      "empty": "Scanne Mahlzeiten, dann siehst du hier deine Kalorien.",
       "tapHint": "Tippe auf einen Tag für Details."
     },
     "day": {
@@ -1386,7 +1386,7 @@
       "today": "Heute",
       "yesterday": "Gestern",
       "addMeal": "Mahlzeit hinzufügen",
-      "emptyMeals": "Keine Mahlzeiten an diesem Tag.",
+      "emptyMeals": "Mahlzeiten dieses Tages erscheinen hier.",
       "readOnlyHint": "Einträge lassen sich bis zum Vortag bearbeiten.",
       "goalNotSet": "Tagesziel: Nicht gesetzt",
       "goalProgress": "{{consumed}} / {{goal}} kcal",
@@ -1394,7 +1394,7 @@
     },
     "macro": {
       "sectionTitle": "Makro-Verlauf",
-      "empty": "Noch keine Makros in diesem Zeitraum."
+      "empty": "Deine Makros erscheinen hier, sobald du in diesem Zeitraum Mahlzeiten erfasst."
     }
   },
   "macro": {

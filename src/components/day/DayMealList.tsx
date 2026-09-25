@@ -183,7 +183,7 @@ export function DayMealList({
               contentFit="contain"
             />
             <Text className="text-center text-base font-semibold text-gray-900">
-              {t('home.meals.emptyTitle')}
+              {t('history.day.emptyMeals')}
             </Text>
             <Text className="mt-2 text-center text-sm text-gray-500">
               {t('home.meals.emptySubtitle')}
