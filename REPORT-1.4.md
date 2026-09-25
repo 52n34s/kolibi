@@ -424,6 +424,39 @@ Branch `block/4-native`, gemergt (8ef5622). Commits b650f69 … 9a2291d.
 
 ---
 
+## Block 3.3 – Empfehlungs-Engine
+
+Branch `block/3.3-recommendations`, gemergt (a7396d7; Einfügestelle in `home.tsx` in die neue Heute-Struktur übernommen). Commits 6c6d3c0, aaee83b, 6003a89, 29178a0, d09f832, ba50e2b.
+- `buildRecommendations(context)` rein (`src/lib/recommendations/`), Schwellen in `RECOMMENDATION_RULES`.
+- **Zeitkurve:** erwarteter Anteil 0 % bis 08:00, linear bis 100 % um 21:00; vor 10:00 keine Ernährungshinweise; Hinweis erst unter 80 % des erwarteten Anteils und mit Mindestlücke (15 g Protein, 5 g Ballaststoffe, 30 g Kohlenhydrate).
+- Protein für alle Ziele; Ballaststoffe bei Abnehmen/Halten; Kohlenhydrate an Trainingstagen vor der Einheit bei Muskelaufbau/Kraft/Ausdauer. Begründung aus der Ziel-Tabelle (3.1).
+- Training: „nächste Stufe bereit“, Muskelgruppe mit Lücke (ab 3 Sätzen, 7 Tage), Ruhetag bei „schonen“ (verdrängt dann die anderen Trainingshinweise).
+- Daten: Gewicht nach 7 Tagen (Abnehmen, Muskelaufbau inkl. gain_weight, Halten), Maße nach 14 Tagen (nur wenn genutzt), Check-in offen ab 12:00.
+- Höchstens 3, Ernährung vor Training vor Daten; wegwischen → dieselbe Art erst nach 72 h (MMKV je Nutzer).
+- Aktionen: Protein/Mahlzeit erfassen → Ernährung, Jetzt wiegen → Gewichts-Sheet, Maße eintragen → Maße-Sheet, Übung ansehen → Übungs-Fortschritt, Training ansehen → Training, Check-in starten.
+- Design-Token `RECOMMENDATION_ACCENT = '#0F766E'` (nur Icon und Badge, immer mit Symbol).
+
+**Fragen**
+- ❓ Ziele ohne Sport-Anpassung aus Health (Hinweise an Sporttagen eher zurückhaltend). Angepasste Tageszahl verwenden?
+- ❓ Strenge Reihenfolge: drei Ernährungshinweise verdrängen Training/Daten. Lieber höchstens einer je Kategorie?
+
+---
+
+## Block 3.6 – Heute und Ernährung
+
+Commits 3bda668, 2f16b6b, 98da2bf, 1135cdf, (Switcher) + „i18n: Ernährung“, 1ba15d8, ac10023, „today: log weight from the build-up card“.
+- Tabs: Heute · Ernährung · Training · Fortschritt, jeweils Symbol mit kleiner Beschriftung (Essen heißt jetzt Ernährung / Nutrition / Nutrición).
+- **Ernährung:** volle Kalorien- und Makrokarte (bisher Heute), einmalige Ernährungsform-Karte (3.1), gruppierte Mahlzeiten (2.4), Supplemente, Scan-Leiste.
+- **Heute:** Tagesform (Karte bis beantwortet, danach eine Zeile) → Empfehlungen (höchstens drei) → Abschnitte nach Ziel:
+  - Training: „Als Nächstes: <Einheit> · Start“ (prüft den Zugang, startet die Einheit und wechselt in den Trainings-Tab), Ruhetag (nur wenn der Plan Wochentage nutzt und heute keiner gesetzt ist), erledigt oder „Plan erstellen“; darunter der Wochenfortschritt (bisherige Trainings-/Bewegungszeilen).
+  - Ernährung kompakt: kcal übrig (bzw. drüber) und Protein – dieselben berechneten Werte wie die große Karte (Kompaktvariante von `DaySummaryBlock`); Tipp öffnet Ernährung.
+  - Körper: Gewichtskarte bei Gewichtszielen, Aufbau-Karte bei Muskelaufbau/Kraft (mit „Gewicht eintragen“).
+- Reihenfolge nach Ziel (`todaySectionOrder`): Abnehmen → Ernährung, Körper, Training; Muskelaufbau/Kraft → Training, Ernährung, Körper; sonst Training, Ernährung, Körper. Ziel ist in den Zielen umstellbar (3.1-Zielzeile).
+- Nichts entfernt: Gewicht (Karte/Aufbau-Karte/Fortschritt → Körper), Ziele (Koli-Button), Supplemente (Ernährung) bleiben erreichbar.
+- Screenshots (Entwicklungsstand) `~/Desktop/kolibi-1.4-check/home/dev-today.png`, `dev-ernaehrung.png`; die drei Nutzertypen folgen im Wochentest (6.1).
+
+---
+
 ## Aufräumen später
 - ESLint startet nicht: `Cannot find module 'eslint/config'`.
 - 15 tsc-Fehler auf main (Auth-Screens TS2769, `supabase.ts`, `language-switcher`, `profile-panel`, `support-panel`, `notifications-settings-section`, `use-theme`, `onboarding-field`).
