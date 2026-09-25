@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import {
   groupMeals,
+  isMealGroupExpanded,
   mealGroupLabel,
   mealSlotForStartTime,
   MEAL_GROUP_MAX_GAP_MINUTES,
@@ -233,5 +234,20 @@ describe('mealGroupLabel', () => {
     assert.equal(label('snack', 17, 30), 'snack');
     assert.equal(label('snack', 2, 0), 'snack');
     assert.equal(label('snack', 10, 0), 'snack');
+  });
+});
+
+describe('isMealGroupExpanded', () => {
+  const one = { entries: ['a'] };
+  const three = { entries: ['a', 'b', 'c'] };
+
+  it('opens a group with one entry, keeps larger groups closed', () => {
+    assert.equal(isMealGroupExpanded(one, 'k', new Set()), true);
+    assert.equal(isMealGroupExpanded(three, 'k', new Set()), false);
+  });
+
+  it('a tap flips the start state', () => {
+    assert.equal(isMealGroupExpanded(one, 'k', new Set(['k'])), false);
+    assert.equal(isMealGroupExpanded(three, 'k', new Set(['k'])), true);
   });
 });

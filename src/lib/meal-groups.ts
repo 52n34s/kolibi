@@ -146,6 +146,20 @@ export function mealGroupLabel(
 }
 
 /**
+ * A group with a single entry starts open (the header alone would hide the
+ * only meal); larger groups start closed. A tap flips the start state, so
+ * `toggled` holds the keys the user tapped an odd number of times.
+ */
+export function isMealGroupExpanded(
+  group: { entries: readonly unknown[] },
+  groupKey: string,
+  toggled: ReadonlySet<string>,
+): boolean {
+  const openByDefault = group.entries.length === 1;
+  return toggled.has(groupKey) ? !openByDefault : openByDefault;
+}
+
+/**
  * Header totals for a meal row: kcal sum and protein of the entries with
  * protein data (null only when no entry has any).
  */

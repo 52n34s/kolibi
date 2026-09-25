@@ -18,7 +18,7 @@ import {
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { TEXT_SECONDARY } from '@/constants/brand';
 import { useDayMeals } from '@/hooks/use-day-meals';
-import { groupMeals, mealGroupLabel, sumMealGroupTotals } from '@/lib/meal-groups';
+import { groupMeals, isMealGroupExpanded, mealGroupLabel, sumMealGroupTotals } from '@/lib/meal-groups';
 import {
   buildMealListTitle,
   formatTodayMealQuantityLabel,
@@ -98,11 +98,12 @@ export function DayMealList({
       }).reverse(),
     [mealRows],
   );
-  const [expandedGroupKeys, setExpandedGroupKeys] = useState<ReadonlySet<string>>(
+  // Keys the user tapped; see isMealGroupExpanded for the start state.
+  const [toggledGroupKeys, setToggledGroupKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
   const toggleGroup = useCallback((groupKey: string) => {
-    setExpandedGroupKeys((current) => {
+    setToggledGroupKeys((current) => {
       const next = new Set(current);
       if (next.has(groupKey)) {
         next.delete(groupKey);
@@ -194,7 +195,7 @@ export function DayMealList({
         <View style={{ gap: 10 }}>
           {mealGroups.map((group) => {
             const groupKey = group.entries[0]!.id;
-            const expanded = expandedGroupKeys.has(groupKey);
+            const expanded = isMealGroupExpanded(group, groupKey, toggledGroupKeys);
             const totals = sumMealGroupTotals(
               group.entries.map((meal) => ({
                 kcal: meal.total_kcal,
