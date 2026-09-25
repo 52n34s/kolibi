@@ -46,6 +46,14 @@ export type RestLiveActivityInput = {
   t: RestLiveActivityTranslate;
 };
 
+/**
+ * m:ss like SwiftUI's running timer text ("1:05", "0:45"), so pausing does
+ * not change how the time looks.
+ */
+export function formatActivityRemaining(totalMs: number): string {
+  return formatTimerMmSs(totalMs).replace(/^0(\d:)/, '$1');
+}
+
 /** The set that comes after this rest: the session cursor, if it points at an open set. */
 export function nextSetOf(
   session: Pick<ActiveSession, 'phase' | 'items' | 'cursor'> | null,
@@ -93,7 +101,7 @@ export function restLiveActivityContent(
     setLabel,
     pausedLabel: t('liveActivity.paused'),
     doneLabel: t('liveActivity.done'),
-    remainingText: formatTimerMmSs(remaining),
+    remainingText: formatActivityRemaining(remaining),
   };
 
   if (isPaused) {

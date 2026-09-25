@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import type { ActiveExercise, ActiveSession } from '../workouts/types.ts';
 import {
+  formatActivityRemaining,
   nextSetOf,
   restLiveActivityContent,
   shouldVibrateOnRestEnd,
@@ -69,6 +70,14 @@ function input(overrides: Partial<RestLiveActivityInput> = {}): RestLiveActivity
   };
 }
 
+describe('formatActivityRemaining', () => {
+  it('drops the leading minute zero like the SwiftUI timer', () => {
+    assert.equal(formatActivityRemaining(45_000), '0:45');
+    assert.equal(formatActivityRemaining(65_000), '1:05');
+    assert.equal(formatActivityRemaining(600_000), '10:00');
+  });
+});
+
 describe('nextSetOf', () => {
   it('reads the open set at the cursor (1-based)', () => {
     assert.deepEqual(nextSetOf(session()), { exerciseIndex: 0, set: 3, sets: 4 });
@@ -89,7 +98,7 @@ describe('restLiveActivityContent', () => {
     assert.equal(content.isPaused, false);
     assert.equal(content.endMs, NOW + 60_000);
     assert.equal(content.startMs, NOW + 60_000 - 90_000);
-    assert.equal(content.remainingText, '01:00');
+    assert.equal(content.remainingText, '1:00');
     assert.equal(content.exerciseName, 'Squat');
     assert.equal(content.setLabel, 'liveActivity.nextSet:{"set":3,"sets":4}');
     assert.equal(content.title, 'liveActivity.title');
@@ -104,7 +113,7 @@ describe('restLiveActivityContent', () => {
       }),
     );
     assert.equal(content?.startMs, NOW);
-    assert.equal(content?.remainingText, '02:30');
+    assert.equal(content?.remainingText, '2:30');
   });
 
   it('paused: static remaining time, no dates', () => {
@@ -115,7 +124,7 @@ describe('restLiveActivityContent', () => {
     );
     assert.ok(content);
     assert.equal(content.isPaused, true);
-    assert.equal(content.remainingText, '00:45');
+    assert.equal(content.remainingText, '0:45');
     assert.equal(content.startMs, 0);
     assert.equal(content.endMs, 0);
     assert.equal(content.pausedProgress, 0.5);
