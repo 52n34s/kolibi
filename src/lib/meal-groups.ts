@@ -127,6 +127,42 @@ export function groupMeals<T>(
   return groups;
 }
 
+export type MealGroupLabel = 'breakfast' | 'lunch' | 'afternoonSnack' | 'snack' | 'dinner';
+
+/**
+ * Display name key. A snack that starts in the 15:00–17:29 window is the
+ * afternoon snack (ES "Merienda"); every other snack keeps the plain name.
+ */
+export function mealGroupLabel(
+  group: Pick<MealGroup<unknown>, 'slot' | 'startAt'>,
+): MealGroupLabel {
+  if (group.slot !== 'snack') {
+    return group.slot;
+  }
+  const minutes = group.startAt.getHours() * 60 + group.startAt.getMinutes();
+  return minutes >= AFTERNOON_SNACK_FROM_MIN && minutes < DINNER_FROM_MIN
+    ? 'afternoonSnack'
+    : 'snack';
+}
+
+/**
+ * Header totals for a meal row: kcal sum and protein of the entries with
+ * protein data (null only when no entry has any).
+ */
+export function sumMealGroupTotals(
+  entries: readonly { kcal: number; proteinG: number | null }[],
+): { kcal: number; proteinG: number | null } {
+  let kcal = 0;
+  let proteinG: number | null = null;
+  for (const entry of entries) {
+    kcal += Number(entry.kcal) || 0;
+    if (entry.proteinG != null) {
+      proteinG = (proteinG ?? 0) + entry.proteinG;
+    }
+  }
+  return { kcal, proteinG };
+}
+
 /** Keeps one breakfast / lunch / dinner per day (most kcal wins); others → snack. */
 function demoteExtraMainMeals<T>(groups: MealGroup<T>[]): void {
   const winners = new Map<string, MealGroup<T>>();

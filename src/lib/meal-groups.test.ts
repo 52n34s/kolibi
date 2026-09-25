@@ -3,9 +3,31 @@ import { describe, it } from 'node:test';
 
 import {
   groupMeals,
+  mealGroupLabel,
   mealSlotForStartTime,
   MEAL_GROUP_MAX_GAP_MINUTES,
+  sumMealGroupTotals,
 } from './meal-groups.ts';
+
+describe('sumMealGroupTotals', () => {
+  it('sums kcal and the known protein', () => {
+    assert.deepEqual(
+      sumMealGroupTotals([
+        { kcal: 300, proteinG: 20 },
+        { kcal: 50, proteinG: null },
+        { kcal: 150, proteinG: 5.5 },
+      ]),
+      { kcal: 500, proteinG: 25.5 },
+    );
+  });
+
+  it('keeps protein unknown when no entry has it', () => {
+    assert.deepEqual(sumMealGroupTotals([{ kcal: 100, proteinG: null }]), {
+      kcal: 100,
+      proteinG: null,
+    });
+  });
+});
 
 type Entry = { id: string; at: string; kcal: number };
 
@@ -188,5 +210,28 @@ describe('mealSlotForStartTime', () => {
   it('dinner from 17:30', () => {
     assert.equal(slot(17, 30), 'dinner');
     assert.equal(slot(23, 59), 'dinner');
+  });
+});
+
+describe('mealGroupLabel', () => {
+  const label = (slot: 'breakfast' | 'lunch' | 'snack' | 'dinner', h: number, m: number) =>
+    mealGroupLabel({ slot, startAt: new Date(2026, 8, 25, h, m) });
+
+  it('keeps main meal names', () => {
+    assert.equal(label('breakfast', 8, 0), 'breakfast');
+    assert.equal(label('lunch', 12, 0), 'lunch');
+    assert.equal(label('dinner', 19, 0), 'dinner');
+  });
+
+  it('marks snacks from 15:00 until 17:29 as the afternoon snack', () => {
+    assert.equal(label('snack', 15, 0), 'afternoonSnack');
+    assert.equal(label('snack', 17, 29), 'afternoonSnack');
+  });
+
+  it('keeps other snacks plain', () => {
+    assert.equal(label('snack', 14, 59), 'snack');
+    assert.equal(label('snack', 17, 30), 'snack');
+    assert.equal(label('snack', 2, 0), 'snack');
+    assert.equal(label('snack', 10, 0), 'snack');
   });
 });
