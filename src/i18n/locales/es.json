@@ -1997,5 +1997,27 @@
         "subtitle": "Una sesión · solo con tu cuerpo"
       }
     }
+  },
+  "templates": {
+    "title": "Plantillas",
+    "kolibi": "Plantillas de Kolibi",
+    "mine": "Mis plantillas",
+    "previous": "Mis sesiones anteriores",
+    "createUnit": "Crear sesión a partir de esta",
+    "saveAsTemplate": "Guardar como plantilla",
+    "restore": "Restaurar",
+    "rename": "Renombrar",
+    "renamePrompt": "Nuevo nombre para la plantilla",
+    "delete": "Eliminar",
+    "deleteTitle": "¿Eliminar plantilla?",
+    "deleteBody": "Tus sesiones se quedan como están.",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "exercises": "{{count}} ejercicios · aprox. {{minutes}} min",
+    "exercisesOnly": "{{count}} ejercicios",
+    "created": "«{{name}}» ya está en tu plan.",
+    "savedAsTemplate": "«{{name}}» ya está en tus plantillas.",
+    "failed": "Ahora mismo no ha funcionado. Inténtalo de nuevo en un momento.",
+    "mineEmpty": "Guarda una sesión como plantilla en el editor del plan y la encontrarás aquí."
   }
 }

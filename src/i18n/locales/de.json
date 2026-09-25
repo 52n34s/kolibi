@@ -1997,5 +1997,27 @@
         "subtitle": "Eine Einheit · nur mit deinem Körper"
       }
     }
+  },
+  "templates": {
+    "title": "Vorlagen",
+    "kolibi": "Kolibi-Vorlagen",
+    "mine": "Meine Vorlagen",
+    "previous": "Meine früheren Einheiten",
+    "createUnit": "Einheit daraus erstellen",
+    "saveAsTemplate": "Als Vorlage speichern",
+    "restore": "Wiederherstellen",
+    "rename": "Umbenennen",
+    "renamePrompt": "Neuer Name für die Vorlage",
+    "delete": "Löschen",
+    "deleteTitle": "Vorlage löschen?",
+    "deleteBody": "Deine Einheiten bleiben, wie sie sind.",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "exercises": "{{count}} Übungen · ca. {{minutes}} Min.",
+    "exercisesOnly": "{{count}} Übungen",
+    "created": "Einheit „{{name}}“ ist in deinem Plan.",
+    "savedAsTemplate": "„{{name}}“ liegt jetzt in deinen Vorlagen.",
+    "failed": "Das hat gerade nicht geklappt. Versuch es gleich noch einmal.",
+    "mineEmpty": "Speichere eine Einheit im Plan-Editor als Vorlage, dann findest du sie hier."
   }
 }

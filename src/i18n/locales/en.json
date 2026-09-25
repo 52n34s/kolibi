@@ -1997,5 +1997,27 @@
         "subtitle": "One workout · bodyweight only"
       }
     }
+  },
+  "templates": {
+    "title": "Templates",
+    "kolibi": "Kolibi templates",
+    "mine": "My templates",
+    "previous": "My previous workouts",
+    "createUnit": "Create workout from this",
+    "saveAsTemplate": "Save as template",
+    "restore": "Restore",
+    "rename": "Rename",
+    "renamePrompt": "New name for the template",
+    "delete": "Delete",
+    "deleteTitle": "Delete template?",
+    "deleteBody": "Your workouts stay as they are.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "exercises": "{{count}} exercises · about {{minutes}} min",
+    "exercisesOnly": "{{count}} exercises",
+    "created": "“{{name}}” is now in your plan.",
+    "savedAsTemplate": "“{{name}}” is now in your templates.",
+    "failed": "That didn't work just now. Try again in a moment.",
+    "mineEmpty": "Save a workout as a template in the plan editor and you'll find it here."
   }
 }
