@@ -302,8 +302,8 @@
     },
     "tabs": {
       "today": "Hoy",
-      "meals": "Comidas",
-      "mealsShort": "Comidas",
+      "meals": "Nutrición",
+      "mealsShort": "Nutrición",
       "training": "Entreno",
       "history": "Progreso"
     },
