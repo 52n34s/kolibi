@@ -8,6 +8,10 @@ import {
   IdleProgressionOverlay,
   useDeferredProgressions,
 } from '@/components/training/IdleProgressionOverlay';
+import {
+  PlanWizardEntryCard,
+  useOpenPlanWizard,
+} from '@/components/training/PlanWizardEntryCard';
 import { RestTimerCard } from '@/components/training/RestTimerCard';
 import { StarterPlanPicker } from '@/components/training/StarterPlanPicker';
 import { useRequirePlan } from '@/hooks/use-require-plan';
@@ -76,6 +80,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
   const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
   const showEditPlan = Boolean(resolveTrainingTabEnabled(trainingTabFlag) && onEditPlan);
   const [showProgressionOverlay, setShowProgressionOverlay] = useState(false);
+  const openPlanWizard = useOpenPlanWizard();
 
   const templates = templatesQuery.data ?? [];
   const archived = archivedQuery.data ?? [];
@@ -138,6 +143,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
               </Text>
             </Pressable>
           </GlassCard>
+          <PlanWizardEntryCard testID="training.idle.planWizard" />
           <RestTimerCard />
         </ScrollView>
       );
@@ -147,6 +153,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
       <ScrollView
         contentContainerStyle={styles.empty}
         showsVerticalScrollIndicator={false}>
+        <PlanWizardEntryCard testID="training.idle.planWizard" />
         <StarterPlanPicker onCustom={withPlan('editPlan', openNewWorkout)} />
         <RestTimerCard />
       </ScrollView>
@@ -268,6 +275,14 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
             </Pressable>
           </View>
         ) : null}
+
+        <Pressable
+          testID="training.idle.planWizardLink"
+          accessibilityRole="button"
+          onPress={openPlanWizard}
+          style={styles.linkWrap}>
+          <Text style={styles.link}>{t('planWizard.title')}</Text>
+        </Pressable>
       </ScrollView>
 
       {showProgressionOverlay && next ? (
