@@ -18,6 +18,7 @@ import { useSchemaCapability } from '@/hooks/use-schema-capability';
 import { useTimerTick } from '@/hooks/use-timer-tick';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
 import { displayActiveExerciseName } from '@/lib/workouts/exercise-name';
+import { hasDoneSet } from '@/lib/workouts/session-logic';
 import { useWorkoutSyncStatus } from '@/lib/workouts/sync-queue-runtime';
 import type { ActiveSession, Exercise } from '@/lib/workouts/types';
 import { useRestTimerStore } from '@/stores/rest-timer-store';
@@ -126,6 +127,21 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   }
 
   function handleFinishPress() {
+    if (!hasDoneSet(session)) {
+      // Without a set there is nothing to save (hasDoneSet).
+      Alert.alert(t('training.panel.finishTitle'), t('training.panel.finishEmptyBody'), [
+        {
+          text: t('training.panel.finishDiscard'),
+          style: 'destructive',
+          onPress: () => discardSession(),
+        },
+        {
+          text: t('training.panel.finishContinue'),
+          style: 'cancel',
+        },
+      ]);
+      return;
+    }
     Alert.alert(t('training.panel.finishTitle'), undefined, [
       {
         text: t('training.panel.finishSave'),

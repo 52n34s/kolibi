@@ -653,6 +653,14 @@ export function toSessionSetUpsert(
   };
 }
 
+/**
+ * A unit counts as training from its first done set. Without one there is
+ * nothing to save: no workout session, no training_sessions row, no energy.
+ */
+export function hasDoneSet(session: Pick<ActiveSession, 'items'>): boolean {
+  return session.items.some((item) => item.sets.some((set) => set.done));
+}
+
 export function allDoneSetUpserts(session: ActiveSession): SessionSetUpsertPayload[] {
   const out: SessionSetUpsertPayload[] = [];
   session.items.forEach((_, ei) => {

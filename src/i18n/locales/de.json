@@ -801,6 +801,7 @@
       "saveSet": "Speichern",
       "finish": "Beenden",
       "finishTitle": "Einheit beenden?",
+      "finishEmptyBody": "Gespeichert wird ab dem ersten Satz.",
       "finishSave": "Speichern",
       "finishDiscard": "Verwerfen",
       "finishContinue": "Weiter trainieren",

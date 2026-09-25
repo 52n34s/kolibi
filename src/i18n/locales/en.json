@@ -801,6 +801,7 @@
       "saveSet": "Save",
       "finish": "Finish",
       "finishTitle": "End workout?",
+      "finishEmptyBody": "Your workout is saved from the first set on.",
       "finishSave": "Save",
       "finishDiscard": "Discard",
       "finishContinue": "Keep training",

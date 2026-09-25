@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import {
   allDoneSetUpserts,
+  hasDoneSet,
   markSessionFinished,
   sessionDurationMinutes,
   type SessionSetUpsertPayload,
@@ -83,6 +84,10 @@ export async function finishActiveSession(
   params: FinishSessionParams,
   deps: FinishSessionDeps,
 ): Promise<FinishSessionResult> {
+  if (!hasDoneSet(active)) {
+    // Not a training: the finish dialog only offers discard (see hasDoneSet).
+    return { ok: false, error: new Error('no_done_sets'), session: active };
+  }
   let finished = markSessionFinished(active, params.intensity, params.finishedAt);
   const durationMinutes =
     params.durationMinutes != null &&

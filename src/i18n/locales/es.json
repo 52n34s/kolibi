@@ -801,6 +801,7 @@
       "saveSet": "Guardar",
       "finish": "Terminar",
       "finishTitle": "¿Terminar entrenamiento?",
+      "finishEmptyBody": "Tu entrenamiento se guarda a partir de la primera serie.",
       "finishSave": "Guardar",
       "finishDiscard": "Descartar",
       "finishContinue": "Seguir entrenando",
