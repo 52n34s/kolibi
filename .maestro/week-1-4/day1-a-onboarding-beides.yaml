@@ -1,0 +1,86 @@
+# Tag 1a · Frischer anonymer Nutzer: Onboarding mit "Beides" (Muskelaufbau).
+appId: com.steffen.kolibi
+env:
+  SHOT: tag1
+---
+- openLink: "kolibi://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082"
+- extendedWaitUntil:
+    visible: ".*Schritt.*"
+    timeout: 90000
+- runFlow:
+    when:
+      visible: ".*RevenueCat.*"
+    commands:
+      - tapOn:
+          point: "96%,93%"
+- runFlow:
+    when:
+      visible: "Schritt 2 von 7"
+    commands:
+      - tapOn: "Zurück"
+- extendedWaitUntil:
+    visible: "Wofür nutzt du Kolibi?"
+    timeout: 90000
+- takeScreenshot: ${SHOT}/01-wofuer
+- tapOn: ".*Beides.*"
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Ein paar Eckdaten zu dir"
+    timeout: 10000
+- runFlow:
+    when:
+      visible: "Geburtsdatum wählen"
+    commands:
+      - tapOn: "Geburtsdatum wählen"
+      - waitForAnimationToEnd:
+          timeout: 3000
+      # The picker only reports a date once a wheel turned: year wheel down a few rows.
+      - swipe:
+          start: "70%,78%"
+          end: "70%,92%"
+          duration: 600
+      - waitForAnimationToEnd:
+          timeout: 2000
+      # Close via the backdrop (same as "Fertig").
+      - tapOn:
+          point: "50%,30%"
+      - waitForAnimationToEnd:
+          timeout: 2000
+- tapOn: ".*Männlich.*"
+- takeScreenshot: ${SHOT}/02-eckdaten
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Wie groß bist du?"
+    timeout: 10000
+- tapOn: "Größe (cm)"
+- inputText: "180"
+- pressKey: Enter
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Wie viel wiegst du aktuell?"
+    timeout: 10000
+- tapOn: "Gewicht (kg)"
+- inputText: "86"
+- pressKey: Enter
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Wie aktiv bist du?"
+    timeout: 10000
+- tapOn: ".*Leicht aktiv.*"
+- tapOn: "Weiter"
+- extendedWaitUntil:
+    visible: "Was ist dein Ziel?"
+    timeout: 10000
+- takeScreenshot: ${SHOT}/03-ziele
+- tapOn: ".*Muskelaufbau.*"
+- tapOn: "Weiter"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/04-zusammenfassung
+- tapOn: "Loslegen"
+# Beides → the plan wizard opens after the onboarding.
+- extendedWaitUntil:
+    visible:
+      id: "planWizard.goal.fitness"
+    timeout: 60000
+- takeScreenshot: ${SHOT}/05-assistent-oeffnet-sich
