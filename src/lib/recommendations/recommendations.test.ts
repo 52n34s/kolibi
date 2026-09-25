@@ -351,6 +351,9 @@ describe('buildRecommendations – data', () => {
 
   it('open check-in from 12:00 on', () => {
     assert.deepEqual(kinds(buildRecommendations(ctx({ checkinStatus: 'open' }))), ['checkin']);
+    const [card] = buildRecommendations(ctx({ checkinStatus: 'open' }));
+    assert.equal(card?.message.key, 'recommendations.checkin.message');
+    assert.equal(card?.reason?.key, 'recommendations.checkin.body');
     assert.deepEqual(
       kinds(buildRecommendations(ctx({ checkinStatus: 'open', hour: 11, minute: 59 }))),
       [],

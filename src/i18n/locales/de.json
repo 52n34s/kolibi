@@ -2453,7 +2453,8 @@
       "action": "Maße eintragen"
     },
     "checkin": {
-      "message": "Dein Check-in dauert einen Moment und stimmt dein Training auf heute ab",
+      "message": "Wie geht's dir heute?",
+      "body": "Vier kurze Fragen, dann weiß Kolibi, was heute zu dir passt.",
       "action": "Check-in starten"
     }
   }

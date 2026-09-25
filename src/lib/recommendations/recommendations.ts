@@ -424,7 +424,8 @@ function data(ctx: RecommendationContext): Ranked[] {
       category: 'data',
       icon: 'sunny-outline',
       message: { key: `${K}.checkin.message` },
-      reason: null,
+      // Shown as the text line under the title.
+      reason: { key: `${K}.checkin.body` },
       action: { target: 'checkin', labelKey: `${K}.checkin.action` },
       rank: 2,
     });
