@@ -13,6 +13,7 @@ import {
   useOpenPlanWizard,
 } from '@/components/training/PlanWizardEntryCard';
 import { RestTimerCard } from '@/components/training/RestTimerCard';
+import { SkillGoalCard } from '@/components/training/SkillGoalCard';
 import { StarterPlanPicker } from '@/components/training/StarterPlanPicker';
 import { useRequirePlan } from '@/hooks/use-require-plan';
 import type { ProductAction } from '@/lib/product-access';
@@ -237,6 +238,13 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
           </GlassCard>
         ) : null}
 
+        <SkillGoalCard
+          testID="training.skillGoal"
+          renderContainer={(children) => (
+            <GlassCard style={styles.goalCard}>{children}</GlassCard>
+          )}
+        />
+
         {others.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('training.panel.moreUnits')}</Text>
@@ -364,6 +372,9 @@ const styles = StyleSheet.create({
   nextCard: {
     padding: 20,
     gap: 8,
+  },
+  goalCard: {
+    padding: 16,
   },
   nextTitle: {
     fontSize: 13,

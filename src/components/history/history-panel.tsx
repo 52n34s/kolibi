@@ -120,14 +120,11 @@ import {
   shouldShowWeightChangeDelta,
   TREND_RELIABLE_WEIGH_DAYS_LAST_MONTH,
 } from '@/lib/history-balance';
-import {
-  MacroEmpfehlungsZiel,
-  mapProfileGoalToEmpfehlungsZiel,
-} from '@/lib/macro-recommendations';
 import { resolveProteinRefKg } from '@/lib/macro-rules';
 import { computeProteinTimingStats, pickProteinTimingHint } from '@/lib/meal-protein-timing';
 import {
   calculateTargetWeightForecast,
+  resolveForecastMacroGoalProfile,
   type TargetWeightForecastInput,
 } from '@/lib/target-weight-forecast';
 import {
@@ -878,11 +875,7 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       observedMaintenanceKcal:
         observedEnergy?.status === 'ready' ? observedEnergy.observedKcal : undefined,
       goalType: profile?.goal_type ?? null,
-      macroGoalProfile:
-        mapProfileGoalToEmpfehlungsZiel(profile?.goal_type) ===
-        MacroEmpfehlungsZiel.MUSKELAUFBAU
-          ? 'muscle'
-          : null,
+      macroGoalProfile: resolveForecastMacroGoalProfile(profile?.goal_type),
       weighDaysLast30: weighDaysLastMonth,
     };
   }, [

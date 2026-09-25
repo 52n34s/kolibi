@@ -21,6 +21,7 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { ShareStickerSheet } from '@/components/share/ShareStickerSheet';
 import { ExerciseThumb } from '@/components/training/ExerciseThumb';
+import { SkillGoalCard } from '@/components/training/SkillGoalCard';
 import { exerciseStubFromSessionSet } from '@/components/training/exercise-stub';
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 import { useProgressionEvents } from '@/hooks/use-progression-events';
@@ -522,6 +523,17 @@ export function HistoryTrainingSection({
               )}
             </View>
           </View>
+
+          <SkillGoalCard
+            testID="history.training.skillGoal"
+            renderContainer={(children) => (
+              <View
+                style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}
+                className="mb-8">
+                <View className="px-4 py-4">{children}</View>
+              </View>
+            )}
+          />
 
           {bests.length > 0 || levelUps.length > 0 ? (
             <View

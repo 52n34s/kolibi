@@ -6,6 +6,7 @@ import {
   bestSessionSets,
   biggestGain,
   buildExerciseSticker,
+  buildGoalSticker,
   buildLevelSticker,
   buildMealSticker,
   buildProgressSticker,
@@ -23,6 +24,7 @@ import {
   topSessionExercises,
 } from './sticker-data.ts';
 import type { Exercise, ProgressionEvent, SessionSet, WorkoutSession } from '../workouts/types.ts';
+import { computeSkillGoalForecast } from '../workouts/skill-goal-forecast.ts';
 const TODAY = '2026-09-24';
 
 function set(partial: Partial<SessionSet> & Pick<SessionSet, 'id'>): SessionSet {
@@ -681,5 +683,116 @@ describe('buildMealSticker', () => {
   it('shows at most six labels', () => {
     const many = Array.from({ length: 9 }, (_, i) => ({ name: `Zutat ${i}`, kcal: 100 - i, proteinG: 1 }));
     assert.equal(buildMealSticker({ items: many, portionFactor: 1, photoUri: null }).labels.length, 6);
+  });
+});
+
+describe('buildGoalSticker', () => {
+  const goalEx = (partial: Partial<Exercise> & Pick<Exercise, 'id'>): Exercise => ({
+    userId: null,
+    catalogSlug: null,
+    names: { de: partial.id, en: partial.id },
+    kind: 'reps',
+    perSide: false,
+    defaultSets: 3,
+    defaultReps: 3,
+    defaultRepsMax: 8,
+    defaultSeconds: null,
+    defaultSecondsMax: null,
+    defaultRestSeconds: null,
+    imageAsset: null,
+    imagePath: null,
+    note: null,
+    archivedAt: null,
+    ladderKey: null,
+    ladderStep: null,
+    progressionKind: 'variant',
+    timeCapSeconds: null,
+    ...partial,
+  });
+  const EXERCISES: Exercise[] = [
+    goalEx({ id: 'pull', names: { de: 'Klimmzüge', en: 'Pull-ups' }, ladderKey: 'pv', ladderStep: 1 }),
+    goalEx({
+      id: 'archer',
+      names: { de: 'Archer-Klimmzüge', en: 'Archer Pull-ups' },
+      ladderKey: 'pv',
+      ladderStep: 2,
+      defaultReps: 2,
+      defaultRepsMax: 5,
+      perSide: true,
+    }),
+    goalEx({
+      id: 'lsit',
+      names: { de: 'L-Sit', en: 'L-Sit' },
+      kind: 'time',
+      defaultReps: null,
+      defaultRepsMax: null,
+      defaultSeconds: 10,
+      defaultSecondsMax: 20,
+    }),
+  ];
+  const TODAY_G = '2026-09-25';
+  const unit = (loggedOn: string, sets: Partial<SessionSet>[]) => ({
+    loggedOn,
+    sets: sets.map((partial, index) => set({ id: `${loggedOn}-${index}`, setIndex: index, ...partial })),
+  });
+  const weekly = (exerciseId: string, values: number[], kind: 'reps' | 'time' = 'reps') =>
+    values.map((value, i) => {
+      const date = new Date(2026, 8, 25 - (values.length - 1 - i) * 7);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      return unit(
+        key,
+        kind === 'time'
+          ? [{ exerciseId, kind: 'time', seconds: value, reps: null }]
+          : [{ exerciseId, reps: value, weightKg: 15 }],
+      );
+    });
+  const build = (exerciseId: string, targetValue: number, units: ReturnType<typeof unit>[], lang = 'de') => {
+    const forecast = computeSkillGoalForecast({
+      goalExerciseId: exerciseId,
+      targetValue,
+      exercises: EXERCISES,
+      units,
+      todayKey: TODAY_G,
+    })!;
+    return buildGoalSticker({ goal: { exerciseId, targetValue }, forecast, exercises: EXERCISES, lang });
+  };
+
+  it('shows exercise, target, current value from a lower rung, bar, level and period', () => {
+    const sticker = build('archer', 10, weekly('pull', [3, 4, 5, 6, 7, 8]));
+    assert.equal(sticker.kind, 'goal');
+    assert.equal(sticker.name, 'Archer-Klimmzüge');
+    assert.equal(sticker.target, 10);
+    assert.equal(sticker.perSide, true);
+    assert.deepEqual(sticker.current, { value: 8, kind: 'reps', name: 'Klimmzüge' });
+    assert.equal(sticker.progress, 0.5);
+    assert.deepEqual(sticker.level, { step: 2, total: 2 });
+    assert.ok(sticker.period != null);
+    assert.equal(sticker.achieved, false);
+    assert.deepEqual(availableStickerOptions(sticker), ['showLevel']);
+    assert.equal(stickerAnalyticsType(sticker), 'goal');
+  });
+
+  it('never carries the load, a body weight or a date that is not there', () => {
+    const sticker = build('archer', 10, weekly('pull', [5, 6]));
+    assert.equal(sticker.period, null);
+    const json = JSON.stringify(sticker);
+    assert.ok(!json.includes('15'), json);
+    assert.ok(!/weight|kg|kcal/i.test(json), json);
+  });
+
+  it('drops the rung name on the goal exercise itself and uses seconds for holds', () => {
+    const sticker = build('lsit', 30, weekly('lsit', [10, 14, 18], 'time'), 'en');
+    assert.equal(sticker.exerciseKind, 'time');
+    assert.deepEqual(sticker.current, { value: 18, kind: 'time', name: null });
+    assert.equal(sticker.level, null);
+    assert.deepEqual(availableStickerOptions(sticker), []);
+  });
+
+  it('shows a full bar and no current line once the goal is reached', () => {
+    const sticker = build('pull', 8, weekly('pull', [6, 8]));
+    assert.equal(sticker.achieved, true);
+    assert.equal(sticker.progress, 1);
+    assert.equal(sticker.current, null);
+    assert.equal(sticker.period, null);
   });
 });

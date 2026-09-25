@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { CalorieSource } from './calorie-goal-math';
-import { calculateTargetWeightForecast } from './target-weight-forecast';
+import {
+  calculateTargetWeightForecast,
+  resolveForecastMacroGoalProfile,
+} from './target-weight-forecast';
 
 const baseInput = {
   currentWeightKg: 80,
@@ -85,4 +88,25 @@ test('returns unavailable when profile fields are missing', () => {
     }),
     { status: 'unavailable' },
   );
+});
+
+test('a weight-gain goal forecasts a date instead of the muscle-building note', () => {
+  // Regression: callers derived the profile from the macro mapping, which puts
+  // gain_weight on MUSKELAUFBAU, so every gainer got `muscle_building`.
+  assert.equal(resolveForecastMacroGoalProfile('gain_weight'), null);
+  const forecast = calculateTargetWeightForecast({
+    ...baseInput,
+    currentWeightKg: 60,
+    targetWeightKg: 64,
+    dailyCalorieGoal: 2000,
+    goalType: 'gain_weight',
+    macroGoalProfile: resolveForecastMacroGoalProfile('gain_weight'),
+  });
+  assert.equal(forecast.status, 'ok');
+});
+
+test('only the recomposition goal counts as muscle building', () => {
+  assert.equal(resolveForecastMacroGoalProfile('build_muscle'), 'muscle');
+  assert.equal(resolveForecastMacroGoalProfile('lose_weight'), null);
+  assert.equal(resolveForecastMacroGoalProfile(null), null);
 });

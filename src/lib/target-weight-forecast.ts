@@ -33,6 +33,17 @@ export type TargetWeightForecast =
   | { status: 'muscle_building' }
   | { status: 'unavailable' };
 
+/**
+ * Only recomposition (`build_muscle`) makes body weight an unreliable gauge.
+ * The macro mapping also files `gain_weight` under MUSKELAUFBAU, but there the
+ * weight change is the goal itself, so it gets a date like weight loss does.
+ */
+export function resolveForecastMacroGoalProfile(
+  goalType: string | null | undefined,
+): 'muscle' | null {
+  return goalType === 'build_muscle' ? 'muscle' : null;
+}
+
 function isReached(currentWeightKg: number, targetWeightKg: number): boolean {
   return Math.abs(currentWeightKg - targetWeightKg) < 0.05;
 }

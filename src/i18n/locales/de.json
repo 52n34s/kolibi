@@ -1727,7 +1727,9 @@
     },
     "overYear": "Zielgewicht in mehr als einem Jahr",
     "notLosing": "Mit diesen Einstellungen nimmst du nicht ab.",
-    "notGaining": "Mit diesen Einstellungen nimmst du nicht zu."
+    "notGaining": "Mit diesen Einstellungen nimmst du nicht zu.",
+    "stalled": "Dein Gewichtstrend legt gerade eine Pause ein. Sobald er Richtung Ziel zeigt, siehst du hier einen Zeitraum.",
+    "stalledWithPlan": "Dein Gewichtstrend legt gerade eine Pause ein. Mit deinem Kalorienziel erreichst du dein Zielgewicht {{eta}}."
   },
   "share": {
     "title": "Als Sticker teilen",
@@ -2229,6 +2231,56 @@
     "reminder": {
       "title": "Guten Morgen!",
       "body": "Wie geht's dir heute? Dein Check-in dauert zehn Sekunden."
+    }
+  },
+  "skillGoal": {
+    "title": "Könnensziel",
+    "setCta": "Könnensziel setzen",
+    "setHint": "Wähle eine Übung und deinen Zielwert – zum Beispiel 10 Archer-Klimmzüge oder 30 s L-Sit.",
+    "edit": "Ändern",
+    "share": "Ziel teilen",
+    "targetReps": "Ziel: {{value}} Wdh.",
+    "targetSeconds": "Ziel: {{value}} s",
+    "currentReps": "Aktuell: {{value}} Wdh.",
+    "currentSeconds": "Aktuell: {{value}} s",
+    "currentRepsOn": "Aktuell: {{value}} Wdh. {{name}}",
+    "currentSecondsOn": "Aktuell: {{value}} s {{name}}",
+    "start": "Dein erster Satz auf dieser Leiter zählt schon mit.",
+    "achieved": "Geschafft! Zeit für dein nächstes Ziel.",
+    "tooLittleSessions_one": "Noch {{count}} Einheit auf dieser Leiter, dann siehst du hier einen Zeitraum.",
+    "tooLittleSessions_other": "Noch {{count}} Einheiten auf dieser Leiter, dann siehst du hier einen Zeitraum.",
+    "tooLittleDays_one": "Trainier noch {{count}} Tag weiter, dann siehst du hier einen Zeitraum.",
+    "tooLittleDays_other": "Trainier noch {{count}} Tage weiter, dann siehst du hier einen Zeitraum.",
+    "noTrend": "Du hältst gerade dein Niveau. Sobald es steigt, siehst du hier einen Zeitraum.",
+    "beyondYear": "Ein großes Ziel – voraussichtlich in mehr als einem Jahr.",
+    "progressA11y": "{{percent}} % geschafft",
+    "period": {
+      "single": "voraussichtlich {{part}} {{month}}",
+      "sameMonth": "voraussichtlich {{from}} bis {{to}} {{month}}",
+      "range": "voraussichtlich {{fromPart}} {{fromMonth}} bis {{toPart}} {{toMonth}}"
+    },
+    "part": {
+      "early": "Anfang",
+      "mid": "Mitte",
+      "late": "Ende"
+    },
+    "sheet": {
+      "pickTitle": "Übung wählen",
+      "searchPlaceholder": "Übung suchen",
+      "suggested": "Aus deinem Training",
+      "all": "Alle Übungen",
+      "targetTitle": "Dein Zielwert",
+      "targetLabelReps": "Wiederholungen",
+      "targetLabelSeconds": "Sekunden",
+      "save": "Ziel speichern",
+      "otherExercise": "Andere Übung",
+      "remove": "Ziel entfernen",
+      "invalid": "Gib einen Wert zwischen 1 und 10000 ein.",
+      "saveFailed": "Bitte versuch es gleich noch einmal."
+    },
+    "sticker": {
+      "badge": "Mein Ziel",
+      "achievedBadge": "Ziel erreicht"
     }
   }
 }

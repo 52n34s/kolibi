@@ -18,6 +18,7 @@ export const workoutQueryKeys = {
     ['workout-exercise-progress', userId, ...exerciseIds] as const,
   progressionEvents: (userId: string) =>
     ['workout-progression-events', userId] as const,
+  skillGoal: (userId: string) => ['workout-skill-goal', userId] as const,
 };
 
 /** Manual training_sessions rows (legacy logger / kcal). */
