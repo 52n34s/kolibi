@@ -122,6 +122,7 @@ import {
   mapProfileGoalToEmpfehlungsZiel,
 } from '@/lib/macro-recommendations';
 import { resolveProteinRefKg } from '@/lib/macro-rules';
+import { computeProteinTimingStats, pickProteinTimingHint } from '@/lib/meal-protein-timing';
 import {
   calculateTargetWeightForecast,
   type TargetWeightForecastInput,
@@ -1216,6 +1217,25 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
     balanceSummary.loggedDays >= 2 &&
     balanceRows.length >= 2;
 
+  /** One sentence when a main meal is clearly under its share of the protein goal. */
+  const proteinTimingLine = useMemo(() => {
+    if (!showBalanceCard || !balanceData || !balanceSummary) {
+      return null;
+    }
+    const hint = pickProteinTimingHint({
+      stats: computeProteinTimingStats({ meals: balanceData.meals, todayKey }),
+      dailyProteinGoalG: balanceSummary.proteinGoalAvg,
+    });
+    if (!hint) {
+      return null;
+    }
+    return t(`mealGroups.timingHint.${hint.slot}`, {
+      average: hint.averageProteinG,
+      from: hint.addFromG,
+      to: hint.addToG,
+    });
+  }, [balanceData, balanceSummary, showBalanceCard, t, todayKey]);
+
   const balanceAccuracyHint = useMemo(() => {
     const hint = pickBalanceAccuracyHint({
       weighIns: balanceWeightRate
@@ -1687,6 +1707,9 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
             className="mb-8">
             <View className="px-5 py-5">
               <HomeProgressRows rows={balanceRows} />
+              {proteinTimingLine ? (
+                <Text className="mt-4 text-sm text-gray-600">{proteinTimingLine}</Text>
+              ) : null}
               {bodyFatChangeLines ? (
                 <View className="mt-4 gap-1">
                   <Text
