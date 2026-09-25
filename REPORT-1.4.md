@@ -14,6 +14,10 @@ Baseline: `npm test` grün, `npx tsc --noEmit | grep -v supabase/functions` = 15
 | 5 | `20260926123300_profiles_plan_wizard_answers.sql` | `profiles.plan_wizard_answers jsonb` (Vorbelegung des Assistenten) | 2.3 |
 | 6 | `20260926143400_exercise_muscles.sql` | `exercises.primary_muscles` / `secondary_muscles` für eigene Übungen | 3.4 |
 | 7 | `20260926153500_body_measurements.sql` | Tabelle `body_measurements` (Brust, Oberarm, Hüfte, Oberschenkel), RLS eigene Zeilen | 3.5 |
+| 8 | `20260926160000_skill_goals.sql` | Tabelle `skill_goals`, ein aktives Ziel pro Nutzer, RLS eigene Zeilen | 3.7 |
+| 9 | `20260926170000_daily_checkins.sql` | Tabelle `daily_checkins`, `profiles.checkin_enabled`, `checkin_reminder_time` | 3.2 |
+| 10 | `20260926183100_add_strength_goal_type.sql` | Enum-Wert `goal_type = 'strength'` (Kraft und Skills) | 3.1 |
+| 11 | `20260926183200_profiles_usage_purpose.sql` | `profiles.usage_purpose` (nutrition/training/both) | 3.1 |
 
 ---
 
@@ -134,7 +138,20 @@ rollback;
 - Einpassung der Story-Karte kam schon mit `feat/share-stickers` (ee2543e, 24a7507, 60ec34d, 73c4dd3): `StoryFrame` misst den Inhalt und skaliert auf ~70 % Kastenhöhe (sichtbar 65–70 %), 1- bis 2-fach, Titel/Werte einzeilig, Fortschritt ohne Stufenwechsel mit 2,2-facher Kurve. Gemessener Füllgrad laut `REPORT-share-stickers.md`: Rückblick Woche 66,9 %, Monat 67,8 %, Fortschritt 67,4 %, Fortschritt mit Stufenwechsel 68,6 %; kurzer Rückblick 28,5 % (2-fach-Grenze hat Vorrang).
 - **Neu:** Story-Karte auch für Übung, Stufe und Einheit (f0c8f98, e3a7d30); die Zusammenfassung bietet das Story-Format an. Titel auf der Story-Karte einzeilig mit Verkleinerung.
 - `StickerBrand`: „kolibi.app“ plus markierter Platz (`mark`) für das SVG – unverändert.
-- **PNGs nicht erzeugt.** Der Simulator „Kolibi QA“ wird gerade von einer zweiten Sitzung genutzt (Metro aus `~/Dev/Kolibi-wt-f4b`, Branch `fix/session-end`, Port 8082). Ich habe in diese Sitzung nicht eingegriffen. Die QA-Seite zum Export liegt bereit (nicht committet) und läuft in Block 6.1 bzw. sobald der Simulator frei ist. Füllgrad für Übung/Stufe/Einheit als Story daher noch ungemessen.
+- **PNGs** (nachgeholt, sobald der Simulator frei war; temporäre QA-Seite, nicht committet): 32 Dateien in `~/Desktop/kolibi-1.4-check/sticker/` (Übung, Stufe, Einheit, Rückblick Woche/Monat, Fortschritt ohne/mit Stufenwechsel, Mahlzeit; je Hell, Dunkel, Story Hell, Story Dunkel). Sticker: RGBA, 75–94 % transparent. Füllgrad der Story-Karten (PIL, Zeilen mit Tinte gegenüber dem Randpixel, ohne Marke):
+
+| Story-Karte | Füllgrad | Mitte |
+|---|---|---|
+| Übung | 70,1 % | 0 px |
+| Einheit | 67,1 % | +8 px |
+| Rückblick Woche | 67,4 % | −2 px |
+| Rückblick Monat | 66,6 % | −1 px |
+| Fortschritt | 67,4 % | −4 px |
+| Fortschritt mit Stufenwechsel | 68,6 % | +4 px |
+| Stufe | 52,5 % | −6 px (2-fach-Grenze) |
+| Mahlzeit (ohne Foto) | 55,7 % | +21 px (2-fach-Grenze) |
+
+- **Gefundene Fehler, behoben:** (1) Der Titel „Meine Woche/Mein Monat“ erschien auf der Story-Karte winzig (iOS behielt mit `numberOfLines`/`adjustsFontSizeToFit` ein veraltetes Layout) → Größe wird jetzt berechnet (`StickerFitLine`, 7d79a8d). (2) „650 kcal“ brach beim Mahlzeit-Sticker um → einzeilig (df8c270).
 
 ---
 
@@ -304,6 +321,106 @@ Commits 6be3f94, 2ccc813, 4a54e2d, 4e3206a.
 - Foto: Bisher wurde es direkt nach der Analyse gelöscht. Jetzt bleibt die lokale Datei, solange der Ergebnis-Screen offen ist, und wird beim Schließen oder Speichern gelöscht. Kein Upload, keine Speicherung. Beim Nährwert-Label-Scan wird wie bisher sofort gelöscht (kein Teilen).
 - PostHog: `share_sticker_created` mit `type: "meal"`.
 - Annahme: Wird die App bei offenem Ergebnis-Screen beendet, bleibt die Datei im Cache-Ordner des Geräts, bis iOS ihn räumt.
+
+---
+
+## Block 3.1 – Onboarding und Ziele
+
+### Teil A – Diagnose (vorher)
+
+Ein Screen `src/app/onboarding/index.tsx`, 8 feste Schritte, ~76 s:
+
+| # | Schritt | Abgefragt | Verwendung | Sek. |
+|---|---|---|---|---|
+| 0 | Ernährungsform | omnivor/pescetarisch/vegetarisch/vegan | Makros (Protein ×1,06/×1,12), Anzeige, KI-Prompt der Mahlzeitenerkennung | 8 |
+| 1 | Geschlecht | männlich/weiblich/keine Angabe | Kalorienziel (BMR ±83 kcal) | 6 |
+| 2 | Geburtsdatum | Datum | Kalorienziel (BMR), Makros (Protein ×1,2 ab 65) | 13 |
+| 3 | Größe | cm/ft-in | Kalorienziel, Makro-Bezugsgewicht | 7 |
+| 4 | Gewicht | kg/lbs | Kalorienziel, Makros, Prognose (`weight_logs`) | 7 |
+| 5 | Aktivität | 4 Stufen | Kalorienziel (Faktor 1,2–1,725; mit Health nur Ersatz) | 10 |
+| 6 | Ziel | 7 Werte | Kalorien (%/Woche), Protein g/kg, Zielgewicht | 15 |
+| 7 | Zusammenfassung | kcal editierbar | Basis aller Makros | 10 |
+
+Zwingend für Kalorien und Makros: Geburtsdatum, Größe, Gewicht, Aktivität, Ziel (+ Ergebnis kcal). Optional: Geschlecht, Ernährungsform. Analytics: keine. Ziele: alle 7 `goal_type` (maintain, lose_weight, faster_weight_loss, gain_weight, build_muscle, endurance, custom); ungenutzt: `lose`, `faster_loss` (tot).
+
+### Teil B – Umsetzung
+
+Branch `block/3.1-onboarding`, gemergt (f2e0524). Commits 64a5c2a, 03ec996, 0e990ab, e23c073, 531632f, ab2e698, 40e6041.
+
+**Nachher: 7 Schritte, ~68 s**
+
+| Schritt | Pflicht | Sek. |
+|---|---|---|
+| Wofür nutzt du Kolibi? (Ernährung · Training · Beides, mit Rechtshinweis) | optional | 5 |
+| Eckdaten: Geburtsdatum + Geschlecht als Chips | Datum | 17 |
+| Größe | ja | 7 |
+| Gewicht | ja | 7 |
+| Aktivität | ja | 10 |
+| Ziel (5 statt 7) | ja | 12 |
+| Zusammenfassung | ja | 10 |
+
+- Geschlecht bleibt (als Chips), weil ohne Angabe der BMR bis ±83 kcal danebenliegt. Ernährungsform wandert in eine einmalige Karte oben im Essen-Tab (`DietPreferenceCard`).
+- Schrittfolge ist jetzt eine berechnete Liste (`src/lib/onboarding-steps.ts`), Review-Modus kann per `startAt` direkt einen Schritt öffnen (neue Zielzeile im Zielbereich).
+- **Ziele:** Abnehmen → lose_weight; Muskelaufbau → build_muscle; Kraft und Skills → `strength` (Migration 10; rechnet exakt wie build_muscle; ohne Migration wird build_muscle geschrieben und die Wahl lokal gemerkt); Halten und gesund essen → maintain; Ausdauer → endurance. Altwerte bleiben mit ihrer Wirkung: faster_weight_loss (Abnehmen), gain_weight (Muskelaufbau), custom („Eigenes Ziel“ nur für Nutzer, die es haben). **Abweichungen in Kalorien/Makros: keine.**
+- „Wofür nutzt du Kolibi?“ → `profiles.usage_purpose` (Migration 11; ohne sie lokal). Bei Training/Beides öffnet sich nach dem Onboarding der Plan-Assistent (überspringbar; hinter `useRequirePlan`). Bei Ernährung: lokales Flag `plan_wizard_pending`.
+
+**Ziel → Schwerpunkte der Empfehlungen** (`src/lib/goal-focus.ts`)
+
+| Ziel | Schwerpunkte |
+|---|---|
+| Abnehmen | Protein (schützt die Muskeln), Ballaststoffe, Krafttraining |
+| Muskelaufbau | Protein, Kohlenhydrate rund ums Training, Sätze pro Muskel |
+| Kraft und Skills | Kohlenhydrate vor dem Training, Erholung, Tagesform, Protein |
+| Halten und gesund essen | Ballaststoffe, Protein über den Tag verteilt, Regelmäßigkeit |
+| Ausdauer | Kohlenhydrate an Lauftagen, Protein zur Erholung |
+| Eigenes Ziel | Protein, Regelmäßigkeit |
+
+**Fragen**
+- ❓ Nach „Training“ kann direkt nach dem Onboarding die Paywall kommen (Assistent liegt hinter dem Zugang, gilt für registrierte Nutzer ohne Zugang). Gewollt?
+- ❓ Die Prüfung auf den Enum-Wert `strength` erwartet Fehlercode 22P02 für unbekannte Enum-Werte; gegen die echte DB ungetestet (sonst sicherer Rückfall auf build_muscle).
+
+---
+
+## Block 3.2 – Tagesform mit Morgen-Check-in
+
+Branch `block/3.2-checkin`, gemergt (12b2a99). 11 Commits bc7b8b6 … 8fe331c.
+- Migration 9. Ohne sie: alles ausgeblendet, Verhalten wie bisher.
+- Karte oben auf Heute bis 12:00, drei Wege (beantworten → danach eine Zeile; „Heute nicht“ lokal bis morgen; „Nicht mehr anzeigen“ → `checkin_enabled = false`, in Einstellungen „Morgen-Check-in“ wieder an). Kein Pop-up. Nicht hinter der Paywall (Annahme).
+- Erinnerung: standardmäßig aus, lokale tägliche Mitteilung (`kind: 'checkin'`), Zeitwähler in den Einstellungen, wird beim Start neu geplant, beim Abmelden gelöscht.
+- `computeReadiness` (`src/lib/checkin/readiness.ts`): Punktzahl Schlaf + Energie + (6 − Muskelkater) + (6 − Stress). Ab 7 Check-ins gegen den eigenen 14er-Schnitt (+2 gut / −3 schwach), sonst feste Skala mit „Kolibi lernt dich noch kennen“. Last = Minuten × Intensität (3/5/7) über 3 und 7 Tage; Leistungsabfall < 90 % des Schnitts der drei vorigen Einheiten derselben Übung; Ernährung: an ≥ 2 der letzten 3 Tage < 80 % kcal oder < 70 % Protein. Ergebnis bereit/normal/schonen, ohne Check-in nur aus Daten (gekennzeichnet).
+- Wirkung: Stufen-Vorschlag nur bei „bereit“ oder „normal“ nach klarem Erfolg; bei „schonen“ schlägt „Als Nächstes“ eine passendere oder leichtere Einheit vor.
+- ❓ Muskelkater ist eine Gesamtzahl; der Abgleich „Muskelkater + Einheit mit denselben Muskeln“ braucht die Muskelprofile aus 3.4 (verfügbar) – die Schlüssel von 3.2 (legs, chest, back, shoulders, arms, core, glutes) werden in 3.6 auf die Gruppen von 3.4 abgebildet.
+
+---
+
+## Block 3.7 – Skill-Ziel und Zielprognose
+
+Branch `block/3.7-skill-goal`, gemergt (e5125ff; Konflikte mit dem Mahlzeit-Sticker aufgelöst: beide Typen `meal` und `goal`). Commits b6d2cc1 … 061599a.
+
+**Ursache „Zielprognose ohne Datum“** (je mit zuerst rotem Test):
+1. `computeWeightGoalEta` lieferte bei Trend seitwärts/weg vom Ziel (ab 14 Tagen Verlauf) `unavailable`, die Anzeige zeigte dann nichts. Neu: Status `stalled` mit Hinweis und Plandatum aus der Kalorienrechnung.
+2. Zielgewicht-Screen und Bilanz: `gain_weight` wurde über das Makro-Mapping als Muskelaufbau behandelt → nie ein Datum. Neu: nur `build_muscle` zählt als Muskelaufbau.
+3. Nebenbei: falscher i18n-Schlüssel `weightGoalEta.${part}` → roher Key im Datumstext.
+
+**Skill-Ziel:** Migration 8 (`skill_goals`, ein aktives Ziel). Prognose `skill-goal-forecast.ts`: bester Satz je Einheit, Leiter-Umrechnung (jede Stufe bis zur Zielstufe = eine Einheit; Position läuft von Einstieg bis Ausstieg der Stufe), Theil–Sen-Steigung über 56 Tage; „zu wenig Daten“ = < 4 Einheiten oder < 14 Tage Spanne → ehrlicher Hinweis; Ergebnis als Zeitraum in Monatsdritteln („voraussichtlich Mitte bis Ende November“). Anzeige im Trainings-Tab und in Fortschritt → Training mit Balken. Neuer Sticker `goal` (ohne Last, Gewicht, kcal).
+
+---
+
+## Block 4.1 – Live-Aktivität und Vibration / Block 4.2 – Instagram Stories
+
+Branch `block/4-native`, gemergt (8ef5622). Commits b650f69 … 9a2291d.
+- Variante: ActivityConfiguration in der **vorhandenen** Widget-Extension (`targets/widget/RestTimerLiveActivity.swift`) plus lokales Expo-Modul `modules/rest-live-activity`. Gründe: eine Extension statt zwei (expo-widgets hätte ein zweites Target angelegt), echter SwiftUI-Countdown (`Text(timerInterval:)`), kompiliert sauber.
+- Start bei Pausenbeginn, Update bei +30/Anhalten/Weiter/Überspringen/Dauer, Ende nach der Pause, beim Beenden/Verwerfen der Einheit und beim Abmelden. Reine Zuordnung in `src/lib/training/rest-live-activity.ts` (Tests).
+- Vibration am Pausenende mit `expo-haptics ~57.0.3` (nur im Vordergrund).
+- `app.json` → `ios.infoPlist`: `NSSupportsLiveActivities: true`, `LSApplicationQueriesSchemes: ["instagram-stories"]`. Version/buildNumber/runtimeVersion unverändert.
+- Compile-Check: `expo prebuild` + `pod install` + `xcodebuild … -sdk iphonesimulator … CODE_SIGNING_ALLOWED=NO` → **BUILD SUCCEEDED** (im Agent-Worktree, ohne Simulator).
+- Robust: native Module per `requireOptionalNativeModule`; in einem Binary ohne diesen Code passiert nichts.
+- **Nur auf dem Gerät testbar:** Sperrbildschirm und Dynamic Island, selbstlaufender Countdown und „Pause vorbei“, Zuordnung App↔Widget über die duplizierte `RestTimerAttributes`, Haptik, Instagram-Absprung.
+- **Instagram:** Variable **`EXPO_PUBLIC_FACEBOOK_APP_ID`** (EAS-Umgebungsvariable). Button nur bei iOS + gültiger ID + Modul + installiertem Instagram; sonst unsichtbar. Sticker als `stickerImage`, Story-Karte als `backgroundImage`, Pasteboard mit 5 min Ablauf (lokales Modul `modules/instagram-stories`). Analytics-Aktion `instagram`.
+
+**Fragen**
+- ❓ Live-Aktivität auch für Pausen ohne aktive Einheit (Timer in der Ruheansicht)? Derzeit ja.
+- ❓ Tippen auf die Live-Aktivität → direkt zur Einheit springen?
 
 ---
 
