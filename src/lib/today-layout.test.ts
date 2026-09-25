@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { todayBodyCard, todayNutritionSummary, todaySectionOrder } from './today-layout.ts';
+import {
+  todayBodyCard,
+  todayNutritionSummary,
+  todaySectionOrder,
+  todayTrainingState,
+} from './today-layout.ts';
 
 describe('todaySectionOrder', () => {
   it('puts calories and weight first when losing weight', () => {
@@ -45,5 +50,32 @@ describe('todayNutritionSummary', () => {
 
   it('has no rest without a target', () => {
     assert.equal(todayNutritionSummary({ kcalTarget: null, kcalEaten: 300, proteinTarget: 0, proteinEaten: 10 }).kcalLeft, null);
+  });
+});
+
+describe('todayTrainingState', () => {
+  const base = { todayKey: '2026-09-25', todayWeekday: 5 };
+
+  it('asks for a plan without units', () => {
+    assert.equal(todayTrainingState({ ...base, units: [], sessions: [] }), 'none');
+  });
+
+  it('marks the day done once a session is logged today', () => {
+    assert.equal(
+      todayTrainingState({ ...base, units: [{ weekdays: [] }], sessions: [{ loggedOn: '2026-09-25' }] }),
+      'done',
+    );
+  });
+
+  it('is a rest day when the plan uses weekdays and today has none', () => {
+    assert.equal(
+      todayTrainingState({ ...base, units: [{ weekdays: [1, 3] }, { weekdays: [2] }], sessions: [] }),
+      'rest',
+    );
+  });
+
+  it('offers the next unit on a planned day and in a rotating plan', () => {
+    assert.equal(todayTrainingState({ ...base, units: [{ weekdays: [5] }], sessions: [] }), 'next');
+    assert.equal(todayTrainingState({ ...base, units: [{ weekdays: [] }], sessions: [] }), 'next');
   });
 });

@@ -45,3 +45,24 @@ export function todayNutritionSummary(params: {
       params.proteinTarget != null && params.proteinTarget > 0 ? Math.round(params.proteinTarget) : null,
   };
 }
+
+/**
+ * Training state for Today. 'rest' only when the plan uses weekdays and none
+ * is set for today; a rotating plan always has a next unit.
+ */
+export function todayTrainingState(params: {
+  units: readonly { weekdays: readonly number[] }[];
+  sessions: readonly { loggedOn: string }[];
+  todayKey: string;
+  todayWeekday: number;
+}): 'none' | 'done' | 'rest' | 'next' {
+  if (params.units.length === 0) {
+    return 'none';
+  }
+  if (params.sessions.some((session) => session.loggedOn === params.todayKey)) {
+    return 'done';
+  }
+  const usesWeekdays = params.units.some((unit) => unit.weekdays.length > 0);
+  const scheduledToday = params.units.some((unit) => unit.weekdays.includes(params.todayWeekday));
+  return usesWeekdays && !scheduledToday ? 'rest' : 'next';
+}
