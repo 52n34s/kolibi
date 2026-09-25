@@ -2371,5 +2371,46 @@
       "badge": "My goal",
       "achievedBadge": "Goal reached"
     }
+  },
+  "recommendations": {
+    "title": "For you today",
+    "dismiss": "Hide",
+    "protein": {
+      "message": "{{grams}} g of protein to reach your goal",
+      "action": "Log protein"
+    },
+    "fiber": {
+      "message": "{{grams}} g of fiber to reach your goal",
+      "action": "Log a meal"
+    },
+    "carbs": {
+      "message": "Training day: carbs before your session give you more power",
+      "action": "Log a meal"
+    },
+    "restDay": {
+      "message": "A rest day or an easy session fits your form today",
+      "action": "View training"
+    },
+    "nextLevel": {
+      "message": "{{exercise}}: you're ready for the next level",
+      "action": "View exercise"
+    },
+    "muscleDeficit": {
+      "message": "{{group}}: {{count}} more sets this week, for example with {{exercise}}",
+      "action": "View exercise"
+    },
+    "weight": {
+      "message": "Time to weigh in – it keeps your trend up to date",
+      "messageFirst": "Your first weigh-in makes your progress visible",
+      "action": "Weigh in now"
+    },
+    "measurements": {
+      "message": "Time for new measurements – see how you're changing",
+      "action": "Add measurements"
+    },
+    "checkin": {
+      "message": "Your check-in takes a moment and tunes today's training to you",
+      "action": "Start check-in"
+    }
   }
 }
