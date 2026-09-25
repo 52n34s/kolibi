@@ -1,25 +1,24 @@
-# Share sheet (iOS modal, content missing from Maestro's hierarchy): tap by
-# point. Hell, Dunkel, "Als Bild sichern" (+ Photos permission), "Kopieren".
+# Share sheet for the exercise sticker (two option toggles). Its content is
+# missing from Maestro's hierarchy, so buttons are tapped by point, measured
+# on iPhone 17 Pro (402 × 874 pt). "Als Bild sichern" shows a status line
+# that pushes the sheet up by ~29 pt, so "Kopieren" is lower after saving.
 # Screenshots go to ${SHOT}/${PREFIX}-*.
 appId: com.steffen.kolibi
 ---
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:
-    point: "24%,62%"
+    point: "29%,75%"
 - waitForAnimationToEnd:
     timeout: 1500
 - takeScreenshot: ${SHOT}/${PREFIX}-hell
 - tapOn:
-    point: "59%,62%"
+    point: "71%,75%"
 - waitForAnimationToEnd:
     timeout: 1500
 - takeScreenshot: ${SHOT}/${PREFIX}-dunkel
 - tapOn:
-    point: "17%,76%"
-- waitForAnimationToEnd:
-    timeout: 3000
-- takeScreenshot: ${SHOT}/${PREFIX}-sichern
+    point: "20%,92%"
 - tapOn:
     text: "(Zugriff auf alle Fotos erlauben|Allow Full Access|Nur Hinzufügen erlauben|Hinzufügen erlauben|Erlauben|Allow|OK)"
     optional: true
@@ -27,7 +26,7 @@ appId: com.steffen.kolibi
     timeout: 3000
 - takeScreenshot: ${SHOT}/${PREFIX}-gesichert
 - tapOn:
-    point: "41%,76%"
+    point: "50%,89%"
 - waitForAnimationToEnd:
     timeout: 2000
 - takeScreenshot: ${SHOT}/${PREFIX}-kopiert

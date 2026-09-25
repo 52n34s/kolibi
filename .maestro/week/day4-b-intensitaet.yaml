@@ -1,0 +1,21 @@
+# TAG 4b · In the open Push summary: switch intensity to normal and look for
+# the next-level suggestion for Liegestütze.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag4
+---
+- scrollUntilVisible:
+    element:
+      id: "training.summary.intensity.normal"
+    direction: UP
+    timeout: 10000
+    centerElement: true
+- tapOn:
+    id: "training.summary.intensity.normal"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/07-normal-gewaehlt
+- scroll
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}/08-normal-vorschlag

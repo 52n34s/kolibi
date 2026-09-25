@@ -1,0 +1,58 @@
+# TAG 5 · Pull & Legs, hard: Klimmzüge 8 · 8 · 8, Rudern 11 · 10 · 10,
+# Bulgarian 11 · 10 · 10 pro Seite, Seitstütz 2 × 20 s pro Seite.
+# Summary: hard → no next-level card for Klimmzüge expected (no prior
+# success); normal → Archer-Klimmzüge expected. Ends on hard.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag5
+---
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+- takeScreenshot: ${SHOT}/01-pl-gestartet
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "8" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "8" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "8" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "11" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "10" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "10" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "11" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "10" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "10" } }
+- runFlow: { file: common/hold-both-sides.yaml, env: { LEFT: "00:20", RIGHT: "00:20" } }
+- runFlow: { file: common/hold-both-sides.yaml, env: { LEFT: "00:20", RIGHT: "00:20" } }
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.done"
+    timeout: 25000
+- tapOn:
+    id: "training.summary.intensity.hard"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/02-hart
+- scroll
+- takeScreenshot: ${SHOT}/03-hart-unten
+- scrollUntilVisible:
+    element:
+      id: "training.summary.intensity.normal"
+    direction: UP
+    timeout: 10000
+    centerElement: true
+- tapOn:
+    id: "training.summary.intensity.normal"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/04-normal
+- tapOn:
+    id: "training.summary.intensity.hard"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ${SHOT}/05-wieder-hart

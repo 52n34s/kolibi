@@ -1,0 +1,12 @@
+# TAG 7 · Weight 85,6 kg in the open weight sheet; check start weight after.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag7
+---
+- tapOn: "Gewicht in kg"
+- inputText: "85,6"
+- takeScreenshot: ${SHOT}/01-gewicht-eingabe
+- tapOn: "Speichern"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/02-heute-nach-gewicht

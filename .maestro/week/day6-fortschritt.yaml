@@ -1,0 +1,18 @@
+# TAG 6 · Fortschritt tab, scrolled. The Expo dev-menu button's hit area
+# covers the right half of the "Fortschritt" pill (dev build only), so the
+# tab is tapped further left by point instead of by id.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag6
+---
+- tapOn:
+    point: "75%,19%"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/01-fortschritt
+- scroll
+- takeScreenshot: ${SHOT}/02-fortschritt-2
+- scroll
+- takeScreenshot: ${SHOT}/03-fortschritt-3
+- scroll
+- takeScreenshot: ${SHOT}/04-fortschritt-4

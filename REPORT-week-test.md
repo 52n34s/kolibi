@@ -172,3 +172,98 @@ Die echte Uhr steht auf Freitag, 25.09.2026. Im Simulator laufen deshalb alle �
 - „Manuell“ führt anonyme Nutzer zur Anmeldung. Entwurfsentscheidung, nicht bewertet.
 - Beim Sticker zeigt „Hell“ einen hellen Sticker auf dunklem Hintergrund. Das ist gewollt (`ShareStickerSheet.tsx`, Kommentar zum Hintergrund).
 - Der erste Lauf des Sticker-Flows hat die Knöpfe verfehlt (Punkt-Koordinaten trafen die Vorschau). „Hell/Dunkel“, „Als Bild sichern“ und „Kopieren“ sind deshalb in Block 2 **nicht** geprüft; das holt Block 3 nach.
+
+## Block 3: Tag 3 bis 7 in der App
+
+Gleicher Simulator, gleicher anonymer Nutzer. Die Uhr steht weiter auf Freitag, 25.09.2026. Vergangene Tage habe ich nur über „Einheit nachtragen“ (Datum wählbar) erzeugt. Screenshots: `~/Desktop/kolibi-week-test/tag2/21-*`, `tag4/`, `tag5/`, `tag6/`, `tag7/`. Neue Flows: `day4-push.yaml`, `day4-b-intensitaet.yaml`, `day4-c-annehmen.yaml`, `day5-pull-legs-hart.yaml`, `day5-b-einheit-sticker.yaml`, `day6-fortschritt.yaml`, `day7-gewicht.yaml`. Einige Schritte (Sticker-Dialog, Nachtragen, Einstellungen) habe ich von Hand im Simulator bedient, weil die Inhalte von iOS-Sheets in Maestros Hierarchie fehlen.
+
+**Sticker-Dialog (Nachholen aus Block 2)** — Übungs-Sticker Bulgarian Split Squats, „10 · 10 · 9 pro Seite“, Stufe 4 von 6:
+- „Dunkel“ schaltet auf dunkle Schrift auf hellem Grund, „Hell“ zurück. ✔
+- „Als Bild sichern“ → Status „Gespeichert“. „Kopieren“ → „Kopiert“. ✔
+- Schalter „Bester Satz“ blendet die Zeile aus, die Vorschau passt sich an (`tag2/21-sticker-dunkel-ohne-bester-satz.png`). ✔
+- Der Dialog schließt nur über Tippen auf den abgedunkelten Bereich; Wischen am Griff tut nichts. Nur notiert.
+- `common/share-sheet.yaml` ist auf die gemessenen Positionen korrigiert. Der alte Stand hatte die Vorschau statt der Knöpfe getroffen, `day2-c-sticker.yaml` ist entfernt.
+
+**Tag 4 · Push** (Liegestütze 12 · 12 · 12, Dips 9 · 8 · 8, Pike 8 · 8 · 7, Hollow Hold 2 × 26 s)
+- Zusammenfassung: alle vier „Zum ersten Mal“ (Fix F1 wirkt). 84 Wiederholungen, 52 Sekunden.
+- Die Intensität war auf „Kaum ein ganzer Satz“ (hart) **vorausgewählt**, abgeleitet aus dem Satztempo (Maestro ist schnell). Mit „hart“ gibt es nur den Hinweis „Oberes Ziel erreicht – bereit für mehr“, keinen Vorschlag.
+- Nach Umstellen auf „normal“: Vorschlag „Liegestütze: 3 × 8–12 → Liegestütze auf Parallettes, 3 × 10–12“. Übernommen → „Neue Stufe erreicht! Liegestütze auf Parallettes · Stufe 4 von 6“. Stufen-Sticker mit „vorher: Liegestütze“ ✔ (`tag4/07`–`13`).
+- Plan „Push“ enthält danach Parallettes mit **3 × 10–12** (siehe F6).
+
+**Tag 5 · Pull & Legs, hart** (Klimmzüge 8 · 8 · 8, Rudern 11 · 10 · 10, Bulgarian 11 · 10 · 10, Seitstütz 2 × 20 s)
+- „hart“: kein Stufenvorschlag für Klimmzüge. „normal“: Vorschlag Archer-Klimmzüge 3 × 2–5. Genau wie Block 1 (`tag5/02`–`05`). Zurück auf „hart“, beendet.
+- Klimmzüge, Rudern, Bulgarian „Neuer Bestwert“; Seitstütz ohne Badge (20 s < 30 s). ✔
+- Einheiten-Sticker: „Pull & Legs, 25. September 2026, 5 Min, 86 Wiederholungen, 3 Bestwerte“, Top-Übungen Rudern 11, Bulgarian 11, Klimmzüge 8. Keine kcal, kein Gewicht (`tag5/08`). ✔
+
+**Tag 3/6 · Nachtragen und Wochenkarte**
+- „Einheit nachtragen“ → Push, Datum 24.09. (Donnerstag), 45 min, Sätze mit den unteren Zielen vorbelegt, gespeichert.
+- Wochenkarte „Training 2/3“ mit P am Donnerstag und PL am Freitag. Drei Einheiten am Freitag zählen als ein Tag, wie in Block 1. ✔ Das Wochenziel ist 3, weil das Onboarding keine Trainingshäufigkeit abfragt. Die gewünschten 4 × pro Woche müssten unter Ziele → Training gesetzt werden; das habe ich nicht getan.
+
+**Fortschritt-Tab**
+- „Meine Woche“: 4 Einheiten, 312 Wiederholungen (73 + 84 + 86 + 69 nachgetragen), 1 neue Stufe. Die Story-Karte zeigt dasselbe (`tag6/11`, `12`). ✔
+- Bestwerte-Liste: nur „Neue Stufe · Liegestütze auf Parallettes“, keine Bestwerte, obwohl die Zusammenfassung von Tag 5 drei neue Bestwerte meldete. Das bestätigt Abweichung 3 aus Block 1 in der App (`tag6/10`).
+- Die Übungsliste zeigt Bestwerte und Verlaufslinien (`tag6/13`).
+
+**Tag 7 · Gewicht und Imperial**
+- Gewicht 85,6 kg → Heute „85.6 kg“ (`tag7/02`).
+- Maßsystem auf Imperial umgestellt → „188.7 lbs“, Zielgewicht „189.6 lbs“ (`tag7/13`). Passt zu Block 1.
+
+### Fehler und Befunde aus Block 3
+
+Keiner davon erfüllt die Regeln für einen Fix (Datenbank, Entwurfsfrage oder unklare Absicht). Es gibt deshalb in diesem Block keinen Code-Commit.
+
+**F4 · Dauer läuft auf der Zusammenfassung weiter und zählt zum Verbrauch** — *nur dokumentiert*.
+- Schritte: Einheit bis zum letzten Satz durchführen, Zusammenfassung ein paar Minuten offen lassen (z. B. Sticker teilen), dann „Fertig“.
+- Erwartet: Die Dauer endet mit dem letzten Satz.
+- Tatsächlich: „Dauer“ steigt weiter (Tag 4: 03:59 → 04:41; Tag 5: 04:27 → 04:38), weil `finishedAt` erst bei „Fertig“ gesetzt wird (`TrainingSummaryView.tsx`, `Date.now()` bis dahin). Die gespeicherte Dauer und damit die Trainings-kcal enthalten die Zeit auf der Zusammenfassung.
+- Screenshot: `tag4/05-zusammenfassung.png` gegen `tag4/08-normal-vorschlag.png`.
+- Schwere: **mittel**. Unklar, ob gewollt. **1.3-relevant: ja.**
+
+**F5 · Nachtragen nutzt den aktuellen Plan, auch für Tage vor einem Stufenwechsel** — *nur dokumentiert*.
+- Schritte: Stufe annehmen (Liegestütze → Parallettes), dann eine Push-Einheit für den Vortag nachtragen, danach den Fortschritts-Sticker für Liegestütze öffnen.
+- Erwartet: Fortschritt von Stufe 3 zu Stufe 4.
+- Tatsächlich: Die nachgetragene Einheit vom 24.09. enthält schon Parallettes. Der Sticker zeigt „Seit Beginn Stufe 4 von 6 → Heute Stufe 3 von 6“ und „Liegestütze auf Parallettes → Liegestütze“, also einen Rückschritt.
+- Screenshot: `tag6/14-sticker-fortschritt-rueckwaerts.png`.
+- Schwere: **niedrig** (seltener Ablauf). Die Daten sind chronologisch korrekt; die Frage ist, ob Nachtragen den damaligen Plan kennen soll. **1.3-relevant: ja** für das Nachtragen; der Fortschritts-Sticker kommt erst mit 1.4.
+
+**F6 · Zielbereich der neuen Stufe: App 10–12, Migrationen 8–12** — *nur dokumentiert (Datenbank)*.
+- Schritte: Stufenvorschlag Liegestütze → Parallettes übernehmen.
+- Erwartet laut Migration `20260922105000_progression.sql`: 3 × 8–12. Block 1 rechnet mit diesen Werten.
+- Tatsächlich: 3 × 10–12. `targetFromExerciseDefaults` übernimmt `default_reps`/`default_reps_max` der Übung aus der Datenbank, die Live-Zeile weicht also von den Migrationen ab.
+- Screenshot: `tag4/07-normal-gewaehlt.png`.
+- Schwere: **niedrig**. Datenbankstand, nicht angefasst. **1.3-relevant: ja**, falls dieselbe Datenbank gilt.
+
+**F7 · Startgewicht wandert am ersten Tag mit jedem neuen Eintrag** — *nur dokumentiert*.
+- Schritte: Onboarding mit 86 kg, am selben Tag 86,4 und dann 85,6 eintragen.
+- Erwartet: Startgewicht 86 kg.
+- Tatsächlich: Startgewicht erst 86.4, dann 85.6. Das Startgewicht ist der erste Gewichtseintrag (`src/lib/home.ts`), und ein Eintrag am selben Tag ersetzt ihn, was der Hinweis im Gewicht-Sheet auch ankündigt.
+- Screenshot: `tag1/42-nach-speichern.png`, `tag7/02-heute-nach-gewicht.png`.
+- Schwere: **niedrig**. Entwurfsfrage. **1.3-relevant: ja.**
+
+**F8 · Tagesansicht vergangener Tage: „Noch keine Mahlzeiten heute“** — *nur dokumentiert (Text)*.
+- Schritte: Fortschritt → Ernährung → Balken „Mi“ antippen.
+- Erwartet: Ein Text ohne „heute“ für einen vergangenen Tag.
+- Tatsächlich: „Mittwoch, 23. September“ mit „Noch keine Mahlzeiten heute“. `DayMealList.tsx` nutzt `home.meals.emptyTitle`. Darüber steht „Kein Kalorienziel gesetzt · Jetzt festlegen“; das ist für einen Tag vor der Anmeldung plausibel.
+- Kein Screenshot gesichert (nur live geprüft).
+- Schwere: **niedrig**. **1.3-relevant: ja.**
+
+**Hinweise zum Dev-Build (keine App-Fehler)**
+- Der schwebende Expo-Knopf überdeckt die rechte Hälfte von „Fortschritt“ und das Profilbild. Taps dorthin öffnen das Dev-Menü (`tag6/01`–`04` im ersten Lauf). `day6-fortschritt.yaml` tippt deshalb weiter links.
+- Im Dev-Build ersetzt `resolveHistoryPreviewData` fehlende Kalorien durch Vorschauwerte (`__DEV__`). Der frische Nutzer sieht deshalb Balken für Sa–Do, „1521 kcal, 5 von 6 Tagen erfasst“. In Produktion greift das nicht, für Tests mit Ernährungsdaten im Dev-Build ist es aber irreführend.
+- Mahlzeiten konnte der anonyme Nutzer nicht eintragen: „Manuell“ führt zur Anmeldung, der Foto-Scan erkennt die Apple-Beispielfotos nicht, Barcode braucht eine Kamera. Protein-Tage und Bewertungssatz sind deshalb nur in Block 1 geprüft.
+- RevenueCat meldet im Dev-Build „Invalid API key“ (lokaler Schlüssel fehlt).
+
+## Übersicht der Fehler
+
+| # | Titel | Schwere | Status | 1.3-relevant |
+|---|---|---|---|---|
+| F1 | Zusammenfassung vergleicht die Einheit mit sich selbst | hoch | behoben (`1445e69`) | ja |
+| F2 | Geburtsdatum: „Fertig“ ohne Drehen übernimmt nichts | mittel | dokumentiert | ja |
+| F3 | Gewicht und Distanz mit Punkt statt Komma | niedrig | dokumentiert | ja |
+| F4 | Dauer läuft auf der Zusammenfassung weiter | mittel | dokumentiert | ja |
+| F5 | Nachtragen nutzt den aktuellen Plan | niedrig | dokumentiert | ja |
+| F6 | Zielbereich neue Stufe: Datenbank ≠ Migrationen | niedrig | dokumentiert | ja |
+| F7 | Startgewicht wandert am ersten Tag | niedrig | dokumentiert | ja |
+| F8 | „Noch keine Mahlzeiten heute“ für vergangene Tage | niedrig | dokumentiert | ja |
+
+Dazu die Entwurfsfragen aus Block 1: kein höheres Ziel an Trainingstagen ohne Health, kein Defizit bei Muskelaufbau, keine Bestwerte in der ersten Woche, kein Laufen im manuellen Training.

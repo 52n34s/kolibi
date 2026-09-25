@@ -1,9 +1,0 @@
-# TAG 2c · Rerun of the exercise sticker from the open summary.
-appId: com.steffen.kolibi
-env:
-  SHOT: tag2
----
-- runFlow:
-    file: common/share-sheet.yaml
-    env:
-      PREFIX: "20-uebung"

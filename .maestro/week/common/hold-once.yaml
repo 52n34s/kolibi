@@ -1,0 +1,22 @@
+# One timed set without sides: hold to TIME, stop, mark done.
+appId: com.steffen.kolibi
+---
+- runFlow:
+    when:
+      visible:
+        id: "training.timerBar.skip"
+    commands:
+      - tapOn:
+          id: "training.timerBar.skip"
+      - waitForAnimationToEnd:
+          timeout: 1500
+- tapOn:
+    id: "training.hold.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.hold.time"
+      text: ${TIME}
+    timeout: 60000
+- tapOn:
+    id: "training.hold.stop"
+- runFlow: ../../training/common/hold-set-done.yaml

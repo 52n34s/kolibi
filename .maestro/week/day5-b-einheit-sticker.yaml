@@ -1,0 +1,19 @@
+# TAG 5b · Session sticker from the open summary, then finish.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag5
+---
+- scrollUntilVisible:
+    element:
+      id: "training.summary.shareSession"
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+- takeScreenshot: ${SHOT}/06-bestwerte
+- scroll
+- takeScreenshot: ${SHOT}/07-bestwerte-unten
+- tapOn:
+    id: "training.summary.shareSession"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${SHOT}/08-sticker-einheit

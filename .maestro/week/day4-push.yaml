@@ -1,0 +1,44 @@
+# TAG 4 · Push: Liegestütze 12 · 12 · 12 (upper bound, normal) → expect a
+# next-level suggestion. Dips 9 · 8 · 8, Pike 8 · 8 · 7, Hollow Hold 25 · 25 s.
+appId: com.steffen.kolibi
+env:
+  SHOT: tag4
+---
+- runFlow: common/launch.yaml
+- tapOn:
+    id: "home.tab.training"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ${SHOT}/01-training-vor-push
+- tapOn:
+    id: "training.next.start"
+- extendedWaitUntil:
+    visible:
+      id: "training.input.done"
+    timeout: 25000
+- takeScreenshot: ${SHOT}/02-push-gestartet
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "12" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "12" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "12" } }
+- takeScreenshot: ${SHOT}/03-dips
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "9" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "8" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "8" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "8" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "8" } }
+- runFlow: { file: common/set-value.yaml, env: { VALUE: "7" } }
+- takeScreenshot: ${SHOT}/04-hollow-hold
+- runFlow: { file: common/hold-once.yaml, env: { TIME: "00:25" } }
+- runFlow: { file: common/hold-once.yaml, env: { TIME: "00:25" } }
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.done"
+    timeout: 25000
+- takeScreenshot: ${SHOT}/05-zusammenfassung
+- scrollUntilVisible:
+    element:
+      id: "training.summary.exercises"
+    direction: DOWN
+    timeout: 10000
+    optional: true
+- takeScreenshot: ${SHOT}/06-zusammenfassung-unten
