@@ -10,6 +10,8 @@ import {
 } from '@/components/training/IdleProgressionOverlay';
 import { RestTimerCard } from '@/components/training/RestTimerCard';
 import { StarterPlanPicker } from '@/components/training/StarterPlanPicker';
+import { useRequirePlan } from '@/hooks/use-require-plan';
+import type { ProductAction } from '@/lib/product-access';
 import {
   countTemplateExercises,
   daysSinceLoggedOn,
@@ -57,6 +59,15 @@ function openPlanEditor() {
 
 export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps) {
   const { t } = useTranslation();
+  const requirePlan = useRequirePlan();
+  // Plan edits and backfill need an active plan (AGB Ziffer 10 Abs. 5).
+  const withPlan = (action: ProductAction, run: () => void) => () => {
+    void requirePlan(action).then((allowed) => {
+      if (allowed) {
+        run();
+      }
+    });
+  };
   const todayKey = localDateKey();
   const startKey = shiftLocalDateKey(todayKey, -90);
   const templatesQuery = useWorkoutTemplates();
@@ -120,7 +131,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
             <Pressable
               testID="training.idle.openArchivedPlan"
               accessibilityRole="button"
-              onPress={onEditPlan ?? openPlanEditor}
+              onPress={withPlan('editPlan', onEditPlan ?? openPlanEditor)}
               style={styles.archivedHintBtn}>
               <Text style={styles.archivedHintBtnText}>
                 {t('training.panel.emptyArchivedOpenPlan')}
@@ -136,7 +147,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
       <ScrollView
         contentContainerStyle={styles.empty}
         showsVerticalScrollIndicator={false}>
-        <StarterPlanPicker onCustom={openNewWorkout} />
+        <StarterPlanPicker onCustom={withPlan('editPlan', openNewWorkout)} />
         <RestTimerCard />
       </ScrollView>
     );
@@ -234,7 +245,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
         <Pressable
           testID="training.backfill.open"
           accessibilityRole="button"
-          onPress={() => router.push('/koli/workout-backfill' as Href)}
+          onPress={withPlan('backfillSession', () => router.push('/koli/workout-backfill' as Href))}
           style={styles.linkWrap}>
           <Text style={styles.link}>{t('training.backfill.open')}</Text>
         </Pressable>
@@ -244,14 +255,14 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
             <Pressable
               testID="training.idle.newWorkout"
               accessibilityRole="button"
-              onPress={openNewWorkout}
+              onPress={withPlan('editPlan', openNewWorkout)}
               style={styles.linkWrap}>
               <Text style={styles.link}>{t('training.panel.newWorkout')}</Text>
             </Pressable>
             <Pressable
               testID="training.idle.editPlan"
               accessibilityRole="button"
-              onPress={onEditPlan}
+              onPress={onEditPlan ? withPlan('editPlan', onEditPlan) : undefined}
               style={styles.linkWrap}>
               <Text style={styles.link}>{t('training.panel.editPlan')}</Text>
             </Pressable>

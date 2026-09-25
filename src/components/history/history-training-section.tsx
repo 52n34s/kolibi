@@ -49,6 +49,7 @@ import {
   type PersonalBest,
 } from '@/lib/workouts/progress';
 import type { WorkoutSession } from '@/lib/workouts/types';
+import { useRequirePlan } from '@/hooks/use-require-plan';
 import {
   buildWeekDayMarkers,
   buildWeekDayMarkersForKeys,
@@ -153,6 +154,7 @@ export function HistoryTrainingSection({
   onOpenTrainingTab,
   canOpenTrainingTab = false,
 }: HistoryTrainingSectionProps) {
+  const requirePlan = useRequirePlan();
   const { t, i18n } = useTranslation();
   const innerWidth = chartWidth - 32;
   const [showAllBests, setShowAllBests] = useState(false);
@@ -387,7 +389,20 @@ export function HistoryTrainingSection({
       onOpenTrainingTab();
       return;
     }
-    router.push('/koli/workout-plan' as Href);
+    void requirePlan('editPlan').then((allowed) => {
+      if (allowed) {
+        router.push('/koli/workout-plan' as Href);
+      }
+    });
+  }
+
+  // Backfilling is a new entry: it needs an active plan (AGB Ziffer 10 Abs. 5).
+  function openBackfill() {
+    void requirePlan('backfillSession').then((allowed) => {
+      if (allowed) {
+        router.push('/koli/workout-backfill' as Href);
+      }
+    });
   }
 
   if (sessionsInRange.length === 0) {
@@ -413,7 +428,7 @@ export function HistoryTrainingSection({
         <Pressable
           testID="training.backfill.open"
           accessibilityRole="button"
-          onPress={() => router.push('/koli/workout-backfill' as Href)}
+          onPress={openBackfill}
           className="items-center border-t border-black/5 px-5 py-4">
           <Text className="text-sm font-medium text-[#4F46E5]">
             {t('training.backfill.open')}
@@ -624,7 +639,7 @@ export function HistoryTrainingSection({
                 testID="training.backfill.open"
                 accessibilityRole="button"
                 accessibilityLabel={t('training.backfill.open')}
-                onPress={() => router.push('/koli/workout-backfill' as Href)}
+                onPress={openBackfill}
                 className="px-3 py-3">
                 <Text className="text-sm font-medium text-[#4F46E5]">
                   {t('training.backfill.open')}
