@@ -172,6 +172,7 @@ export default function TrainingLogScreen() {
         intensity,
         weightKg,
         manualKcal,
+        isManual: true,
       });
       await invalidateTrainingQueries(queryClient, userId);
       router.back();

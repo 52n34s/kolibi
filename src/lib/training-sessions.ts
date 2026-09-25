@@ -1,3 +1,4 @@
+import { createSchemaProbe } from '@/lib/db-schema-errors';
 import { localDateKey, parseDateOnly } from '@/lib/day-window';
 import {
   calculateTrainingCalories,
@@ -21,6 +22,13 @@ export type TrainingSession = {
   /** Effective kcal (MET estimate or manual) — DB column `estimated_kcal`. */
   kcal: number;
   kcalSource: TrainingKcalSource;
+  /** When it was written — a Kolibi unit's row lands right after the finish. */
+  createdAt: string | null;
+  /**
+   * Written by hand (Trainingslog, Nachtragen without a unit). undefined while
+   * the is_manual migration has not run — then the old row rules apply.
+   */
+  isManual: boolean | undefined;
 };
 
 /** Matches public.training_sessions columns. */
@@ -33,6 +41,9 @@ type TrainingSessionRow = {
   intensity: string;
   estimated_kcal: number;
   kcal_source: string | null;
+  created_at: string | null;
+  /** Only selected once the is_manual migration ran. */
+  is_manual?: boolean | null;
 };
 
 function isTrainingKcalSource(value: string | null | undefined): value is TrainingKcalSource {
@@ -56,11 +67,25 @@ function mapRow(row: TrainingSessionRow): TrainingSession {
     intensity: row.intensity,
     kcal: row.estimated_kcal,
     kcalSource: isTrainingKcalSource(row.kcal_source) ? row.kcal_source : 'estimated',
+    createdAt: row.created_at ?? null,
+    isManual: row.is_manual == null ? undefined : row.is_manual === true,
   };
 }
 
 const TRAINING_SESSION_SELECT =
-  'id, user_id, logged_on, training_type, duration_min, intensity, estimated_kcal, kcal_source';
+  'id, user_id, logged_on, training_type, duration_min, intensity, estimated_kcal, kcal_source, created_at';
+
+/** training_sessions.is_manual (20260927102000_training_sessions_is_manual). */
+export const hasIsManualColumn = createSchemaProbe(() =>
+  supabase.from('training_sessions').select('is_manual').limit(0),
+);
+
+/** The row columns, with is_manual once the migration ran. */
+async function trainingSessionSelect(): Promise<string> {
+  return (await hasIsManualColumn())
+    ? `${TRAINING_SESSION_SELECT}, is_manual`
+    : TRAINING_SESSION_SELECT;
+}
 
 /** Monday–Sunday local date keys for the week containing `now`. */
 export function localWeekDateKeys(now: Date = new Date()): string[] {
@@ -86,7 +111,7 @@ export async function fetchTrainingSessionsForWeek(
   const keys = localWeekDateKeys(now);
   const { data, error } = await supabase
     .from('training_sessions')
-    .select(TRAINING_SESSION_SELECT)
+    .select(await trainingSessionSelect())
     .eq('user_id', userId)
     .gte('logged_on', keys[0])
     .lte('logged_on', keys[6])
@@ -97,7 +122,7 @@ export async function fetchTrainingSessionsForWeek(
     throw error;
   }
 
-  return ((data ?? []) as TrainingSessionRow[]).map(mapRow);
+  return ((data ?? []) as unknown as TrainingSessionRow[]).map(mapRow);
 }
 
 export async function fetchTrainingSessionsInRange(
@@ -107,7 +132,7 @@ export async function fetchTrainingSessionsInRange(
 ): Promise<TrainingSession[]> {
   const { data, error } = await supabase
     .from('training_sessions')
-    .select(TRAINING_SESSION_SELECT)
+    .select(await trainingSessionSelect())
     .eq('user_id', userId)
     .gte('logged_on', startKey)
     .lte('logged_on', endKey)
@@ -118,7 +143,7 @@ export async function fetchTrainingSessionsInRange(
     throw error;
   }
 
-  return ((data ?? []) as TrainingSessionRow[]).map(mapRow);
+  return ((data ?? []) as unknown as TrainingSessionRow[]).map(mapRow);
 }
 
 export async function fetchTrainingSessionsForDate(
@@ -127,7 +152,7 @@ export async function fetchTrainingSessionsForDate(
 ): Promise<TrainingSession[]> {
   const { data, error } = await supabase
     .from('training_sessions')
-    .select(TRAINING_SESSION_SELECT)
+    .select(await trainingSessionSelect())
     .eq('user_id', userId)
     .eq('logged_on', loggedOn)
     .order('created_at', { ascending: true });
@@ -136,7 +161,7 @@ export async function fetchTrainingSessionsForDate(
     throw error;
   }
 
-  return ((data ?? []) as TrainingSessionRow[]).map(mapRow);
+  return ((data ?? []) as unknown as TrainingSessionRow[]).map(mapRow);
 }
 
 export async function insertTrainingSession(params: {
@@ -149,6 +174,8 @@ export async function insertTrainingSession(params: {
   weightKg: number;
   /** When set and > 0, stored as manual kcal; otherwise MET estimate. */
   manualKcal?: number | null;
+  /** True for entries written by hand; a Kolibi unit's own row leaves it false. */
+  isManual?: boolean;
 }): Promise<TrainingSession> {
   const estimatedKcal = calculateTrainingCalories({
     activity: params.activity,
@@ -167,6 +194,11 @@ export async function insertTrainingSession(params: {
   const kcal = manual ?? estimatedKcal;
   const kcalSource: TrainingKcalSource = manual != null ? 'manual' : 'estimated';
 
+  // Without the migration the column is left out entirely — PostgREST would
+  // otherwise reject the whole row (PGRST204).
+  const select = await trainingSessionSelect();
+  const isManual = params.isManual === true && (await hasIsManualColumn());
+
   const { data, error } = await supabase
     .from('training_sessions')
     .insert({
@@ -177,8 +209,9 @@ export async function insertTrainingSession(params: {
       intensity: params.intensity,
       estimated_kcal: kcal,
       kcal_source: kcalSource,
+      ...(isManual ? { is_manual: true } : {}),
     })
-    .select(TRAINING_SESSION_SELECT)
+    .select(select)
     .single<TrainingSessionRow>();
 
   if (error) {
@@ -230,7 +263,7 @@ export async function updateTrainingSession(params: {
     })
     .eq('id', params.id)
     .eq('user_id', params.userId)
-    .select(TRAINING_SESSION_SELECT)
+    .select(await trainingSessionSelect())
     .single<TrainingSessionRow>();
 
   if (error) {

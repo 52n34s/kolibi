@@ -541,7 +541,12 @@ export function buildRecapSticker(
      * `trainingSessionId`; those are the workout itself and are not counted twice,
      * nor are unlinked duplicates of a unit (see reconcileTrainingRows).
      */
-    manualSessions: readonly { id: string; loggedOn: string; activity: string }[];
+    manualSessions: readonly {
+      id: string;
+      loggedOn: string;
+      activity: string;
+      isManual?: boolean;
+    }[];
     /** Best value per exercise_id before the window start (`useExerciseBestsBefore`). */
     beforeBests: Readonly<Record<string, number>>;
     /** Progression events; only those created inside the window count. */
