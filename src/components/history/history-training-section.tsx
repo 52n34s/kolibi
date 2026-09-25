@@ -325,6 +325,7 @@ export function HistoryTrainingSection({
               ? set.exerciseId === best.exerciseId
               : set.exerciseId == null && set.exerciseName === best.exerciseName,
           ) ?? rangeSets[0]!,
+          catalog?.names,
         ),
       };
     });
