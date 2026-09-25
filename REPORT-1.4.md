@@ -1,0 +1,129 @@
+# Kolibi 1.4.0 – Arbeitsbericht
+
+Branch `release/1.4`, abgezweigt vom lokalen `main` (48ea6ab), `feat/share-stickers` hineingemergt (97d4808).
+Baseline: `npm test` grün, `npx tsc --noEmit | grep -v supabase/functions` = 15 Fehler (alle vorbestehend, siehe „Aufräumen später“).
+
+## Migrationen (nur Dateien, manuell im SQL-Editor ausführen)
+
+| Reihenfolge | Datei | Zweck | Block |
+|---|---|---|---|
+| 1 | `20260924152000_beginner_ladder_steps.sql` | Einsteiger-Stufen unter den Leitern (schon auf main, seit Build 32 neu) | 1.3-Inhalt |
+| 2 | `20260925180000_register_push_token.sql` | RPC, die den Push-Token eines Geräts dem angemeldeten Nutzer überträgt | 1.3 |
+
+---
+
+## Setup – Merge `feat/share-stickers` → `release/1.4` (97d4808)
+
+Konflikte:
+- `TrainingSummaryView.tsx`: „Zum ersten Mal“ (`milestones`) aus `feat/share-stickers` bleibt. Neue Bestwerte kommen aus `milestones[index] === 'newBest'`; jeder Vergleich nimmt die laufende Einheit mit `withoutSession` aus dem Verlauf. `bestPriorValue`/`bestSessionValue` kommen aus `lib/workouts/session-bests` (auf main dorthin ausgelagert). `newSessionBest` bleibt als getestete Funktion in `session-bests.ts`, die Zusammenfassung nutzt auf diesem Branch die Milestones.
+- `progression-history.test.ts`: beide Seiten übernommen, inkl. Test „Zum ersten Mal trotz synchronisierter Sätze“.
+
+Tests 522/522, tsc 15 (Baseline).
+
+---
+
+## Block 1.1 – 1.3-Inhalte im lokalen main
+
+Stand lokales `main` = 48ea6ab.
+
+| Punkt | Vorhanden | Commit / Ort |
+|---|---|---|
+| A Übungsnamen über `exercise_id`, aktuelle Sprache | ja | c4a9c46 (`displayExerciseName`, `bestSetByExercise`), Vorschaubild-Buchstabe 762d7bb |
+| B Scan-Leiste im Fortschritt-Tab aus | ja | c4a9c46 (`hideScanButtons` … `homeTab === 'history'`) |
+| C 7-Tage-Volumen chronologisch | ja | c4a9c46 (`oldestFirst`) |
+| D Wiederholungen als Summe | ja | c4a9c46 (`targetActualReps: "{{actual}} Wdh."`) |
+| E Timer DE Anhalten/Weiter, ES Detener/Seguir | ja | c4a9c46 |
+| F TrialValuePitch mit Training | ja | c4a9c46 (`paywall.valuePitch.training`) |
+| G Paywall „Ernährung, Training und Auswertung“ | ja | c4a9c46 (`paywall.planIncludesAll`) |
+| H Bestwerte gegen frühere Einheiten, Erstausführung kein Bestwert | ja | 48ea6ab |
+| I Keep-Awake auf allen Tabs | nein (main) | f887a97 auf `fix/reminders-keepawake`, in `release/1.4` gemergt (95a98e0) |
+| J Push-Token | nein (main) | nie auf main; jetzt in `release/1.4` (Block 1.3) |
+| K Zugang AGB Ziffer 10 Abs. 5 | nein | nie gebaut; main sperrt registrierte Nutzer ohne Zugang komplett (siehe Block 1.2) |
+| L `TRAINING_RELEASED = true` | ja | `src/lib/workouts/training-release.ts:6` |
+
+---
+
+## Block 1.2 – Zugang nach AGB Ziffer 10 Abs. 5
+
+### Ist (vorher, main 48ea6ab)
+
+| Aktion | Registriert ohne Zugang | Anonym nach den Gratis-Scans |
+|---|---|---|
+| Heute ansehen | Sperrbildschirm (`RegisteredHomeProductLock`) | frei |
+| Essen/Historie ansehen | Sperrbildschirm; Tag-Detail → Weiterleitung zu Einstellungen + Paywall | frei |
+| Fortschritt ansehen (inkl. Training) | Sperrbildschirm | frei |
+| Export | gesperrt (Route-Gate + eigene Sperre im Screen), auch aus Einstellungen → Datenrechte | frei |
+| Foto-Scan | Button ausgeblendet, sonst Paywall | Paywall |
+| Barcode | Button ausgeblendet, sonst Paywall | immer Registrierung, auch mit freien Scans |
+| Manuelle Mahlzeit | Button ausgeblendet, sonst Paywall | immer Registrierung |
+| Gewicht eintragen | Karte unerreichbar; Speichern → Paywall | frei |
+| Trainings-Tab ansehen | Sperrbildschirm | frei |
+| Einheit starten | unerreichbar (kein eigenes Gate) | frei |
+| Einheit nachtragen | Weiterleitung zu Einstellungen + Paywall | frei |
+| Plan bearbeiten | Weiterleitung zu Einstellungen + Paywall | frei |
+| Einstellungen | frei | frei |
+| Account löschen | frei | frei |
+| Käufe wiederherstellen | frei (nur in der Paywall) | frei (nur in der Paywall) |
+
+### Soll = umgesetzt (registrierte Nutzer ohne Zugang)
+
+| Aktion | Jetzt |
+|---|---|
+| Heute, Essen/Historie, Fortschritt inkl. Training, Trainings-Tab im Ruhezustand | frei ansehen, Tabs wechseln ohne Paywall |
+| Tag-Detail, Einheit-Detail, Übungs-Fortschritt | frei (Route offen); Bearbeiten im Tag-Detail wie bisher → Paywall |
+| Export | frei, auch über Einstellungen → Datenrechte |
+| Foto-Scan, Barcode, manuelle Mahlzeit | Scan-Leiste sichtbar, Tipp → Paywall |
+| Einheit starten | Paywall (neu: `useRequirePlan('startSession')`) |
+| Einheit nachtragen, Plan bearbeiten, Starter-Plan übernehmen, neue Einheit | Paywall vor dem Öffnen; ruft jemand die Route direkt auf, erscheint die Paywall über dem vorherigen Screen |
+| Gewicht eintragen | **unverändert**: Speichern → Paywall. Neu ist nur, dass die Karte sichtbar ist. |
+| Einstellungen, Account löschen, Käufe wiederherstellen | frei (unverändert) |
+| Zugang läuft ab | Paywall einmal beim Öffnen, der Tab bleibt |
+
+Anonyme Nutzer: unverändert (ansehen frei, Foto-Scan nach dem Limit → Paywall, Barcode/manuell → Registrierung).
+
+Technik: `resolveActionAccess` und `koliRouteAccess` in `src/lib/product-access.ts` (reine Funktionen, 7 neue Tests), `useRequirePlan`, app-weiter `GlobalPaywallHost` mit `usePaywallRequestStore`. `RegisteredHomeProductLock` und die Texte `home.productLock` sind entfernt.
+
+Commits: 46f8138, 6b7984e, 7bcc92b, 38198c8, 4dbc6d8, 2b62a5e. Tests 538/538, tsc 15.
+
+**Annahmen / Fragen**
+- ❓ Ziele (Kalorien-, Protein-, Makro-, Bewegungs-, Trainingsziel, Zielgewicht), Supplemente, Übungskatalog und Trainingslog (`/koli/training-log`) bleiben hinter dem Zugang. AGB nennt sie nicht ausdrücklich; es sind Einstellungen bzw. neue Einträge.
+- ❓ Einheit-Detail (`/koli/workout-session/[id]`) ist offen, inklusive Bearbeiten und Löschen vergangener Sätze. Das Tag-Detail sperrt Bearbeiten dagegen. Soll ich das Einheit-Detail angleichen (nur ansehen)?
+- ❓ Anonym: Training bleibt frei. AGB beschränkt für anonyme Nutzung nur die Foto-Analysen.
+- Diff: `git diff 0cd2f80..2b62a5e`.
+
+---
+
+## Block 1.3 – Supplement- und Mahlzeiten-Erinnerungen
+
+Umgesetzt:
+1. **Migration** `20260925180000_register_push_token.sql`: `register_push_token(p_token text, p_platform text, p_device_id text default null)`, `SECURITY DEFINER`, `search_path = public, pg_temp`. Löscht Zeilen mit demselben Token bei anderen Nutzern und Zeilen derselben `device_id` mit anderem Token, dann Insert/Update für `auth.uid()` (setzt `updated_at`, `last_used_at`). `execute` nur für `authenticated`, entzogen für `public` und `anon`.
+2. **Client** (`src/lib/push-token-store.ts`, `notifications.ts`): RPC zuerst. Fehlt sie noch (`PGRST202`/`42883`), der bisherige Weg Delete + Upsert, jetzt mit Fehlerauswertung. RLS-Ablehnung (`42501`, Token gehört einem anderen Account), Upsert ohne Zeile oder sonstiger Fehler → `'token_failed'` plus Sentry-Meldung mit `push_token_failure`, `push_token_via`, `db_error_code`.
+3. **Account-Wechsel**: `completeExistingIdentitySignIn` und `signInWithEmail` geben den Token des bisherigen (meist anonymen) Nutzers frei, bevor der Wechsel passiert. Scheitert das Passwort-Login, wird der Token dem bisherigen Nutzer zurückgegeben. Den neuen Account registriert `_layout` beim Wechsel der `userId`. Logout gibt den Token frei (wie bisher, jetzt mit Fehlerauswertung und Rückfall auf die Geräte-ID).
+4. **Berechtigung aus**: Speichern ohne Berechtigung legt die Erinnerung ausgeschaltet an und zeigt „Erinnerung gespeichert, noch ausgeschaltet“ mit „Zu den Einstellungen“ (`Linking.openSettings`) und „Später“. Beim Einschalten per Schalter derselbe Hinweis. Schlägt nur die Token-Registrierung fehl, bleibt der Editor mit dem Entwurf offen.
+5. **Cron-Migration**: nicht geschrieben. → Frage unten.
+6. **Tests**: `push-token-store.test.ts` (6 Tests, u. a. Übernahme über die RPC, RLS-Ablehnung auf dem Rückfallweg).
+
+Commits: 7af32e4, cefe3c3, ca081e0, cf641b2, 0cd2f80. Keep-Awake: f887a97 (Merge 95a98e0).
+Tests 531/531, tsc 15 (Baseline).
+
+Doppelte Pushes: `send-supplement-reminders` liest vor dem Senden `supplement_reminder_log` für `(reminder_id, sent_on)` und überspringt bereits gesendete; nach dem Senden `insert` mit `unique (reminder_id, sent_on)`, ein `23505` zählt als bereits gesendet. Pro Erinnerung und lokalem Tag also höchstens ein erfolgreicher Versand. Lücke: Schlägt das Log-Insert nach erfolgreichem Expo-Versand aus anderem Grund fehl, kann der nächste Lauf im selben 30-Minuten-Fenster erneut senden.
+
+Prüfung nach dem Ausführen der Migration (im SQL-Editor, rollt zurück):
+```sql
+begin;
+-- als eingeloggter Nutzer simulieren: set local role authenticated; set local request.jwt.claims = '{"sub":"<deine-user-id>"}';
+select public.register_push_token('<dein ExponentPushToken[…]>', 'ios', null);
+select user_id, device_id, updated_at from public.push_tokens where expo_push_token = '<dein ExponentPushToken[…]>';
+rollback;
+```
+
+**Fragen**
+- ❓ Cron-Migration (1.3.5): Bitte die Ausgabe von `select jobname, schedule, command from cron.job order by jobid;` schicken. Ohne die exakten Befehle (Vault-Secret-Namen, URL-Quelle) schreibe ich keine Migration, die laufende Jobs ersetzt.
+- ❓ `p_device_id` als dritter Parameter mit Default `null` (so von dir in 1.3 beschrieben).
+
+---
+
+## Aufräumen später
+- ESLint startet nicht: `Cannot find module 'eslint/config'`.
+- 15 tsc-Fehler auf main (Auth-Screens TS2769, `supabase.ts`, `language-switcher`, `profile-panel`, `support-panel`, `notifications-settings-section`, `use-theme`, `onboarding-field`).
+- Worktree `~/Dev/Kolibi-reminders` (`fix/reminders-keepawake`) ist in `release/1.4` aufgegangen und kann weg; `Kolibi-wt-report` (`test/week-simulation`) und `Kolibi-wt-main` bestehen weiter.
