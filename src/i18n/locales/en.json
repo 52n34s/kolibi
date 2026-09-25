@@ -1837,5 +1837,11 @@
       "short_on_time": "short on time",
       "too_hard": "too hard"
     }
+  },
+  "liveActivity": {
+    "title": "Rest",
+    "nextSet": "Set {{set}} of {{sets}}",
+    "paused": "Paused",
+    "done": "Rest’s over – let’s go!"
   }
 }

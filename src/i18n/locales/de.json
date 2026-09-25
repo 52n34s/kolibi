@@ -1837,5 +1837,11 @@
       "short_on_time": "wenig Zeit",
       "too_hard": "zu schwer"
     }
+  },
+  "liveActivity": {
+    "title": "Pause",
+    "nextSet": "Satz {{set}} von {{sets}}",
+    "paused": "Pausiert",
+    "done": "Pause vorbei – weiter geht’s!"
   }
 }

@@ -1837,5 +1837,11 @@
       "short_on_time": "poco tiempo",
       "too_hard": "demasiado difícil"
     }
+  },
+  "liveActivity": {
+    "title": "Descanso",
+    "nextSet": "Serie {{set}} de {{sets}}",
+    "paused": "En pausa",
+    "done": "¡Descanso terminado, a por ello!"
   }
 }
