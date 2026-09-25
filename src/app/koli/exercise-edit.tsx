@@ -34,12 +34,14 @@ import { newId } from '@/lib/id';
 import { getCatalogExerciseImage } from '@/lib/workouts/catalog-images';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { workoutQueryKeys } from '@/lib/workouts/query-keys';
-import type { Exercise } from '@/lib/workouts/types';
+import { MUSCLE_GROUPS, musclesForExercise } from '@/lib/workouts/muscles';
+import type { Exercise, MuscleGroup } from '@/lib/workouts/types';
 import {
   archiveExercise,
   createExercise,
   fetchExercises,
   getExerciseImageSignedUrl,
+  hasExerciseMuscles,
   updateExercise,
   uploadExerciseImage,
 } from '@/lib/workouts/workouts-api';
@@ -65,7 +67,24 @@ type Draft = {
   useDefaultRest: boolean;
   rest: string;
   note: string;
+  primaryMuscles: MuscleGroup[];
+  secondaryMuscles: MuscleGroup[];
 };
+
+/** Tap cycle per group: none → primary → secondary → none. */
+function cycleMuscle(draft: Draft, group: MuscleGroup): Draft {
+  if (draft.primaryMuscles.includes(group)) {
+    return {
+      ...draft,
+      primaryMuscles: draft.primaryMuscles.filter((g) => g !== group),
+      secondaryMuscles: [...draft.secondaryMuscles, group],
+    };
+  }
+  if (draft.secondaryMuscles.includes(group)) {
+    return { ...draft, secondaryMuscles: draft.secondaryMuscles.filter((g) => g !== group) };
+  }
+  return { ...draft, primaryMuscles: [...draft.primaryMuscles, group] };
+}
 
 function emptyDraft(): Draft {
   return {
@@ -78,6 +97,8 @@ function emptyDraft(): Draft {
     useDefaultRest: true,
     rest: String(DEFAULT_REST_WHEN_CUSTOM),
     note: '',
+    primaryMuscles: [],
+    secondaryMuscles: [],
   };
 }
 
@@ -93,6 +114,8 @@ function draftFromExercise(exercise: Exercise, lang: string): Draft {
     useDefaultRest: exercise.defaultRestSeconds == null,
     rest: String(exercise.defaultRestSeconds ?? DEFAULT_REST_WHEN_CUSTOM),
     note: exercise.note ?? '',
+    primaryMuscles: exercise.primaryMuscles ?? [],
+    secondaryMuscles: exercise.secondaryMuscles ?? [],
   };
 }
 
@@ -126,6 +149,13 @@ export default function ExerciseEditScreen() {
     () => exercisesQuery.data?.find((row) => row.id === (exerciseId ?? paramId)),
     [exercisesQuery.data, exerciseId, paramId],
   );
+
+  // Muscle selection only once migration 20260926143400 ran.
+  const { data: musclesAvailable = false } = useQuery({
+    queryKey: ['exercise-muscles-schema'],
+    staleTime: Infinity,
+    queryFn: () => hasExerciseMuscles(),
+  });
 
   const isOwn = exercise?.userId != null;
   const isReadonly = Boolean(readonly && exercise && !isOwn);
@@ -315,6 +345,8 @@ export default function ExerciseEditScreen() {
           defaultSeconds: seconds,
           defaultRestSeconds: restSeconds,
           note,
+          primaryMuscles: draft.primaryMuscles,
+          secondaryMuscles: draft.secondaryMuscles,
         });
         setExerciseId(created.id);
 
@@ -341,6 +373,8 @@ export default function ExerciseEditScreen() {
         defaultSeconds: seconds,
         defaultRestSeconds: restSeconds,
         note,
+        primaryMuscles: draft.primaryMuscles,
+        secondaryMuscles: draft.secondaryMuscles,
         ...(removeRemoteImage && !pendingImageUri
           ? { imagePath: null, imageAsset: null }
           : {}),
@@ -433,6 +467,8 @@ export default function ExerciseEditScreen() {
         defaultRestSeconds: exercise.defaultRestSeconds,
         imageAsset: exercise.imageAsset,
         note: exercise.note,
+        primaryMuscles: [...musclesForExercise(exercise).primary],
+        secondaryMuscles: [...musclesForExercise(exercise).secondary],
       });
       await invalidateExercises();
       router.replace(`/koli/exercise-edit?id=${encodeURIComponent(created.id)}` as Href);
@@ -620,6 +656,46 @@ export default function ExerciseEditScreen() {
               </>
             ) : null}
 
+            {musclesAvailable && !isReadonly && exercise?.catalogSlug == null ? (
+              <>
+                <Text style={styles.label}>{t('muscles.editor.label')}</Text>
+                <Text style={styles.muscleHint}>{t('muscles.editor.hint')}</Text>
+                <View style={styles.muscleRow}>
+                  {MUSCLE_GROUPS.map((group) => {
+                    const primary = draft.primaryMuscles.includes(group);
+                    const secondary = draft.secondaryMuscles.includes(group);
+                    const suffix = primary
+                      ? ` · ${t('muscles.editor.primary')}`
+                      : secondary
+                        ? ` · ${t('muscles.editor.secondary')}`
+                        : '';
+                    return (
+                      <Pressable
+                        key={group}
+                        testID={`training.exerciseEdit.muscle.${group}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: primary || secondary }}
+                        onPress={() => setDraft((d) => cycleMuscle(d, group))}
+                        style={[
+                          styles.chip,
+                          primary && styles.chipActive,
+                          secondary && styles.chipSecondary,
+                        ]}>
+                        <Text
+                          style={[
+                            styles.chipText,
+                            (primary || secondary) && styles.chipTextActive,
+                          ]}>
+                          {t(`muscles.groups.${group}`)}
+                          {suffix}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
+
             <Text style={styles.label}>{t('training.exerciseEdit.noteLabel')}</Text>
             <OnboardingField
               testID="training.exerciseEdit.note"
@@ -761,6 +837,20 @@ const styles = StyleSheet.create({
   chipActive: {
     backgroundColor: CHIP_SURFACE_SELECTED,
     borderColor: BRAND_INDIGO,
+  },
+  chipSecondary: {
+    borderColor: BRAND_INDIGO,
+    borderStyle: 'dashed',
+  },
+  muscleHint: {
+    marginBottom: 8,
+    fontSize: 12,
+    color: TEXT_SECONDARY,
+  },
+  muscleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   chipText: {
     fontWeight: '600',
