@@ -57,7 +57,11 @@ export function MealSticker({ data, variant, options, format = 'sticker' }: Meal
           ))}
         </StickerStack>
         <StickerStack style={mealStyles.figures}>
-          <StickerText style={[s.hero, { color: palette.text }, palette.shadow]}>
+          <StickerText
+            style={[s.hero, { color: palette.text }, palette.shadow]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}>
             {t('share.meal.kcal', { value: data.kcal })}
           </StickerText>
           {showProtein ? (
