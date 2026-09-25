@@ -1,8 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ONBOARDING_CARD_COLORS } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE } from '@/components/ui/glass-styles';
-import { TEXT_SECONDARY } from '@/constants/brand';
+import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 
 const PILL_RADIUS = 999;
 
@@ -10,6 +12,8 @@ type PillSegment<T extends string> = {
   id: T;
   label: string;
   testID?: string;
+  /** Icon above a small label (home tabs). */
+  icon?: ComponentProps<typeof Ionicons>['name'];
 };
 
 type PillSegmentSwitcherProps<T extends string> = {
@@ -42,10 +46,18 @@ export function PillSegmentSwitcher<T extends string>({
               isActive && styles.segmentActive,
             ]}
             onPress={() => onChange(segment.id)}>
+            {segment.icon ? (
+              <Ionicons
+                name={segment.icon}
+                size={20}
+                color={isActive ? BRAND_INDIGO : TEXT_SECONDARY}
+              />
+            ) : null}
             <Text
               style={[
                 styles.label,
                 compact && styles.labelCompact,
+                segment.icon ? styles.labelWithIcon : null,
                 isActive && styles.labelActive,
               ]}
               numberOfLines={1}
@@ -109,6 +121,10 @@ const styles = StyleSheet.create({
   },
   labelCompact: {
     fontSize: 12,
+  },
+  labelWithIcon: {
+    marginTop: 2,
+    fontSize: 11,
   },
   labelActive: {
     color: '#111827',
