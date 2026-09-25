@@ -2,7 +2,16 @@ import * as Sentry from '@sentry/react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { OnboardingField } from '@/components/onboarding/onboarding-field';
 import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
@@ -143,82 +152,90 @@ export function SkillGoalSheet({
 
   return (
     <GlassBottomSheet visible={visible} onClose={onClose} maxHeightRatio={0.88} numberInputAccessory>
-      {picked == null ? (
-        <View style={styles.body}>
-          <Text style={styles.title}>{t('skillGoal.sheet.pickTitle')}</Text>
-          <OnboardingField
-            testID="skillGoal.search"
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('skillGoal.sheet.searchPlaceholder')}
-            autoCorrect={false}
-            autoCapitalize="none"
-            clearButtonMode="while-editing"
-          />
-          <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
-            {query.trim().length === 0 && suggested.length > 0 ? (
-              <>
-                <Text style={styles.section}>{t('skillGoal.sheet.suggested')}</Text>
-                {suggested.map((exercise) => row(exercise, 'suggested'))}
-                <Text style={styles.section}>{t('skillGoal.sheet.all')}</Text>
-              </>
-            ) : null}
-            {filtered.map((exercise) => row(exercise, 'all'))}
-          </ScrollView>
-        </View>
-      ) : (
-        <View style={styles.body}>
-          <Text style={styles.title}>{t('skillGoal.sheet.targetTitle')}</Text>
-          <Text style={styles.pickedName}>{nameOf(picked)}</Text>
-          <Text style={styles.label}>
-            {picked.kind === 'time'
-              ? t('skillGoal.sheet.targetLabelSeconds')
-              : t('skillGoal.sheet.targetLabelReps')}
-          </Text>
-          <OnboardingField
-            testID="skillGoal.target"
-            keyboardType="number-pad"
-            value={draft}
-            onChangeText={(text) => {
-              setDraft(text);
-              setError(null);
-            }}
-            placeholder={picked.kind === 'time' ? '30' : '10'}
-          />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable
-            testID="skillGoal.save"
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={() => void handleSave()}
-            style={[styles.primary, busy && styles.disabled]}>
-            {busy ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.primaryText}>{t('skillGoal.sheet.save')}</Text>
-            )}
-          </Pressable>
-          <View style={styles.links}>
-            <Pressable accessibilityRole="button" onPress={() => setPicked(null)} hitSlop={8}>
-              <Text style={styles.link}>{t('skillGoal.sheet.otherExercise')}</Text>
-            </Pressable>
-            {goal ? (
-              <Pressable
-                testID="skillGoal.remove"
-                accessibilityRole="button"
-                onPress={() => void handleRemove()}
-                hitSlop={8}>
-                <Text style={styles.linkMuted}>{t('skillGoal.sheet.remove')}</Text>
-              </Pressable>
-            ) : null}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        style={styles.keyboardAvoid}>
+        {picked == null ? (
+          <View style={styles.body}>
+            <Text style={styles.title}>{t('skillGoal.sheet.pickTitle')}</Text>
+            <OnboardingField
+              testID="skillGoal.search"
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('skillGoal.sheet.searchPlaceholder')}
+              autoCorrect={false}
+              autoCapitalize="none"
+              clearButtonMode="while-editing"
+            />
+            <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
+              {query.trim().length === 0 && suggested.length > 0 ? (
+                <>
+                  <Text style={styles.section}>{t('skillGoal.sheet.suggested')}</Text>
+                  {suggested.map((exercise) => row(exercise, 'suggested'))}
+                  <Text style={styles.section}>{t('skillGoal.sheet.all')}</Text>
+                </>
+              ) : null}
+              {filtered.map((exercise) => row(exercise, 'all'))}
+            </ScrollView>
           </View>
-        </View>
-      )}
+        ) : (
+          <View style={styles.body}>
+            <Text style={styles.title}>{t('skillGoal.sheet.targetTitle')}</Text>
+            <Text style={styles.pickedName}>{nameOf(picked)}</Text>
+            <Text style={styles.label}>
+              {picked.kind === 'time'
+                ? t('skillGoal.sheet.targetLabelSeconds')
+                : t('skillGoal.sheet.targetLabelReps')}
+            </Text>
+            <OnboardingField
+              testID="skillGoal.target"
+              keyboardType="number-pad"
+              value={draft}
+              onChangeText={(text) => {
+                setDraft(text);
+                setError(null);
+              }}
+              placeholder={picked.kind === 'time' ? '30' : '10'}
+            />
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <Pressable
+              testID="skillGoal.save"
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => void handleSave()}
+              style={[styles.primary, busy && styles.disabled]}>
+              {busy ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.primaryText}>{t('skillGoal.sheet.save')}</Text>
+              )}
+            </Pressable>
+            <View style={styles.links}>
+              <Pressable accessibilityRole="button" onPress={() => setPicked(null)} hitSlop={8}>
+                <Text style={styles.link}>{t('skillGoal.sheet.otherExercise')}</Text>
+              </Pressable>
+              {goal ? (
+                <Pressable
+                  testID="skillGoal.remove"
+                  accessibilityRole="button"
+                  onPress={() => void handleRemove()}
+                  hitSlop={8}>
+                  <Text style={styles.linkMuted}>{t('skillGoal.sheet.remove')}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </GlassBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoid: {
+    flexShrink: 1,
+  },
   body: {
     gap: 12,
   },
