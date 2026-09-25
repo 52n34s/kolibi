@@ -27,6 +27,14 @@ export function activeItemToHistoryUnit(
   };
 }
 
+/**
+ * Sets are synced while the session runs, so history fetched for its summary
+ * already contains the session itself. Comparisons need the earlier ones only.
+ */
+export function withoutSession<T extends { sessionId: string }>(rows: T[], sessionId: string): T[] {
+  return rows.filter((row) => row.sessionId !== sessionId);
+}
+
 /** Group flat history sets (newest first) into units, newest first. */
 export function sessionSetsToHistoryUnits(
   sets: SessionSet[],

@@ -41,7 +41,7 @@ import {
 import { allSetsHitUpperBound } from '@/lib/workouts/format-target';
 import { applyProgression } from '@/lib/workouts/apply-progression';
 import { suggestGymIntensityFromSetPace } from '@/lib/workouts/intensity-pace';
-import { activeItemToHistoryUnit } from '@/lib/workouts/progression-history';
+import { activeItemToHistoryUnit, withoutSession } from '@/lib/workouts/progression-history';
 import { suggestProgression, type ProgressionSuggestion } from '@/lib/workouts/progression';
 import {
   isAscentKind,
@@ -282,7 +282,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       }
       const ladder =
         exercise.ladderKey != null ? (laddersByKey.get(exercise.ladderKey) ?? []) : [];
-      const past = historyUnitQueries[index]?.data ?? [];
+      const past = withoutSession(historyUnitQueries[index]?.data ?? [], session.sessionId);
       const currentUnit = activeItemToHistoryUnit(
         item,
         session.sessionId,
@@ -346,7 +346,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       if (!exercise?.ladderStep || !exercise.ladderKey) {
         return;
       }
-      const past = historyUnitQueries[index]?.data ?? [];
+      const past = withoutSession(historyUnitQueries[index]?.data ?? [], session.sessionId);
       if (past.length > 0) {
         return;
       }
@@ -366,7 +366,7 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       );
     });
     return hints;
-  }, [session.items, exerciseQueries, historyUnitQueries, allEvents, t]);
+  }, [session.items, session.sessionId, exerciseQueries, historyUnitQueries, allEvents, t]);
 
   // First executions get "Zum ersten Mal", not a best: there is nothing to beat.
   const milestones = useMemo(
@@ -374,11 +374,14 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       session.items.map((item, index) =>
         exerciseMilestone({
           sessionBest: bestSessionValue(doneSetValues(item)),
-          priorBest: bestPriorValue(historyQueries[index]?.data ?? [], item.kind),
+          priorBest: bestPriorValue(
+            withoutSession(historyQueries[index]?.data ?? [], session.sessionId),
+            item.kind,
+          ),
           historyLoaded: historyQueries[index]?.isSuccess === true,
         }),
       ),
-    [historyQueries, session.items],
+    [historyQueries, session.items, session.sessionId],
   );
 
   const prs = useMemo(() => {
