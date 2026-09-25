@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -20,6 +20,7 @@ import { useTimerTick } from '@/hooks/use-timer-tick';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
 import { displayActiveExerciseName } from '@/lib/workouts/exercise-name';
 import { formatNextLevelHint, nextLevelHint } from '@/lib/workouts/next-level-hint';
+import { revealScrollOffset } from '@/lib/workouts/reveal-scroll';
 import { hasDoneSet } from '@/lib/workouts/session-logic';
 import { useWorkoutSyncStatus } from '@/lib/workouts/sync-queue-runtime';
 import type { ActiveSession, Exercise } from '@/lib/workouts/types';
@@ -71,6 +72,30 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   }, [exercises, session]);
 
   const startRest = useRestTimerStore((s) => s.start);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const [restBarHeight, setRestBarHeight] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+
+  // "Satz fertig" is the last thing in the content. Whenever the bar, the
+  // content or the set changes, scroll it clear of the bar if it is covered.
+  useEffect(() => {
+    if (viewportHeight <= 0 || contentHeight <= 0) {
+      return;
+    }
+    const offset = revealScrollOffset({
+      contentHeight,
+      viewportHeight,
+      scrollY: scrollYRef.current,
+      overlayHeight: restBarHeight,
+      paddingBelowTarget: SCROLL_BOTTOM + restBarHeight,
+    });
+    if (offset != null) {
+      scrollRef.current?.scrollTo({ y: offset, animated: true });
+    }
+  }, [restBarHeight, viewportHeight, contentHeight, session.cursor.exerciseIndex, session.cursor.setIndex]);
   const syncStatus = useWorkoutSyncStatus();
   const now = useTimerTick(true);
 
@@ -184,10 +209,16 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   });
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled">
+        ref={scrollRef}
+        contentContainerStyle={[styles.scroll, { paddingBottom: SCROLL_BOTTOM + restBarHeight }]}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={32}
+        onScroll={(event) => {
+          scrollYRef.current = event.nativeEvent.contentOffset.y;
+        }}
+        onContentSizeChange={(_width, height) => setContentHeight(height)}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.sessionName}>{session.templateName}</Text>
@@ -335,7 +366,12 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
 
       </ScrollView>
 
-      <RestTimerBar />
+      {/* Overlay: the content keeps the full height and gets the bar's
+          measured height as bottom padding, so "Satz fertig" can always
+          scroll clear of it. */}
+      <View style={styles.restBar} pointerEvents="box-none">
+        <RestTimerBar onHeightChange={setRestBarHeight} />
+      </View>
 
       <TrainingOverviewSheet
         session={session}
@@ -379,13 +415,21 @@ function findNextOpen(
   return null;
 }
 
+/** Space under the content when no bar shows. */
+const SCROLL_BOTTOM = 24;
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
   scroll: {
-    paddingBottom: 24,
     gap: 16,
+  },
+  restBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   header: {
     flexDirection: 'row',

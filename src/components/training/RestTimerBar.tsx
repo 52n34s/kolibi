@@ -17,7 +17,12 @@ import { useRestTimerStore } from '@/stores/rest-timer-store';
 /** Minimum tap target (pt). Icons and ±30 chips share this size. */
 const CHIP_HIT = 44;
 
-export function RestTimerBar() {
+type RestTimerBarProps = {
+  /** Measured height while visible, 0 when hidden (for the content padding). */
+  onHeightChange?: (height: number) => void;
+};
+
+export function RestTimerBar({ onHeightChange }: RestTimerBarProps = {}) {
   const { t } = useTranslation();
   const status = useRestTimerStore((s) => s.status);
   const endsAt = useRestTimerStore((s) => s.endsAt);
@@ -49,6 +54,12 @@ export function RestTimerBar() {
     }
   }, [status]);
 
+  useEffect(() => {
+    if (!active) {
+      onHeightChange?.(0);
+    }
+  }, [active, onHeightChange]);
+
   if (!active) {
     return null;
   }
@@ -72,7 +83,9 @@ export function RestTimerBar() {
   }
 
   return (
-    <View style={styles.wrap}>
+    <View
+      style={styles.wrap}
+      onLayout={(event) => onHeightChange?.(event.nativeEvent.layout.height)}>
       <GlassCard style={styles.card}>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { flex: Math.max(0.0001, progress) }]} />
