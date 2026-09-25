@@ -457,6 +457,34 @@ Commits 3bda668, 2f16b6b, 98da2bf, 1135cdf, (Switcher) + „i18n: Ernährung“,
 
 ---
 
+## Block 5.1 – Datenschutzerklärung (Kolibi-web, Branch `legal/1.4`, gepusht)
+
+- `legal/1.4` von `main` (beaabb1) + Merge `legal/share-stickers` (c4bdc23). Commits 6e56958, e9fac9a. Bearbeitet in eigenem Worktree `~/Dev/Kolibi-web-legal`, weil im Haupt-Checkout eine andere Sitzung auf `feat/landing-1.4-release` stand.
+- Ziffer 15b (DE/EN) durch den vorgegebenen Text ersetzt; Ziffer 6 um die fünf Aufzählungspunkte und den Satz zu festen Regeln / Art. 22 ergänzt; Ziffer 11a um Check-in-Erinnerung und Pausen-Vibration/Sperrbildschirm; Ziffer 18 um „Check-ins, Körpermaße, Skill-Ziele, Angaben aus dem Plan-Assistenten“.
+- Ziffer 13: Ereignisliste an `src/lib/analytics.ts` angepasst – signup_provider_selected, signup_completed, anonymous_session_started, anonymous_scan_completed, anonymous_limit_reached, anonymous_converted_to_account, share_sticker_created mit Typ (Übung, Stufe, Einheit, Wochen-/Monatsrückblick, Fortschritt, Mahlzeit, Ziel), Variante und Aktion (gespeichert, kopiert, geteilt, Instagram Stories). Keine weiteren Events im Code.
+- Stand-Datum nicht gesetzt. `npm run build` erfolgreich.
+- Hinweis: `Kolibi-web/main` ist seit dem Abzweig weitergelaufen (Landingpage 1.4, 5075102). `legal/1.4` berührt nur `app/privacy/page.tsx`; beim Release nach `main` mergen und dann das Stand-Datum setzen.
+
+## Block W.1 – Landingpage
+
+Auf `Kolibi-web/main` bereits umgesetzt, heute 16:29–16:47 von einer anderen Sitzung (Hero „Dein Essen weiß, dass Trainingstag ist.“, neue Reihenfolge, `AnalysisSection` mit `public/screens/auswertung.webp`); dazu Branch `feat/landing-1.4-release` mit 1.4-Abschnitten. Ich habe dort nichts geändert. Offen laut Abgleich: Preise 24,99 / 49,99 / 139,99 € stehen nicht im Code (Preise kommen offenbar dynamisch – prüfen), BLS-/Open-Food-Facts-Lizenzsatz im Footer fehlt auf main. ❓ Soll ich W.1 fertigstellen, obwohl dort eine andere Sitzung arbeitet?
+
+## Block A.1 – Aufräumen
+
+Laut Vorgabe nach dem Release auf `chore/cleanup`; nicht begonnen.
+
+---
+
+## Block 6.1 – Wochentest
+
+Details, Tabellen und Screenshots: `REPORT-week-test.md`. Kurz:
+- Code-Simulation (Branch `block/6.1-week-sim`, 39aa885, gemergt): 13 Bereiche, alle bestanden, ein Grenzfall teilweise.
+- Simulator: Onboarding „Beides“ → Assistent Einsteiger, Kolibi-Vorlage übernehmen, Einheit nach App-Neustart wiederhergestellt, „Zum ersten Mal“, Story-Option, Muskelansicht, Empfehlung wegwischen, EN/ES, drei Nutzertypen auf Heute.
+- Behoben: F1 Muskel-Übernahme (de5b031), F2 Heute nach Zieländerung (139b022), F3 Trainingstag bei rotierenden Plänen (ca74aaa), Rückblick-Titel und kcal-Umbruch auf Stickern (7d79a8d, df8c270).
+- Nicht testbar ohne Migrationen: Check-in, eigene Vorlagen, RIR/„Was war los?“, Maße, Skill-Ziel. Ohne Gerät: Live-Aktivität, Haptik, Instagram. Foto-Scan: nur private Fotos vorhanden, nicht genutzt.
+
+---
+
 ## Aufräumen später
 - ESLint startet nicht: `Cannot find module 'eslint/config'`.
 - 15 tsc-Fehler auf main (Auth-Screens TS2769, `supabase.ts`, `language-switcher`, `profile-panel`, `support-panel`, `notifications-settings-section`, `use-theme`, `onboarding-field`).
