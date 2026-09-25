@@ -31,6 +31,9 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { SupplementHistorySection } from '@/components/supplements/SupplementHistorySection';
 import { WeightGoalEtaMessage } from '@/components/weight-goal-eta-message';
+import { BuildUpCard } from '@/components/measurements/build-up-card';
+import { MeasurementsSheet } from '@/components/measurements/measurements-sheet';
+import { useBodyMeasurementsAvailable } from '@/hooks/use-build-up';
 import { useHistory } from '@/hooks/use-history';
 import { useMovementGoalActual } from '@/hooks/use-movement-goal-actual';
 import { useTrainingSessionsRange } from '@/hooks/use-training-sessions-range';
@@ -258,6 +261,8 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
   });
   const { data: allExercises = [] } = useExercises();
   const [recapSticker, setRecapSticker] = useState<StickerData | null>(null);
+  const [showMeasurementsSheet, setShowMeasurementsSheet] = useState(false);
+  const measurementsAvailable = useBodyMeasurementsAvailable();
   const { data: trainingTabFlag = false } = useFeatureFlag('training_tab');
   const canOpenTrainingTab =
     Boolean(onOpenTrainingTab) && resolveTrainingTabEnabled(trainingTabFlag);
@@ -2026,6 +2031,12 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
           )}
         </View>
       </View>
+      <BuildUpCard
+        className="mt-3"
+        onOpenMeasurements={
+          measurementsAvailable ? () => setShowMeasurementsSheet(true) : undefined
+        }
+      />
         </>
       ) : null}
 
@@ -2051,6 +2062,10 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       {showNutrition && userId ? (
         <SupplementHistorySection userId={userId} rangeDays={rangeDays} />
       ) : null}
+      <MeasurementsSheet
+        visible={showMeasurementsSheet}
+        onClose={() => setShowMeasurementsSheet(false)}
+      />
       <ShareStickerSheet
         data={recapSticker}
         onClose={() => setRecapSticker(null)}

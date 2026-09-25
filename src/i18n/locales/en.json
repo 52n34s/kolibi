@@ -2019,5 +2019,53 @@
     "savedAsTemplate": "“{{name}}” is now in your templates.",
     "failed": "That didn't work just now. Try again in a moment.",
     "mineEmpty": "Save a workout as a template in the plan editor and you'll find it here."
+  },
+  "measurements": {
+    "title": "Measurements",
+    "open": "Log measurements",
+    "subtitle": "Everything is optional. Measure in the morning, relaxed, always at the same spot.",
+    "moreLabel": "More measurements",
+    "fields": {
+      "chest": "Chest",
+      "arm": "Upper arm",
+      "waist": "Waist",
+      "hip": "Hips",
+      "thigh": "Thigh"
+    },
+    "fieldHints": {
+      "chest": "Level with the nipples, arms relaxed.",
+      "arm": "Widest point, arm hanging loosely.",
+      "waist": "At navel height, breathe out normally."
+    },
+    "units": {
+      "cm": "cm",
+      "in": "in",
+      "kg": "kg",
+      "lbs": "lbs"
+    },
+    "invalid": "Please check the value for {{field}}.",
+    "saveFailed": "Give it another try in a moment to save.",
+    "saved": "Measurements saved",
+    "lastMeasured": "Last measured: {{date}}",
+    "buildUp": {
+      "title": "Build-up",
+      "weeksOption": "{{count}} weeks",
+      "sentence": "You're building up: {{parts}}.",
+      "weightStable": "weight steady",
+      "weightDelta": "weight {{delta}}",
+      "waistStable": "waist steady",
+      "waistDelta": "waist {{delta}}",
+      "chestStable": "chest steady",
+      "chestDelta": "chest {{delta}}",
+      "armStable": "upper arm steady",
+      "armDelta": "upper arm {{delta}}",
+      "levelUps_one": "+{{count}} level",
+      "levelUps_other": "+{{count}} levels",
+      "exerciseReps": "{{name}} +{{delta}}",
+      "exerciseSeconds": "{{name}} +{{delta}} s",
+      "footnote": "Weight as a 7-day average, strength from levels and best sets.",
+      "empty": "Weigh in, measure waist, chest and upper arm and keep training – this is where you will see how you build up.",
+      "measureCta": "Log measurements"
+    }
   }
 }

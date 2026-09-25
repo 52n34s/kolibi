@@ -2019,5 +2019,53 @@
     "savedAsTemplate": "«{{name}}» ya está en tus plantillas.",
     "failed": "Ahora mismo no ha funcionado. Inténtalo de nuevo en un momento.",
     "mineEmpty": "Guarda una sesión como plantilla en el editor del plan y la encontrarás aquí."
+  },
+  "measurements": {
+    "title": "Medidas",
+    "open": "Anotar medidas",
+    "subtitle": "Todo es opcional. Mide por la mañana, relajado y siempre en el mismo sitio.",
+    "moreLabel": "Más medidas",
+    "fields": {
+      "chest": "Pecho",
+      "arm": "Brazo",
+      "waist": "Cintura",
+      "hip": "Cadera",
+      "thigh": "Muslo"
+    },
+    "fieldHints": {
+      "chest": "A la altura de los pezones, brazos relajados.",
+      "arm": "En la parte más ancha, brazo relajado.",
+      "waist": "A la altura del ombligo, exhala con normalidad."
+    },
+    "units": {
+      "cm": "cm",
+      "in": "in",
+      "kg": "kg",
+      "lbs": "lbs"
+    },
+    "invalid": "Revisa el valor de {{field}}.",
+    "saveFailed": "Inténtalo de nuevo en un momento para guardar.",
+    "saved": "Medidas guardadas",
+    "lastMeasured": "Última medición: {{date}}",
+    "buildUp": {
+      "title": "Progreso muscular",
+      "weeksOption": "{{count}} semanas",
+      "sentence": "Estás ganando: {{parts}}.",
+      "weightStable": "peso estable",
+      "weightDelta": "peso {{delta}}",
+      "waistStable": "cintura estable",
+      "waistDelta": "cintura {{delta}}",
+      "chestStable": "pecho estable",
+      "chestDelta": "pecho {{delta}}",
+      "armStable": "brazo estable",
+      "armDelta": "brazo {{delta}}",
+      "levelUps_one": "+{{count}} nivel",
+      "levelUps_other": "+{{count}} niveles",
+      "exerciseReps": "{{name}} +{{delta}}",
+      "exerciseSeconds": "{{name}} +{{delta}} s",
+      "footnote": "Peso como media de 7 días, fuerza según niveles y mejores series.",
+      "empty": "Pésate, mide cintura, pecho y brazo y sigue entrenando: aquí verás cómo vas ganando.",
+      "measureCta": "Anotar medidas"
+    }
   }
 }
