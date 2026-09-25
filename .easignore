@@ -1,0 +1,70 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env*.local
+.sentryclirc
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# Local USDA / foods import working files (do not commit)
+/data/
+
+# generated native folders
+/ios
+/android
+
+.env.local
+targets/*/Assets.xcassets/
+supabase/.temp/
+qa/
+
+# Maestro E2E: keep flows, ignore screenshot dumps
+.maestro/screenshots/
+
+# Nur fuer EAS: nicht in den Build hochladen
+.claude/
+ios/
+android/
+node_modules/
+.expo/
+dist/
+.maestro/
+.screenshots/
+data/
+tmp/
+screenshot-*.png
+*.zip
