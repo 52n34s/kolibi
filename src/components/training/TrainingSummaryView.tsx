@@ -1258,12 +1258,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: TEXT_SECONDARY,
   },
+  // Every section: the same title, 8 pt extra before (on top of the scroll
+  // gap) and 10 pt between title and content.
   block: {
-    gap: 8,
+    gap: 10,
+    marginTop: 8,
   },
   blockTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '600',
     color: '#1E1B4B',
   },
   blockHeader: {
