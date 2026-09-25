@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { getPlanBuilderExample } from './plan-builder-examples.ts';
 import {
   ASSESSMENT_LEVELS,
   PLAN_CARDIO,
@@ -99,12 +100,7 @@ function assertPlanInvariants(plan: BuiltPlan, input: PlanWizardAnswers) {
 
 describe('buildPlan — required cases', () => {
   it('absolute beginner without equipment, 2 days, 30 min', () => {
-    const input = answers({
-      days: 2,
-      minutes: 30,
-      equipment: [],
-      assessment: { push: 0, pull: 0, legs: 0 },
-    });
+    const input = getPlanBuilderExample('beginner');
     const plan = buildPlan(input);
 
     assert.equal(plan.sessionsPerWeek, 2);
@@ -143,14 +139,7 @@ describe('buildPlan — required cases', () => {
   });
 
   it('advanced with bar and parallettes, 4 days, 60 min, focus chest', () => {
-    const input = answers({
-      goal: 'muscle',
-      days: 4,
-      minutes: 60,
-      equipment: ['bar', 'parallettes'],
-      assessment: { push: 3, pull: 2, legs: 2 },
-      focus: 'chest_shoulders',
-    });
+    const input = getPlanBuilderExample('advanced_chest');
     const plan = buildPlan(input);
 
     assert.equal(plan.sessionsPerWeek, 4);
@@ -190,14 +179,7 @@ describe('buildPlan — required cases', () => {
   });
 
   it('5 days with lots of cardio', () => {
-    const input = answers({
-      goal: 'fat_loss',
-      days: 5,
-      minutes: 45,
-      equipment: ['bar'],
-      assessment: { push: 2, pull: 1, legs: 2 },
-      cardio: 'lots',
-    });
+    const input = getPlanBuilderExample('five_days_cardio');
     const plan = buildPlan(input);
     const withoutCardio = buildPlan({ ...input, cardio: 'none' });
 
@@ -232,15 +214,7 @@ describe('buildPlan — required cases', () => {
   });
 
   it('just one workout follows the focus', () => {
-    const input = answers({
-      goal: 'strength_skills',
-      minutes: 45,
-      equipment: ['parallettes', 'rings'],
-      assessment: { push: 2, pull: 2, legs: 1 },
-      focus: 'chest_shoulders',
-      cardio: 'some',
-      scope: 'single',
-    });
+    const input = getPlanBuilderExample('single_session');
     const plan = buildPlan(input);
 
     assert.equal(plan.sessionsPerWeek, null);
