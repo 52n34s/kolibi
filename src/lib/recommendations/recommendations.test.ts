@@ -18,6 +18,7 @@ import {
   RECOMMENDATION_RULES,
   type Recommendation,
   type RecommendationContext,
+  isTrainingDay,
 } from './recommendations.ts';
 
 const TODAY = '2026-09-25';
@@ -484,5 +485,31 @@ describe('i18n', () => {
         assert.equal(typeof lookup(tree, key), 'string', `${lang}: ${key}`);
       }
     }
+  });
+});
+
+describe('isTrainingDay', () => {
+  const base = { todayKey: '2026-09-25', weekday: 5, weekStartKey: '2026-09-21' };
+
+  it('counts a planned weekday and a session logged today', () => {
+    assert.equal(isTrainingDay({ ...base, units: [{ weekdays: [5] }], sessionDays: [], sessionsPerWeek: 3 }), true);
+    assert.equal(isTrainingDay({ ...base, units: [{ weekdays: [1] }], sessionDays: ['2026-09-25'], sessionsPerWeek: 3 }), true);
+    assert.equal(isTrainingDay({ ...base, units: [{ weekdays: [1] }], sessionDays: [], sessionsPerWeek: 3 }), false);
+  });
+
+  // Units from the plan wizard have no weekdays: carbs before the session used
+  // to be unreachable for them.
+  it('treats a rotating plan as a training day while the week goal is open', () => {
+    const units = [{ weekdays: [] }, { weekdays: [] }];
+    assert.equal(isTrainingDay({ ...base, units, sessionDays: ['2026-09-22'], sessionsPerWeek: 2 }), true);
+    assert.equal(
+      isTrainingDay({ ...base, units, sessionDays: ['2026-09-22', '2026-09-24'], sessionsPerWeek: 2 }),
+      false,
+    );
+    assert.equal(isTrainingDay({ ...base, units, sessionDays: ['2026-09-18'], sessionsPerWeek: null }), true);
+  });
+
+  it('has no training day without units', () => {
+    assert.equal(isTrainingDay({ ...base, units: [], sessionDays: [], sessionsPerWeek: 3 }), false);
   });
 });

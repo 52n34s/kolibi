@@ -28,6 +28,7 @@ import {
   type NextLevelReady,
   type Recommendation,
   type RecommendationKind,
+  isTrainingDay,
 } from '@/lib/recommendations/recommendations';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { recommendForMuscles } from '@/lib/workouts/muscle-recommendation';
@@ -173,13 +174,18 @@ export function useRecommendations(): {
     [dismissInStore, userId],
   );
 
+  const sessionsPerWeek = profileSettings?.profile?.training_sessions_per_week ?? null;
   const trainingDay = useMemo(() => {
     const weekday = isoWeekday(now);
-    return (
-      templates.some((template) => template.weekdays.includes(weekday)) ||
-      sessions.some((session) => session.loggedOn === todayKey)
-    );
-  }, [now, sessions, templates, todayKey]);
+    return isTrainingDay({
+      units: templates,
+      sessionDays: sessions.map((session) => session.loggedOn),
+      todayKey,
+      weekday,
+      weekStartKey: shiftLocalDateKey(todayKey, -(weekday - 1)),
+      sessionsPerWeek,
+    });
+  }, [now, sessions, sessionsPerWeek, templates, todayKey]);
   const trainedToday = useMemo(
     () => sessions.some((session) => session.loggedOn === todayKey),
     [sessions, todayKey],

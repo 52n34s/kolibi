@@ -446,3 +446,34 @@ export function buildRecommendations(ctx: RecommendationContext): Recommendation
   );
   return all.slice(0, RECOMMENDATION_RULES.maxShown).map(({ rank: _rank, ...rec }) => rec);
 }
+
+/**
+ * Training day for the recommendations. With weekdays: a unit is planned
+ * today. In a rotating plan (units without weekdays, e.g. from the plan
+ * wizard): the week's goal is still open, so today can be a training day.
+ * A session logged today always makes it one.
+ */
+export function isTrainingDay(params: {
+  units: readonly { weekdays: readonly number[] }[];
+  sessionDays: readonly string[];
+  todayKey: string;
+  weekday: number;
+  weekStartKey: string;
+  sessionsPerWeek: number | null;
+}): boolean {
+  if (params.sessionDays.includes(params.todayKey)) {
+    return true;
+  }
+  if (params.units.some((unit) => unit.weekdays.includes(params.weekday))) {
+    return true;
+  }
+  const rotating = params.units.length > 0 && params.units.every((unit) => unit.weekdays.length === 0);
+  if (!rotating) {
+    return false;
+  }
+  const goal = params.sessionsPerWeek != null && params.sessionsPerWeek > 0 ? params.sessionsPerWeek : params.units.length;
+  const doneThisWeek = new Set(
+    params.sessionDays.filter((day) => day >= params.weekStartKey && day <= params.todayKey),
+  ).size;
+  return doneThisWeek < goal;
+}
