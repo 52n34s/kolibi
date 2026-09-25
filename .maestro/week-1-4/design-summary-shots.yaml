@@ -1,0 +1,46 @@
+# Zusammenfassung: oben, Mitte, ganz unten (Screenshots vorher/nachher).
+# Voraussetzung: die Zusammenfassung ist offen. SHOT kommt per -e.
+appId: com.steffen.kolibi
+---
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.intensity.normal"
+    timeout: 15000
+- tapOn:
+    id: "training.summary.intensity.normal"
+- takeScreenshot: ${SHOT}-1-oben
+- swipe:
+    start: "50%,60%"
+    end: "50%,35%"
+    duration: 800
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}-2-mitte
+- scrollUntilVisible:
+    element:
+      id: "training.summary.exercises"
+    direction: DOWN
+    timeout: 10000
+- swipe:
+    start: "50%,70%"
+    end: "50%,15%"
+    duration: 500
+- swipe:
+    start: "50%,70%"
+    end: "50%,15%"
+    duration: 500
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ${SHOT}-3-unten
+- swipe:
+    start: "50%,30%"
+    end: "50%,90%"
+    duration: 300
+- swipe:
+    start: "50%,30%"
+    end: "50%,90%"
+    duration: 300
+- swipe:
+    start: "50%,30%"
+    end: "50%,90%"
+    duration: 300

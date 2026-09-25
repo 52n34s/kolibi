@@ -1,0 +1,21 @@
+# Einheit starten, drei Sätze, Beenden → Speichern: die Zusammenfassung ist offen.
+appId: com.steffen.kolibi
+---
+- tapOn:
+    id: "home.tab.training"
+- extendedWaitUntil:
+    visible:
+      id: "training.next.start"
+    timeout: 30000
+- tapOn:
+    id: "training.next.start"
+- runFlow: common/set-done.yaml
+- runFlow: common/set-done.yaml
+- runFlow: common/set-done.yaml
+- tapOn:
+    id: "training.active.finish"
+- tapOn: "Speichern"
+- extendedWaitUntil:
+    visible:
+      id: "training.summary.intensity.normal"
+    timeout: 15000
