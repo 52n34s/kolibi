@@ -52,6 +52,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PostHogProvider } from 'posthog-react-native';
 
 import { ExerciseImageViewerHost } from '@/components/training/ExerciseImageViewer';
+import { GlobalPaywallHost } from '@/components/paywall/GlobalPaywallHost';
 import { useAuthStore } from '@/stores/auth-store';
 import { posthog } from '@/lib/analytics';
 import { applyEagerOtaUpdateOnLaunch } from '@/lib/eager-ota-update';
@@ -257,6 +258,7 @@ function RootLayout() {
         </Stack>
       </ThemeProvider>
       <ExerciseImageViewerHost />
+      <GlobalPaywallHost />
     </QueryClientProvider>
   );
 
