@@ -1831,5 +1831,123 @@
       "short_on_time": "poco tiempo",
       "too_hard": "demasiado difícil"
     }
+  },
+  "checkin": {
+    "card": {
+      "title": "¿Cómo estás hoy?",
+      "save": "Listo",
+      "skipToday": "Hoy no",
+      "dontShowAgain": "No mostrar más",
+      "saveFailed": "Inténtalo de nuevo en un momento: la conexión va lenta.",
+      "editHint": "Toca para cambiar"
+    },
+    "questions": {
+      "sleep": "Sueño",
+      "energy": "Energía",
+      "soreness": "Agujetas",
+      "stress": "Estrés"
+    },
+    "scale": {
+      "sleep": {
+        "low": "corto",
+        "high": "reparador"
+      },
+      "energy": {
+        "low": "poca",
+        "high": "mucha"
+      },
+      "soreness": {
+        "low": "apenas",
+        "high": "fuertes"
+      },
+      "stress": {
+        "low": "tranquilo",
+        "high": "alto"
+      },
+      "stepLabel": "{{question}}: {{value}} de 5"
+    },
+    "level": {
+      "ready": "Listo",
+      "normal": "Normal",
+      "gentle": "Con calma"
+    },
+    "learning": "Kolibi todavía te está conociendo.",
+    "dataOnly": "Según tus datos de entrenamiento y comidas.",
+    "status": {
+      "open": "Check-in pendiente"
+    },
+    "readiness": {
+      "ready": {
+        "sentence": "Buen día.",
+        "action": "Hoy toca el siguiente nivel."
+      },
+      "normal": {
+        "sentence": "Día sólido.",
+        "action": "Entrena según lo previsto."
+      },
+      "gentle": {
+        "sentence": "Hoy toca ir con más calma.",
+        "action": "Elige hoy una variante más ligera."
+      },
+      "reason": {
+        "sleep": {
+          "sentence": "La noche fue corta."
+        },
+        "highLoad": {
+          "sentence": "Mucho entrenamiento en los últimos días.",
+          "action": "Hoy encaja una sesión más ligera."
+        },
+        "performanceDrop": {
+          "sentence": "Tu última sesión costó bastante.",
+          "action": "Elige hoy una variante más ligera."
+        },
+        "lowCalories": {
+          "sentence": "Los últimos días quedaron muy por debajo de tu objetivo de calorías.",
+          "action": "Come bien hoy y entrena suave."
+        },
+        "lowProtein": {
+          "sentence": "Los últimos días tomaste poca proteína.",
+          "action": "Planea hoy una comida rica en proteína."
+        }
+      },
+      "sore": {
+        "general": "Hoy tienes bastantes agujetas.",
+        "generalAction": "Elige hoy una sesión para otros músculos.",
+        "swapAction": "Hoy mejor {{alternative}} que {{planned}}.",
+        "lighterAction": "Hoy encaja una sesión para otros músculos.",
+        "muscle": {
+          "legs": "Tienes bastantes agujetas en las piernas.",
+          "chest": "Tienes bastantes agujetas en el pecho.",
+          "back": "Tienes bastantes agujetas en la espalda.",
+          "shoulders": "Tienes bastantes agujetas en los hombros.",
+          "arms": "Tienes bastantes agujetas en los brazos.",
+          "core": "Tienes bastantes agujetas en el core.",
+          "glutes": "Tienes bastantes agujetas en los glúteos."
+        }
+      }
+    },
+    "next": {
+      "alternative": "Hoy encaja mejor {{name}} que {{planned}}.",
+      "lighterUnit": "Hoy encaja mejor una sesión más ligera que {{planned}}.",
+      "lighterVariant": "Hoy puedes bajar un nivel o hacer una serie menos."
+    },
+    "progression": {
+      "waiting": "Hoy toca ir con calma. El siguiente nivel espera a un día con más energía."
+    },
+    "settings": {
+      "sectionTitle": "Check-in matutino",
+      "show": "Check-in por la mañana",
+      "reminder": "Recordatorio",
+      "time": "Hora",
+      "hint": "Cuatro preguntas rápidas en la pantalla Hoy, hasta el mediodía.",
+      "reminderHint": "Kolibi te lo recuerda cada mañana a esta hora.",
+      "saveFailed": "Inténtalo de nuevo en un momento: la conexión va lenta.",
+      "permissionOff": "Las notificaciones están desactivadas en los ajustes de iOS. Actívalas allí para recibir el recordatorio.",
+      "openSettings": "Abrir ajustes de iOS"
+    },
+    "reminder": {
+      "title": "¡Buenos días!",
+      "body": "¿Cómo estás hoy? Tu check-in dura diez segundos."
+    }
   }
 }

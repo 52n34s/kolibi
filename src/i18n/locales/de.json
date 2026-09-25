@@ -1831,5 +1831,123 @@
       "short_on_time": "wenig Zeit",
       "too_hard": "zu schwer"
     }
+  },
+  "checkin": {
+    "card": {
+      "title": "Wie geht's dir heute?",
+      "save": "Fertig",
+      "skipToday": "Heute nicht",
+      "dontShowAgain": "Nicht mehr anzeigen",
+      "saveFailed": "Gleich nochmal versuchen – die Verbindung hakt gerade.",
+      "editHint": "Tippen zum Ändern"
+    },
+    "questions": {
+      "sleep": "Schlaf",
+      "energy": "Energie",
+      "soreness": "Muskelkater",
+      "stress": "Stress"
+    },
+    "scale": {
+      "sleep": {
+        "low": "kurz",
+        "high": "erholsam"
+      },
+      "energy": {
+        "low": "wenig",
+        "high": "viel"
+      },
+      "soreness": {
+        "low": "kaum",
+        "high": "stark"
+      },
+      "stress": {
+        "low": "entspannt",
+        "high": "hoch"
+      },
+      "stepLabel": "{{question}}: {{value}} von 5"
+    },
+    "level": {
+      "ready": "Bereit",
+      "normal": "Normal",
+      "gentle": "Schonen"
+    },
+    "learning": "Kolibi lernt dich noch kennen.",
+    "dataOnly": "Aus deinen Trainings- und Essensdaten.",
+    "status": {
+      "open": "Check-in noch offen"
+    },
+    "readiness": {
+      "ready": {
+        "sentence": "Gute Tagesform.",
+        "action": "Heute passt die nächste Stufe."
+      },
+      "normal": {
+        "sentence": "Solider Tag.",
+        "action": "Trainiere wie geplant."
+      },
+      "gentle": {
+        "sentence": "Heute darf es ruhiger sein.",
+        "action": "Nimm heute eine leichtere Variante."
+      },
+      "reason": {
+        "sleep": {
+          "sentence": "Die Nacht war kurz."
+        },
+        "highLoad": {
+          "sentence": "Viel Training in den letzten Tagen.",
+          "action": "Heute passt eine leichtere Einheit."
+        },
+        "performanceDrop": {
+          "sentence": "Die letzte Einheit war zäh.",
+          "action": "Nimm heute eine leichtere Variante."
+        },
+        "lowCalories": {
+          "sentence": "Die letzten Tage lagen deutlich unter deinem Kalorienziel.",
+          "action": "Iss heute gut und trainiere locker."
+        },
+        "lowProtein": {
+          "sentence": "Die letzten Tage kam wenig Protein zusammen.",
+          "action": "Plane heute eine proteinreiche Mahlzeit ein."
+        }
+      },
+      "sore": {
+        "general": "Ordentlich Muskelkater heute.",
+        "generalAction": "Wähle heute eine Einheit für andere Muskeln.",
+        "swapAction": "Heute lieber {{alternative}} statt {{planned}}.",
+        "lighterAction": "Heute passt eine Einheit für andere Muskeln.",
+        "muscle": {
+          "legs": "Viel Muskelkater in den Beinen.",
+          "chest": "Viel Muskelkater in der Brust.",
+          "back": "Viel Muskelkater im Rücken.",
+          "shoulders": "Viel Muskelkater in den Schultern.",
+          "arms": "Viel Muskelkater in den Armen.",
+          "core": "Viel Muskelkater im Rumpf.",
+          "glutes": "Viel Muskelkater im Po."
+        }
+      }
+    },
+    "next": {
+      "alternative": "Heute passt {{name}} besser als {{planned}}.",
+      "lighterUnit": "Heute passt eine leichtere Einheit besser als {{planned}}.",
+      "lighterVariant": "Heute gern eine Stufe leichter oder ein Satz weniger."
+    },
+    "progression": {
+      "waiting": "Heute ist Schonen dran. Die nächste Stufe wartet auf einen frischen Tag."
+    },
+    "settings": {
+      "sectionTitle": "Morgen-Check-in",
+      "show": "Check-in am Morgen",
+      "reminder": "Erinnerung",
+      "time": "Uhrzeit",
+      "hint": "Vier kurze Fragen auf dem Heute-Screen, bis 12 Uhr.",
+      "reminderHint": "Kolibi erinnert dich jeden Morgen zu dieser Uhrzeit.",
+      "saveFailed": "Gleich nochmal versuchen – die Verbindung hakt gerade.",
+      "permissionOff": "Mitteilungen sind in den iOS-Einstellungen aus. Schalte sie dort ein, dann klappt die Erinnerung.",
+      "openSettings": "iOS-Einstellungen öffnen"
+    },
+    "reminder": {
+      "title": "Guten Morgen!",
+      "body": "Wie geht's dir heute? Dein Check-in dauert zehn Sekunden."
+    }
   }
 }
