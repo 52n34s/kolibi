@@ -6,6 +6,7 @@ import { sessionSetsToHistoryUnits } from '@/lib/workouts/progression-history';
 import type { ProgressionHistoryUnit } from '@/lib/workouts/progression';
 import { uploadImageToStorage } from '@/lib/storage-upload';
 import { supabase } from '@/lib/supabase';
+import { createSchemaProbe } from '@/lib/db-schema-errors';
 import {
   isExerciseKind,
   isGymIntensity,
@@ -62,6 +63,7 @@ type TemplateRow = {
   weekdays: number[] | null;
   position: number;
   archived_at: string | null;
+  is_template?: boolean | null;
 };
 
 type TemplateExerciseRow = {
@@ -406,15 +408,83 @@ export async function getExerciseImageSignedUrl(
   }
 }
 
+const TEMPLATE_SELECT = 'id, name, short_label, color_key, weekdays, position, archived_at';
+
+/**
+ * workout_templates.is_template comes with migration 20260925190000. Until it
+ * runs, every row is a unit and "Meine Vorlagen" stays hidden.
+ */
+export const hasTemplateFlag = createSchemaProbe(() =>
+  supabase.from('workout_templates').select('is_template').limit(0),
+);
+
+/**
+ * Active units of the plan. Everything that trains, picks "Als Nächstes",
+ * fills the week card, progress or recap reads units through here.
+ */
 export async function fetchTemplates(): Promise<WorkoutTemplate[]> {
   try {
     const userId = await requireUserId();
+    const withFlag = await hasTemplateFlag();
+    let query = supabase
+      .from('workout_templates')
+      .select(withFlag ? `${TEMPLATE_SELECT}, is_template` : TEMPLATE_SELECT)
+      .eq('user_id', userId)
+      .is('archived_at', null);
+    if (withFlag) {
+      query = query.eq('is_template', false);
+    }
+    const { data: templates, error } = await query.order('position', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return mapTemplatesWithExercises((templates ?? []) as unknown as TemplateRow[]);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+/** Soft-archived units ("Meine früheren Einheiten"), newest archive first. */
+export async function fetchArchivedTemplates(): Promise<WorkoutTemplate[]> {
+  try {
+    const userId = await requireUserId();
+    const withFlag = await hasTemplateFlag();
+    let query = supabase
+      .from('workout_templates')
+      .select(withFlag ? `${TEMPLATE_SELECT}, is_template` : TEMPLATE_SELECT)
+      .eq('user_id', userId)
+      .not('archived_at', 'is', null);
+    if (withFlag) {
+      query = query.eq('is_template', false);
+    }
+    const { data: templates, error } = await query.order('archived_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return mapTemplatesWithExercises((templates ?? []) as unknown as TemplateRow[]);
+  } catch (error) {
+    captureAndThrow(error);
+  }
+}
+
+/** "Meine Vorlagen": own templates, alphabetical. Empty until the migration ran. */
+export async function fetchOwnTemplates(): Promise<WorkoutTemplate[]> {
+  try {
+    if (!(await hasTemplateFlag())) {
+      return [];
+    }
+    const userId = await requireUserId();
     const { data: templates, error } = await supabase
       .from('workout_templates')
-      .select('id, name, short_label, color_key, weekdays, position, archived_at')
+      .select(`${TEMPLATE_SELECT}, is_template`)
       .eq('user_id', userId)
+      .eq('is_template', true)
       .is('archived_at', null)
-      .order('position', { ascending: true });
+      .order('name', { ascending: true });
 
     if (error) {
       throw error;
@@ -426,22 +496,18 @@ export async function fetchTemplates(): Promise<WorkoutTemplate[]> {
   }
 }
 
-/** Soft-archived units, newest archive first. */
-export async function fetchArchivedTemplates(): Promise<WorkoutTemplate[]> {
+export async function setTemplateFlag(templateId: string, isTemplate: boolean): Promise<void> {
   try {
     const userId = await requireUserId();
-    const { data: templates, error } = await supabase
+    const { error } = await supabase
       .from('workout_templates')
-      .select('id, name, short_label, color_key, weekdays, position, archived_at')
-      .eq('user_id', userId)
-      .not('archived_at', 'is', null)
-      .order('archived_at', { ascending: false });
+      .update({ is_template: isTemplate, updated_at: new Date().toISOString() })
+      .eq('id', templateId)
+      .eq('user_id', userId);
 
     if (error) {
       throw error;
     }
-
-    return mapTemplatesWithExercises((templates ?? []) as TemplateRow[]);
   } catch (error) {
     captureAndThrow(error);
   }
@@ -503,6 +569,7 @@ async function mapTemplatesWithExercises(templateRows: TemplateRow[]): Promise<W
       weekdays: row.weekdays ?? [],
       position: row.position,
       archivedAt: row.archived_at,
+      isTemplate: row.is_template === true,
       exercises: byTemplate.get(row.id) ?? [],
     };
   });
@@ -589,11 +656,15 @@ export async function archiveTemplate(templateId: string): Promise<void> {
 export async function restoreTemplate(templateId: string): Promise<void> {
   try {
     const userId = await requireUserId();
-    const { data: activeRows, error: activeError } = await supabase
+    let activeQuery = supabase
       .from('workout_templates')
       .select('position')
       .eq('user_id', userId)
-      .is('archived_at', null)
+      .is('archived_at', null);
+    if (await hasTemplateFlag()) {
+      activeQuery = activeQuery.eq('is_template', false);
+    }
+    const { data: activeRows, error: activeError } = await activeQuery
       .order('position', { ascending: false })
       .limit(1);
 

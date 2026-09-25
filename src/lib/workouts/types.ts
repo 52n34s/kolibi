@@ -98,6 +98,8 @@ export type WorkoutTemplate = {
   position: number;
   /** Soft-archive timestamp; `fetchTemplates` only returns rows with null. */
   archivedAt: string | null;
+  /** Own template ("Meine Vorlagen") instead of a unit of the plan. */
+  isTemplate?: boolean;
   exercises: TemplateExercise[];
 };
 
