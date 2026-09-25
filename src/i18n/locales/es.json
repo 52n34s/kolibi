@@ -1799,5 +1799,166 @@
       "notEnough": "Para un sticker de progreso hacen falta al menos dos sesiones de este ejercicio.",
       "share": "Compartir progreso de {{name}}"
     }
+  },
+  "planWizard": {
+    "title": "Crear plan",
+    "entry": {
+      "title": "Tu plan en dos minutos",
+      "subtitle": "Unas preguntas rápidas y tendrás un plan hecho a tu medida.",
+      "cta": "Crear plan"
+    },
+    "stepCounter": "Paso {{current}} de {{total}}",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "showPlan": "Ver plan",
+    "steps": {
+      "goal": {
+        "title": "¿Cuál es tu objetivo?",
+        "options": {
+          "muscle": "Ganar músculo",
+          "strength_skills": "Fuerza y habilidades",
+          "fat_loss": "Perder grasa",
+          "fitness": "Mantenerte en forma"
+        }
+      },
+      "days": {
+        "title": "¿Cuántos días por semana?",
+        "option": "{{count}} días"
+      },
+      "minutes": {
+        "title": "¿Cuánto por sesión?",
+        "option": "{{count}} minutos",
+        "optionMax": "75+ minutos"
+      },
+      "equipment": {
+        "title": "¿Qué tienes disponible?",
+        "hint": "Elige todo lo que tengas.",
+        "options": {
+          "none": "Solo mi cuerpo",
+          "bar": "Barra de dominadas",
+          "parallettes": "Paralelas",
+          "rings": "Anillas",
+          "backpack": "Mochila como peso"
+        }
+      },
+      "assessment": {
+        "title": "¿Dónde estás ahora?",
+        "hint": "Calcula a ojo, puedes ajustarlo todo después.",
+        "push": {
+          "question": "¿Cuántas flexiones haces seguidas?",
+          "l0": "0",
+          "l1": "1–5",
+          "l2": "6–15",
+          "l3": "16+"
+        },
+        "pull": {
+          "question": "¿Cuántas dominadas?",
+          "l0": "0",
+          "l1": "1–3",
+          "l2": "4–8",
+          "l3": "9+"
+        },
+        "legs": {
+          "question": "¿Cuántas sentadillas seguidas?",
+          "l0": "menos de 10",
+          "l1": "10–25",
+          "l2": "26–50",
+          "l3": "más"
+        }
+      },
+      "focus": {
+        "title": "¿En qué quieres centrarte?",
+        "options": {
+          "balanced": "Equilibrado",
+          "upper": "Tren superior",
+          "chest_shoulders": "Pecho y hombros",
+          "back": "Espalda",
+          "legs": "Piernas"
+        }
+      },
+      "cardio": {
+        "title": "¿Haces también cardio?",
+        "hint": "Por ejemplo correr, bici o natación.",
+        "options": {
+          "none": "No",
+          "some": "1–2 × por semana",
+          "lots": "3 × o más"
+        }
+      },
+      "scope": {
+        "title": "¿Qué quieres crear?",
+        "options": {
+          "full": "Plan completo",
+          "single": "Solo una sesión"
+        },
+        "hints": {
+          "full": "Todas las sesiones de tu semana de entreno",
+          "single": "Una sesión según tu enfoque"
+        }
+      }
+    },
+    "result": {
+      "title": "Tu plan",
+      "subtitleFull": "{{days}} días de entreno por semana, {{count}} sesiones que se alternan",
+      "subtitleSingle": "Una sesión según tu enfoque",
+      "sessionMeta": "{{count}} ejercicios · ~{{minutes}} min",
+      "rest": "{{seconds}} s de descanso",
+      "swap": "Cambiar",
+      "remove": "Quitar",
+      "swapTitle": "Cambiar ejercicio",
+      "pullAlternative": "Con una barra de dominadas o anillas se suman dominadas y remos.",
+      "emptySession": "Esta sesión la dejamos fuera al guardar.",
+      "add": "Añadir a mis sesiones",
+      "replace": "Sustituir mi plan",
+      "save": "Usar este plan",
+      "replaceConfirmTitle": "¿Sustituir el plan?",
+      "replaceConfirmBody": "Tus sesiones actuales pasan al archivo. Puedes recuperarlas cuando quieras en tu plan de entreno.",
+      "replaceConfirm": "Sustituir",
+      "cancel": "Cancelar",
+      "saveFailed": "Guardar necesita otro intento. Espera un momento y vuelve a tocar.",
+      "editAnswers": "Cambiar respuestas"
+    },
+    "sessions": {
+      "full_a": "Cuerpo completo A",
+      "full_b": "Cuerpo completo B",
+      "full": "Cuerpo completo",
+      "push": "Push",
+      "pull_legs": "Pull y piernas",
+      "pull": "Pull",
+      "legs": "Piernas",
+      "upper": "Tren superior",
+      "chest_shoulders": "Pecho y hombros",
+      "back": "Espalda"
+    },
+    "sessionShort": {
+      "full_a": "A",
+      "full_b": "B",
+      "full": "CC",
+      "push": "Ps",
+      "pull_legs": "PP",
+      "pull": "Pl",
+      "legs": "Pi",
+      "upper": "TS",
+      "chest_shoulders": "PH",
+      "back": "Es"
+    },
+    "presets": {
+      "full_body_beginner": {
+        "title": "Cuerpo completo principiante",
+        "subtitle": "2 × por semana · solo con tu cuerpo"
+      },
+      "push_pull_legs_advanced": {
+        "title": "Push / Pull y piernas avanzado",
+        "subtitle": "4 × por semana · con barra de dominadas"
+      },
+      "chest_shoulders_focus": {
+        "title": "Enfoque pecho y hombros",
+        "subtitle": "Una sesión · solo con tu cuerpo"
+      },
+      "short_20": {
+        "title": "Sesión corta de 20 minutos",
+        "subtitle": "Una sesión · solo con tu cuerpo"
+      }
+    }
   }
 }
