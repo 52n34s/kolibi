@@ -17,6 +17,8 @@ export type UpsertSessionOpPayload = {
   finishedAt?: string | null;
   intensity?: GymIntensity | null;
   trainingSessionId?: string | null;
+  /** "Was war los?" picks; omitted = leave the column untouched. */
+  shortfallReasons?: string[] | null;
 };
 
 export type SyncSetUpsertPayload = {
@@ -40,6 +42,8 @@ export type SyncSetUpsertPayload = {
   secondsOtherSide?: number | null;
   weightKg?: number | null;
   completedAt?: string;
+  /** Reps in reserve; the API drops it until the column exists. */
+  rir?: number | null;
 };
 
 export type SyncQueueOp =

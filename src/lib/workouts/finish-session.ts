@@ -6,6 +6,7 @@ import {
   sessionDurationMinutes,
   type SessionSetUpsertPayload,
 } from './session-logic';
+import { normalizeShortfallReasons, shortfallReasonsToSave } from './shortfall';
 import type { ActiveSession, GymIntensity } from './types';
 
 export type FinishSessionParams = {
@@ -36,6 +37,7 @@ export type FinishSessionDeps = {
     finishedAt?: string | null;
     intensity?: GymIntensity | null;
     trainingSessionId?: string | null;
+    shortfallReasons?: string[] | null;
   }) => void;
   enqueueUpsertSets: (sets: SessionSetUpsertPayload[]) => void;
   fetchLatestWeightKg: (userId: string) => Promise<number>;
@@ -59,6 +61,7 @@ export type FinishSessionDeps = {
     finishedAt?: string | null;
     intensity?: GymIntensity | null;
     trainingSessionId?: string | null;
+    shortfallReasons?: string[] | null;
   }) => Promise<unknown>;
   invalidateTrainingQueries: (queryClient: QueryClient, userId: string) => Promise<void>;
   captureException: (error: unknown) => void;
@@ -87,6 +90,12 @@ export async function finishActiveSession(
     params.durationMinutes > 0
       ? Math.round(params.durationMinutes)
       : sessionDurationMinutes(finished);
+  // Only sent when picked; the API drops it until the column exists.
+  const reasons = shortfallReasonsToSave(
+    finished.items,
+    normalizeShortfallReasons(finished.summaryDraft?.shortfallReasons),
+  );
+  const shortfall = reasons != null ? { shortfallReasons: reasons } : {};
 
   deps.enqueueUpsertSession({
     id: finished.sessionId,
@@ -100,6 +109,7 @@ export async function finishActiveSession(
     finishedAt: finished.finishedAt,
     intensity: finished.intensity,
     trainingSessionId: finished.trainingSessionId,
+    ...shortfall,
   });
   deps.enqueueUpsertSets(allDoneSetUpserts(finished));
 
@@ -138,6 +148,7 @@ export async function finishActiveSession(
       finishedAt: finished.finishedAt,
       intensity: finished.intensity,
       trainingSessionId,
+      ...shortfall,
     });
 
     await deps.invalidateTrainingQueries(params.queryClient, params.userId);

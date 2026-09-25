@@ -3,6 +3,14 @@ import * as Sentry from '@sentry/react-native';
 import { newId } from '@/lib/id';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { sessionSetsToHistoryUnits } from '@/lib/workouts/progression-history';
+import {
+  createCapabilityCache,
+  SCHEMA_CAPABILITY_COLUMNS,
+  withOptionalColumn,
+  type SchemaCapability,
+} from '@/lib/workouts/schema-capabilities';
+import { normalizeRir, toSessionSetRow } from '@/lib/workouts/session-set-row';
+import { normalizeShortfallReasons } from '@/lib/workouts/shortfall';
 import type { ProgressionHistoryUnit } from '@/lib/workouts/progression';
 import { uploadImageToStorage } from '@/lib/storage-upload';
 import { supabase } from '@/lib/supabase';
@@ -114,7 +122,30 @@ type SessionSetRow = {
   seconds_other_side: number | null;
   weight_kg: number | string | null;
   completed_at: string;
+  /** Only selected once the rir migration ran. */
+  rir?: number | null;
 };
+
+/**
+ * Optional columns (rir, shortfall_reasons) are probed once per app run and
+ * written only when present — before the migration PostgREST would reject
+ * the whole row (PGRST204) and every queued set would stall.
+ */
+const schemaCapabilities = createCapabilityCache(async (capability) => {
+  const { table, column } = SCHEMA_CAPABILITY_COLUMNS[capability];
+  const { error } = await supabase.from(table).select(column).limit(0);
+  return { error };
+});
+
+/** true / false once known; rejects on transient errors (retry later). */
+export function checkSchemaCapability(capability: SchemaCapability): Promise<boolean> {
+  return schemaCapabilities.check(capability);
+}
+
+/** Like checkSchemaCapability, but any failure means "leave the column out". */
+function hasSchemaCapability(capability: SchemaCapability): Promise<boolean> {
+  return schemaCapabilities.checkOrFalse(capability);
+}
 
 function captureAndThrow(error: unknown): never {
   Sentry.captureException(error);
@@ -196,6 +227,7 @@ function mapSessionSet(row: SessionSetRow): SessionSet {
     secondsOtherSide: row.seconds_other_side,
     weightKg: row.weight_kg == null ? null : Number(row.weight_kg),
     completedAt: row.completed_at,
+    rir: normalizeRir(row.rir),
   };
 }
 
@@ -677,6 +709,8 @@ export type UpsertWorkoutSessionInput = {
   finishedAt?: string | null;
   intensity?: GymIntensity | null;
   trainingSessionId?: string | null;
+  /** Omitted = column untouched. Dropped until the migration ran. */
+  shortfallReasons?: string[] | null;
 };
 
 export async function upsertWorkoutSession(
@@ -685,22 +719,32 @@ export async function upsertWorkoutSession(
   try {
     // user_id comes from the operation, not from auth.uid(): a queued write
     // belongs to whoever started the session.
+    const row: Record<string, unknown> = {
+      id: input.id,
+      user_id: input.userId,
+      template_id: input.templateId ?? null,
+      template_name: input.templateName,
+      short_label: input.shortLabel,
+      color_key: input.colorKey,
+      logged_on: input.loggedOn,
+      started_at: input.startedAt,
+      finished_at: input.finishedAt ?? null,
+      intensity: input.intensity ?? null,
+      training_session_id: input.trainingSessionId ?? null,
+    };
+    if (input.shortfallReasons !== undefined) {
+      const reasons = normalizeShortfallReasons(input.shortfallReasons ?? []);
+      row.shortfall_reasons = reasons.length > 0 ? reasons : null;
+    }
     const { data, error } = await supabase
       .from('workout_sessions')
       .upsert(
-        {
-          id: input.id,
-          user_id: input.userId,
-          template_id: input.templateId ?? null,
-          template_name: input.templateName,
-          short_label: input.shortLabel,
-          color_key: input.colorKey,
-          logged_on: input.loggedOn,
-          started_at: input.startedAt,
-          finished_at: input.finishedAt ?? null,
-          intensity: input.intensity ?? null,
-          training_session_id: input.trainingSessionId ?? null,
-        },
+        withOptionalColumn(
+          row,
+          'shortfall_reasons',
+          input.shortfallReasons !== undefined &&
+            (await hasSchemaCapability('workoutSessionsShortfallReasons')),
+        ),
         { onConflict: 'id' },
       )
       .select(
@@ -738,6 +782,7 @@ export type UpsertSessionSetInput = {
   secondsOtherSide?: number | null;
   weightKg?: number | null;
   completedAt?: string;
+  rir?: number | null;
 };
 
 export async function upsertSessionSets(
@@ -747,27 +792,8 @@ export async function upsertSessionSets(
     if (sets.length === 0) {
       return [];
     }
-    const rows = sets.map((set) => ({
-      id: set.id,
-      session_id: set.sessionId,
-      user_id: set.userId,
-      exercise_id: set.exerciseId ?? null,
-      exercise_name: set.exerciseName,
-      exercise_position: set.exercisePosition,
-      set_index: set.setIndex,
-      kind: set.kind,
-      per_side: set.perSide ?? false,
-      target_reps: set.targetReps ?? null,
-      target_reps_max: set.targetRepsMax ?? null,
-      target_seconds: set.targetSeconds ?? null,
-      target_seconds_max: set.targetSecondsMax ?? null,
-      target_weight_kg: set.targetWeightKg ?? null,
-      reps: set.reps ?? null,
-      seconds: set.seconds ?? null,
-      seconds_other_side: set.secondsOtherSide ?? null,
-      weight_kg: set.weightKg ?? null,
-      completed_at: set.completedAt ?? new Date().toISOString(),
-    }));
+    const withRir = await hasSchemaCapability('sessionSetsRir');
+    const rows = sets.map((set) => toSessionSetRow(set, { withRir }));
 
     const { data, error } = await supabase
       .from('session_sets')
@@ -1146,13 +1172,16 @@ export async function fetchExerciseHistoryUnits(
 ): Promise<ProgressionHistoryUnit[]> {
   try {
     const userId = await requireUserId();
+    const [withRir, withShortfall] = await Promise.all([
+      hasSchemaCapability('sessionSetsRir'),
+      hasSchemaCapability('workoutSessionsShortfallReasons'),
+    ]);
+    const columns: string = `id, session_id, user_id, exercise_id, exercise_name, exercise_position, set_index, kind,
+         per_side, target_reps, target_reps_max, target_seconds, target_seconds_max, target_weight_kg,
+         reps, seconds, seconds_other_side, weight_kg, completed_at${withRir ? ', rir' : ''}`;
     const { data, error } = await supabase
       .from('session_sets')
-      .select(
-        `id, session_id, user_id, exercise_id, exercise_name, exercise_position, set_index, kind,
-         per_side, target_reps, target_reps_max, target_seconds, target_seconds_max, target_weight_kg,
-         reps, seconds, seconds_other_side, weight_kg, completed_at`,
-      )
+      .select(columns)
       .eq('user_id', userId)
       .eq('exercise_id', exerciseId)
       .order('completed_at', { ascending: false })
@@ -1162,7 +1191,7 @@ export async function fetchExerciseHistoryUnits(
       throw error;
     }
 
-    const sets = ((data ?? []) as SessionSetRow[]).map(mapSessionSet);
+    const sets = ((data ?? []) as unknown as SessionSetRow[]).map(mapSessionSet);
     const sessionIds: string[] = [];
     const seen = new Set<string>();
     for (const set of sets) {
@@ -1176,22 +1205,29 @@ export async function fetchExerciseHistoryUnits(
     }
 
     const intensityBySessionId: Record<string, GymIntensity | null> = {};
+    const shortfallBySessionId: Record<string, string[] | null> = {};
     if (sessionIds.length > 0) {
       const { data: sessions, error: sessionError } = await supabase
         .from('workout_sessions')
-        .select('id, intensity')
+        .select(withShortfall ? 'id, intensity, shortfall_reasons' : 'id, intensity')
         .eq('user_id', userId)
         .in('id', sessionIds);
       if (sessionError) {
         throw sessionError;
       }
-      for (const row of (sessions ?? []) as { id: string; intensity: string | null }[]) {
+      for (const row of (sessions ?? []) as unknown as {
+        id: string;
+        intensity: string | null;
+        shortfall_reasons?: unknown;
+      }[]) {
         intensityBySessionId[row.id] =
           row.intensity != null && isGymIntensity(row.intensity) ? row.intensity : null;
+        const reasons = normalizeShortfallReasons(row.shortfall_reasons);
+        shortfallBySessionId[row.id] = reasons.length > 0 ? reasons : null;
       }
     }
 
-    const units = sessionSetsToHistoryUnits(sets, intensityBySessionId);
+    const units = sessionSetsToHistoryUnits(sets, intensityBySessionId, shortfallBySessionId);
     return units.filter((unit) => sessionIds.includes(unit.sessionId)).slice(0, limitSessions);
   } catch (error) {
     captureAndThrow(error);

@@ -247,3 +247,45 @@ describe('finishActiveSession', () => {
     assert.equal(insertedDuration, 55);
   });
 });
+
+describe('finishActiveSession – shortfall reasons (Block 2.5)', () => {
+  function withValue(value: number, reasons?: string[]) {
+    const session = makeSession();
+    const item = session.items[0]!;
+    return {
+      ...session,
+      items: [{ ...item, sets: item.sets.map((set) => ({ ...set, value })) }],
+      summaryDraft: { ...session.summaryDraft, shortfallReasons: reasons },
+    };
+  }
+
+  async function sent(session: ReturnType<typeof withValue>) {
+    const enqueued: unknown[] = [];
+    const linked: unknown[] = [];
+    await finishActiveSession(
+      session,
+      { intensity: 'normal', userId: 'u1', queryClient: {} as QueryClient },
+      baseDeps({
+        enqueueUpsertSession: (payload) => {
+          enqueued.push(payload.shortfallReasons);
+        },
+        upsertWorkoutSession: async (input) => {
+          linked.push(input.shortfallReasons);
+        },
+      }),
+    );
+    return { enqueued, linked };
+  }
+
+  it('clearly below + picks → reasons go with the session upsert and the link', async () => {
+    const { enqueued, linked } = await sent(withValue(3, ['too_hard', 'bogus']));
+    assert.deepEqual(enqueued, [['too_hard']]);
+    assert.deepEqual(linked, [['too_hard']]);
+  });
+
+  it('nothing picked, or no clear shortfall → field left out', async () => {
+    assert.deepEqual((await sent(withValue(3, []))).enqueued, [undefined]);
+    assert.deepEqual((await sent(withValue(8, ['tired']))).enqueued, [undefined]);
+    assert.deepEqual((await sent(withValue(3))).linked, [undefined]);
+  });
+});
