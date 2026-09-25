@@ -14,18 +14,18 @@ type StickerViewProps = {
   data: StickerData;
   variant: StickerVariant;
   options: StickerOptions;
-  /** Recaps and progress stickers also come as a story card. */
+  /** Every sticker type also comes as a 1080 × 1920 story card. */
   format?: StickerFormat;
 };
 
 export function StickerView({ data, variant, options, format }: StickerViewProps) {
   switch (data.kind) {
     case 'exercise':
-      return <ExerciseSticker data={data} variant={variant} options={options} />;
+      return <ExerciseSticker data={data} variant={variant} options={options} format={format} />;
     case 'level':
-      return <LevelSticker data={data} variant={variant} options={options} />;
+      return <LevelSticker data={data} variant={variant} options={options} format={format} />;
     case 'session':
-      return <SessionSticker data={data} variant={variant} options={options} />;
+      return <SessionSticker data={data} variant={variant} options={options} format={format} />;
     case 'recap':
       return <RecapSticker data={data} variant={variant} options={options} format={format} />;
     case 'progress':

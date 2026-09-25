@@ -15,6 +15,7 @@ import {
   formatStickerValue,
   type ExerciseStickerData,
   type StickerOptions,
+  type StickerFormat,
   type StickerVariant,
 } from '@/lib/share/sticker-data';
 
@@ -22,21 +23,26 @@ type ExerciseStickerProps = {
   data: ExerciseStickerData;
   variant: StickerVariant;
   options: StickerOptions;
+  format?: StickerFormat;
 };
 
-export function ExerciseSticker({ data, variant, options }: ExerciseStickerProps) {
+export function ExerciseSticker({ data, variant, options, format = 'sticker' }: ExerciseStickerProps) {
   const { t } = useTranslation();
   const palette = STICKER_PALETTES[variant];
   const best = bestOf(data.values);
   return (
-    <StickerFrame variant={variant}>
+    <StickerFrame variant={variant} format={format}>
       <StickerStack style={s.stack}>
         {data.milestone ? (
           <StickerBadge
             label={data.milestone === 'newBest' ? t('share.newBest') : t('share.firstTime')}
           />
         ) : null}
-        <StickerText style={[s.title, { color: palette.text }, palette.shadow]} numberOfLines={2}>
+        <StickerText
+          style={[s.title, { color: palette.text }, palette.shadow]}
+          numberOfLines={format === 'story' ? 1 : 2}
+          adjustsFontSizeToFit={format === 'story'}
+          minimumFontScale={0.6}>
           {data.name}
         </StickerText>
         {data.values.length > 0 ? (

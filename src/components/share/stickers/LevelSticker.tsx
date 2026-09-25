@@ -9,22 +9,32 @@ import {
   StickerText,
   stickerStyles as s,
 } from '@/components/share/stickers/sticker-parts';
-import type { LevelStickerData, StickerOptions, StickerVariant } from '@/lib/share/sticker-data';
+import type {
+  LevelStickerData,
+  StickerFormat,
+  StickerOptions,
+  StickerVariant,
+} from '@/lib/share/sticker-data';
 
 type LevelStickerProps = {
   data: LevelStickerData;
   variant: StickerVariant;
   options: StickerOptions;
+  format?: StickerFormat;
 };
 
-export function LevelSticker({ data, variant, options }: LevelStickerProps) {
+export function LevelSticker({ data, variant, options, format = 'sticker' }: LevelStickerProps) {
   const { t } = useTranslation();
   const palette = STICKER_PALETTES[variant];
   return (
-    <StickerFrame variant={variant}>
+    <StickerFrame variant={variant} format={format}>
       <StickerStack style={s.stack}>
         <StickerBadge label={t('share.newLevel')} />
-        <StickerText style={[s.title, { color: palette.text }, palette.shadow]} numberOfLines={2}>
+        <StickerText
+          style={[s.title, { color: palette.text }, palette.shadow]}
+          numberOfLines={format === 'story' ? 1 : 2}
+          adjustsFontSizeToFit={format === 'story'}
+          minimumFontScale={0.6}>
           {data.name}
         </StickerText>
         <StickerLevelLine level={data.level} palette={palette} />

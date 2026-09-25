@@ -13,6 +13,7 @@ import {
 import {
   formatStickerValue,
   type SessionStickerData,
+  type StickerFormat,
   type StickerOptions,
   type StickerVariant,
 } from '@/lib/share/sticker-data';
@@ -21,16 +22,21 @@ type SessionStickerProps = {
   data: SessionStickerData;
   variant: StickerVariant;
   options: StickerOptions;
+  format?: StickerFormat;
 };
 
-export function SessionSticker({ data, variant, options }: SessionStickerProps) {
+export function SessionSticker({ data, variant, options, format = 'sticker' }: SessionStickerProps) {
   const { t, i18n } = useTranslation();
   const palette = STICKER_PALETTES[variant];
   return (
-    <StickerFrame variant={variant}>
+    <StickerFrame variant={variant} format={format}>
       <StickerStack style={s.stack}>
         <StickerStack>
-          <StickerText style={[s.title, { color: palette.text }, palette.shadow]} numberOfLines={2}>
+          <StickerText
+            style={[s.title, { color: palette.text }, palette.shadow]}
+            numberOfLines={format === 'story' ? 1 : 2}
+            adjustsFontSizeToFit={format === 'story'}
+            minimumFontScale={0.6}>
             {data.name}
           </StickerText>
           {options.showDate ? (
