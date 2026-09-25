@@ -248,6 +248,8 @@ export default function HomeScreen() {
   const [scanPhotoCount, setScanPhotoCount] = useState(1);
   const [isAnalyzingMeal, setIsAnalyzingMeal] = useState(false);
   const [showMealConfirmation, setShowMealConfirmation] = useState(false);
+  /** Scanned photo kept on the device only while the result sheet is open (for "Teilen"). */
+  const [resultPhotoUris, setResultPhotoUris] = useState<string[]>([]);
   const [visionItems, setVisionItems] = useState<EditableMealItem[]>([]);
   const [labelContext, setLabelContext] = useState<MealLabelContext | null>(null);
   const [isSavingMeal, setIsSavingMeal] = useState(false);
@@ -973,7 +975,12 @@ export default function HomeScreen() {
       }
 
       setShowMealConfirmation(true);
-      await deleteMealPhotoUris(photoUris);
+      if (result.kind === 'label') {
+        await deleteMealPhotoUris(photoUris);
+      } else {
+        // Deleted in handleMealConfirmationClose; never stored or uploaded for sharing.
+        setResultPhotoUris(photoUris);
+      }
       setPendingPhotoUris([]);
       setShowParseErrorSheet(false);
       setShowApiErrorSheet(false);
@@ -1061,6 +1068,10 @@ export default function HomeScreen() {
   function handleMealConfirmationClose() {
     setShowMealConfirmation(false);
     setVisionItems([]);
+    if (resultPhotoUris.length > 0) {
+      void deleteMealPhotoUris(resultPhotoUris);
+      setResultPhotoUris([]);
+    }
   }
 
   async function handleMealSave(items: EditableMealItem[], portionFactor = 1) {
@@ -1628,6 +1639,7 @@ export default function HomeScreen() {
         onClose={handleMealConfirmationClose}
         onDismissed={handleMealSheetDismissed}
         onSave={(items, portionFactor) => void handleMealSave(items, portionFactor)}
+        photoUri={resultPhotoUris[0] ?? null}
       />
 
       <ScanRateLimitSheet
