@@ -816,7 +816,22 @@
       "prs": "PRs this workout",
       "prBeat": "New PR: {{name}} {{value}}",
       "upperBoundHint": "Upper target hit — ready for more",
-      "intensityTitle": "How was your breathing? It sets your estimated burn.",
+      "intensityTitle": "How was your breathing?",
+      "intensityHint": "This sets your estimated energy use.",
+      "intensityOption": {
+        "easy": {
+          "short": "Easy",
+          "description": "You could chat normally"
+        },
+        "normal": {
+          "short": "Moderate",
+          "description": "Briefly out of breath, talking in sentences"
+        },
+        "hard": {
+          "short": "Hard",
+          "description": "Barely a full sentence in between"
+        }
+      },
       "adoptTitle": "Adopt as new target?",
       "addToTemplate": "Add to template?",
       "done": "Done",

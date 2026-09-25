@@ -816,7 +816,22 @@
       "prs": "Récords de esta sesión",
       "prBeat": "Nuevo récord: {{name}} {{value}}",
       "upperBoundHint": "Objetivo alto alcanzado — listo para más",
-      "intensityTitle": "¿Cómo era tu respiración? Determina tu gasto estimado.",
+      "intensityTitle": "¿Cómo era tu respiración?",
+      "intensityHint": "Esto determina tu gasto estimado.",
+      "intensityOption": {
+        "easy": {
+          "short": "Suave",
+          "description": "Podías hablar con normalidad"
+        },
+        "normal": {
+          "short": "Moderada",
+          "description": "Algo sin aliento, frases cortas"
+        },
+        "hard": {
+          "short": "Intensa",
+          "description": "Apenas una frase completa"
+        }
+      },
       "adoptTitle": "¿Adoptar como nuevo objetivo?",
       "addToTemplate": "¿Añadir a la plantilla?",
       "done": "Listo",

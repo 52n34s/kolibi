@@ -849,19 +849,31 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
       ) : null}
 
       <View style={styles.block}>
-        <Text style={styles.blockTitle}>{t('training.panel.intensityTitle')}</Text>
+        <View style={styles.blockHeader}>
+          <Text style={styles.blockTitle}>{t('training.panel.intensityTitle')}</Text>
+          <Text style={styles.blockHint}>{t('training.panel.intensityHint')}</Text>
+        </View>
         {(['easy', 'normal', 'hard'] as const).map((key) => {
           const selected = intensity === key;
           return (
             <Pressable
               key={key}
               testID={`training.summary.intensity.${key}`}
-              accessibilityRole="button"
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
               onPress={() => setIntensity(key)}
-              style={[styles.intensityRow, selected && styles.intensitySelected]}>
-              <Text style={styles.intensityLabel}>
-                {t(`home.training.intensity.${key}.label`)}
-              </Text>
+              style={[styles.intensityOption, selected && styles.intensityOptionOn]}>
+              <View style={styles.intensityText}>
+                <Text style={styles.intensityShort}>
+                  {t(`training.panel.intensityOption.${key}.short`)}
+                </Text>
+                <Text style={styles.intensityDescription}>
+                  {t(`training.panel.intensityOption.${key}.description`)}
+                </Text>
+              </View>
+              {selected ? (
+                <Ionicons name="checkmark-circle" size={22} color={BRAND_INDIGO} />
+              ) : null}
             </Pressable>
           );
         })}
@@ -1254,6 +1266,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E1B4B',
   },
+  blockHeader: {
+    gap: 2,
+  },
+  blockHint: {
+    fontSize: 14,
+    color: TEXT_SECONDARY,
+  },
   prLine: {
     color: BRAND_MINT,
     fontWeight: '600',
@@ -1263,21 +1282,36 @@ const styles = StyleSheet.create({
     color: TEXT_SECONDARY,
     fontSize: 14,
   },
-  intensityRow: {
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: 'rgba(79, 70, 229, 0.08)',
-    gap: 4,
+  // Pills like "Übernehmen" / "Später": light, borderless at rest; the
+  // transparent border keeps the size when the selected border appears.
+  intensityOption: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(79, 70, 229, 0.06)',
   },
-  intensitySelected: {
-    backgroundColor: 'rgba(79, 70, 229, 0.2)',
-    borderWidth: 1,
+  intensityOptionOn: {
     borderColor: BRAND_INDIGO,
+    backgroundColor: 'rgba(79, 70, 229, 0.14)',
   },
-  intensityLabel: {
-    fontSize: 16,
-    fontWeight: '700',
+  intensityText: {
+    flex: 1,
+    gap: 1,
+  },
+  intensityShort: {
+    fontSize: 15,
+    fontWeight: '600',
     color: '#1E1B4B',
+  },
+  intensityDescription: {
+    fontSize: 13,
+    color: TEXT_SECONDARY,
   },
   shortfallChips: {
     flexDirection: 'row',

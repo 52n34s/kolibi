@@ -816,7 +816,22 @@
       "prs": "Bestwerte dieser Einheit",
       "prBeat": "Neuer Bestwert: {{name}} {{value}}",
       "upperBoundHint": "Oberes Ziel erreicht – bereit für mehr",
-      "intensityTitle": "Wie war deine Atmung? Das bestimmt deinen geschätzten Verbrauch.",
+      "intensityTitle": "Wie war deine Atmung?",
+      "intensityHint": "Das bestimmt deinen geschätzten Verbrauch.",
+      "intensityOption": {
+        "easy": {
+          "short": "Locker",
+          "description": "Konntest dich normal unterhalten"
+        },
+        "normal": {
+          "short": "Mittel",
+          "description": "Kurz außer Atem, Gespräch in Sätzen"
+        },
+        "hard": {
+          "short": "Hart",
+          "description": "Kaum ein ganzer Satz zwischendurch"
+        }
+      },
       "adoptTitle": "Als neues Ziel übernehmen?",
       "addToTemplate": "Zur Vorlage hinzufügen?",
       "done": "Fertig",
