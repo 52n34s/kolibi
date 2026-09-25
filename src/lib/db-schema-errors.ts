@@ -20,11 +20,21 @@ export function isMissingSchemaError(error: DbError): boolean {
 }
 
 /**
+ * 22P02 invalid_text_representation: an enum label the database does not
+ * know yet (e.g. filtering goal_type = 'strength' before its migration ran).
+ */
+export function isUnknownEnumValueError(error: DbError): boolean {
+  return error?.code === '22P02';
+}
+
+/**
  * Caches one probe per key for the app run. A probe that fails for another
  * reason (offline) is not cached, so the next call asks again.
+ * `isMissing` decides which errors mean "not there" (default: missing column/table).
  */
 export function createSchemaProbe(
   probe: () => PromiseLike<{ error: DbError }>,
+  isMissing: (error: DbError) => boolean = isMissingSchemaError,
 ): () => Promise<boolean> {
   let known: boolean | null = null;
   return async () => {
@@ -36,7 +46,7 @@ export function createSchemaProbe(
       known = true;
       return true;
     }
-    if (isMissingSchemaError(error)) {
+    if (isMissing(error)) {
       known = false;
       return false;
     }
