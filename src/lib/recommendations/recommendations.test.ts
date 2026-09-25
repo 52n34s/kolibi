@@ -526,6 +526,17 @@ describe('buildRecommendations – focus areas', () => {
     );
     assert.deepEqual(kinds(list), ['protein', 'fiber']);
   });
+
+  it('a topic outside the goal focus table stays absent, boost or not', () => {
+    // muscle has no fiber entry in GOAL_FOCUS — picking "more fiber" must not
+    // conjure a fiber card that the goal itself would never show.
+    const plain = buildRecommendations(ctx({ goalCategory: 'muscle', consumed: behind }));
+    assert.deepEqual(kinds(plain), ['protein']);
+    const withFiber = buildRecommendations(
+      ctx({ goalCategory: 'muscle', consumed: behind, focusAreas: ['more_fiber'] }),
+    );
+    assert.deepEqual(kinds(withFiber), ['protein']);
+  });
 });
 
 describe('dismissals storage', () => {
