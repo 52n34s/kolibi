@@ -19,6 +19,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import { BarcodeScanButton } from '@/components/home/BarcodeScanButton';
 import { CheckinCard } from '@/components/home/CheckinCard';
+import { FocusAreasNudgeCard } from '@/components/home/FocusAreasNudgeCard';
 import { TodayRecommendations } from '@/components/home/RecommendationsCard';
 import { HistoryKoliButton } from '@/components/home/history-koli-button';
 import { ManualEntryButton } from '@/components/home/ManualEntryButton';
@@ -1567,6 +1568,8 @@ export default function HomeScreen() {
                       onOpenMeasurements={() => setShowMeasurementsSheet(true)}
                       onOpenTraining={() => switchHomeTab('training')}
                     />
+
+                    <FocusAreasNudgeCard />
 
                     {/* Order by goal: weight goals lead with nutrition and body, muscle and strength with training. */}
                     {visibleTodaySections(goalCategory, {

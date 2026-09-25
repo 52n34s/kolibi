@@ -8,6 +8,8 @@ import {
   refreshMacrosKeepingCalorieGoal,
   upsertDailyCalorieGoal,
 } from '@/lib/calorie-goals';
+import { createSchemaProbe } from '@/lib/db-schema-errors';
+import { clampFocusAreas, type FocusAreaId } from '@/lib/focus-areas';
 import { uploadImageToStorage } from '@/lib/storage-upload';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth-store';
@@ -17,6 +19,30 @@ export type MovementGoalPeriod = 'day' | 'week';
 
 const PROFILE_SETTINGS_SELECT =
   'id, avatar_url, display_name, birth_date, biological_sex, height_cm, activity_level, goal_type, calorie_goal_source, trial_ends_at, diet_preference, cuisine_context, movement_goal_type, movement_goal_value, movement_goal_period, target_weight_kg, progress_start_date, training_sessions_per_week';
+
+/** profiles.focus_areas (20260927100000_profiles_focus_areas). */
+export const hasFocusAreasColumn = createSchemaProbe(() =>
+  supabase.from('profiles').select('focus_areas').limit(0),
+);
+
+/** profiles.deload_until / deload_suggested_at (20260927101000_profiles_deload). */
+export const hasDeloadColumns = createSchemaProbe(() =>
+  supabase.from('profiles').select('deload_until, deload_suggested_at').limit(0),
+);
+
+/**
+ * The settings columns, plus the optional ones whose migration already ran.
+ * Selecting a column the database does not have fails the whole request, so
+ * each one is probed once per app run.
+ */
+async function profileSettingsSelect(): Promise<string> {
+  const [focusAreas, deload] = await Promise.all([hasFocusAreasColumn(), hasDeloadColumns()]);
+  return [
+    PROFILE_SETTINGS_SELECT,
+    ...(focusAreas ? ['focus_areas'] : []),
+    ...(deload ? ['deload_until', 'deload_suggested_at'] : []),
+  ].join(', ');
+}
 
 export type ProfileSettingsData = {
   id: string;
@@ -37,9 +63,50 @@ export type ProfileSettingsData = {
   target_weight_kg: number | null;
   progress_start_date: string | null;
   training_sessions_per_week: number | null;
+  /** Up to three chosen topics; null before the migration or when nothing is picked. */
+  focus_areas: FocusAreaId[] | null;
+  /** Local date key the running lighter week ends on; null = none. */
+  deload_until: string | null;
+  /** ISO timestamp of the last deload suggestion (cooldown); null = never. */
+  deload_suggested_at: string | null;
   latest_weight_kg: number | null;
   daily_calorie_goal: number | null;
 };
+
+/**
+ * profiles as the select hands it back. The probe-gated columns can be absent
+ * and numbers can arrive as strings, so everything below the fixed block is
+ * parsed before it leaves this file.
+ */
+type ProfileSettingsRow = Pick<
+  ProfileSettingsData,
+  | 'id'
+  | 'avatar_url'
+  | 'display_name'
+  | 'birth_date'
+  | 'biological_sex'
+  | 'height_cm'
+  | 'activity_level'
+  | 'goal_type'
+  | 'calorie_goal_source'
+  | 'trial_ends_at'
+> &
+  Partial<
+    Record<
+      | 'diet_preference'
+      | 'cuisine_context'
+      | 'movement_goal_type'
+      | 'movement_goal_value'
+      | 'movement_goal_period'
+      | 'target_weight_kg'
+      | 'progress_start_date'
+      | 'training_sessions_per_week'
+      | 'focus_areas'
+      | 'deload_until'
+      | 'deload_suggested_at',
+      unknown
+    >
+  >;
 
 export type AccessOverrideType = 'none' | 'free_forever' | 'free_until';
 
@@ -69,10 +136,11 @@ export async function fetchProfileSettings(
   userId: string,
   alreadyRecovered = false,
 ): Promise<ProfileSettingsData> {
+  const select = await profileSettingsSelect();
   const [profileResult, weightResult, calorieGoalResult] = await Promise.all([
     supabase
       .from('profiles')
-      .select(PROFILE_SETTINGS_SELECT)
+      .select(select)
       .eq('id', userId)
       .maybeSingle(),
     supabase
@@ -103,7 +171,7 @@ export async function fetchProfileSettings(
     throw calorieGoalResult.error;
   }
 
-  let profile = profileResult.data;
+  let profile = profileResult.data as unknown as ProfileSettingsRow | null;
 
   if (!profile && !alreadyRecovered) {
     const outcome = await useAuthStore.getState().recoverSessionIfUserMissing();
@@ -119,7 +187,7 @@ export async function fetchProfileSettings(
       await new Promise((resolve) => setTimeout(resolve, 400));
       const retry = await supabase
         .from('profiles')
-        .select(PROFILE_SETTINGS_SELECT)
+        .select(select)
         .eq('id', userId)
         .maybeSingle();
 
@@ -127,7 +195,7 @@ export async function fetchProfileSettings(
         throw retry.error;
       }
 
-      profile = retry.data;
+      profile = retry.data as unknown as ProfileSettingsRow | null;
     }
   }
 
@@ -166,6 +234,12 @@ export async function fetchProfileSettings(
       const parsed = Number(profile.training_sessions_per_week);
       return Number.isFinite(parsed) && parsed >= 1 && parsed <= 14 ? parsed : null;
     })(),
+    focus_areas: Array.isArray(profile.focus_areas)
+      ? clampFocusAreas(profile.focus_areas.map(String))
+      : null,
+    deload_until: typeof profile.deload_until === 'string' ? profile.deload_until : null,
+    deload_suggested_at:
+      typeof profile.deload_suggested_at === 'string' ? profile.deload_suggested_at : null,
     latest_weight_kg: weightResult.data?.weight_kg ?? null,
     daily_calorie_goal: calorieGoalResult.data?.daily_calorie_goal ?? null,
   };
@@ -347,6 +421,73 @@ export async function updateTrainingSessionsPerWeek(params: {
   const { error } = await supabase
     .from('profiles')
     .update({ training_sessions_per_week: params.sessionsPerWeek })
+    .eq('id', params.userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+/**
+ * The chosen focus areas (at most three, known ids only). Silent no-op until
+ * the migration ran — the recommendations then simply keep the goal's order.
+ */
+export async function updateFocusAreas(params: {
+  userId: string;
+  focusAreas: readonly string[];
+}): Promise<void> {
+  if (!(await hasFocusAreasColumn())) {
+    return;
+  }
+  const { error } = await supabase
+    .from('profiles')
+    .update({ focus_areas: clampFocusAreas(params.focusAreas) })
+    .eq('id', params.userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+/** One lighter week from today on, and the cooldown for the next suggestion. */
+export async function startDeload(params: {
+  userId: string;
+  /** Local date key the week ends on (today + 6 days). */
+  deloadUntil: string;
+}): Promise<void> {
+  await updateDeload({
+    userId: params.userId,
+    deloadUntil: params.deloadUntil,
+    deloadSuggestedAt: new Date().toISOString(),
+  });
+}
+
+/** "Jetzt nicht": only the cooldown, no lighter week. */
+export async function dismissDeloadSuggestion(userId: string): Promise<void> {
+  await updateDeload({ userId, deloadSuggestedAt: new Date().toISOString() });
+}
+
+/** Ends the running lighter week; the cooldown stays as it is. */
+export async function endDeload(userId: string): Promise<void> {
+  await updateDeload({ userId, deloadUntil: null });
+}
+
+async function updateDeload(params: {
+  userId: string;
+  deloadUntil?: string | null;
+  deloadSuggestedAt?: string | null;
+}): Promise<void> {
+  if (!(await hasDeloadColumns())) {
+    return;
+  }
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      ...(params.deloadUntil !== undefined ? { deload_until: params.deloadUntil } : {}),
+      ...(params.deloadSuggestedAt !== undefined
+        ? { deload_suggested_at: params.deloadSuggestedAt }
+        : {}),
+    })
     .eq('id', params.userId);
 
   if (error) {
