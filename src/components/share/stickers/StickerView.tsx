@@ -1,4 +1,5 @@
 import { ExerciseSticker } from '@/components/share/stickers/ExerciseSticker';
+import { GoalSticker } from '@/components/share/stickers/GoalSticker';
 import { LevelSticker } from '@/components/share/stickers/LevelSticker';
 import { ProgressSticker } from '@/components/share/stickers/ProgressSticker';
 import { RecapSticker } from '@/components/share/stickers/RecapSticker';
@@ -30,5 +31,7 @@ export function StickerView({ data, variant, options, format }: StickerViewProps
       return <RecapSticker data={data} variant={variant} options={options} format={format} />;
     case 'progress':
       return <ProgressSticker data={data} variant={variant} options={options} format={format} />;
+    case 'goal':
+      return <GoalSticker data={data} variant={variant} options={options} format={format} />;
   }
 }
