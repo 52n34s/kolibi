@@ -527,15 +527,34 @@ describe('buildRecommendations – focus areas', () => {
     assert.deepEqual(kinds(list), ['protein', 'fiber']);
   });
 
-  it('a topic outside the goal focus table stays absent, boost or not', () => {
-    // muscle has no fiber entry in GOAL_FOCUS — picking "more fiber" must not
-    // conjure a fiber card that the goal itself would never show.
+  it('a chosen focus area surfaces a card the goal itself would not show', () => {
+    // muscle has no fiber entry in GOAL_FOCUS, so fiber stays quiet on its own —
+    // but explicitly choosing "more fiber" should surface it anyway, ahead of
+    // the goal's own topics (Befund 5, week test 2).
     const plain = buildRecommendations(ctx({ goalCategory: 'muscle', consumed: behind }));
     assert.deepEqual(kinds(plain), ['protein']);
     const withFiber = buildRecommendations(
       ctx({ goalCategory: 'muscle', consumed: behind, focusAreas: ['more_fiber'] }),
     );
-    assert.deepEqual(kinds(withFiber), ['protein']);
+    assert.deepEqual(kinds(withFiber), ['fiber', 'protein']);
+    assert.equal(withFiber[0]?.reason, null);
+  });
+
+  it('does the same for training-energy carbs on a goal without a carbs focus', () => {
+    const plain = buildRecommendations(
+      ctx({ goalCategory: 'lose', trainingDay: true, consumed: behind }),
+    );
+    assert.deepEqual(kinds(plain), ['protein', 'fiber']);
+    const withFocus = buildRecommendations(
+      ctx({
+        goalCategory: 'lose',
+        trainingDay: true,
+        consumed: behind,
+        focusAreas: ['more_training_energy'],
+      }),
+    );
+    assert.deepEqual(kinds(withFocus), ['carbs_training', 'protein', 'fiber']);
+    assert.equal(withFocus[0]?.reason, null);
   });
 });
 

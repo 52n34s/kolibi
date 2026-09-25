@@ -81,3 +81,17 @@ export function focusAreaBoost(
   }
   return out;
 }
+
+/**
+ * Whether a chosen focus area covers this recommendation kind or focus
+ * topic — used to let a focus area surface a card the goal's own table
+ * would otherwise leave out entirely (e.g. fiber during muscle building).
+ */
+export function focusAreasCoverTopic(
+  focusAreas: readonly FocusAreaId[] | null | undefined,
+  topic: string,
+): boolean {
+  return clampFocusAreas(focusAreas ?? []).some((area) =>
+    FOCUS_AREA_TOPICS[area].includes(topic),
+  );
+}

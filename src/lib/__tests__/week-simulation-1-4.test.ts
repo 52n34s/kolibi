@@ -1494,9 +1494,11 @@ describe('week simulation 2 (six weeks, 1.4.0 additions)', () => {
     assert.deepEqual(kinds(ctx('muscle', ['more_training_energy'])), ['carbs_training', 'protein', 'checkin']);
     assert.deepEqual(kinds(ctx('lose', null)), ['protein', 'fiber', 'checkin']);
     assert.deepEqual(kinds(ctx('lose', ['more_fiber'])), ['fiber', 'protein', 'checkin']);
-    // Finding (test week 2): a focus only reorders what the goal already
-    // produces. "Mehr Ballaststoffe" with build_muscle yields no fiber hint.
-    assert.deepEqual(kinds(ctx('muscle', ['more_fiber'])), ['protein', 'carbs_training', 'checkin']);
+    // Fix (Befund 5, test week 2): a focus area can now surface a card the
+    // goal's own table would otherwise leave out. "Mehr Ballaststoffe" with
+    // build_muscle now yields a fiber hint, ahead of the goal's own topics —
+    // the 4th nutrition candidate bumps "checkin" past maxShown.
+    assert.deepEqual(kinds(ctx('muscle', ['more_fiber'])), ['fiber', 'protein', 'carbs_training']);
   });
 
   it('W2-5 lighter week: both triggers, 28-day cooldown, one set less during it, no level-ups, back afterwards', () => {

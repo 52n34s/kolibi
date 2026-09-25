@@ -1,7 +1,7 @@
 import type { ReadinessLevel } from '../checkin/readiness';
 import type { TodayCheckinStatus } from '../checkin/checkin-status';
 import { CHECKIN_CARD_UNTIL_HOUR } from '../checkin/checkin-status';
-import { focusAreaBoost, type FocusAreaId } from '../focus-areas';
+import { focusAreaBoost, focusAreasCoverTopic, type FocusAreaId } from '../focus-areas';
 import type { GoalCategory } from '../goal-category';
 import { goalFocusFor, type RecommendationFocus } from '../goal-focus';
 import { postTrainingNutritionHint } from '../nutrition/post-training-nutrition-hint';
@@ -258,8 +258,12 @@ export function isSnoozed(
 }
 
 function focusIndex(goal: GoalCategory | null, focus: RecommendationFocus): number {
-  const index = goalFocusFor(goal).findIndex((entry) => entry.focus === focus);
-  return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+  const table = goalFocusFor(goal);
+  const index = table.findIndex((entry) => entry.focus === focus);
+  // Not one of the goal's own topics: rank it just past the goal's table, so
+  // a focus-area boost can still pull it — even ahead of the goal's own
+  // topics — instead of leaving it unreachably far back.
+  return index < 0 ? table.length : index;
 }
 
 function reasonFor(goal: GoalCategory | null, focus: RecommendationFocus): RecommendationText | null {
@@ -356,7 +360,9 @@ function nutrition(ctx: RecommendationContext): Ranked[] {
     });
   }
 
-  if (hasFocus(goal, 'fiber')) {
+  // In the goal's own focus table, or explicitly chosen as a focus area —
+  // either makes fiber worth showing.
+  if (hasFocus(goal, 'fiber') || focusAreasCoverTopic(ctx.focusAreas, 'fiber')) {
     const fiber = macroGap({
       consumed: consumed.fiberG,
       target: targets.fiberG,
@@ -378,7 +384,10 @@ function nutrition(ctx: RecommendationContext): Ranked[] {
   }
 
   const carbsFocus = goalFocusFor(goal).find((entry) => CARBS_FOCUS.has(entry.focus));
-  if (carbsFocus && ctx.trainingDay && !ctx.trainedToday) {
+  // "More training energy" covers this kind directly, so it can surface the
+  // card even for a goal whose own table has no carbs-around-training topic.
+  const carbsChosenAsFocusArea = focusAreasCoverTopic(ctx.focusAreas, 'carbs_training');
+  if ((carbsFocus || carbsChosenAsFocusArea) && ctx.trainingDay && !ctx.trainedToday) {
     const carbs = macroGap({
       consumed: consumed.carbsG,
       target: targets.carbsG,
@@ -392,10 +401,10 @@ function nutrition(ctx: RecommendationContext): Ranked[] {
         category: 'nutrition',
         icon: 'flash-outline',
         message: { key: `${K}.carbs.message` },
-        reason: { key: carbsFocus.reasonKey },
+        reason: carbsFocus ? { key: carbsFocus.reasonKey } : null,
         action: { target: 'meals', labelKey: `${K}.carbs.action` },
-        rank: focusIndex(goal, carbsFocus.focus),
-        focus: carbsFocus.focus,
+        rank: carbsFocus ? focusIndex(goal, carbsFocus.focus) : goalFocusFor(goal).length,
+        focus: carbsFocus?.focus,
       });
     }
   }
