@@ -202,6 +202,95 @@
       "farFromTdeeWarning": "Dieses Ziel weicht stark von deinem geschätzten Bedarf ab und könnte auf Dauer ungesund sein."
     }
   },
+  "onboarding2": {
+    "purpose": {
+      "title": "Wofür nutzt du Kolibi?",
+      "subtitle": "Damit passt Kolibi den Start an dich an. Du kannst das jederzeit ändern.",
+      "nutrition": "Ernährung",
+      "nutritionHint": "Mahlzeiten, Kalorien und Makros",
+      "training": "Training",
+      "trainingHint": "Trainingsplan und Fortschritt",
+      "both": "Beides",
+      "bothHint": "Ernährung und Training zusammen"
+    },
+    "about": {
+      "title": "Ein paar Eckdaten zu dir",
+      "subtitle": "Mit deinem Alter und deinem biologischen Geschlecht wird dein Kalorienziel genauer.",
+      "sexLabel": "Biologisches Geschlecht (optional)"
+    },
+    "goal": {
+      "title": "Was ist dein Ziel?",
+      "subtitle": "Danach richtet Kolibi deine Kalorien und Makros aus.",
+      "lose": "Abnehmen",
+      "loseHint": "Sanftes Defizit, Muskeln bleiben",
+      "muscle": "Muskelaufbau",
+      "muscleHint": "Viel Protein, Muskeln wachsen",
+      "strength": "Kraft und Skills",
+      "strengthHint": "Stärker werden, Skills lernen",
+      "maintain": "Halten und gesund essen",
+      "maintainHint": "Gewicht halten, gut essen",
+      "endurance": "Ausdauer",
+      "enduranceHint": "Energie für lange Einheiten",
+      "custom": "Eigenes Ziel",
+      "customHint": "Dein eigenes Kalorienziel",
+      "legacyKept": "Dein bisheriges Ziel „{{name}}“ bleibt so, wie es ist."
+    },
+    "goalRow": {
+      "title": "Dein Ziel",
+      "notSet": "Noch offen"
+    },
+    "dietCard": {
+      "title": "Isst du vegetarisch oder vegan?",
+      "subtitle": "Dann erkennt Kolibi deine Mahlzeiten noch genauer.",
+      "dismiss": "Schließen",
+      "saveFailed": "Bitte versuch es gleich noch einmal."
+    },
+    "focus": {
+      "label": {
+        "protein": "Protein",
+        "fiber": "Ballaststoffe",
+        "strength_training": "Krafttraining",
+        "carbs_around_training": "Kohlenhydrate rund ums Training",
+        "sets_per_muscle": "Sätze pro Muskel",
+        "carbs_before_training": "Kohlenhydrate vor dem Training",
+        "recovery": "Erholung",
+        "daily_readiness": "Tagesform",
+        "consistency": "Regelmäßigkeit",
+        "carbs_on_run_days": "Kohlenhydrate an Lauftagen"
+      },
+      "reason": {
+        "lose": {
+          "protein": "Schützt deine Muskeln, während du abnimmst.",
+          "fiber": "Macht lange satt bei wenig Kalorien.",
+          "strength_training": "Zeigt deinem Körper, dass er die Muskeln braucht."
+        },
+        "muscle": {
+          "protein": "Liefert die Bausteine für neue Muskeln.",
+          "carbs_around_training": "Gibt Energie für harte Sätze und füllt die Speicher danach.",
+          "sets_per_muscle": "Genug Sätze pro Muskel und Woche bringen das Wachstum."
+        },
+        "strength": {
+          "carbs_before_training": "Gibt Kraft für schwere Versuche und saubere Technik.",
+          "recovery": "Kraft wächst in den Pausen zwischen den Einheiten.",
+          "daily_readiness": "So passt du die Einheit an deine Tagesform an.",
+          "protein": "Hält deine Muskeln stark und hilft bei der Erholung."
+        },
+        "maintain": {
+          "fiber": "Hält dich satt und deine Verdauung in Schwung.",
+          "protein": "Über den Tag verteilt hält es dich satt und deine Muskeln fit.",
+          "consistency": "Regelmäßige Mahlzeiten halten dein Gewicht ganz entspannt."
+        },
+        "endurance": {
+          "carbs_on_run_days": "Füllt deine Speicher für lange Einheiten.",
+          "protein": "Hilft deinen Muskeln, sich nach dem Training zu erholen."
+        },
+        "custom": {
+          "protein": "Schützt deine Muskeln bei jedem Kalorienziel.",
+          "consistency": "Regelmäßige Einträge zeigen dir, wie gut dein Ziel passt."
+        }
+      }
+    }
+  },
   "home": {
     "greeting": {
       "morning": "Guten Morgen, {{name}}",

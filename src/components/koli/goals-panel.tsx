@@ -11,6 +11,8 @@ import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { useProfileSettings } from '@/hooks/use-profile-settings';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { fetchMacroGoalEditorState } from '@/lib/calorie-goals';
+import { goalCategoryForGoalType } from '@/lib/goal-category';
+import { displayedGoalType } from '@/lib/onboarding-profile-extras';
 import {
   distanceKmToDisplay,
   formatWeightForDisplay,
@@ -59,6 +61,14 @@ export function GoalsPanel() {
     queryFn: () => fetchMacroGoalEditorState(userId!),
     enabled: Boolean(userId),
   });
+
+  // Cleaned category (legacy gain_weight → Muskelaufbau, faster_weight_loss → Abnehmen).
+  const goalCategory = goalCategoryForGoalType(
+    displayedGoalType(userId, data?.profile?.goal_type ?? null),
+  );
+  const goalCategoryLabel = goalCategory
+    ? t(`onboarding2.goal.${goalCategory}`)
+    : t('onboarding2.goalRow.notSet');
 
   const dailyCalorieGoal = data?.profile?.daily_calorie_goal ?? null;
   const calorieGoalLabel =
@@ -139,6 +149,20 @@ export function GoalsPanel() {
         {t('koli.segments.goals')}
       </Text>
       <Text className="mb-3 text-sm text-gray-500">{t('koli.goals.planHint')}</Text>
+
+      <SettingsSection>
+        <SettingsRow
+          testID="goals.goalCategory"
+          label={t('onboarding2.goalRow.title')}
+          value={goalCategoryLabel}
+          onPress={() =>
+            router.push({
+              pathname: '/onboarding',
+              params: { mode: 'review', startAt: 'goal' },
+            } as Href)
+          }
+        />
+      </SettingsSection>
 
       <SettingsSection>
         <SettingsRow

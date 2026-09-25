@@ -202,6 +202,95 @@
       "farFromTdeeWarning": "This target differs significantly from your estimated needs and may be unhealthy long term."
     }
   },
+  "onboarding2": {
+    "purpose": {
+      "title": "What do you use Kolibi for?",
+      "subtitle": "Kolibi tailors your start to this. You can change it anytime.",
+      "nutrition": "Nutrition",
+      "nutritionHint": "Meals, calories and macros",
+      "training": "Training",
+      "trainingHint": "Workout plan and progress",
+      "both": "Both",
+      "bothHint": "Nutrition and training together"
+    },
+    "about": {
+      "title": "A few basics about you",
+      "subtitle": "Your age and biological sex make your calorie target more precise.",
+      "sexLabel": "Biological sex (optional)"
+    },
+    "goal": {
+      "title": "What's your goal?",
+      "subtitle": "Kolibi sets your calories and macros around it.",
+      "lose": "Lose weight",
+      "loseHint": "Gentle deficit, muscle stays",
+      "muscle": "Build muscle",
+      "muscleHint": "Plenty of protein for growth",
+      "strength": "Strength & skills",
+      "strengthHint": "Get stronger, learn skills",
+      "maintain": "Maintain & eat well",
+      "maintainHint": "Keep your weight, eat well",
+      "endurance": "Endurance",
+      "enduranceHint": "Energy for long sessions",
+      "custom": "Custom target",
+      "customHint": "Your own calorie target",
+      "legacyKept": "Your current goal \"{{name}}\" stays just as it is."
+    },
+    "goalRow": {
+      "title": "Your goal",
+      "notSet": "Still open"
+    },
+    "dietCard": {
+      "title": "Do you eat vegetarian or vegan?",
+      "subtitle": "Kolibi then recognizes your meals even better.",
+      "dismiss": "Close",
+      "saveFailed": "Please try again in a moment."
+    },
+    "focus": {
+      "label": {
+        "protein": "Protein",
+        "fiber": "Fiber",
+        "strength_training": "Strength training",
+        "carbs_around_training": "Carbs around training",
+        "sets_per_muscle": "Sets per muscle",
+        "carbs_before_training": "Carbs before training",
+        "recovery": "Recovery",
+        "daily_readiness": "Daily readiness",
+        "consistency": "Consistency",
+        "carbs_on_run_days": "Carbs on run days"
+      },
+      "reason": {
+        "lose": {
+          "protein": "Protects your muscles while you lose weight.",
+          "fiber": "Keeps you full on fewer calories.",
+          "strength_training": "Tells your body it still needs its muscles."
+        },
+        "muscle": {
+          "protein": "Supplies the building blocks for new muscle.",
+          "carbs_around_training": "Fuels hard sets and refills your stores afterwards.",
+          "sets_per_muscle": "Enough weekly sets per muscle drive the growth."
+        },
+        "strength": {
+          "carbs_before_training": "Powers heavy attempts and clean technique.",
+          "recovery": "Strength grows in the breaks between sessions.",
+          "daily_readiness": "Lets you match the session to how you feel today.",
+          "protein": "Keeps your muscles strong and helps you recover."
+        },
+        "maintain": {
+          "fiber": "Keeps you full and your digestion moving.",
+          "protein": "Spread over the day, it keeps you full and your muscles fit.",
+          "consistency": "Regular meals keep your weight steady with ease."
+        },
+        "endurance": {
+          "carbs_on_run_days": "Fills your stores for long sessions.",
+          "protein": "Helps your muscles recover after training."
+        },
+        "custom": {
+          "protein": "Protects your muscles at any calorie target.",
+          "consistency": "Regular logging shows how well your target fits."
+        }
+      }
+    }
+  },
   "home": {
     "greeting": {
       "morning": "Good morning, {{name}}",

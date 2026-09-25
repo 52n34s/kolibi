@@ -2,23 +2,24 @@ import { Image } from 'expo-image';
 import type { ImageSource } from 'expo-image';
 import { View } from 'react-native';
 
-const KOLI_BY_STEP: ImageSource[] = [
-  require('@/assets/images/koli-curious.png'),
-  require('@/assets/images/koli-confident.png'),
-  require('@/assets/images/koli-thinking.png'),
-  require('@/assets/images/koli-curious.png'),
-  require('@/assets/images/koli-neutral.png'),
-  require('@/assets/images/koli-energetic.png'),
-  require('@/assets/images/koli-focused.png'),
-  require('@/assets/images/koli-happy.png'),
-];
+import type { OnboardingStepId } from '@/lib/onboarding-steps';
 
-type OnboardingKoliCompanionProps = {
-  step: number;
+const KOLI_BY_STEP: Record<OnboardingStepId, ImageSource> = {
+  purpose: require('@/assets/images/koli-curious.png'),
+  about: require('@/assets/images/koli-thinking.png'),
+  height: require('@/assets/images/koli-curious.png'),
+  weight: require('@/assets/images/koli-neutral.png'),
+  activity: require('@/assets/images/koli-energetic.png'),
+  goal: require('@/assets/images/koli-focused.png'),
+  summary: require('@/assets/images/koli-happy.png'),
 };
 
-export function OnboardingKoliCompanion({ step }: OnboardingKoliCompanionProps) {
-  const source = KOLI_BY_STEP[step];
+type OnboardingKoliCompanionProps = {
+  stepId: OnboardingStepId;
+};
+
+export function OnboardingKoliCompanion({ stepId }: OnboardingKoliCompanionProps) {
+  const source = KOLI_BY_STEP[stepId];
 
   if (!source) {
     return null;
