@@ -842,6 +842,11 @@
         "synced": "Sincronizado",
         "pending": "Sincronizando",
         "offline": "Sin conexión"
+      },
+      "nextLevel": {
+        "target_one": "Siguiente nivel: {{max}} en la serie",
+        "target_other": "Siguiente nivel: {{max}} en las {{count}} series",
+        "reached": "Objetivo logrado: las series extra son un extra"
       }
     },
     "backfill": {

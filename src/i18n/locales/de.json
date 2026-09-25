@@ -842,6 +842,11 @@
         "synced": "Synchron",
         "pending": "Wird synchronisiert",
         "offline": "Offline"
+      },
+      "nextLevel": {
+        "target_one": "Für die nächste Stufe: {{max}} im Satz",
+        "target_other": "Für die nächste Stufe: {{max}} in allen {{count}} Sätzen",
+        "reached": "Ziel erreicht – Zusatzsätze zählen als Bonus"
       }
     },
     "backfill": {

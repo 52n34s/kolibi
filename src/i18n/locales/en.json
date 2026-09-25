@@ -842,6 +842,11 @@
         "synced": "Synced",
         "pending": "Syncing",
         "offline": "Offline"
+      },
+      "nextLevel": {
+        "target_one": "Next level: {{max}} in your set",
+        "target_other": "Next level: {{max}} in all {{count}} sets",
+        "reached": "Goal reached – extra sets are a bonus"
       }
     },
     "backfill": {

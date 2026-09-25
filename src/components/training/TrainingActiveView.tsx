@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -14,10 +14,12 @@ import {
 } from '@/components/training/training-panel-utils';
 import { GlassCard } from '@/components/ui/glass-card';
 import { BRAND_INDIGO, TEXT_SECONDARY, TEXT_TERTIARY } from '@/constants/brand';
+import { useExercises } from '@/hooks/use-exercises';
 import { useSchemaCapability } from '@/hooks/use-schema-capability';
 import { useTimerTick } from '@/hooks/use-timer-tick';
 import { formatExerciseTarget } from '@/lib/workouts/format-target';
 import { displayActiveExerciseName } from '@/lib/workouts/exercise-name';
+import { formatNextLevelHint, nextLevelHint } from '@/lib/workouts/next-level-hint';
 import { hasDoneSet } from '@/lib/workouts/session-logic';
 import { useWorkoutSyncStatus } from '@/lib/workouts/sync-queue-runtime';
 import type { ActiveSession, Exercise } from '@/lib/workouts/types';
@@ -60,6 +62,13 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
   const addExerciseToSession = useWorkoutSessionStore((s) => s.addExerciseToSession);
   const enterSummary = useWorkoutSessionStore((s) => s.enterSummary);
   const discardSession = useWorkoutSessionStore((s) => s.discardSession);
+
+  // Only for the ladder flag of the next-level hint; the list is cached.
+  const { data: exercises = [] } = useExercises();
+  const onLadder = useMemo(() => {
+    const exerciseId = session.items[session.cursor.exerciseIndex]?.exerciseId;
+    return exercises.some((exercise) => exercise.id === exerciseId && exercise.ladderKey != null);
+  }, [exercises, session]);
 
   const startRest = useRestTimerStore((s) => s.start);
   const syncStatus = useWorkoutSyncStatus();
@@ -318,6 +327,10 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
           onDone={handleDone}
           showRir={rirAvailable}
           onSetRir={setCurrentRir}
+          nextLevelHint={(() => {
+            const hint = nextLevelHint(item, { onLadder });
+            return hint ? formatNextLevelHint(hint, t) : null;
+          })()}
         />
 
       </ScrollView>

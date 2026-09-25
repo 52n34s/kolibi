@@ -38,6 +38,8 @@ type TrainingSetInputProps = {
   /** Show "Wie viele wären noch gegangen?" (open rep sets, rir column present). */
   showRir?: boolean;
   onSetRir?: (rir: number | null) => void;
+  /** "Für die nächste Stufe: …" under the input; null hides it. */
+  nextLevelHint?: string | null;
 };
 
 /** 3 stands for "3 or more". */
@@ -58,6 +60,7 @@ export function TrainingSetInput({
   isEditingDone,
   showRir = false,
   onSetRir,
+  nextLevelHint = null,
 }: TrainingSetInputProps) {
   const { t } = useTranslation();
   const keyboardHeight = useKeyboardHeight();
@@ -200,6 +203,12 @@ export function TrainingSetInput({
         </View>
       )}
 
+      {nextLevelHint ? (
+        <Text testID="training.input.nextLevel" style={styles.nextLevel}>
+          {nextLevelHint}
+        </Text>
+      ) : null}
+
       {!showHold && showRir && !isEditingDone && item.kind !== 'time' && onSetRir ? (
         <View style={styles.rir} testID="training.input.rir">
           <Text style={styles.rirQuestion}>{t('rir.question')}</Text>
@@ -284,6 +293,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: BRAND_INDIGO,
     paddingVertical: 4,
+  },
+  nextLevel: {
+    marginTop: -4,
+    paddingHorizontal: 16,
+    fontSize: 13,
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
   },
   rir: {
     alignItems: 'center',
