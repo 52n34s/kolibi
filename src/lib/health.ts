@@ -15,6 +15,7 @@ import {
   upsertBodyFatLog,
 } from '@/lib/body-fat-logs';
 import { createChunkedSecureStoreAdapter } from '@/lib/chunked-secure-store';
+import { saveSportEnergyKcal } from '@/lib/daily-health-stats';
 import {
   listRecentLocalDateKeys,
   localDateKey,
@@ -573,7 +574,7 @@ export async function getSportEnergyDay(params: {
       }
     }
 
-    return buildSportEnergyDay({
+    const day = buildSportEnergyDay({
       activeEnergyKcal: activeEnergy,
       workouts: hkWorkouts,
       hkActivityTypesPresent,
@@ -581,6 +582,17 @@ export async function getSportEnergyDay(params: {
       sessionsPerWeek,
       baselineLabel: i18n.t('home.calorieGoal.sportBreakdown.baseline'),
     });
+
+    if (params.userId) {
+      // History reads this instead of guessing the day from Active Energy.
+      void saveSportEnergyKcal({
+        userId: params.userId,
+        dateKey,
+        sportEnergyKcal: day.totalActiveKcal,
+      });
+    }
+
+    return day;
   } catch (error) {
     if (isHealthAuthorizationNotDetermined(error)) {
       console.warn(

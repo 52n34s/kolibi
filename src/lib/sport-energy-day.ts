@@ -79,6 +79,20 @@ export type SportEnergyDay = {
 };
 
 /**
+ * Sport energy of a past day for History: the value the client stored when it
+ * computed that day, else Active Energy alone. Active Energy misses Kolibi
+ * units without a watch workout, which is why the stored total wins.
+ */
+export function resolveSportKcalForHistory(params: {
+  sportEnergyKcal: number | null | undefined;
+  activeEnergyKcal: number | null | undefined;
+}): number | null {
+  const usable = (value: number | null | undefined): number | null =>
+    value != null && Number.isFinite(value) && value >= 0 ? value : null;
+  return usable(params.sportEnergyKcal) ?? usable(params.activeEnergyKcal);
+}
+
+/**
  * i18n key for a HealthKit workout activity type.
  * Unknown types fall back to `home.calorieGoal.hkActivity.other`.
  */

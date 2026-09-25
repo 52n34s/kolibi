@@ -1,7 +1,9 @@
 import { fetchCalorieGoalForDate, type CalorieGoalForDate } from '@/lib/calorie-goals';
+import { dailyEnergySelect } from '@/lib/daily-health-stats';
 import { localDateKey, localDayWindow, parseDateOnly } from '@/lib/day-window';
 import type { BodyFatLogEntry } from '@/lib/body-fat-logs';
 import { MACROS_ADAPT_TO_TRAINING_PREFERENCE_KEY } from '@/lib/macros-goals-editor-math';
+import { resolveSportKcalForHistory } from '@/lib/sport-energy-day';
 import { scaleMacrosForSportCalories } from '@/lib/sport-macro-scaling';
 import { supabase } from '@/lib/supabase';
 import { getUserPreferenceOrDefault } from '@/lib/user-preferences';
@@ -127,6 +129,7 @@ export async function fetchHistoryData(
   bodyFatSince.setHours(0, 0, 0, 0);
   bodyFatSince.setDate(bodyFatSince.getDate() - WEIGHT_LOOKBACK_DAYS);
   const sinceBodyFatOn = localDateKey(bodyFatSince);
+  const energySelect = await dailyEnergySelect();
 
   const [
     weightResult,
@@ -166,7 +169,7 @@ export async function fetchHistoryData(
       .order('eaten_at', { ascending: true }),
     supabase
       .from('daily_health_stats')
-      .select('day, active_energy_kcal')
+      .select(energySelect)
       .eq('user_id', userId)
       .gte('day', dateKeys[0]!)
       .lte('day', dateKeys[dateKeys.length - 1]!),
@@ -227,10 +230,19 @@ export async function fetchHistoryData(
   }
 
   const energyByDate = new Map<string, number | null>();
-  for (const row of healthResult.data ?? []) {
-    energyByDate.set(
+  // The day's sport energy as Today computed it (Active Energy plus counted
+  // training); only there once the client wrote that day.
+  const sportKcalByDate = new Map<string, number | null>();
+  for (const raw of healthResult.data ?? []) {
+    const row = raw as unknown as Record<string, unknown>;
+    const activeEnergyKcal = row.active_energy_kcal == null ? null : Number(row.active_energy_kcal);
+    energyByDate.set(String(row.day), activeEnergyKcal);
+    sportKcalByDate.set(
       String(row.day),
-      row.active_energy_kcal == null ? null : Number(row.active_energy_kcal),
+      resolveSportKcalForHistory({
+        sportEnergyKcal: row.sport_energy_kcal == null ? null : Number(row.sport_energy_kcal),
+        activeEnergyKcal,
+      }),
     );
   }
 
@@ -271,6 +283,7 @@ export async function fetchHistoryData(
 
     const goal = goals[index] ?? null;
     const activeEnergyKcal = energyByDate.get(dateKey) ?? null;
+    const daySportKcal = sportKcalByDate.get(dateKey) ?? null;
 
     /**
      * Reconstructs the displayed carb/fat (and calorie) goal for this day from
@@ -297,7 +310,7 @@ export async function fetchHistoryData(
         baseFat != null &&
         baseCarbs != null
       ) {
-        const sportKcal = activeEnergyKcal ?? 0;
+        const sportKcal = daySportKcal ?? 0;
         const scaled = scaleMacrosForSportCalories({
           basisKcal,
           sportKcal,
@@ -311,11 +324,11 @@ export async function fetchHistoryData(
           fatG = scaled.fatG;
           carbsG = scaled.carbsG;
           calorieGoal = scaled.totalKcal;
-        } else if (adaptMacrosToTraining && activeEnergyKcal != null) {
-          calorieGoal = basisKcal + activeEnergyKcal;
+        } else if (adaptMacrosToTraining && daySportKcal != null) {
+          calorieGoal = basisKcal + daySportKcal;
         }
-      } else if (adaptMacrosToTraining && activeEnergyKcal != null) {
-        calorieGoal = basisKcal + activeEnergyKcal;
+      } else if (adaptMacrosToTraining && daySportKcal != null) {
+        calorieGoal = basisKcal + daySportKcal;
       }
 
       scaledGoal = {

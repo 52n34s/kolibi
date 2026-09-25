@@ -2,7 +2,36 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { SportIntensity } from './sport-macro-scaling.ts';
-import { buildSportEnergyDay } from './sport-energy-day.ts';
+import { buildSportEnergyDay, resolveSportKcalForHistory } from './sport-energy-day.ts';
+
+describe('resolveSportKcalForHistory', () => {
+  it('prefers the stored sport energy over Active Energy', () => {
+    assert.equal(
+      resolveSportKcalForHistory({ sportEnergyKcal: 780, activeEnergyKcal: 500 }),
+      780,
+    );
+  });
+
+  it('falls back to Active Energy when nothing was stored', () => {
+    assert.equal(resolveSportKcalForHistory({ sportEnergyKcal: null, activeEnergyKcal: 500 }), 500);
+    assert.equal(
+      resolveSportKcalForHistory({ sportEnergyKcal: undefined, activeEnergyKcal: 500 }),
+      500,
+    );
+  });
+
+  it('a stored zero is a real day without movement', () => {
+    assert.equal(resolveSportKcalForHistory({ sportEnergyKcal: 0, activeEnergyKcal: 500 }), 0);
+  });
+
+  it('unknown stays unknown', () => {
+    assert.equal(resolveSportKcalForHistory({ sportEnergyKcal: null, activeEnergyKcal: null }), null);
+    assert.equal(
+      resolveSportKcalForHistory({ sportEnergyKcal: Number.NaN, activeEnergyKcal: -5 }),
+      null,
+    );
+  });
+});
 
 /**
  * Locks totalActiveKcal to the pre-breakdown formula:
