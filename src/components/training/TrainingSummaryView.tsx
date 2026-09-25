@@ -33,7 +33,11 @@ import {
   type StickerData,
 } from '@/lib/share/sticker-data';
 import { adoptTargetFromMedian } from '@/lib/workouts/adopt-target';
-import { openExerciseNames, sessionDurationMinutes } from '@/lib/workouts/session-logic';
+import {
+  openExerciseNames,
+  sessionDurationMinutes,
+  sessionEndIso,
+} from '@/lib/workouts/session-logic';
 import {
   displayActiveExerciseName,
   resolveExerciseName,
@@ -172,7 +176,10 @@ export function TrainingSummaryView({ session, onDismiss }: TrainingSummaryViewP
   const [sticker, setSticker] = useState<StickerData | null>(null);
 
   const stats = exerciseStats(session);
-  const finishedAt = session.finishedAt ? Date.parse(session.finishedAt) : Date.now();
+  // Ends at the last set, so the time spent here does not keep counting.
+  const finishedAt = Date.parse(
+    session.finishedAt ?? sessionEndIso(session, new Date().toISOString()),
+  );
   const durationLabel = sessionElapsedLabel(session.startedAt, finishedAt);
 
   const exerciseIds = useMemo(

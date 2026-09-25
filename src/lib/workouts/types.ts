@@ -257,6 +257,11 @@ export type ActiveSession = {
   /** Linked training_sessions row once insert succeeded (retry-safe). */
   trainingSessionId: string | null;
   phase: 'active' | 'summary';
+  /**
+   * When the summary opened. Ends the session when no set was completed.
+   * Missing on sessions persisted before it existed.
+   */
+  summaryOpenedAt?: string | null;
   items: ActiveExercise[];
   cursor: ActiveSessionCursor;
   summaryDraft: SummaryDraft;

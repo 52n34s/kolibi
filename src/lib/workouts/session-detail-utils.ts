@@ -1,3 +1,4 @@
+import { SESSION_DURATION_MAX_MINUTES } from '@/lib/workouts/session-logic';
 import type { ExerciseKind, SessionSet, WorkoutSession } from '@/lib/workouts/types';
 
 export type SessionExerciseGroup = {
@@ -47,13 +48,17 @@ export function groupSessionSets(session: WorkoutSession): SessionExerciseGroup[
     .sort((a, b) => a.position - b.position);
 }
 
+/** Stored duration of a finished session; list, detail and export all use it. */
 export function sessionDurationFromTimestamps(session: WorkoutSession): number {
   const end = Date.parse(session.finishedAt ?? session.startedAt);
   const start = Date.parse(session.startedAt);
   if (!Number.isFinite(end) || !Number.isFinite(start) || end <= start) {
     return 1;
   }
-  return Math.min(600, Math.max(1, Math.round((end - start) / 60_000)));
+  return Math.min(
+    SESSION_DURATION_MAX_MINUTES,
+    Math.max(1, Math.round((end - start) / 60_000)),
+  );
 }
 
 export function finishedAtFromDuration(startedAt: string, durationMinutes: number): string {

@@ -50,6 +50,7 @@ import {
   volumeByWeek,
   type PersonalBest,
 } from '@/lib/workouts/progress';
+import { sessionDurationFromTimestamps } from '@/lib/workouts/session-detail-utils';
 import type { WorkoutSession } from '@/lib/workouts/types';
 import { useRequirePlan } from '@/hooks/use-require-plan';
 import {
@@ -84,15 +85,6 @@ type HistoryTrainingSectionProps = {
   onOpenTrainingTab?: () => void;
   canOpenTrainingTab?: boolean;
 };
-
-function sessionDurationMinutes(session: WorkoutSession): number {
-  const end = Date.parse(session.finishedAt ?? new Date().toISOString());
-  const start = Date.parse(session.startedAt);
-  if (!Number.isFinite(end) || !Number.isFinite(start) || end <= start) {
-    return 1;
-  }
-  return Math.min(300, Math.max(1, Math.round((end - start) / 60_000)));
-}
 
 function formatShortDate(dateKey: string, locale: string): string {
   const date = parseDateOnly(dateKey);
@@ -677,7 +669,7 @@ export function HistoryTrainingSection({
                           </Text>
                           <Text className="mt-0.5 text-xs" style={{ color: TEXT_SECONDARY }}>
                             {t('history.training.durationMinutes', {
-                              minutes: sessionDurationMinutes(session),
+                              minutes: sessionDurationFromTimestamps(session),
                             })}
                             {targetLabel ? ` · ${targetLabel}` : ''}
                           </Text>

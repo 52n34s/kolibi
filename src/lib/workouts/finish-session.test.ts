@@ -289,3 +289,35 @@ describe('finishActiveSession – shortfall reasons (Block 2.5)', () => {
     assert.deepEqual((await sent(withValue(3))).linked, [undefined]);
   });
 });
+
+describe('finishActiveSession duration', () => {
+  it('ends at the last set although "Fertig" comes hours later', async () => {
+    let enqueuedFinishedAt: string | null | undefined;
+    let insertedMinutes: number | null = null;
+    let linkedFinishedAt: string | null | undefined;
+    const deps = baseDeps({
+      enqueueUpsertSession: (payload) => {
+        enqueuedFinishedAt = payload.finishedAt;
+      },
+      insertTrainingSession: async (params) => {
+        insertedMinutes = params.durationMinutes;
+        return { id: 'ts-1' };
+      },
+      upsertWorkoutSession: async (input) => {
+        linkedFinishedAt = input.finishedAt;
+      },
+    });
+
+    // No finishedAt override: "Fertig" happens now, days after the last set.
+    const result = await finishActiveSession(
+      makeSession(),
+      { intensity: 'normal', userId: 'u1', queryClient: {} as QueryClient },
+      deps,
+    );
+
+    assert.equal(result.ok, true);
+    assert.equal(enqueuedFinishedAt, '2026-09-22T09:30:00.000Z');
+    assert.equal(linkedFinishedAt, '2026-09-22T09:30:00.000Z');
+    assert.equal(insertedMinutes, 30);
+  });
+});
