@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { HomeLayout, useMeshScreenInsets } from '@/components/home/home-layout';
 import { BarcodeScanButton } from '@/components/home/BarcodeScanButton';
+import { CheckinCard } from '@/components/home/CheckinCard';
 import { HistoryKoliButton } from '@/components/home/history-koli-button';
 import { ManualEntryButton } from '@/components/home/ManualEntryButton';
 import { ScanMealButton } from '@/components/home/ScanMealButton';
@@ -1528,6 +1529,8 @@ export default function HomeScreen() {
                 showsVerticalScrollIndicator={false}>
                 {homeTab === 'today' ? (
                   <>
+                    <CheckinCard />
+
                     <DaySummaryBlock date={localDateKey()} />
 
                     {activityRows.length > 0 ? (

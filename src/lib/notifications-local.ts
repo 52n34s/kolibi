@@ -40,6 +40,39 @@ export async function scheduleLocalAt(
   }
 }
 
+/**
+ * Schedule a local notification repeating every day at hour:minute (DAILY
+ * trigger) under a fixed identifier, replacing an earlier one with that id.
+ * Returns the identifier, or null when scheduling fails.
+ */
+export async function scheduleLocalDaily(
+  identifier: string,
+  time: { hour: number; minute: number },
+  content: LocalNotificationContent,
+  data: LocalNotificationData = {},
+): Promise<string | null> {
+  try {
+    await cancelLocal(identifier);
+    return await Notifications.scheduleNotificationAsync({
+      identifier,
+      content: {
+        title: content.title,
+        body: content.body,
+        data,
+        sound: false,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: time.hour,
+        minute: time.minute,
+      },
+    });
+  } catch (error) {
+    Sentry.captureException(error);
+    return null;
+  }
+}
+
 export async function cancelLocal(id: string | null | undefined): Promise<void> {
   if (!id) {
     return;

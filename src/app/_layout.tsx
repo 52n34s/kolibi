@@ -76,6 +76,7 @@ import {
 } from '@/lib/revenuecat-customer-info';
 import { ensureWorkoutSyncListeners } from '@/lib/workouts/sync-queue-runtime';
 import { useAppDayRollover } from '@/hooks/use-app-day-rollover';
+import { useCheckinReminderSync } from '@/hooks/use-checkin';
 import { useTouchUserActivity } from '@/hooks/use-touch-user-activity';
 import { useTrainingKeepAwake } from '@/hooks/use-training-keep-awake';
 
@@ -98,6 +99,7 @@ function AppLifecycle({ userId }: { userId: string | null }) {
   useAppDayRollover(userId);
   useTouchUserActivity(userId);
   useTrainingKeepAwake();
+  useCheckinReminderSync(userId);
 
   useEffect(() => {
     ensureWorkoutSyncListeners();

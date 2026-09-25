@@ -28,7 +28,8 @@ import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { useWorkoutSessionsRange } from '@/hooks/use-workout-sessions-range';
 import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { localDateKey, shiftLocalDateKey } from '@/lib/day-window';
-import { pickNextTemplate } from '@/lib/workouts/next-template';
+import { useReadiness } from '@/hooks/use-checkin';
+import { pickNextTemplateForReadiness } from '@/lib/workouts/progression-readiness';
 import { resolveTrainingTabEnabled } from '@/lib/workouts/training-release';
 import type { WorkoutTemplate } from '@/lib/workouts/types';
 
@@ -86,10 +87,30 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
   const archived = archivedQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
 
-  const next = useMemo(
-    () => pickNextTemplate(templates, sessions, todayKey),
-    [templates, sessions, todayKey],
+  const readiness = useReadiness();
+  // Without a check-in and without notable data this is plain pickNextTemplate.
+  const nextPick = useMemo(
+    () => pickNextTemplateForReadiness(templates, sessions, todayKey, readiness),
+    [templates, sessions, todayKey, readiness],
   );
+  const next = nextPick.template;
+
+  function readinessHint(): string | null {
+    if (nextPick.adjustment === 'alternative' && next && nextPick.plannedTemplate) {
+      return t('checkin.next.alternative', {
+        name: next.name,
+        planned: nextPick.plannedTemplate.name,
+      });
+    }
+    if (nextPick.adjustment === 'lighterUnit' && nextPick.plannedTemplate) {
+      return t('checkin.next.lighterUnit', { planned: nextPick.plannedTemplate.name });
+    }
+    if (nextPick.adjustment === 'lighterVariant') {
+      return t('checkin.next.lighterVariant');
+    }
+    return null;
+  }
+  const nextHint = readinessHint();
 
   const deferredProgressions = useDeferredProgressions(next);
 
@@ -182,6 +203,11 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
             <Text style={styles.nextName}>{next.name}</Text>
             <Text style={styles.muted}>{lastLabel(next.id)}</Text>
             <Text style={styles.muted}>{metaLabel(next)}</Text>
+            {nextHint ? (
+              <Text testID="training.next.readiness" style={styles.readinessHint}>
+                {nextHint}
+              </Text>
+            ) : null}
             {deferredProgressions.length > 0 ? (
               <Pressable
                 testID="training.next.progression"
@@ -376,6 +402,12 @@ const styles = StyleSheet.create({
   muted: {
     color: TEXT_SECONDARY,
     fontSize: 14,
+  },
+  readinessHint: {
+    color: BRAND_INDIGO,
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 6,
   },
   mutedSm: {
     color: TEXT_SECONDARY,

@@ -35,6 +35,7 @@ Notifications.setNotificationHandler({
         shouldSetBadge: false,
       };
     }
+    // Everything else — including the morning check-in reminder (kind 'checkin') — shows.
     return {
       shouldShowAlert: true,
       shouldShowBanner: true,

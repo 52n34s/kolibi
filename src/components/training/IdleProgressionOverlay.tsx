@@ -8,7 +8,9 @@ import { ProgressionSuggestionCard } from '@/components/training/ProgressionSugg
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 import { resolveExerciseName } from '@/lib/workouts/exercise-name';
 import { applyProgression } from '@/lib/workouts/apply-progression';
+import { useReadiness } from '@/hooks/use-checkin';
 import { suggestProgression, type ProgressionSuggestion } from '@/lib/workouts/progression';
+import { gateSuggestionByReadiness } from '@/lib/workouts/progression-readiness';
 import { workoutQueryKeys } from '@/lib/workouts/query-keys';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import type { Exercise, ProgressionEvent, WorkoutTemplate } from '@/lib/workouts/types';
@@ -33,6 +35,7 @@ export type IdleProgressionRow = {
 export function useDeferredProgressions(template: WorkoutTemplate | null | undefined) {
   const userId = useAuthStore((s) => s.session?.user?.id);
   const { i18n } = useTranslation();
+  const readiness = useReadiness();
   const exercises = template?.exercises ?? [];
 
   const eventsQuery = useQueries({
@@ -111,7 +114,7 @@ export function useDeferredProgressions(template: WorkoutTemplate | null | undef
       const ladder =
         exercise.ladderKey != null ? (laddersByKey.get(exercise.ladderKey) ?? []) : [];
       const history = historyQueries[index]?.data ?? [];
-      const suggestion = suggestProgression({
+      const raw = suggestProgression({
         exercise,
         ladder,
         currentTarget: {
@@ -125,6 +128,7 @@ export function useDeferredProgressions(template: WorkoutTemplate | null | undef
         templateExerciseIds,
         lastEvents: lastForExercise,
       });
+      const suggestion = gateSuggestionByReadiness(raw, readiness, history[0]);
       if (!suggestion || suggestion.kind !== last.kind) {
         return;
       }
@@ -143,6 +147,7 @@ export function useDeferredProgressions(template: WorkoutTemplate | null | undef
     });
     return out;
   }, [
+    readiness,
     template,
     exercises,
     allEvents,

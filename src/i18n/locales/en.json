@@ -2112,5 +2112,123 @@
       "primary": "Main",
       "secondary": "Assist"
     }
+  },
+  "checkin": {
+    "card": {
+      "title": "How are you today?",
+      "save": "Done",
+      "skipToday": "Not today",
+      "dontShowAgain": "Don't show again",
+      "saveFailed": "Try again in a moment – the connection is a bit slow.",
+      "editHint": "Tap to change"
+    },
+    "questions": {
+      "sleep": "Sleep",
+      "energy": "Energy",
+      "soreness": "Soreness",
+      "stress": "Stress"
+    },
+    "scale": {
+      "sleep": {
+        "low": "short",
+        "high": "restful"
+      },
+      "energy": {
+        "low": "low",
+        "high": "high"
+      },
+      "soreness": {
+        "low": "barely",
+        "high": "strong"
+      },
+      "stress": {
+        "low": "relaxed",
+        "high": "high"
+      },
+      "stepLabel": "{{question}}: {{value}} of 5"
+    },
+    "level": {
+      "ready": "Ready",
+      "normal": "Normal",
+      "gentle": "Take it easy"
+    },
+    "learning": "Kolibi is still getting to know you.",
+    "dataOnly": "Based on your training and food data.",
+    "status": {
+      "open": "Check-in still open"
+    },
+    "readiness": {
+      "ready": {
+        "sentence": "Great shape today.",
+        "action": "The next level fits."
+      },
+      "normal": {
+        "sentence": "Solid day.",
+        "action": "Train as planned."
+      },
+      "gentle": {
+        "sentence": "Today is for taking it easier.",
+        "action": "Pick a lighter variant today."
+      },
+      "reason": {
+        "sleep": {
+          "sentence": "The night was short."
+        },
+        "highLoad": {
+          "sentence": "Lots of training in the last few days.",
+          "action": "A lighter session fits today."
+        },
+        "performanceDrop": {
+          "sentence": "Your last session felt tough.",
+          "action": "Pick a lighter variant today."
+        },
+        "lowCalories": {
+          "sentence": "The last few days were well below your calorie goal.",
+          "action": "Eat well today and keep training light."
+        },
+        "lowProtein": {
+          "sentence": "Protein was on the low side the last few days.",
+          "action": "Plan a protein-rich meal today."
+        }
+      },
+      "sore": {
+        "general": "Quite a bit of soreness today.",
+        "generalAction": "Pick a session for other muscles today.",
+        "swapAction": "{{alternative}} fits better than {{planned}} today.",
+        "lighterAction": "A session for other muscles fits today.",
+        "muscle": {
+          "legs": "Your legs are quite sore.",
+          "chest": "Your chest is quite sore.",
+          "back": "Your back is quite sore.",
+          "shoulders": "Your shoulders are quite sore.",
+          "arms": "Your arms are quite sore.",
+          "core": "Your core is quite sore.",
+          "glutes": "Your glutes are quite sore."
+        }
+      }
+    },
+    "next": {
+      "alternative": "{{name}} fits better than {{planned}} today.",
+      "lighterUnit": "A lighter session fits better than {{planned}} today.",
+      "lighterVariant": "Feel free to go one level lighter or do one set less today."
+    },
+    "progression": {
+      "waiting": "Today is for taking it easy. The next level waits for a fresh day."
+    },
+    "settings": {
+      "sectionTitle": "Morning check-in",
+      "show": "Morning check-in",
+      "reminder": "Reminder",
+      "time": "Time",
+      "hint": "Four quick questions on the Today screen, until noon.",
+      "reminderHint": "Kolibi reminds you every morning at this time.",
+      "saveFailed": "Try again in a moment – the connection is a bit slow.",
+      "permissionOff": "Notifications are off in the iOS settings. Turn them on there to get the reminder.",
+      "openSettings": "Open iOS settings"
+    },
+    "reminder": {
+      "title": "Good morning!",
+      "body": "How are you today? Your check-in takes ten seconds."
+    }
   }
 }
