@@ -830,3 +830,18 @@ aa851f0 fix(onboarding): "Fertig" keeps the shown birth date without turning
 ## Block 6.2 – Freigabe 2026-09-25
 - Progression mit Zusatzsätzen (`b08d983`): geplante Sätze (die ersten `targetSets` erledigten) entscheiden; Zusatzsätze verhindern nie einen Vorschlag und führen nie zu einem Rückschritt; ein Zusatzsatz an der oberen Grenze zählt als klarer Erfolg (auch bei „hart“); zwei Einheiten in Folge mit mehr Sätzen als geplant → `sets_up` (bis 5). 7 Tests.
 - Offen für 1.4.1: Befund G (Verlauf-Ziel an vergangenen Trainingstagen ohne Uhr-Workout).
+
+## Nachtrag 2026-09-25: Heute-Screen (main)
+
+Simulator „Kolibi QA“ (UDID `56480505-679E-42DF-934D-57326E9F1726`), Screenshots `~/Desktop/kolibi-1.4-check/heute/` (vorher/nachher).
+
+- Check-in-Karte (`36af88e`): Titel „Wie geht's dir heute?“, Text „Vier kurze Fragen, dann weiß Kolibi, was heute zu dir passt.“, Link „Check-in starten“ (DE/EN/ES).
+- Was die Tagesform beeinflusst (`progression-readiness.ts`, `recommendations.ts`) – nur Vorschläge und Anzeige, **keine Einheit und kein Plan wird automatisch geändert**:
+  - Stufen-Vorschlag: bei „schonen“ werden Aufstiege (Stufe, Sätze, Spanne, Zeit, Last) für den Tag zurückgehalten; bei „normal“ nur nach einem klaren Erfolg; Rückstufungen immer. Hinweis in der Zusammenfassung „wartet auf einen besseren Tag“.
+  - „Als Nächstes“: nur bei „schonen“ – statt der geplanten Einheit eine schonendere (Alternative ohne die schmerzenden Muskeln, sonst eine mit höchstens 75 % der Sätze); ohne passende Einheit bleibt die geplante mit dem Hinweis, sie leichter zu nehmen („leichtere Variante“ ist nur ein Hinweis).
+  - Empfehlungen: an einem geplanten Trainingstag mit „schonen“ der Ruhetag-Hinweis; Aufstiegs- und Muskel-Empfehlungen warten.
+  - Ohne Check-in und ohne auffällige Daten bleibt alles wie ohne Tagesform.
+- Verneinungen (`f096cd3`): „Kein Kalorienziel gesetzt · Jetzt festlegen“ → „Kalorienziel festlegen ›“; „Noch nicht erfasst“ (Gewicht) → kleine Zeile „Gewicht eintragen ›“; „Keine Nährwerte hinterlegt“ → „Tippen, um Nährwerte zu ergänzen“; „Kein Eintrag – du kannst ihn selbst eintragen.“ → „Trag das Lebensmittel einfach selbst ein.“ (je DE/EN/ES). Nicht mehr genutzte Schlüssel `home.calorieGoal.notSpecified` und `home.weight.targetNotSet` entfernt.
+  - Bewusst unverändert: Fehlermeldungen und Fehlertitel in Blättern, die von Heute/Ernährung aus öffnen („Kein Barcode erkannt“, „Keine Nährwerte“ beim Barcode, „Nichts erkannt“ beim Foto, ES „No se pudo …“) – sie melden ein Problem, eine positive Umformulierung würde es verschleiern. „Heute nicht“ / „Nicht mehr anzeigen“ im Check-in sind Aktionen. „Keine Angabe“ wird auf der Ernährungs-Karte nicht angezeigt.
+- Nebenbei behoben (`06e859a`, `ac652b2`): Die Gewichtskarte hatte ihre Glasfläche an einer Style-Funktion des `Pressable` – die wurde nicht gerendert (daher stand „Noch nicht erfasst“ vorher ohne Karte). Fläche jetzt auf einer View, wie bei der Kalorienziel-Zeile.
+- Laufende Einheit (`e7ed757`): nur das Banner „Training läuft · A · Weiter geht's“, die Karte „Zum Training“ entfällt. Grund: Das Banner steht auf jedem Tab an derselben Stelle und führt direkt zurück in die Einheit; die Karte zeigte während der Einheit einen veralteten Stand („Als Nächstes“/erledigt) und doppelte den Weg. Die Wochenpunkte erscheinen wieder, sobald die Einheit beendet ist.
