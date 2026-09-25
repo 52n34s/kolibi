@@ -10,6 +10,7 @@ Baseline: `npm test` grün, `npx tsc --noEmit | grep -v supabase/functions` = 15
 | 1 | `20260924152000_beginner_ladder_steps.sql` | Einsteiger-Stufen unter den Leitern (schon auf main, seit Build 32 neu) | 1.3-Inhalt |
 | 2 | `20260925180000_register_push_token.sql` | RPC, die den Push-Token eines Geräts dem angemeldeten Nutzer überträgt | 1.3 |
 | 3 | `20260925190000_workout_template_flag.sql` | `workout_templates.is_template` für „Meine Vorlagen“ | 2.2 |
+| 4 | `20260926120000_rir_shortfall_reasons.sql` | `session_sets.rir` (0–3), `workout_sessions.shortfall_reasons` | 2.5 |
 
 ---
 
@@ -158,6 +159,24 @@ Branch `block/2.4-meal-groups`, gemergt (Tests danach 590/590, tsc 15). Commits 
 - ❓ Die Schwelle für „Protein verteilt“ war nie fest 25 g, sondern 0,3 g/kg Bezugsgewicht (auf 5 g gerundet). Beibehalten – oder fest 25 g?
 - ❓ Gruppen sind zugeklappt (Bearbeiten = ein Tipp mehr). Gruppen mit einem Eintrag direkt offen zeigen?
 - ❓ Tageszeit-Satz bei allen Zielen oder nur bei Muskelaufbau/Abnehmen?
+
+---
+
+## Block 2.5 – Wiederholungen in Reserve und „Was war los?“
+
+Branch `block/2.5-rir`, gemergt (ef66c32; nur Sprachdateien kollidierten, per JSON-Zusammenführung ohne Wertkonflikte gelöst). Tests danach 634/634, tsc 15.
+Commits: f4f499f, 21315a3, f50d48d, 03eb2ff, d648132, 3b0b5d3, 4501dc3, f5e2ab6, fbbb3e9.
+- Migration 4: `session_sets.rir smallint null check (0–3)`, `workout_sessions.shortfall_reasons text[] null` (nur tired, pain, technique, short_on_time, too_hard).
+- Ohne Migration: Reihe „Wie viele wären noch gegangen?“ und Karte „Was war los?“ ausgeblendet; Sync sendet `rir`/`shortfall_reasons` erst, wenn die Spalte per Probe bestätigt ist (sonst würde jeder Satz-Sync an PGRST204 scheitern).
+- Laufende Einheit: Reihe 0 · 1 · 2 · 3+ über „Satz fertig“, nicht getippt = null, bei Zeit-Übungen ausgeblendet.
+- Progression: alle Sätze an der Obergrenze und mindestens ein Satz mit rir ≥ 2 → klarer Erfolg, auch bei „hart“ sofort Vorschlag; rir 0 oder ohne Angabe → bisherige Regel.
+- Zusammenfassung: Karte einmal pro Einheit, wenn eine Übung deutlich unter Ziel lag (bester Satz < 70 % der Untergrenze oder zwei Sätze darunter). „zu schwer“ in dieser und der vorigen Einheit mit derselben Übung (exercise_id), beide Male deutlich unter Ziel → Vorschlag der leichteren Stufe (`variant_down`).
+- **Datenschutz:** „Schmerzen“ ist eine Gesundheitsangabe → Datenschutzerklärung Ziffer 6 (in Block 5.1 ergänzt).
+
+**Fragen**
+- ❓ Gründe gelten für die ganze Einheit; „zu schwer“ zählt nur für Übungen, die in der Einheit deutlich unter Ziel lagen. Passt das?
+- ❓ Die Reihe erscheint nur bei offenen Sätzen, nicht beim Nachbearbeiten fertiger Sätze.
+- Aufräumen: `src/lib/workouts/schema-capabilities.ts` (2.5) und `src/lib/db-schema-errors.ts` (2.2) machen dasselbe – später zusammenlegen.
 
 ---
 
