@@ -39,19 +39,19 @@ export function WeightProgressCard({
 }: WeightProgressCardProps) {
   if (currentValue == null) {
     // Same small link row as the other empty states on Today.
+    // Surface on a plain View, like the calorie goal row: a style function on
+    // the Pressable alone did not render the surface here.
     return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={logLabel}
-        onPress={onPress}
-        style={({ pressed }) => [
-          getOnboardingSecondarySurfaceStyle(),
-          styles.logRow,
-          pressed && styles.cardPressed,
-        ]}>
-        <Text style={styles.logText}>{logLabel}</Text>
-        <Ionicons name="chevron-forward" size={16} color={BRAND_INDIGO} />
-      </Pressable>
+      <View style={getOnboardingSecondarySurfaceStyle()}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={logLabel}
+          onPress={onPress}
+          className="flex-row items-center px-4 py-3">
+          <Text className="flex-1 text-sm font-semibold text-[#4F46E5]">{logLabel}</Text>
+          <Ionicons name="chevron-forward" size={16} color={BRAND_INDIGO} />
+        </Pressable>
+      </View>
     );
   }
 
@@ -140,18 +140,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 14,
-  },
-  logRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  logText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND_INDIGO,
   },
   cardPressed: {
     backgroundColor: 'rgba(79, 70, 229, 0.07)',
