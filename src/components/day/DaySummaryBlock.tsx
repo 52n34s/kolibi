@@ -453,16 +453,13 @@ export function DaySummaryBlock({ date, compact = false, onPress }: DaySummaryBl
   if (compact && calorieGoalDisplay) {
     const protein = nutrientTiles.find((tile) => tile.key === 'protein');
     return (
-      <Pressable
-        testID="today.nutrition"
-        accessibilityRole="button"
-        onPress={onPress}
-        style={({ pressed }) => [
-          getOnboardingIdleCardStyle(),
-          { borderRadius: ONBOARDING_CARD_RADIUS },
-          pressed && { opacity: 0.85 },
-        ]}>
-        <View className="flex-row items-center px-5 py-4">
+      <View style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
+        <Pressable
+          testID="today.nutrition"
+          accessibilityRole="button"
+          onPress={onPress}
+          style={({ pressed }) => [pressed && { opacity: 0.85 }]}
+          className="flex-row items-center px-5 py-4">
           <View className="flex-1">
             <Text
               style={[
@@ -494,8 +491,8 @@ export function DaySummaryBlock({ date, compact = false, onPress }: DaySummaryBl
               <Text className="text-sm text-gray-500">{t('today.nutrition.protein')}</Text>
             </View>
           ) : null}
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     );
   }
 
