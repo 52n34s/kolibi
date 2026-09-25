@@ -699,3 +699,75 @@ describe('suggestProgression – too hard twice (Block 2.5)', () => {
     assert.equal(suggestion, null);
   });
 });
+
+describe('suggestProgression – extra sets', () => {
+  const ex = exercise({ id: 'incline', kind: 'reps', ladderKey: 'push_horizontal', ladderStep: 1 });
+  const next = exercise({ id: 'push_up', kind: 'reps', ladderKey: 'push_horizontal', ladderStep: 2 });
+  const weakPrev = unit({
+    sessionId: 's0',
+    intensity: 'normal',
+    sets: [set({ reps: 6 }), set({ reps: 6 }), set({ reps: 6 })],
+  });
+  const run = (history: ProgressionHistoryUnit[], templateExerciseIds = [ex.id]) =>
+    suggestProgression(
+      baseInput({ exercise: ex, ladder: [ex, next], templateExerciseIds, history }),
+    );
+
+  it('planned sets decide: a weak extra set does not block the step up', () => {
+    const latest = unit({
+      sessionId: 's1',
+      sets: [set(), set(), set(), set({ reps: 5 })],
+    });
+    assert.equal(run([latest, unit({ sessionId: 's0' })])?.kind, 'variant_up');
+  });
+
+  it('extra sets never cause a step down', () => {
+    const tired = (id: string) =>
+      unit({ sessionId: id, sets: [set({ reps: 9 }), set({ reps: 9 }), set({ reps: 9 }), set({ reps: 3 }), set({ reps: 3 }), set({ reps: 3 }), set({ reps: 3 })] });
+    const suggestion = run([tired('s2'), tired('s1')]);
+    assert.notEqual(suggestion?.kind, 'variant_down');
+    assert.notEqual(suggestion?.kind, 'range_down');
+  });
+
+  it('an extra set at the upper bound is a clear success: "hart" does not wait', () => {
+    const latest = unit({
+      sessionId: 's1',
+      intensity: 'hard',
+      sets: [set(), set(), set(), set({ reps: 12 })],
+    });
+    assert.equal(run([latest, weakPrev])?.kind, 'variant_up');
+  });
+
+  it('an extra set below the upper bound keeps the hard rule', () => {
+    const latest = unit({
+      sessionId: 's1',
+      intensity: 'hard',
+      sets: [set(), set(), set(), set({ reps: 10 })],
+    });
+    assert.equal(run([latest, weakPrev]), null);
+  });
+
+  it('sets_up after two sessions with more sets than planned', () => {
+    const more = (id: string) =>
+      unit({ sessionId: id, sets: [set({ reps: 9 }), set({ reps: 9 }), set({ reps: 9 }), set({ reps: 8 })] });
+    const suggestion = run([more('s2'), more('s1')]);
+    assert.equal(suggestion?.kind, 'sets_up');
+    assert.equal(suggestion?.toTarget.targetSets, 4);
+  });
+
+  it('one session with an extra set is not enough for sets_up', () => {
+    const more = unit({ sessionId: 's2', sets: [set({ reps: 9 }), set({ reps: 9 }), set({ reps: 9 }), set({ reps: 8 })] });
+    const plain = unit({ sessionId: 's1', sets: [set({ reps: 9 }), set({ reps: 9 }), set({ reps: 9 })] });
+    assert.equal(run([more, plain]), null);
+  });
+
+  it('no sets_up from extras at the sets cap', () => {
+    const cap = target({ targetSets: 5 });
+    const seven = (id: string) =>
+      unit({ sessionId: id, sets: Array.from({ length: 6 }, () => set({ reps: 9 })) });
+    const suggestion = suggestProgression(
+      baseInput({ exercise: ex, ladder: [ex, next], currentTarget: cap, history: [seven('s2'), seven('s1')] }),
+    );
+    assert.equal(suggestion, null);
+  });
+});
