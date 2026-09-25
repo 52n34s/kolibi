@@ -218,11 +218,6 @@
       "training": "Entreno",
       "history": "Progreso"
     },
-    "productLock": {
-      "title": "Se requiere Kolibi Premium",
-      "message": "Tu suscripción no está activa. Suscríbete para seguir usando Kolibi, o gestiona tu cuenta abajo.",
-      "manageAccount": "Cuenta y suscripción"
-    },
     "activeSessionBar": {
       "label": "Entreno en curso · {{shortLabel}} · {{time}}"
     },

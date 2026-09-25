@@ -65,7 +65,6 @@ import {
 } from '@/components/home/weight-progress-card';
 import { WeightInputSheet } from '@/components/home/weight-update-sheet';
 import { PaywallSheet } from '@/components/paywall/PaywallSheet';
-import { RegisteredHomeProductLock } from '@/components/premium/RegisteredHomeProductLock';
 import { useGatePremiumAccess } from '@/hooks/use-gate-premium-access';
 import { useHomeDashboard } from '@/hooks/use-home-dashboard';
 import { useTrialStatus } from '@/hooks/use-premium-access';
@@ -294,9 +293,9 @@ export default function HomeScreen() {
   const homeTabIndex = homeTabs.indexOf(homeTab);
   // The scan bar belongs to the food flow. On the training tab it covered
   // "Einheit nachtragen" and "Plan bearbeiten", so it stays hidden there.
-  // Registered users without entitlement never see capture controls.
+  // Without a plan the bar stays visible; a tap opens the paywall
+  // (requirePremiumAccessToCapture, AGB Ziffer 10 Abs. 5).
   const hideScanButtons =
-    isRegisteredProductLocked ||
     isProductAccessLoading ||
     homeTab === 'training' ||
     homeTab === 'history';
@@ -391,14 +390,7 @@ export default function HomeScreen() {
   const switchHomeTab = useCallback(
     (tab: HomeTab) => {
       void (async () => {
-        // Registered users without entitlement cannot use any product tab.
-        // Anonymous users keep tab access (scan limits are handled separately).
-        if (!isAnonymousUser) {
-          if (!(await gatePremiumAccess())) {
-            openPaywall({ withValuePitch: true });
-            return;
-          }
-        }
+        // Viewing a tab never needs a plan; new entries and training do.
         // Training is only a valid home tab while the feature is enabled.
         if (tab === 'training' && !trainingTabEnabled) {
           return;
@@ -406,7 +398,7 @@ export default function HomeScreen() {
         setHomeTab(tab);
       })();
     },
-    [gatePremiumAccess, isAnonymousUser, openPaywall, trainingTabEnabled],
+    [trainingTabEnabled],
   );
 
   const homeTabSwipeGesture = useMemo(
@@ -447,7 +439,7 @@ export default function HomeScreen() {
     }
   }, [session, isAnonymousUser, openPaywall]);
 
-  // If entitlement lapses, leave product tabs and surface the paywall.
+  // If entitlement lapses, surface the paywall once; the tabs stay viewable.
   useEffect(() => {
     if (isAnonymousUser) {
       return;
@@ -456,7 +448,6 @@ export default function HomeScreen() {
       return;
     }
 
-    setHomeTab('today');
     openPaywall({ withValuePitch: true });
   }, [isAnonymousUser, isRegisteredProductLocked, openPaywall]);
 
@@ -1441,15 +1432,7 @@ export default function HomeScreen() {
         />
       </View>
       <View className="flex-1">
-        {isRegisteredProductLocked || isProductAccessLoading ? (
-          <View className="flex-1 px-6" style={{ paddingTop: contentTopPadding }}>
-            <Text className="mb-4 pr-12 text-2xl font-bold text-gray-900">{greeting}</Text>
-            <RegisteredHomeProductLock
-              isLoading={isProductAccessLoading}
-              onSubscribe={() => openPaywall({ withValuePitch: true })}
-            />
-          </View>
-        ) : (
+        {/* AGB Ziffer 10 Abs. 5: every tab stays viewable without a plan. */}
         <GestureDetector gesture={homeTabSwipeGesture}>
           <View className="flex-1">
             <View className="px-6" style={{ paddingTop: contentTopPadding }}>
@@ -1563,7 +1546,6 @@ export default function HomeScreen() {
             )}
           </View>
         </GestureDetector>
-        )}
 
         {!hideScanButtons ? (
         <View

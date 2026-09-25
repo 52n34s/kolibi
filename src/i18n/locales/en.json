@@ -218,11 +218,6 @@
       "training": "Training",
       "history": "Progress"
     },
-    "productLock": {
-      "title": "Kolibi Premium required",
-      "message": "Your subscription is inactive. Subscribe to keep using Kolibi, or manage your account below.",
-      "manageAccount": "Account & subscription"
-    },
     "activeSessionBar": {
       "label": "Workout in progress · {{shortLabel}} · {{time}}"
     },

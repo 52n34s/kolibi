@@ -218,11 +218,6 @@
       "training": "Training",
       "history": "Fortschritt"
     },
-    "productLock": {
-      "title": "Kolibi Premium erforderlich",
-      "message": "Dein Abo ist nicht aktiv. Abonniere, um Kolibi weiter zu nutzen, oder verwalte dein Konto unten.",
-      "manageAccount": "Konto & Abo"
-    },
     "activeSessionBar": {
       "label": "Training läuft · {{shortLabel}} · {{time}}"
     },
