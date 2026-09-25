@@ -70,4 +70,28 @@ describe('pickNextTemplate', () => {
   it('returns null for an empty list', () => {
     assert.equal(pickNextTemplate([], [], '2026-09-22'), null);
   });
+  it('keeps the rotation when the last finished unit was archived since', () => {
+    const a = template({ id: 'a', name: 'A', position: 0 });
+    const b = template({ id: 'b', name: 'B', position: 1 });
+    // A this morning, then a unit that is no longer in the plan.
+    const next = pickNextTemplate(
+      [a, b],
+      [
+        {
+          templateId: 'archived-push',
+          loggedOn: '2026-09-25',
+          finishedAt: '2026-09-25T19:00:00.000Z',
+          startedAt: '2026-09-25T18:30:00.000Z',
+        },
+        {
+          templateId: 'a',
+          loggedOn: '2026-09-25',
+          finishedAt: '2026-09-25T09:00:00.000Z',
+          startedAt: '2026-09-25T08:30:00.000Z',
+        },
+      ],
+      '2026-09-25',
+    );
+    assert.equal(next?.id, 'b');
+  });
 });
