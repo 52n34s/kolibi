@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Href, router } from 'expo-router';
-import { useMemo, type ComponentProps } from 'react';
+import { useMemo, useState, type ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -9,7 +9,8 @@ import {
   getOnboardingIdleCardStyle,
   ONBOARDING_CARD_RADIUS,
 } from '@/components/onboarding/onboarding-styles';
-import { BRAND_INDIGO, RECOMMENDATION_ACCENT } from '@/constants/brand';
+import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
+import { BRAND_INDIGO, RECOMMENDATION_ACCENT, TEXT_SECONDARY } from '@/constants/brand';
 import { useRequestCheckinQuestions } from '@/hooks/use-checkin';
 import { useDeloadWeek } from '@/hooks/use-deload';
 import { useRecommendations } from '@/hooks/use-recommendations';
@@ -38,9 +39,10 @@ type RecommendationsCardProps = {
 const ACCENT_SOFT = `${RECOMMENDATION_ACCENT}1F`;
 
 /**
- * Up to three recommendations on Today. Each row: icon, one sentence, an
- * optional goal reason and one action. Swipe sideways or tap × to hide it for
- * three days.
+ * Up to three recommendations on Today. Each is icon + one sentence; tapping
+ * the card runs its action. The "why" (goal reason / check-in body) sits
+ * behind a small info icon instead of a second line. Swipe sideways or tap ×
+ * to hide it for three days.
  */
 export function RecommendationsCard({
   recommendations,
@@ -49,6 +51,8 @@ export function RecommendationsCard({
   className,
 }: RecommendationsCardProps) {
   const { t } = useTranslation();
+  const [reasonKind, setReasonKind] = useState<RecommendationKind | null>(null);
+  const reasonRec = recommendations.find((rec) => rec.kind === reasonKind) ?? null;
 
   if (recommendations.length === 0) {
     return null;
@@ -75,9 +79,15 @@ export function RecommendationsCard({
               <View
                 testID={`home.recommendations.${rec.kind}`}
                 style={[getOnboardingIdleCardStyle(), { borderRadius: ONBOARDING_CARD_RADIUS }]}>
-                <View className="flex-row items-start gap-3 px-4 py-3">
+                <Pressable
+                  testID={`home.recommendations.${rec.kind}.action`}
+                  accessibilityRole={handler ? 'button' : undefined}
+                  accessibilityLabel={handler ? t(rec.action.labelKey) : undefined}
+                  disabled={!handler}
+                  onPress={handler ? () => handler(rec.action) : undefined}
+                  className="flex-row items-center gap-3 py-3 pl-4 pr-9">
                   <View
-                    className="mt-0.5 h-8 w-8 items-center justify-center rounded-full"
+                    className="h-8 w-8 items-center justify-center rounded-full"
                     style={{ backgroundColor: ACCENT_SOFT }}>
                     <Ionicons
                       name={rec.icon as IoniconName}
@@ -85,65 +95,79 @@ export function RecommendationsCard({
                       color={RECOMMENDATION_ACCENT}
                     />
                   </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-[15px] font-medium leading-5 text-gray-900">
+                  <View className="min-w-0 flex-1 flex-row items-center">
+                    <Text className="flex-1 text-[15px] font-medium leading-5 text-gray-900">
                       {t(rec.message.key, rec.message.params)}
                     </Text>
-                    {(rec.moreLines ?? []).map((line) => (
-                      <Text
-                        key={line.key}
-                        className="mt-0.5 text-[15px] font-medium leading-5 text-gray-900">
-                        {t(line.key, line.params)}
-                      </Text>
-                    ))}
                     {rec.reason ? (
-                      <Text className="mt-0.5 text-sm leading-5 text-gray-500">
-                        {t(rec.reason.key, rec.reason.params)}
-                      </Text>
+                      <Pressable
+                        testID={`home.recommendations.${rec.kind}.reason`}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('recommendations.why')}
+                        hitSlop={8}
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          setReasonKind(rec.kind);
+                        }}
+                        className="ml-1 p-1">
+                        <Ionicons name="information-circle-outline" size={18} color={TEXT_SECONDARY} />
+                      </Pressable>
                     ) : null}
-                    <View className="flex-row items-center" style={{ gap: 16 }}>
-                      {handler ? (
-                        <Pressable
-                          testID={`home.recommendations.${rec.kind}.action`}
-                          accessibilityRole="button"
-                          hitSlop={8}
-                          onPress={() => handler(rec.action)}
-                          className="mt-1.5 flex-row items-center self-start py-1">
-                          <Text className="text-sm font-semibold" style={{ color: BRAND_INDIGO }}>
-                            {t(rec.action.labelKey)}
-                          </Text>
-                          <Ionicons name="chevron-forward" size={14} color={BRAND_INDIGO} />
-                        </Pressable>
-                      ) : null}
-                      {secondary && rec.secondaryAction ? (
-                        <Pressable
-                          testID={`home.recommendations.${rec.kind}.secondaryAction`}
-                          accessibilityRole="button"
-                          hitSlop={8}
-                          onPress={() => secondary(rec.secondaryAction!)}
-                          className="mt-1.5 flex-row items-center self-start py-1">
-                          <Text className="text-sm font-semibold text-gray-500">
-                            {t(rec.secondaryAction.labelKey)}
-                          </Text>
-                        </Pressable>
-                      ) : null}
-                    </View>
                   </View>
+                </Pressable>
+                {secondary && rec.secondaryAction ? (
                   <Pressable
-                    testID={`home.recommendations.${rec.kind}.dismiss`}
+                    testID={`home.recommendations.${rec.kind}.secondaryAction`}
                     accessibilityRole="button"
-                    accessibilityLabel={t('recommendations.dismiss')}
-                    hitSlop={12}
-                    onPress={() => onDismiss(rec.kind)}
-                    className="pt-0.5">
-                    <Ionicons name="close" size={18} color="#9CA3AF" />
+                    hitSlop={8}
+                    onPress={() => secondary(rec.secondaryAction!)}
+                    className="ml-14 self-start px-4 pb-3">
+                    <Text className="text-sm font-semibold text-gray-500">
+                      {t(rec.secondaryAction.labelKey)}
+                    </Text>
                   </Pressable>
-                </View>
+                ) : null}
+                <Pressable
+                  testID={`home.recommendations.${rec.kind}.dismiss`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('recommendations.dismiss')}
+                  hitSlop={12}
+                  onPress={() => onDismiss(rec.kind)}
+                  className="absolute right-3 top-3">
+                  <Ionicons name="close" size={18} color="#9CA3AF" />
+                </Pressable>
               </View>
             </Swipeable>
           );
         })}
       </View>
+      <GlassBottomSheet
+        visible={reasonRec != null}
+        onClose={() => setReasonKind(null)}
+        presentation="center">
+        {reasonRec?.reason ? (
+          <>
+            <Text style={{ fontSize: 15, lineHeight: 22, color: '#111827' }}>
+              {t(reasonRec.reason.key, reasonRec.reason.params)}
+            </Text>
+            <Pressable
+              testID="home.recommendations.reason.close"
+              accessibilityRole="button"
+              onPress={() => setReasonKind(null)}
+              style={{
+                marginTop: 16,
+                backgroundColor: BRAND_INDIGO,
+                borderRadius: 14,
+                paddingVertical: 12,
+                alignItems: 'center',
+              }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>
+                {t('settings.common.ok')}
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+      </GlassBottomSheet>
     </View>
   );
 }

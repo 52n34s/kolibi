@@ -1180,6 +1180,8 @@ describe('week simulation 1.4 (build_muscle, 4 units, Push + Pull & Legs)', () =
       trainedToday: false,
       consumed: { proteinG: 20, carbsG: 60, fiberG: 5 },
       targets: { kcal: mon.calorieGoal, proteinG: mon.proteinG, carbsG: mon.carbsG, fiberG: 35 },
+      // Nothing logged yet today unless a call below says otherwise.
+      lastMealSlot: null,
       readiness: 'normal',
       nextLevel: null,
       muscleDeficits: [],
@@ -1193,23 +1195,24 @@ describe('week simulation 1.4 (build_muscle, 4 units, Push + Pull & Legs)', () =
     const kinds = (c: RecommendationContext) => buildRecommendations(c).map((r) => r.kind);
     const results = {
       mon0900: kinds(ctx({})),
-      mon1400: buildRecommendations(ctx({ hour: 14, nowMs: Date.parse(at(MON, 14)), consumed: { proteinG: 40, carbsG: 80, fiberG: 10 } })),
-      mon1400ProteinOk: kinds(ctx({ hour: 14, nowMs: Date.parse(at(MON, 14)), consumed: { proteinG: 90, carbsG: 80, fiberG: 10 }, checkinStatus: 'answered' })),
-      mon1930Trained: kinds(ctx({ hour: 19, minute: 30, trainedToday: true, consumed: { proteinG: 60, carbsG: 120, fiberG: 10 }, checkinStatus: 'answered' })),
-      wed1400Rest: kinds(ctx({ todayKey: WED, hour: 14, trainingDay: false, targets: { kcal: wed.calorieGoal, proteinG: wed.proteinG, carbsG: wed.carbsG, fiberG: 35 }, consumed: { proteinG: 90, carbsG: 50, fiberG: 10 }, checkinStatus: 'answered' })),
+      mon1400: buildRecommendations(ctx({ hour: 14, nowMs: Date.parse(at(MON, 14)), lastMealSlot: 'lunch', consumed: { proteinG: 40, carbsG: 80, fiberG: 10 } })),
+      mon1400ProteinOk: kinds(ctx({ hour: 14, nowMs: Date.parse(at(MON, 14)), lastMealSlot: 'lunch', consumed: { proteinG: 90, carbsG: 80, fiberG: 10 }, checkinStatus: 'answered' })),
+      mon1930Trained: kinds(ctx({ hour: 19, minute: 30, lastMealSlot: 'dinner', trainedToday: true, consumed: { proteinG: 60, carbsG: 120, fiberG: 10 }, checkinStatus: 'answered' })),
+      wed1400Rest: kinds(ctx({ todayKey: WED, hour: 14, lastMealSlot: 'lunch', trainingDay: false, targets: { kcal: wed.calorieGoal, proteinG: wed.proteinG, carbsG: wed.carbsG, fiberG: 35 }, consumed: { proteinG: 90, carbsG: 50, fiberG: 10 }, checkinStatus: 'answered' })),
       friGentle: kinds(ctx({ todayKey: FRI, hour: 15, readiness: 'gentle', consumed: { proteinG: 90, carbsG: 150, fiberG: 10 }, lastWeightDateKey: FRI, checkinStatus: 'answered' })),
       sunWeight6Days: kinds(ctx({ todayKey: SUN, hour: 9, trainingDay: false, checkinStatus: 'answered' })),
       nextMonWeight7Days: kinds(ctx({ todayKey: NEXT_MON, hour: 9, checkinStatus: 'answered' })),
       neverWeighed: buildRecommendations(ctx({ lastWeightDateKey: null, checkinStatus: 'answered' })).map((r) => r.message.key),
-      lose1400Rest: kinds(ctx({ goalCategory: 'lose', hour: 14, trainingDay: true, consumed: { proteinG: 40, carbsG: 80, fiberG: 10 }, checkinStatus: 'answered' })),
+      lose1400Rest: kinds(ctx({ goalCategory: 'lose', hour: 14, lastMealSlot: 'lunch', trainingDay: true, consumed: { proteinG: 40, carbsG: 80, fiberG: 10 }, checkinStatus: 'answered' })),
     };
     out.recommendations = results;
 
     // 09:00: nothing for nutrition yet, no weight hint (weighed today), check-in card still owns the day (until 18:00).
     assert.deepEqual(results.mon0900, []);
-    // 14:00 on a training day, protein and carbs clearly behind: protein first, then carbs before the unit.
+    // 14:00 on a training day, protein and carbs clearly behind: only the single
+    // biggest relative gap shows — protein.
     // No "checkin" yet either — the inline card's own window (now until 18:00) hasn't closed.
-    assert.deepEqual(results.mon1400.map((r) => r.kind), ['protein', 'carbs_training']);
+    assert.deepEqual(results.mon1400.map((r) => r.kind), ['protein']);
     assert.equal(results.mon1400[0]!.message.params?.grams, mon.proteinG - 40);
     assert.equal(results.mon1400[0]!.reason?.key, 'onboarding2.focus.reason.muscle.protein');
     assert.deepEqual(results.mon1400ProteinOk, ['carbs_training']);
@@ -1223,8 +1226,8 @@ describe('week simulation 1.4 (build_muscle, 4 units, Push + Pull & Legs)', () =
     assert.deepEqual(results.sunWeight6Days, []);
     assert.deepEqual(results.nextMonWeight7Days, ['weight']);
     assert.deepEqual(results.neverWeighed, ['recommendations.weight.messageFirst']);
-    // "Abnehmen" has no carbs focus: protein and its own fiber focus, no carbs hint on the same day.
-    assert.deepEqual(results.lose1400Rest, ['protein', 'fiber']);
+    // "Abnehmen" has no carbs focus; protein has the bigger relative gap here and wins the one nutrition slot.
+    assert.deepEqual(results.lose1400Rest, ['protein']);
 
     // Finding: apply-built-plan saves wizard units with weekdays: []. useRecommendations
     // (trainingDay = a unit planned for this weekday || a session logged today) then only
@@ -1233,7 +1236,7 @@ describe('week simulation 1.4 (build_muscle, 4 units, Push + Pull & Legs)', () =
     const trainingDayLikeHook = (weekdays: number[][], isoWeekday: number, loggedToday: boolean) =>
       weekdays.some((days) => days.includes(isoWeekday)) || loggedToday;
     const wizardWeekdays = [[], []];
-    const before = kinds(ctx({ hour: 14, nowMs: Date.parse(at(MON, 14)), trainingDay: trainingDayLikeHook(wizardWeekdays, 1, false), consumed: { proteinG: 40, carbsG: 80, fiberG: 10 }, checkinStatus: 'answered' }));
+    const before = kinds(ctx({ hour: 14, nowMs: Date.parse(at(MON, 14)), lastMealSlot: 'lunch', trainingDay: trainingDayLikeHook(wizardWeekdays, 1, false), consumed: { proteinG: 40, carbsG: 80, fiberG: 10 }, checkinStatus: 'answered' }));
     const gentle = kinds(ctx({ hour: 14, readiness: 'gentle', trainingDay: trainingDayLikeHook(wizardWeekdays, 1, false), consumed: { proteinG: 90, carbsG: 150, fiberG: 10 }, checkinStatus: 'answered' }));
     out.recommendationsWizardWeekdays = { before, gentle };
     assert.deepEqual(before, ['protein']);
@@ -1486,23 +1489,27 @@ describe('week simulation 2 (six weeks, 1.4.0 additions)', () => {
       trainingDay: true, trainedToday: false,
       consumed: { proteinG: 30, carbsG: 80, fiberG: 4 },
       targets: { kcal: 2600, proteinG: 150, carbsG: 320, fiberG: 35 },
+      lastMealSlot: 'lunch',
       readiness: 'normal', nextLevel: null, muscleDeficits: [], lastWeightDateKey: TODAY6,
       lastMeasurementDateKey: null, usesMeasurements: false, checkinStatus: 'open', dismissals: {},
       focusAreas,
     } as RecommendationContext);
     const kinds = (c: RecommendationContext) => buildRecommendations(c).map((r) => r.kind);
-    // 13:00 is still inside the inline check-in card's own window (now until
-    // 18:00), so no "checkin" recommendation yet — same reasoning as week 1.4
-    // test 8.
-    assert.deepEqual(kinds(ctx('muscle', null)), ['protein', 'carbs_training']);
-    assert.deepEqual(kinds(ctx('muscle', ['more_training_energy'])), ['carbs_training', 'protein']);
-    assert.deepEqual(kinds(ctx('lose', null)), ['protein', 'fiber']);
-    assert.deepEqual(kinds(ctx('lose', ['more_fiber'])), ['fiber', 'protein']);
-    // Fix (Befund 5, test week 2): a focus area can now surface a card the
-    // goal's own table would otherwise leave out. "Mehr Ballaststoffe" with
-    // build_muscle now yields a fiber hint, ahead of the goal's own topics —
-    // the 4th nutrition candidate bumps "checkin" past maxShown.
-    assert.deepEqual(kinds(ctx('muscle', ['more_fiber'])), ['fiber', 'protein', 'carbs_training']);
+    // Only one nutrition card at a time now: the biggest relative gap wins.
+    // Protein (30/150, 64 % behind pace) beats carbs (80/320, 55 % behind) —
+    // a focus area breaks a TIE, it does not override a genuinely bigger gap.
+    assert.deepEqual(kinds(ctx('muscle', null)), ['protein']);
+    assert.deepEqual(kinds(ctx('muscle', ['more_training_energy'])), ['protein']);
+    // "lose" has fiber in its own focus table too, and fiber (4/35, 79 %
+    // behind) has the biggest gap of the three here — it wins outright, no
+    // focus area needed.
+    assert.deepEqual(kinds(ctx('lose', null)), ['fiber']);
+    assert.deepEqual(kinds(ctx('lose', ['more_fiber'])), ['fiber']);
+    // Fix (Befund 5, test week 2): a focus area can still surface a card the
+    // goal's own table would otherwise leave out entirely. "Mehr
+    // Ballaststoffe" with build_muscle makes fiber a candidate at all, and it
+    // then wins on its own (biggest) relative gap.
+    assert.deepEqual(kinds(ctx('muscle', ['more_fiber'])), ['fiber']);
   });
 
   it('W2-5 lighter week: both triggers, 28-day cooldown, one set less during it, no level-ups, back afterwards', () => {
@@ -2059,6 +2066,7 @@ describe('week simulation 3 (Alex: bodyweight, build_muscle, 4×45min, pull-up b
       trainedToday: false,
       consumed: { proteinG: 20, carbsG: 60, fiberG: 5 },
       targets: { kcal: mon.calorieGoal, proteinG: mon.proteinG, carbsG: mon.carbsG, fiberG: 35 },
+      lastMealSlot: null,
       readiness: 'normal',
       nextLevel: null,
       muscleDeficits: [],
@@ -2071,12 +2079,13 @@ describe('week simulation 3 (Alex: bodyweight, build_muscle, 4×45min, pull-up b
     });
     const kinds = (c: RecommendationContext) => buildRecommendations(c).map((r) => r.kind);
     const results = {
-      mon1400: kinds(ctx({ hour: 14, nowMs: Date.parse(at(MON3, 14)), consumed: { proteinG: 40, carbsG: 80, fiberG: 10 } })),
-      mon1930Trained: kinds(ctx({ hour: 19, minute: 30, trainedToday: true, consumed: { proteinG: 60, carbsG: 120, fiberG: 10 } })),
+      mon1400: kinds(ctx({ hour: 14, nowMs: Date.parse(at(MON3, 14)), lastMealSlot: 'lunch', consumed: { proteinG: 40, carbsG: 80, fiberG: 10 } })),
+      mon1930Trained: kinds(ctx({ hour: 19, minute: 30, lastMealSlot: 'dinner', trainedToday: true, consumed: { proteinG: 60, carbsG: 120, fiberG: 10 } })),
       wed1400Rest: kinds(
         ctx({
           todayKey: WED3,
           hour: 14,
+          lastMealSlot: 'lunch',
           trainingDay: false,
           targets: { kcal: wed.calorieGoal, proteinG: wed.proteinG, carbsG: wed.carbsG, fiberG: 35 },
           consumed: { proteinG: 90, carbsG: 50, fiberG: 10 },
@@ -2085,8 +2094,9 @@ describe('week simulation 3 (Alex: bodyweight, build_muscle, 4×45min, pull-up b
     };
     out.week3Recommendations = results;
 
-    // Training day, protein and carbs both behind: protein first, then carbs before the unit.
-    assert.deepEqual(results.mon1400, ['protein', 'carbs_training']);
+    // Training day, protein and carbs both behind: only the single biggest
+    // relative gap shows now — protein.
+    assert.deepEqual(results.mon1400, ['protein']);
     // After training: no more "carbs before training", protein still short.
     assert.deepEqual(results.mon1930Trained, ['protein']);
     // Rest day, carbs low but nothing to train for: no carbs hint.

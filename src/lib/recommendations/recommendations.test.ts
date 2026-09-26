@@ -12,7 +12,7 @@ import {
 import {
   buildRecommendations,
   daysBetweenKeys,
-  expectedDayShare,
+  expectedDayShareByMeal,
   isSnoozed,
   macroGap,
   RECOMMENDATION_RULES,
@@ -37,8 +37,11 @@ function ctx(overrides: Partial<RecommendationContext> = {}): RecommendationCont
     hoursSinceTraining: null,
     focusAreas: null,
     deloadSuggested: false,
+    // Behind the old clock curve's own default (15:00 ≈ 54 % expected) so
+    // pre-existing non-nutrition tests stay nutrition-quiet by default.
     consumed: { proteinG: 100, carbsG: 150, fiberG: 20 },
     targets: { kcal: 2000, proteinG: 120, carbsG: 220, fiberG: 30 },
+    lastMealSlot: 'lunch',
     readiness: null,
     nextLevel: null,
     muscleDeficits: [],
@@ -70,40 +73,52 @@ function lookup(tree: Record<string, unknown>, key: string): unknown {
   }, tree);
 }
 
-describe('expectedDayShare', () => {
-  it('is 0 until 08:00 and 1 from 21:00', () => {
-    assert.equal(expectedDayShare(6, 0), 0);
-    assert.equal(expectedDayShare(8, 0), 0);
-    assert.equal(expectedDayShare(21, 0), 1);
-    assert.equal(expectedDayShare(23, 30), 1);
+describe('expectedDayShareByMeal', () => {
+  it('is 0 before the first meal logged today', () => {
+    assert.equal(expectedDayShareByMeal({ lastMealSlot: null, hour: 12 }), 0);
+    assert.equal(expectedDayShareByMeal({ lastMealSlot: undefined, hour: 12 }), 0);
   });
 
-  it('rises linearly in between', () => {
-    assert.equal(expectedDayShare(14, 30), 0.5);
-    assert.ok(Math.abs(expectedDayShare(10, 0) - 2 / 13) < 1e-9);
+  it('rises by day progress, not the clock', () => {
+    assert.equal(expectedDayShareByMeal({ lastMealSlot: 'breakfast', hour: 10 }), 0.25);
+    assert.equal(expectedDayShareByMeal({ lastMealSlot: 'lunch', hour: 14 }), 0.55);
+    assert.equal(expectedDayShareByMeal({ lastMealSlot: 'afternoonSnack', hour: 16 }), 0.7);
+    // An early dinner (from 17:30) reads the same as the afternoon snack.
+    assert.equal(expectedDayShareByMeal({ lastMealSlot: 'dinner', hour: 18 }), 0.7);
+  });
+
+  it('is the full target from 19:00 on, whatever the last meal was', () => {
+    assert.equal(expectedDayShareByMeal({ lastMealSlot: 'breakfast', hour: 19 }), 1);
+    assert.equal(expectedDayShareByMeal({ lastMealSlot: 'dinner', hour: 23 }), 1);
   });
 });
 
 describe('macroGap', () => {
-  const base = { target: 120, hour: 15, minute: 0, minRemaining: 15 };
+  const base = { target: 160, lastMealSlot: 'breakfast' as const, hour: 10, minRemaining: 15 };
 
-  it('stays quiet before 10:00', () => {
-    assert.equal(macroGap({ ...base, consumed: 0, hour: 9, minute: 59 }), null);
+  it('stays quiet before the first meal', () => {
+    assert.equal(macroGap({ ...base, consumed: 0, lastMealSlot: null }), null);
+    assert.equal(macroGap({ ...base, consumed: 0, lastMealSlot: undefined }), null);
   });
 
-  it('returns the grams to the target when clearly behind the curve', () => {
-    // 15:00 → 7/13 of 120 ≈ 64.6 g expected, 80 % ≈ 51.7 g.
-    assert.equal(macroGap({ ...base, consumed: 47 }), 73);
+  it('returns the grams and the relative gap when clearly behind pace', () => {
+    // Breakfast → 25 % of 160 g = 40 g expected, 80 % of that = 32 g.
+    const gap = macroGap({ ...base, consumed: 30 });
+    assert.equal(gap?.remainingG, 130);
+    assert.ok(gap && Math.abs(gap.relativeGap - (40 - 30) / 40) < 1e-9);
   });
 
-  it('stays quiet when only slightly behind', () => {
-    assert.equal(macroGap({ ...base, consumed: 55 }), null);
+  it('stays quiet when close enough to the expected pace', () => {
+    assert.equal(macroGap({ ...base, consumed: 45 }), null);
   });
 
   it('stays quiet when the gap is small', () => {
-    // 22:00: 90 g is behind 80 % of 120 g, but 30 g stays under a 40 g minimum.
-    assert.equal(macroGap({ ...base, consumed: 90, hour: 22 }), 30);
-    assert.equal(macroGap({ ...base, consumed: 90, hour: 22, minRemaining: 40 }), null);
+    // Afternoon snack → 70 % of 160 g = 112 g expected, 80 % ≈ 89.6 g.
+    assert.ok(macroGap({ ...base, lastMealSlot: 'afternoonSnack', consumed: 85, minRemaining: 5 }));
+    assert.equal(
+      macroGap({ ...base, lastMealSlot: 'afternoonSnack', consumed: 85, minRemaining: 80 }),
+      null,
+    );
   });
 
   it('stays quiet for unknown intake or target', () => {
@@ -131,9 +146,66 @@ describe('daysBetweenKeys / isSnoozed', () => {
   });
 });
 
-describe('buildRecommendations – nutrition', () => {
+describe('buildRecommendations – nutrition (day progress, not clock time)', () => {
+  it('nothing before the first meal of the day, even with a large gap', () => {
+    const list = buildRecommendations(
+      ctx({ hour: 10, lastMealSlot: null, consumed: { proteinG: 0, carbsG: 0, fiberG: 0 } }),
+    );
+    assert.deepEqual(kinds(list), []);
+  });
+
+  it('after breakfast, clearly behind → card', () => {
+    const list = buildRecommendations(
+      ctx({
+        hour: 10,
+        lastMealSlot: 'breakfast',
+        consumed: { proteinG: 30, carbsG: 0, fiberG: 30 },
+        targets: { kcal: 2000, proteinG: 160, carbsG: 220, fiberG: 30 },
+      }),
+    );
+    assert.deepEqual(kinds(list), ['protein']);
+  });
+
+  it('after breakfast, close enough → no card', () => {
+    const list = buildRecommendations(
+      ctx({
+        hour: 10,
+        lastMealSlot: 'breakfast',
+        consumed: { proteinG: 45, carbsG: 0, fiberG: 30 },
+        targets: { kcal: 2000, proteinG: 160, carbsG: 220, fiberG: 30 },
+      }),
+    );
+    assert.deepEqual(kinds(list), []);
+  });
+
+  it('after lunch, behind → card', () => {
+    const list = buildRecommendations(
+      ctx({
+        hour: 13,
+        lastMealSlot: 'lunch',
+        consumed: { proteinG: 60, carbsG: 0, fiberG: 30 },
+        targets: { kcal: 2000, proteinG: 160, carbsG: 220, fiberG: 30 },
+      }),
+    );
+    assert.deepEqual(kinds(list), ['protein']);
+  });
+
+  it('19:30, large gap → card (the full target is expected from 19:00 on)', () => {
+    const list = buildRecommendations(
+      ctx({
+        hour: 19,
+        lastMealSlot: 'dinner',
+        consumed: { proteinG: 20, carbsG: 0, fiberG: 30 },
+        targets: { kcal: 2000, proteinG: 160, carbsG: 220, fiberG: 30 },
+      }),
+    );
+    assert.deepEqual(kinds(list), ['protein']);
+  });
+
   it('protein hint with amount, goal reason and meals action', () => {
-    const [rec] = buildRecommendations(ctx({ consumed: { proteinG: 47, carbsG: 150, fiberG: 20 } }));
+    const [rec] = buildRecommendations(
+      ctx({ lastMealSlot: 'dinner', hour: 19, consumed: { proteinG: 47, carbsG: 150, fiberG: 20 } }),
+    );
     assert.equal(rec?.kind, 'protein');
     assert.deepEqual(rec?.message, { key: 'recommendations.protein.message', params: { grams: 73 } });
     assert.deepEqual(rec?.reason, { key: 'onboarding2.focus.reason.lose.protein' });
@@ -141,38 +213,56 @@ describe('buildRecommendations – nutrition', () => {
     assert.equal(rec?.icon, 'egg-outline');
   });
 
-  it('nothing about the day before 10:00', () => {
-    const list = buildRecommendations(
-      ctx({ hour: 9, consumed: { proteinG: 0, carbsG: 0, fiberG: 0 } }),
-    );
-    assert.deepEqual(kinds(list), []);
-  });
-
   it('protein without a goal has no reason line', () => {
     const [rec] = buildRecommendations(
-      ctx({ goalCategory: null, consumed: { proteinG: 0, carbsG: 0, fiberG: 0 } }),
+      ctx({
+        goalCategory: null,
+        lastMealSlot: 'dinner',
+        hour: 19,
+        consumed: { proteinG: 0, carbsG: 0, fiberG: 0 },
+      }),
     );
     assert.equal(rec?.kind, 'protein');
     assert.equal(rec?.reason, null);
   });
 
   it('fiber only for goals with fiber in focus', () => {
-    const behind = { proteinG: 100, carbsG: 150, fiberG: 2 };
-    assert.deepEqual(kinds(buildRecommendations(ctx({ consumed: behind }))), ['fiber']);
+    const behind = { proteinG: 160, carbsG: 220, fiberG: 2 };
+    const targets = { kcal: 2000, proteinG: 160, carbsG: 220, fiberG: 30 };
     assert.deepEqual(
-      kinds(buildRecommendations(ctx({ goalCategory: 'maintain', consumed: behind }))),
+      kinds(buildRecommendations(ctx({ lastMealSlot: 'dinner', hour: 19, consumed: behind, targets }))),
       ['fiber'],
     );
     assert.deepEqual(
-      kinds(buildRecommendations(ctx({ goalCategory: 'muscle', consumed: behind }))),
+      kinds(
+        buildRecommendations(
+          ctx({ goalCategory: 'maintain', lastMealSlot: 'dinner', hour: 19, consumed: behind, targets }),
+        ),
+      ),
+      ['fiber'],
+    );
+    assert.deepEqual(
+      kinds(
+        buildRecommendations(
+          ctx({ goalCategory: 'muscle', lastMealSlot: 'dinner', hour: 19, consumed: behind, targets }),
+        ),
+      ),
       [],
     );
   });
 
   it('carbs on training days before the session, for carb-focused goals', () => {
-    const behind = { proteinG: 100, carbsG: 20, fiberG: 20 };
+    const behind = { proteinG: 160, carbsG: 20, fiberG: 30 };
+    const targets = { kcal: 2000, proteinG: 160, carbsG: 220, fiberG: 30 };
     const muscle = buildRecommendations(
-      ctx({ goalCategory: 'muscle', trainingDay: true, consumed: behind }),
+      ctx({
+        goalCategory: 'muscle',
+        trainingDay: true,
+        lastMealSlot: 'dinner',
+        hour: 19,
+        consumed: behind,
+        targets,
+      }),
     );
     assert.deepEqual(kinds(muscle), ['carbs_training']);
     assert.deepEqual(muscle[0]?.reason, {
@@ -180,37 +270,47 @@ describe('buildRecommendations – nutrition', () => {
     });
     // Not on rest days, not after the session, not for lose.
     assert.deepEqual(
-      kinds(buildRecommendations(ctx({ goalCategory: 'muscle', consumed: behind }))),
-      [],
-    );
-    assert.deepEqual(
       kinds(
         buildRecommendations(
-          ctx({ goalCategory: 'muscle', trainingDay: true, trainedToday: true, consumed: behind }),
+          ctx({ goalCategory: 'muscle', lastMealSlot: 'dinner', hour: 19, consumed: behind, targets }),
         ),
       ),
       [],
     );
     assert.deepEqual(
-      kinds(buildRecommendations(ctx({ trainingDay: true, consumed: behind }))),
+      kinds(
+        buildRecommendations(
+          ctx({
+            goalCategory: 'muscle',
+            trainingDay: true,
+            trainedToday: true,
+            lastMealSlot: 'dinner',
+            hour: 19,
+            consumed: behind,
+            targets,
+          }),
+        ),
+      ),
+      [],
+    );
+    assert.deepEqual(
+      kinds(
+        buildRecommendations(
+          ctx({ trainingDay: true, lastMealSlot: 'dinner', hour: 19, consumed: behind, targets }),
+        ),
+      ),
       [],
     );
   });
 
-  it('orders nutrition by the goal focus table', () => {
+  it('only the single biggest relative gap shows, never several at once', () => {
     const behind = { proteinG: 0, carbsG: 0, fiberG: 0 };
-    assert.deepEqual(
-      kinds(buildRecommendations(ctx({ goalCategory: 'strength', trainingDay: true, consumed: behind }))),
-      ['carbs_training', 'protein'],
+    // 'lose' has both protein and fiber in its focus table; both are at 0, so
+    // both tie on relative gap — the goal's own order breaks the tie.
+    const list = buildRecommendations(
+      ctx({ goalCategory: 'lose', lastMealSlot: 'dinner', hour: 19, consumed: behind }),
     );
-    assert.deepEqual(
-      kinds(buildRecommendations(ctx({ goalCategory: 'maintain', consumed: behind }))),
-      ['fiber', 'protein'],
-    );
-    assert.deepEqual(
-      kinds(buildRecommendations(ctx({ goalCategory: 'lose', consumed: behind }))),
-      ['protein', 'fiber'],
-    );
+    assert.deepEqual(kinds(list), ['protein']);
   });
 
   it('missing consumption or targets → no nutrition hints', () => {
@@ -379,7 +479,8 @@ describe('buildRecommendations – ordering, cap and snooze', () => {
   });
 
   it('nutrition, then training, then data; at most three', () => {
-    assert.deepEqual(kinds(buildRecommendations(busy)), ['protein', 'carbs_training', 'next_level']);
+    // Only one nutrition card at a time: protein wins the tie with carbs_training.
+    assert.deepEqual(kinds(buildRecommendations(busy)), ['protein', 'next_level', 'weight']);
   });
 
   it('a dismissed kind makes room for the next one', () => {
@@ -423,14 +524,10 @@ describe('buildRecommendations – after the session', () => {
     targets: { kcal: 2000, proteinG: 120, carbsG: 220, fiberG: 30, fatG: 65 },
   });
 
-  it('protein first after strength, carbs and the fat line under it', () => {
+  it('protein first after strength — one sentence, no second line', () => {
     const [rec] = buildRecommendations(afterTraining);
     assert.equal(rec?.kind, 'post_training');
     assert.deepEqual(rec?.message, { key: 'postTraining.protein', params: { g: 80 } });
-    assert.deepEqual(rec?.moreLines, [
-      { key: 'postTraining.carbs', params: { g: 160 } },
-      { key: 'postTraining.fat', params: undefined },
-    ]);
   });
 
   it('carbs lead after a run', () => {
@@ -438,13 +535,13 @@ describe('buildRecommendations – after the session', () => {
     assert.equal(rec?.message.key, 'postTraining.carbs');
   });
 
-  it('replaces the plain protein and carbs hints, keeps fiber', () => {
+  it('is the only nutrition card while its window is open, even with a fiber gap too', () => {
     const list = buildRecommendations({
       ...afterTraining,
       trainingDay: true,
       consumed: { proteinG: 0, carbsG: 0, fiberG: 0, fatG: 0 },
     });
-    assert.deepEqual(kinds(list), ['post_training', 'fiber']);
+    assert.deepEqual(kinds(list), ['post_training']);
   });
 
   it('stays quiet outside the window and without a session', () => {
@@ -497,16 +594,18 @@ describe('buildRecommendations – lighter week', () => {
   });
 });
 
-describe('buildRecommendations – focus areas', () => {
+describe('buildRecommendations – focus areas (breaking a relative-gap tie)', () => {
   const behind = { proteinG: 0, carbsG: 0, fiberG: 0 };
 
-  it('a chosen topic moves its hints forward inside the category', () => {
+  it('a chosen topic wins the tie for which single card shows', () => {
+    // 'lose' has both protein and fiber in focus; both sit at 0 g, so their
+    // relative gap ties and the goal's own order decides: protein first.
     const plain = buildRecommendations(ctx({ goalCategory: 'lose', consumed: behind }));
-    assert.deepEqual(kinds(plain), ['protein', 'fiber']);
+    assert.deepEqual(kinds(plain), ['protein']);
     const withFiber = buildRecommendations(
       ctx({ goalCategory: 'lose', consumed: behind, focusAreas: ['more_fiber'] }),
     );
-    assert.deepEqual(kinds(withFiber), ['fiber', 'protein']);
+    assert.deepEqual(kinds(withFiber), ['fiber']);
   });
 
   it('two areas on the same list keep the goal order between them', () => {
@@ -517,26 +616,26 @@ describe('buildRecommendations – focus areas', () => {
         focusAreas: ['more_fiber', 'more_protein'],
       }),
     );
-    assert.deepEqual(kinds(list), ['protein', 'fiber']);
+    assert.deepEqual(kinds(list), ['protein']);
   });
 
   it('unknown ids change nothing', () => {
     const list = buildRecommendations(
       ctx({ goalCategory: 'lose', consumed: behind, focusAreas: [] }),
     );
-    assert.deepEqual(kinds(list), ['protein', 'fiber']);
+    assert.deepEqual(kinds(list), ['protein']);
   });
 
-  it('a chosen focus area surfaces a card the goal itself would not show', () => {
-    // muscle has no fiber entry in GOAL_FOCUS, so fiber stays quiet on its own —
-    // but explicitly choosing "more fiber" should surface it anyway, ahead of
-    // the goal's own topics (Befund 5, week test 2).
+  it('a chosen focus area can surface a card the goal itself would not show at all', () => {
+    // muscle has no fiber entry in GOAL_FOCUS, so fiber is not even a
+    // candidate on its own — but explicitly choosing "more fiber" makes it
+    // one, and it then wins the tie against protein (Befund 5, week test 2).
     const plain = buildRecommendations(ctx({ goalCategory: 'muscle', consumed: behind }));
     assert.deepEqual(kinds(plain), ['protein']);
     const withFiber = buildRecommendations(
       ctx({ goalCategory: 'muscle', consumed: behind, focusAreas: ['more_fiber'] }),
     );
-    assert.deepEqual(kinds(withFiber), ['fiber', 'protein']);
+    assert.deepEqual(kinds(withFiber), ['fiber']);
     assert.equal(withFiber[0]?.reason, null);
   });
 
@@ -544,7 +643,7 @@ describe('buildRecommendations – focus areas', () => {
     const plain = buildRecommendations(
       ctx({ goalCategory: 'lose', trainingDay: true, consumed: behind }),
     );
-    assert.deepEqual(kinds(plain), ['protein', 'fiber']);
+    assert.deepEqual(kinds(plain), ['protein']);
     const withFocus = buildRecommendations(
       ctx({
         goalCategory: 'lose',
@@ -553,7 +652,7 @@ describe('buildRecommendations – focus areas', () => {
         focusAreas: ['more_training_energy'],
       }),
     );
-    assert.deepEqual(kinds(withFocus), ['carbs_training', 'protein', 'fiber']);
+    assert.deepEqual(kinds(withFocus), ['carbs_training']);
     assert.equal(withFocus[0]?.reason, null);
   });
 });
@@ -633,9 +732,6 @@ describe('i18n', () => {
     for (const rec of lists.flat()) {
       keys.add(rec.message.key);
       keys.add(rec.action.labelKey);
-      for (const line of rec.moreLines ?? []) {
-        keys.add(line.key);
-      }
       if (rec.secondaryAction) {
         keys.add(rec.secondaryAction.labelKey);
       }
@@ -643,7 +739,7 @@ describe('i18n', () => {
         keys.add(rec.reason.key);
       }
     }
-    assert.ok(keys.size >= 18);
+    assert.ok(keys.size >= 15);
     for (const lang of ['de', 'en', 'es']) {
       const tree = loadLocale(lang);
       for (const key of keys) {

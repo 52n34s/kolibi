@@ -2470,21 +2470,22 @@
   "recommendations": {
     "title": "For you today",
     "dismiss": "Hide",
+    "why": "Why?",
     "deload": {
-      "message": "A lighter week takes you further. Your body catches up, then you come back stronger.",
+      "message": "A lighter week takes you further",
       "actionStart": "Start lighter week",
       "actionDismiss": "Not now"
     },
     "protein": {
-      "message": "{{grams}} g of protein to reach your goal",
+      "message": "Still {{grams}} g of protein",
       "action": "Log protein"
     },
     "fiber": {
-      "message": "{{grams}} g of fiber to reach your goal",
+      "message": "A little more fiber today",
       "action": "Log a meal"
     },
     "carbs": {
-      "message": "Training day: carbs before your session give you more power",
+      "message": "Still some carbs before training",
       "action": "Log a meal"
     },
     "restDay": {
@@ -2530,6 +2531,6 @@
   "postTraining": {
     "protein": "{{g}} g of protein to go – good for recovery.",
     "carbs": "{{g}} g of carbs to go – refills your energy stores.",
-    "fat": "Fat is almost reached. Lean protein sources fit well for the rest of the day."
+    "fat": "Almost at your fat target"
   }
 }

@@ -2470,21 +2470,22 @@
   "recommendations": {
     "title": "Para ti hoy",
     "dismiss": "Ocultar",
+    "why": "¿Por qué?",
     "deload": {
-      "message": "Una semana más suave te lleva más lejos. Tu cuerpo se recupera y luego vuelves con más fuerza.",
+      "message": "Una semana más suave te lleva más lejos",
       "actionStart": "Empezar semana suave",
       "actionDismiss": "Ahora no"
     },
     "protein": {
-      "message": "Te quedan {{grams}} g de proteína para tu objetivo",
+      "message": "Aún {{grams}} g de proteína",
       "action": "Registrar proteína"
     },
     "fiber": {
-      "message": "Te quedan {{grams}} g de fibra para tu objetivo",
+      "message": "Un poco más de fibra hoy",
       "action": "Registrar comida"
     },
     "carbs": {
-      "message": "Día de entreno: los carbohidratos antes de la sesión te dan más fuerza",
+      "message": "Aún carbohidratos antes de entrenar",
       "action": "Registrar comida"
     },
     "restDay": {
@@ -2530,6 +2531,6 @@
   "postTraining": {
     "protein": "Te faltan {{g}} g de proteína – buena para la recuperación.",
     "carbs": "Te faltan {{g}} g de carbohidratos – recargan tus reservas.",
-    "fat": "Casi alcanzas la grasa. Para el resto del día van bien las proteínas magras."
+    "fat": "Casi en tu objetivo de grasas"
   }
 }

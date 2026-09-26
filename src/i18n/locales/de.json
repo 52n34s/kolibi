@@ -2470,21 +2470,22 @@
   "recommendations": {
     "title": "Für dich heute",
     "dismiss": "Ausblenden",
+    "why": "Warum?",
     "deload": {
-      "message": "Eine leichtere Woche bringt dich weiter. Dein Körper holt auf, danach geht's stärker weiter.",
+      "message": "Eine leichtere Woche bringt dich weiter",
       "actionStart": "Leichtere Woche starten",
       "actionDismiss": "Jetzt nicht"
     },
     "protein": {
-      "message": "Noch {{grams}} g Protein bis zum Ziel",
+      "message": "Noch {{grams}} g Protein",
       "action": "Protein erfassen"
     },
     "fiber": {
-      "message": "Noch {{grams}} g Ballaststoffe bis zum Ziel",
+      "message": "Noch ein paar Ballaststoffe",
       "action": "Mahlzeit erfassen"
     },
     "carbs": {
-      "message": "Trainingstag: Kohlenhydrate vor der Einheit geben dir mehr Kraft",
+      "message": "Noch Kohlenhydrate vor dem Training",
       "action": "Mahlzeit erfassen"
     },
     "restDay": {
@@ -2528,8 +2529,8 @@
     }
   },
   "postTraining": {
-    "protein": "Noch {{g}} g Protein bis zum Ziel – gut für die Erholung.",
+    "protein": "Noch {{g}} g Protein – gut für die Erholung.",
     "carbs": "Noch {{g}} g Kohlenhydrate – damit füllst du deine Speicher wieder auf.",
-    "fat": "Fett ist fast erreicht. Für den Rest des Tages passen magere Proteinquellen gut."
+    "fat": "Fett fast am Ziel"
   }
 }
