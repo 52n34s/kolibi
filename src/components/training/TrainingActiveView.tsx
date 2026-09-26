@@ -25,6 +25,7 @@ import { hasDoneSet } from '@/lib/workouts/session-logic';
 import { useWorkoutSyncStatus } from '@/lib/workouts/sync-queue-runtime';
 import type { ActiveSession, Exercise } from '@/lib/workouts/types';
 import { useRestTimerStore } from '@/stores/rest-timer-store';
+import { resolveRestSeconds } from '@/lib/training/rest-timer';
 import { useWorkoutSessionStore } from '@/stores/workout-session-store';
 
 type TrainingActiveViewProps = {
@@ -154,8 +155,10 @@ export function TrainingActiveView({ session }: TrainingActiveViewProps) {
       return;
     }
     if (!result.isLastSet) {
-      const rest =
-        result.restSeconds ?? useRestTimerStore.getState().getLastDurationSec();
+      const rest = resolveRestSeconds(
+        result.restSeconds,
+        useRestTimerStore.getState().getLastDurationSec(),
+      );
       void startRest(rest);
     }
   }
