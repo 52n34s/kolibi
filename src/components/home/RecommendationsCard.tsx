@@ -146,7 +146,7 @@ export function RecommendationsCard({
         onClose={() => setReasonKind(null)}
         presentation="center">
         {reasonRec?.reason ? (
-          <>
+          <View style={{ paddingHorizontal: 24, paddingTop: 24 }}>
             <Text style={{ fontSize: 15, lineHeight: 22, color: '#111827' }}>
               {t(reasonRec.reason.key, reasonRec.reason.params)}
             </Text>
@@ -165,7 +165,7 @@ export function RecommendationsCard({
                 {t('settings.common.ok')}
               </Text>
             </Pressable>
-          </>
+          </View>
         ) : null}
       </GlassBottomSheet>
     </View>
