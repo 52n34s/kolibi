@@ -1320,7 +1320,7 @@
       "topFoods": "La mayor parte vino de: {{foods}}",
       "summary": {
         "onTrack": "Vas bien esta semana.",
-        "calorieUndershoot": "En tres de los últimos siete días, tu déficit estuvo claramente por encima de lo previsto.",
+        "calorieUndershoot": "En tres de los últimos siete días ahorraste bastantes más calorías de las previstas.",
         "smallUnder": "Vas bien — unos {{amount}} g más de {{nutrient}} al día lo redondearían.",
         "smallOver": "Vas bien — unos {{amount}} g menos de {{nutrient}} al día lo redondearían.",
         "largeUnder": {
@@ -1446,7 +1446,7 @@
       "body": "Una serie menos por ejercicio. Tu cuerpo se recupera y tu plan sigue.",
       "active": "Activa hasta el {{date}}",
       "end": "Terminar la semana suave",
-      "inactive": "Ahora mismo no hay ninguna semana suave activa."
+      "inactive": "Ahora mismo entrenas a tu ritmo normal."
     },
     "focusAreas": {
       "title": "Tus prioridades",
@@ -1737,7 +1737,7 @@
       "bodyFatBelowSustainable": "Eso está por debajo de lo que suele ser sostenible a largo plazo.",
       "progressStartLabel": "El progreso cuenta desde",
       "progressStartHint": "Opcional. Vacío = el peso más antiguo. Al fijarlo por primera vez, el selector empieza en hoy.",
-      "progressStartEmpty": "No establecido",
+      "progressStartEmpty": "Establecer ahora",
       "progressStartClear": "Quitar fecha",
       "notSet": "No establecido",
       "invalid": "Introduce un peso válido.",

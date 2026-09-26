@@ -1320,7 +1320,7 @@
       "topFoods": "Most of it came from: {{foods}}",
       "summary": {
         "onTrack": "You're on track this week.",
-        "calorieUndershoot": "On three of the last seven days, your deficit was well above what you had planned.",
+        "calorieUndershoot": "On three of the last seven days, you saved noticeably more calories than planned.",
         "smallUnder": "You're on track — about {{amount}} g more {{nutrient}} a day would round it off.",
         "smallOver": "You're on track — about {{amount}} g less {{nutrient}} a day would round it off.",
         "largeUnder": {
@@ -1446,7 +1446,7 @@
       "body": "One set less per exercise. Your body catches up, your plan stays.",
       "active": "Running until {{date}}",
       "end": "End lighter week",
-      "inactive": "No lighter week is running right now."
+      "inactive": "You're training at your normal rhythm right now."
     },
     "focusAreas": {
       "title": "Your focus areas",
@@ -1737,7 +1737,7 @@
       "bodyFatBelowSustainable": "That's below what's typically sustainable long term.",
       "progressStartLabel": "Progress counts from",
       "progressStartHint": "Optional. Empty = oldest weight entry. The first time you set it, the picker starts on today.",
-      "progressStartEmpty": "Not set",
+      "progressStartEmpty": "Set now",
       "progressStartClear": "Clear date",
       "notSet": "Not set",
       "invalid": "Please enter a valid weight.",

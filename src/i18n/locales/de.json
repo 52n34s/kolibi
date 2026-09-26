@@ -802,7 +802,7 @@
       "saveSet": "Speichern",
       "finish": "Beenden",
       "finishTitle": "Einheit beenden?",
-      "finishEmptyBody": "Gespeichert wird ab dem ersten Satz.",
+      "finishEmptyBody": "Wir speichern deine Einheit ab dem ersten Satz.",
       "finishSave": "Speichern",
       "finishDiscard": "Verwerfen",
       "finishContinue": "Weiter trainieren",
@@ -1320,7 +1320,7 @@
       "topFoods": "Am meisten davon hattest du bei: {{foods}}",
       "summary": {
         "onTrack": "Du bist diese Woche auf Kurs.",
-        "calorieUndershoot": "An drei der letzten sieben Tage lag dein Defizit deutlich über dem geplanten.",
+        "calorieUndershoot": "An drei der letzten sieben Tage hast du deutlich mehr Kalorien eingespart als geplant.",
         "smallUnder": "Du bist auf Kurs — etwa {{amount}} g mehr {{nutrient}} pro Tag würden es abrunden.",
         "smallOver": "Du bist auf Kurs — etwa {{amount}} g weniger {{nutrient}} pro Tag würden es abrunden.",
         "largeUnder": {
@@ -1446,7 +1446,7 @@
       "body": "Ein Satz weniger pro Übung. Dein Körper holt auf, dein Plan bleibt.",
       "active": "Läuft bis {{date}}",
       "end": "Leichtere Woche beenden",
-      "inactive": "Gerade läuft keine leichtere Woche."
+      "inactive": "Du trainierst gerade im normalen Rhythmus."
     },
     "focusAreas": {
       "title": "Deine Schwerpunkte",
@@ -1737,7 +1737,7 @@
       "bodyFatBelowSustainable": "Das liegt unter dem, was langfristig typischerweise nachhaltig ist.",
       "progressStartLabel": "Fortschritt zählt ab",
       "progressStartHint": "Optional. Leer = ältester Gewichtseintrag. Beim ersten Setzen startet die Auswahl bei heute.",
-      "progressStartEmpty": "Nicht gesetzt",
+      "progressStartEmpty": "Jetzt festlegen",
       "progressStartClear": "Datum entfernen",
       "notSet": "Nicht gesetzt",
       "invalid": "Bitte gib ein gültiges Gewicht ein.",
