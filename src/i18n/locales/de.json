@@ -738,6 +738,7 @@
     },
     "starterPlans": {
       "chooseTitle": "Dein Einstieg",
+      "orTemplate": "Oder starte mit einer Vorlage",
       "chooseIntro": "Drei fertige Pläne für den Start – du siehst zuerst, was drin ist, und übernimmst dann.",
       "sessionMeta": "{{label}}: {{exercises}} Übungen · ~{{minutes}} min",
       "apply": "Plan übernehmen",

@@ -738,6 +738,7 @@
     },
     "starterPlans": {
       "chooseTitle": "Tu punto de partida",
+      "orTemplate": "O empieza con una plantilla",
       "chooseIntro": "Tres planes listos para empezar — primero ves qué incluye, luego lo adoptas.",
       "sessionMeta": "{{label}}: {{exercises}} ejercicios · ~{{minutes}} min",
       "apply": "Usar este plan",

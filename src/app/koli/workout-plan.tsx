@@ -217,6 +217,7 @@ export default function WorkoutPlanScreen() {
           <>
             {showStarterPicker ? (
               <View style={styles.empty}>
+                <Text style={styles.startTitle}>{t('training.starterPlans.chooseTitle')}</Text>
                 <PlanWizardEntryCard testID="training.plan.planWizard" />
                 <StarterPlanPicker
                   onCustom={() => router.push('/koli/workout-template-edit' as Href)}
@@ -369,6 +370,12 @@ const styles = StyleSheet.create({
   empty: {
     gap: 12,
     paddingVertical: 12,
+  },
+  startTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E1B4B',
+    textAlign: 'center',
   },
   archivedEmptyHint: {
     marginBottom: 16,

@@ -177,6 +177,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
       <ScrollView
         contentContainerStyle={styles.empty}
         showsVerticalScrollIndicator={false}>
+        <Text style={styles.startTitle}>{t('training.starterPlans.chooseTitle')}</Text>
         <PlanWizardEntryCard testID="training.idle.planWizard" />
         <StarterPlanPicker onCustom={withPlan('editPlan', openNewWorkout)} />
         <RestTimerCard />
@@ -343,6 +344,12 @@ const styles = StyleSheet.create({
   empty: {
     gap: 16,
     paddingVertical: 24,
+  },
+  startTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E1B4B',
+    textAlign: 'center',
   },
   archivedHintCard: {
     padding: 20,

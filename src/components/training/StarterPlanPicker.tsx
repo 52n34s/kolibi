@@ -88,7 +88,7 @@ export function StarterPlanPicker({ onCustom, onApplied }: StarterPlanPickerProp
 
   return (
     <View style={styles.root}>
-      <Text style={styles.title}>{t('training.starterPlans.chooseTitle')}</Text>
+      <Text style={styles.orTemplate}>{t('training.starterPlans.orTemplate')}</Text>
       <Text style={styles.intro}>{t('training.starterPlans.chooseIntro')}</Text>
 
       <View style={styles.cards}>
@@ -234,10 +234,10 @@ const styles = StyleSheet.create({
     gap: 16,
     width: '100%',
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1E1B4B',
+  orTemplate: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
     textAlign: 'center',
   },
   intro: {
