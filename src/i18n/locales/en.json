@@ -1320,7 +1320,8 @@
       "topFoods": "Most of it came from: {{foods}}",
       "summary": {
         "onTrack": "You're on track this week.",
-        "calorieUndershoot": "On three of the last seven days, you saved noticeably more calories than planned.",
+        "calorieUndershoot_one": "On one of the last seven days you ate well below your target – enough energy helps you build.",
+        "calorieUndershoot_other": "On {{count}} of the last seven days you ate well below your target – enough energy helps you build.",
         "smallUnder": "You're on track — about {{amount}} g more {{nutrient}} a day would round it off.",
         "smallOver": "You're on track — about {{amount}} g less {{nutrient}} a day would round it off.",
         "largeUnder": {
@@ -2477,7 +2478,7 @@
       "actionDismiss": "Not now"
     },
     "protein": {
-      "message": "Still {{grams}} g of protein",
+      "message": "{{grams}} g of protein to go",
       "action": "Log protein"
     },
     "fiber": {
@@ -2485,7 +2486,7 @@
       "action": "Log a meal"
     },
     "carbs": {
-      "message": "Still some carbs before training",
+      "message": "Some carbs before training",
       "action": "Log a meal"
     },
     "restDay": {

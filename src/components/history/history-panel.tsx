@@ -115,10 +115,11 @@ import {
   accuracyFromProteinDistributionDays,
   accuracyFromTrackedDays,
   accuracyFromWeighIns,
+  CALORIE_UNDERSHOOT_MIN_DAYS,
   computeBalanceStats,
   computeBalanceSummaryHeadline,
   computeProteinDistributionStats,
-  detectRepeatedCalorieUndershoot,
+  countCalorieUndershootDays,
   formatBalanceAccuracyValue,
   pickBalanceAccuracyHint,
   shouldShowWeightChangeDelta,
@@ -1286,12 +1287,12 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       ? t('history.balance.allOk')
       : topFoodsLine;
 
-  const showsCalorieUndershoot = useMemo(() => {
+  const calorieUndershootDays = useMemo(() => {
     const days = calorieUndershootData?.days;
     if (!days?.length) {
-      return false;
+      return null;
     }
-    return detectRepeatedCalorieUndershoot({
+    return countCalorieUndershootDays({
       todayKey,
       days: days.map((day) => ({
         date: day.date,
@@ -1301,13 +1302,15 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
       })),
     });
   }, [calorieUndershootData?.days, todayKey]);
+  const showsCalorieUndershoot =
+    calorieUndershootDays != null && calorieUndershootDays >= CALORIE_UNDERSHOOT_MIN_DAYS;
 
   const balanceSummaryHeadline = useMemo(() => {
     if (!showBalanceCard) {
       return null;
     }
     if (showsCalorieUndershoot) {
-      return t('history.balance.summary.calorieUndershoot');
+      return t('history.balance.summary.calorieUndershoot', { count: calorieUndershootDays });
     }
     if (!balanceSummary) {
       return null;
@@ -1340,6 +1343,7 @@ export function HistoryPanel({ onOpenWeightSheet, onOpenTrainingTab }: HistoryPa
     );
   }, [
     balanceSummary,
+    calorieUndershootDays,
     macroAccuracy,
     referenceWeightKg,
     showBalanceCard,

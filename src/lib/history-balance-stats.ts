@@ -536,35 +536,42 @@ export type CalorieUndershootDay = {
 };
 
 /**
- * Pattern, not a single day: ≥3 of the last 7 *completed, fully logged* days
- * are more than 25 % under that day's calorie goal.
+ * How many of the last 7 *completed, fully logged* days are more than 25 %
+ * under that day's calorie goal; null when the window isn't complete yet
+ * (fewer than 7 closed days, or one of them is missing meals or a goal).
  *
  * Untracked days are not treated as zero — they would look like a huge deficit.
- * If any of the seven closed days is missing meals or a goal, returns false.
  */
-export function detectRepeatedCalorieUndershoot(params: {
+export function countCalorieUndershootDays(params: {
   days: readonly CalorieUndershootDay[];
   todayKey: string;
-}): boolean {
+}): number | null {
   const closed = params.days
     .filter((day) => day.date < params.todayKey)
     .sort((a, b) => a.date.localeCompare(b.date));
   const window = closed.slice(-CALORIE_UNDERSHOOT_LOOKBACK_DAYS);
   if (window.length < CALORIE_UNDERSHOOT_LOOKBACK_DAYS) {
-    return false;
+    return null;
   }
 
   const complete = window.every(
     (day) => day.hasMeals && day.calorieGoal != null && day.calorieGoal > 0,
   );
   if (!complete) {
-    return false;
+    return null;
   }
 
-  const underCount = window.filter((day) => {
+  return window.filter((day) => {
     const goal = day.calorieGoal!;
     return day.totalCalories < goal * (1 - CALORIE_UNDERSHOOT_RATIO);
   }).length;
+}
 
-  return underCount >= CALORIE_UNDERSHOOT_MIN_DAYS;
+/** Pattern, not a single day: ≥3 of the last 7 days clearly under goal (see countCalorieUndershootDays). */
+export function detectRepeatedCalorieUndershoot(params: {
+  days: readonly CalorieUndershootDay[];
+  todayKey: string;
+}): boolean {
+  const underCount = countCalorieUndershootDays(params);
+  return underCount != null && underCount >= CALORIE_UNDERSHOOT_MIN_DAYS;
 }

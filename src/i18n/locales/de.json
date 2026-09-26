@@ -1320,7 +1320,8 @@
       "topFoods": "Am meisten davon hattest du bei: {{foods}}",
       "summary": {
         "onTrack": "Du bist diese Woche auf Kurs.",
-        "calorieUndershoot": "An drei der letzten sieben Tage hast du deutlich mehr Kalorien eingespart als geplant.",
+        "calorieUndershoot_one": "An einem der letzten sieben Tage lagst du deutlich unter deinem Ziel – genug Energie hilft dir beim Aufbau.",
+        "calorieUndershoot_other": "An {{count}} der letzten sieben Tage lagst du deutlich unter deinem Ziel – genug Energie hilft dir beim Aufbau.",
         "smallUnder": "Du bist auf Kurs — etwa {{amount}} g mehr {{nutrient}} pro Tag würden es abrunden.",
         "smallOver": "Du bist auf Kurs — etwa {{amount}} g weniger {{nutrient}} pro Tag würden es abrunden.",
         "largeUnder": {
@@ -2485,7 +2486,7 @@
       "action": "Mahlzeit erfassen"
     },
     "carbs": {
-      "message": "Noch Kohlenhydrate vor dem Training",
+      "message": "Vor dem Training noch Kohlenhydrate",
       "action": "Mahlzeit erfassen"
     },
     "restDay": {

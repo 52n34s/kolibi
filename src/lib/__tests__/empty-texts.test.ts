@@ -39,7 +39,9 @@ const NO_NEGATION_KEYS = [
   ...EMPTY_KEYS,
   'settings.deload.inactive',
   'settings.targetWeight.progressStartEmpty',
-  'history.balance.summary.calorieUndershoot',
+  // Pluralized (i18next _one/_other), not a single flat key.
+  'history.balance.summary.calorieUndershoot_one',
+  'history.balance.summary.calorieUndershoot_other',
 ];
 
 function lookup(tree: unknown, key: string): unknown {

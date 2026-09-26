@@ -1320,7 +1320,8 @@
       "topFoods": "La mayor parte vino de: {{foods}}",
       "summary": {
         "onTrack": "Vas bien esta semana.",
-        "calorieUndershoot": "En tres de los últimos siete días ahorraste bastantes más calorías de las previstas.",
+        "calorieUndershoot_one": "En uno de los últimos siete días comiste bastante menos de tu objetivo; suficiente energía te ayuda a progresar.",
+        "calorieUndershoot_other": "En {{count}} de los últimos siete días comiste bastante menos de tu objetivo; suficiente energía te ayuda a progresar.",
         "smallUnder": "Vas bien — unos {{amount}} g más de {{nutrient}} al día lo redondearían.",
         "smallOver": "Vas bien — unos {{amount}} g menos de {{nutrient}} al día lo redondearían.",
         "largeUnder": {
@@ -2477,7 +2478,7 @@
       "actionDismiss": "Ahora no"
     },
     "protein": {
-      "message": "Aún {{grams}} g de proteína",
+      "message": "Te faltan {{grams}} g de proteína",
       "action": "Registrar proteína"
     },
     "fiber": {
@@ -2485,7 +2486,7 @@
       "action": "Registrar comida"
     },
     "carbs": {
-      "message": "Aún carbohidratos antes de entrenar",
+      "message": "Algunos carbohidratos antes de entrenar",
       "action": "Registrar comida"
     },
     "restDay": {
