@@ -159,22 +159,80 @@ export function isMealGroupExpanded(
   return toggled.has(groupKey) ? !openByDefault : openByDefault;
 }
 
+export type MealGroupMacroTotals = {
+  kcal: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fiberG: number | null;
+};
+
 /**
- * Header totals for a meal row: kcal sum and protein of the entries with
- * protein data (null only when no entry has any).
+ * Header totals for a meal row: kcal sum, and per macro the sum of the
+ * entries that have it (null only when no entry in the group has that
+ * macro at all) — same "unknown vs. zero" rule as a single entry.
  */
 export function sumMealGroupTotals(
-  entries: readonly { kcal: number; proteinG: number | null }[],
-): { kcal: number; proteinG: number | null } {
+  entries: readonly {
+    kcal: number;
+    proteinG: number | null;
+    carbsG?: number | null;
+    fatG?: number | null;
+    fiberG?: number | null;
+  }[],
+): MealGroupMacroTotals {
   let kcal = 0;
   let proteinG: number | null = null;
+  let carbsG: number | null = null;
+  let fatG: number | null = null;
+  let fiberG: number | null = null;
   for (const entry of entries) {
     kcal += Number(entry.kcal) || 0;
     if (entry.proteinG != null) {
       proteinG = (proteinG ?? 0) + entry.proteinG;
     }
+    if (entry.carbsG != null) {
+      carbsG = (carbsG ?? 0) + entry.carbsG;
+    }
+    if (entry.fatG != null) {
+      fatG = (fatG ?? 0) + entry.fatG;
+    }
+    if (entry.fiberG != null) {
+      fiberG = (fiberG ?? 0) + entry.fiberG;
+    }
   }
-  return { kcal, proteinG };
+  return { kcal, proteinG, carbsG, fatG, fiberG };
+}
+
+export type MacroAbbrevLabels = {
+  protein: string;
+  carbs: string;
+  fat: string;
+  fiber: string;
+};
+
+/**
+ * "17 g P · 108 g K · 11 g F · 8 g B" — same format and rounding as a single
+ * entry's macro line; a macro is left out entirely (not "0 g") when null.
+ */
+export function formatMacroTotalsLine(
+  totals: { proteinG: number | null; carbsG: number | null; fatG: number | null; fiberG: number | null },
+  labels: MacroAbbrevLabels,
+): string | null {
+  const parts: string[] = [];
+  if (totals.proteinG != null) {
+    parts.push(`${Math.round(totals.proteinG)} g ${labels.protein}`);
+  }
+  if (totals.carbsG != null) {
+    parts.push(`${Math.round(totals.carbsG)} g ${labels.carbs}`);
+  }
+  if (totals.fatG != null) {
+    parts.push(`${Math.round(totals.fatG)} g ${labels.fat}`);
+  }
+  if (totals.fiberG != null) {
+    parts.push(`${Math.round(totals.fiberG)} g ${labels.fiber}`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 /** Keeps one breakfast / lunch / dinner per day (most kcal wins); others → snack. */

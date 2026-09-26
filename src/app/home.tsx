@@ -705,10 +705,10 @@ export default function HomeScreen() {
         ...weightUnitLabels,
       });
       if (dailyFormatted !== trendFormatted) {
-        return t('home.weight.trendAndToday', { trend: trendFormatted, today: dailyFormatted });
+        return t('home.weight.trendAndToday', { today: dailyFormatted });
       }
     }
-    return t('home.weight.trendOnly', { trend: trendFormatted });
+    return t('home.weight.trendOnly');
   }, [
     displayWeight?.dailyKg,
     displayWeight?.trendKg,
@@ -1589,8 +1589,6 @@ export default function HomeScreen() {
                       onOpenTraining={() => switchHomeTab('training')}
                     />
 
-                    <HomeSupplementChips />
-
                     <FocusAreasNudgeCard />
 
                     {/* Order by goal: weight goals lead with nutrition and body, muscle and strength with training. */}
@@ -1616,11 +1614,14 @@ export default function HomeScreen() {
                             </View>
                           ) : null
                         ) : section === 'nutrition' ? (
-                          <DaySummaryBlock
-                            date={localDateKey()}
-                            compact
-                            onPress={() => switchHomeTab('meals')}
-                          />
+                          <>
+                            <DaySummaryBlock
+                              date={localDateKey()}
+                              compact
+                              onPress={() => switchHomeTab('meals')}
+                            />
+                            <HomeSupplementChips />
+                          </>
                         ) : todayBodyCard(goalCategory) === 'buildUp' ? (
                           <BuildUpCard
                             goalCategory={goalCategory}

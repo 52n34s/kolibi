@@ -72,16 +72,24 @@ export function WeightProgressCard({
           <>
             <View style={styles.valuesRow}>
               <View style={styles.edgeLeft}>
-                <Text style={styles.edgeLabel}>{startLabel}</Text>
-                <Text style={styles.edgeValue}>{startValue}</Text>
+                <Text style={styles.edgeLabel} numberOfLines={1}>
+                  {startLabel}
+                </Text>
+                <Text style={styles.edgeValue} numberOfLines={1}>
+                  {startValue}
+                </Text>
               </View>
               <View style={styles.currentSlot}>
                 <Text style={styles.currentValue}>{currentValue}</Text>
                 {dailyLine}
               </View>
               <View style={styles.edgeRight}>
-                <Text style={styles.edgeLabel}>{targetLabel}</Text>
-                <Text style={styles.edgeValue}>{targetValue}</Text>
+                <Text style={styles.edgeLabel} numberOfLines={1}>
+                  {targetLabel}
+                </Text>
+                <Text style={styles.edgeValue} numberOfLines={1}>
+                  {targetValue}
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
             </View>

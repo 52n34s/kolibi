@@ -62,9 +62,9 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
     queryFn: () => fetchSupplementsForDay(dateKey),
   });
 
-  // Taken supplements drop out of the row (and the whole row disappears once
-  // none are left) — the Nutrition tab keeps the full due+taken view.
-  const dueItems = (data ?? []).filter((item) => item.is_due && !item.taken);
+  // Every supplement due today stays in the row, taken or not — tapping just
+  // toggles its own chip between the open and taken style.
+  const dueItems = (data ?? []).filter((item) => item.is_due);
 
   const toggleMutation = useMutation({
     mutationFn: async (item: SupplementForDay) => {
@@ -146,7 +146,7 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
 
 const styles = StyleSheet.create({
   row: {
-    marginTop: 24,
+    marginTop: 8,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,

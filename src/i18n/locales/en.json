@@ -419,8 +419,8 @@
       "startTitle": "Starting weight",
       "targetTitle": "Target weight",
       "logAction": "Log your weight",
-      "trendOnly": "7-day avg {{trend}}",
-      "trendAndToday": "7-day avg {{trend}} · today {{today}}",
+      "trendOnly": "7-day avg",
+      "trendAndToday": "7-day avg · today {{today}}",
       "modalTitle": "Update weight",
       "modalSubtitle": "Today's entry replaces any earlier weight logged today.",
       "updateTargetTitle": "Update target weight",
@@ -1963,10 +1963,8 @@
       "snack": "Snack",
       "dinner": "Dinner"
     },
-    "meta": "{{time}} · {{kcal}} kcal · {{protein}} g protein",
-    "metaKcalOnly": "{{time}} · {{kcal}} kcal",
-    "entries_one": "{{count}} entry",
-    "entries_other": "{{count}} entries",
+    "header_one": "{{time}} · {{kcal}} kcal · {{count}} entry",
+    "header_other": "{{time}} · {{kcal}} kcal · {{count}} entries",
     "showEntries": "Show entries",
     "hideEntries": "Hide entries",
     "timingHint": {

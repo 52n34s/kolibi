@@ -4,6 +4,7 @@ import {
   type InsertedMealItemRow,
 } from '@/lib/food-adjustments';
 import { supabase } from '@/lib/supabase';
+import { formatMacroTotalsLine } from '@/lib/meal-groups';
 import {
   includeMealInCalibration,
   MEAL_SOURCE,
@@ -413,6 +414,16 @@ export function getMealMacroDisplay(meal: TodayMeal): {
     fatG: resolve('fat_g', meal.total_fat_g),
     fiberG: resolve('fiber_g', meal.total_fiber_g),
   };
+}
+
+/** "17 g P · 108 g K · 11 g F · 8 g B" for a single meal row. */
+export function formatMealMacrosLine(meal: TodayMeal, t: (key: string) => string): string | null {
+  return formatMacroTotalsLine(getMealMacroDisplay(meal), {
+    protein: t('home.meals.macroAbbrevProtein'),
+    carbs: t('home.meals.macroAbbrevCarbs'),
+    fat: t('home.meals.macroAbbrevFat'),
+    fiber: t('home.meals.macroAbbrevFiber'),
+  });
 }
 
 /** Cheap existence check — for choosing an empty-state message, not a count. */

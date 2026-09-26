@@ -419,8 +419,8 @@
       "startTitle": "Peso inicial",
       "targetTitle": "Peso objetivo",
       "logAction": "Registra tu peso",
-      "trendOnly": "Media 7 días {{trend}}",
-      "trendAndToday": "Media 7 días {{trend}} · hoy {{today}}",
+      "trendOnly": "Media 7 días",
+      "trendAndToday": "Media 7 días · hoy {{today}}",
       "modalTitle": "Actualizar peso",
       "modalSubtitle": "La entrada de hoy reemplaza cualquier peso anterior de hoy.",
       "updateTargetTitle": "Editar peso objetivo",
@@ -1963,10 +1963,8 @@
       "snack": "Tentempié",
       "dinner": "Cena"
     },
-    "meta": "{{time}} · {{kcal}} kcal · {{protein}} g de proteína",
-    "metaKcalOnly": "{{time}} · {{kcal}} kcal",
-    "entries_one": "{{count}} registro",
-    "entries_other": "{{count}} registros",
+    "header_one": "{{time}} · {{kcal}} kcal · {{count}} registro",
+    "header_other": "{{time}} · {{kcal}} kcal · {{count}} registros",
     "showEntries": "Mostrar registros",
     "hideEntries": "Ocultar registros",
     "timingHint": {

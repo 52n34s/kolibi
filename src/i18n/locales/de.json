@@ -419,8 +419,8 @@
       "startTitle": "Startgewicht",
       "targetTitle": "Zielgewicht",
       "logAction": "Gewicht eintragen",
-      "trendOnly": "Ø 7 Tage {{trend}}",
-      "trendAndToday": "Ø 7 Tage {{trend}} · heute {{today}}",
+      "trendOnly": "7-Tage-Schnitt",
+      "trendAndToday": "7-Tage-Schnitt · heute {{today}}",
       "modalTitle": "Gewicht aktualisieren",
       "modalSubtitle": "Der heutige Eintrag ersetzt ein früheres Gewicht von heute.",
       "updateTargetTitle": "Zielgewicht bearbeiten",
@@ -1963,10 +1963,8 @@
       "snack": "Snack",
       "dinner": "Abendessen"
     },
-    "meta": "{{time}} · {{kcal}} kcal · {{protein}} g Protein",
-    "metaKcalOnly": "{{time}} · {{kcal}} kcal",
-    "entries_one": "{{count}} Eintrag",
-    "entries_other": "{{count}} Einträge",
+    "header_one": "{{time}} · {{kcal}} kcal · {{count}} Eintrag",
+    "header_other": "{{time}} · {{kcal}} kcal · {{count}} Einträge",
     "showEntries": "Einträge anzeigen",
     "hideEntries": "Einträge ausblenden",
     "timingHint": {

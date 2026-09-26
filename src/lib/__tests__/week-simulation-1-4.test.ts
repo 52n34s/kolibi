@@ -1357,7 +1357,13 @@ describe('week simulation 1.4 (build_muscle, 4 units, Push + Pull & Legs)', () =
     out.meals = { labels, breakfastTotals, stats, hint, proteinGoal };
 
     assert.deepEqual(labels, ['breakfast', 'lunch', 'afternoonSnack', 'dinner', 'snack']);
-    assert.deepEqual(breakfastTotals, { kcal: 470, proteinG: 15 });
+    assert.deepEqual(breakfastTotals, {
+      kcal: 470,
+      proteinG: 15,
+      carbsG: null,
+      fatG: null,
+      fiberG: null,
+    });
     assert.equal(groups.length, DAYS.length * 5);
     // Six closed days (Sunday is today and left out).
     assert.equal(stats.breakfast.mealCount, 6);

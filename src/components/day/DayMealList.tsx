@@ -18,9 +18,16 @@ import {
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { TEXT_SECONDARY } from '@/constants/brand';
 import { useDayMeals, useHasLoggedAnyMeal } from '@/hooks/use-day-meals';
-import { groupMeals, isMealGroupExpanded, mealGroupLabel, sumMealGroupTotals } from '@/lib/meal-groups';
+import {
+  formatMacroTotalsLine,
+  groupMeals,
+  isMealGroupExpanded,
+  mealGroupLabel,
+  sumMealGroupTotals,
+} from '@/lib/meal-groups';
 import {
   buildMealListTitle,
+  formatMealMacrosLine,
   formatTodayMealQuantityLabel,
   getMealMacroDisplay,
   type TodayMeal,
@@ -43,31 +50,6 @@ function formatMealTime(eatenAt: string, locale: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatMealMacrosLine(
-  meal: TodayMeal,
-  t: (key: string) => string,
-): string | null {
-  const macros = getMealMacroDisplay(meal);
-  const parts: string[] = [];
-
-  if (macros.proteinG != null) {
-    parts.push(
-      `${Math.round(macros.proteinG)} g ${t('home.meals.macroAbbrevProtein')}`,
-    );
-  }
-  if (macros.carbsG != null) {
-    parts.push(`${Math.round(macros.carbsG)} g ${t('home.meals.macroAbbrevCarbs')}`);
-  }
-  if (macros.fatG != null) {
-    parts.push(`${Math.round(macros.fatG)} g ${t('home.meals.macroAbbrevFat')}`);
-  }
-  if (macros.fiberG != null) {
-    parts.push(`${Math.round(macros.fiberG)} g ${t('home.meals.macroAbbrevFiber')}`);
-  }
-
-  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 export function DayMealList({
@@ -198,20 +180,23 @@ export function DayMealList({
             const groupKey = group.entries[0]!.id;
             const expanded = isMealGroupExpanded(group, groupKey, toggledGroupKeys);
             const totals = sumMealGroupTotals(
-              group.entries.map((meal) => ({
-                kcal: meal.total_kcal,
-                proteinG: getMealMacroDisplay(meal).proteinG,
-              })),
+              group.entries.map((meal) => {
+                const macros = getMealMacroDisplay(meal);
+                return { kcal: meal.total_kcal, ...macros };
+              }),
             );
             const time = formatMealTime(group.startAt.toISOString(), i18n.language);
-            const meta =
-              totals.proteinG != null
-                ? t('mealGroups.meta', {
-                    time,
-                    kcal: formatKcal(totals.kcal),
-                    protein: Math.round(totals.proteinG),
-                  })
-                : t('mealGroups.metaKcalOnly', { time, kcal: formatKcal(totals.kcal) });
+            const meta = t('mealGroups.header', {
+              count: group.entries.length,
+              time,
+              kcal: formatKcal(totals.kcal),
+            });
+            const macrosLine = formatMacroTotalsLine(totals, {
+              protein: t('home.meals.macroAbbrevProtein'),
+              carbs: t('home.meals.macroAbbrevCarbs'),
+              fat: t('home.meals.macroAbbrevFat'),
+              fiber: t('home.meals.macroAbbrevFiber'),
+            });
 
             return (
               <View
@@ -230,9 +215,11 @@ export function DayMealList({
                       {t(`mealGroups.slot.${mealGroupLabel(group)}`)}
                     </Text>
                     <Text className="mt-1 text-sm text-gray-500">{meta}</Text>
-                    <Text style={styles.macrosLine}>
-                      {t('mealGroups.entries', { count: group.entries.length })}
-                    </Text>
+                    {macrosLine ? (
+                      <Text style={styles.macrosLine} numberOfLines={1} ellipsizeMode="tail">
+                        {macrosLine}
+                      </Text>
+                    ) : null}
                   </View>
                   <Ionicons
                     name={expanded ? 'chevron-up' : 'chevron-down'}
