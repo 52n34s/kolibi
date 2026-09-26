@@ -1576,6 +1576,8 @@ export default function HomeScreen() {
                       onOpenTraining={() => switchHomeTab('training')}
                     />
 
+                    <HomeSupplementChips />
+
                     <FocusAreasNudgeCard />
 
                     {/* Order by goal: weight goals lead with nutrition and body, muscle and strength with training. */}
@@ -1642,7 +1644,6 @@ export default function HomeScreen() {
                       editable
                       onMealPress={handleTodayMealPress}
                     />
-                    <HomeSupplementChips />
                   </>
                 )}
               </ScrollView>
