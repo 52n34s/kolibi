@@ -15,6 +15,7 @@ import {
   useTodayCheckinState,
   useUpdateCheckinSettings,
 } from '@/hooks/use-checkin';
+import { checkinScaleLabelOrder, orderedCheckinSteps } from '@/lib/checkin/checkin-scale';
 import { checkinCardMode } from '@/lib/checkin/checkin-status';
 import type { CheckinAnswers, ReadinessResult } from '@/lib/checkin/readiness';
 
@@ -141,45 +142,50 @@ export function CheckinCard() {
           {t('checkin.card.title')}
         </Text>
 
-        {QUESTIONS.map((question) => (
-          <View key={question} className="mb-3">
-            <View className="mb-1.5 flex-row items-baseline justify-between">
-              <Text className="text-sm font-medium text-gray-800">
-                {t(`checkin.questions.${question}`)}
-              </Text>
-              <Text className="text-xs text-gray-500">
-                {t(`checkin.scale.${question}.low`)} – {t(`checkin.scale.${question}.high`)}
-              </Text>
-            </View>
-            <View className="flex-row" style={{ gap: 6 }}>
-              {STEPS.map((step) => {
-                const selected = draft[question] === step;
-                return (
-                  <Pressable
-                    key={step}
-                    testID={`home.checkin.${question}.${step}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    accessibilityLabel={t('checkin.scale.stepLabel', {
-                      question: t(`checkin.questions.${question}`),
-                      value: step,
-                    })}
-                    onPress={() => setDraft((current) => ({ ...current, [question]: step }))}
-                    className={`h-9 flex-1 items-center justify-center rounded-lg border ${
-                      selected ? 'border-[#4F46E5] bg-[#4F46E5]' : 'border-gray-200 bg-white/70'
-                    }`}>
-                    <Text
-                      className={`text-sm font-semibold ${
-                        selected ? 'text-white' : 'text-gray-700'
+        {QUESTIONS.map((question) => {
+          const [leftLabelKey, rightLabelKey] = checkinScaleLabelOrder(question);
+          const steps = orderedCheckinSteps(STEPS, question);
+          return (
+            <View key={question} className="mb-3">
+              <View className="mb-1.5 flex-row items-baseline justify-between">
+                <Text className="text-sm font-medium text-gray-800">
+                  {t(`checkin.questions.${question}`)}
+                </Text>
+                <Text className="text-xs text-gray-500">
+                  {t(`checkin.scale.${question}.${leftLabelKey}`)} –{' '}
+                  {t(`checkin.scale.${question}.${rightLabelKey}`)}
+                </Text>
+              </View>
+              <View className="flex-row" style={{ gap: 6 }}>
+                {steps.map((step) => {
+                  const selected = draft[question] === step;
+                  return (
+                    <Pressable
+                      key={step}
+                      testID={`home.checkin.${question}.${step}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={t('checkin.scale.stepLabel', {
+                        question: t(`checkin.questions.${question}`),
+                        value: step,
+                      })}
+                      onPress={() => setDraft((current) => ({ ...current, [question]: step }))}
+                      className={`h-9 flex-1 items-center justify-center rounded-lg border ${
+                        selected ? 'border-[#4F46E5] bg-[#4F46E5]' : 'border-gray-200 bg-white/70'
                       }`}>
-                      {step}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                      <Text
+                        className={`text-sm font-semibold ${
+                          selected ? 'text-white' : 'text-gray-700'
+                        }`}>
+                        {step}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
 
         {saveFailed ? (
           <Text className="mb-2 text-sm text-amber-700">{t('checkin.card.saveFailed')}</Text>

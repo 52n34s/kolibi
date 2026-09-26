@@ -2276,7 +2276,7 @@
     },
     "scale": {
       "sleep": {
-        "low": "short",
+        "low": "restless",
         "high": "restful"
       },
       "energy": {
