@@ -11,8 +11,8 @@ import {
 import { TEXT_SECONDARY } from '@/constants/brand';
 import {
   buildMealListTitle,
+  formatMealMacrosLine,
   formatTodayMealQuantityLabel,
-  getMealMacroDisplay,
   type TodayMeal,
 } from '@/lib/meals';
 import { useOnboardingStore } from '@/stores/onboarding-store';
@@ -29,31 +29,6 @@ function formatMealTime(eatenAt: string, locale: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatMealMacrosLine(
-  meal: TodayMeal,
-  t: (key: string) => string,
-): string | null {
-  const macros = getMealMacroDisplay(meal);
-  const parts: string[] = [];
-
-  if (macros.proteinG != null) {
-    parts.push(
-      `${Math.round(macros.proteinG)} g ${t('home.meals.macroAbbrevProtein')}`,
-    );
-  }
-  if (macros.carbsG != null) {
-    parts.push(`${Math.round(macros.carbsG)} g ${t('home.meals.macroAbbrevCarbs')}`);
-  }
-  if (macros.fatG != null) {
-    parts.push(`${Math.round(macros.fatG)} g ${t('home.meals.macroAbbrevFat')}`);
-  }
-  if (macros.fiberG != null) {
-    parts.push(`${Math.round(macros.fiberG)} g ${t('home.meals.macroAbbrevFiber')}`);
-  }
-
-  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 export function TodayMealsSection({ meals, isLoading, onMealPress }: TodayMealsSectionProps) {

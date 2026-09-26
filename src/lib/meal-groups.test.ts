@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  formatMacroTotalsLine,
   groupMeals,
   isMealGroupExpanded,
   mealGroupLabel,
@@ -11,22 +12,60 @@ import {
 } from './meal-groups.ts';
 
 describe('sumMealGroupTotals', () => {
-  it('sums kcal and the known protein', () => {
+  it('sums kcal and the known protein; other macros stay null when absent', () => {
     assert.deepEqual(
       sumMealGroupTotals([
         { kcal: 300, proteinG: 20 },
         { kcal: 50, proteinG: null },
         { kcal: 150, proteinG: 5.5 },
       ]),
-      { kcal: 500, proteinG: 25.5 },
+      { kcal: 500, proteinG: 25.5, carbsG: null, fatG: null, fiberG: null },
     );
   });
 
-  it('keeps protein unknown when no entry has it', () => {
+  it('keeps a macro unknown when no entry has it', () => {
     assert.deepEqual(sumMealGroupTotals([{ kcal: 100, proteinG: null }]), {
       kcal: 100,
       proteinG: null,
+      carbsG: null,
+      fatG: null,
+      fiberG: null,
     });
+  });
+
+  it('sums all four macros independently, each null only when no entry has it', () => {
+    assert.deepEqual(
+      sumMealGroupTotals([
+        { kcal: 300, proteinG: 20, carbsG: 30, fatG: 10, fiberG: null },
+        { kcal: 150, proteinG: null, carbsG: 15, fatG: null, fiberG: 4 },
+      ]),
+      { kcal: 450, proteinG: 20, carbsG: 45, fatG: 10, fiberG: 4 },
+    );
+  });
+});
+
+describe('formatMacroTotalsLine', () => {
+  const labels = { protein: 'P', carbs: 'K', fat: 'F', fiber: 'B' };
+
+  it('rounds each macro and joins with " · ", same as a single entry', () => {
+    assert.equal(
+      formatMacroTotalsLine({ proteinG: 16.6, carbsG: 108.2, fatG: 11.4, fiberG: 7.5 }, labels),
+      '17 g P · 108 g K · 11 g F · 8 g B',
+    );
+  });
+
+  it('omits a macro entirely when null, never "0 g"', () => {
+    assert.equal(
+      formatMacroTotalsLine({ proteinG: 20, carbsG: null, fatG: 5, fiberG: null }, labels),
+      '20 g P · 5 g F',
+    );
+  });
+
+  it('is null when every macro is unknown', () => {
+    assert.equal(
+      formatMacroTotalsLine({ proteinG: null, carbsG: null, fatG: null, fiberG: null }, labels),
+      null,
+    );
   });
 });
 

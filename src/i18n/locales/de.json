@@ -1963,10 +1963,8 @@
       "snack": "Snack",
       "dinner": "Abendessen"
     },
-    "meta": "{{time}} · {{kcal}} kcal · {{protein}} g Protein",
-    "metaKcalOnly": "{{time}} · {{kcal}} kcal",
-    "entries_one": "{{count}} Eintrag",
-    "entries_other": "{{count}} Einträge",
+    "header_one": "{{time}} · {{kcal}} kcal · {{count}} Eintrag",
+    "header_other": "{{time}} · {{kcal}} kcal · {{count}} Einträge",
     "showEntries": "Einträge anzeigen",
     "hideEntries": "Einträge ausblenden",
     "timingHint": {
