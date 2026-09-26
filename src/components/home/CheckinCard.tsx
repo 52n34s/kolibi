@@ -15,7 +15,11 @@ import {
   useTodayCheckinState,
   useUpdateCheckinSettings,
 } from '@/hooks/use-checkin';
-import { checkinScaleLabelOrder, orderedCheckinSteps } from '@/lib/checkin/checkin-scale';
+import {
+  checkinScaleLabelOrder,
+  toDisplayedCheckinValue,
+  toStoredCheckinValue,
+} from '@/lib/checkin/checkin-scale';
 import { checkinCardMode } from '@/lib/checkin/checkin-status';
 import type { CheckinAnswers, ReadinessResult } from '@/lib/checkin/readiness';
 
@@ -144,7 +148,9 @@ export function CheckinCard() {
 
         {QUESTIONS.map((question) => {
           const [leftLabelKey, rightLabelKey] = checkinScaleLabelOrder(question);
-          const steps = orderedCheckinSteps(STEPS, question);
+          const storedAnswer = draft[question];
+          const displayedAnswer =
+            storedAnswer != null ? toDisplayedCheckinValue(question, storedAnswer) : null;
           return (
             <View key={question} className="mb-3">
               <View className="mb-1.5 flex-row items-baseline justify-between">
@@ -157,19 +163,24 @@ export function CheckinCard() {
                 </Text>
               </View>
               <View className="flex-row" style={{ gap: 6 }}>
-                {steps.map((step) => {
-                  const selected = draft[question] === step;
+                {STEPS.map((displayedStep) => {
+                  const selected = displayedAnswer === displayedStep;
                   return (
                     <Pressable
-                      key={step}
-                      testID={`home.checkin.${question}.${step}`}
+                      key={displayedStep}
+                      testID={`home.checkin.${question}.${displayedStep}`}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
                       accessibilityLabel={t('checkin.scale.stepLabel', {
                         question: t(`checkin.questions.${question}`),
-                        value: step,
+                        value: displayedStep,
                       })}
-                      onPress={() => setDraft((current) => ({ ...current, [question]: step }))}
+                      onPress={() =>
+                        setDraft((current) => ({
+                          ...current,
+                          [question]: toStoredCheckinValue(question, displayedStep),
+                        }))
+                      }
                       className={`h-9 flex-1 items-center justify-center rounded-lg border ${
                         selected ? 'border-[#4F46E5] bg-[#4F46E5]' : 'border-gray-200 bg-white/70'
                       }`}>
@@ -177,7 +188,7 @@ export function CheckinCard() {
                         className={`text-sm font-semibold ${
                           selected ? 'text-white' : 'text-gray-700'
                         }`}>
-                        {step}
+                        {displayedStep}
                       </Text>
                     </Pressable>
                   );

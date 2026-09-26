@@ -4,9 +4,12 @@ import { describe, it } from 'node:test';
 import {
   checkinScaleLabelOrder,
   isReversedCheckinScale,
-  orderedCheckinSteps,
+  toDisplayedCheckinValue,
+  toStoredCheckinValue,
 } from './checkin-scale.ts';
 import { wellnessScore, type CheckinAnswers } from './readiness.ts';
+
+const ALL_STEPS = [1, 2, 3, 4, 5] as const;
 
 describe('checkin-scale', () => {
   it('only soreness and stress are reversed', () => {
@@ -17,39 +20,61 @@ describe('checkin-scale', () => {
   });
 
   it('label order always puts the good end on the right', () => {
-    // sleep/energy already store 5 = good, so low (bad) stays left.
     assert.deepEqual(checkinScaleLabelOrder('sleep'), ['low', 'high']);
     assert.deepEqual(checkinScaleLabelOrder('energy'), ['low', 'high']);
-    // soreness/stress store 1 = good, so the "high" (bad) label moves left.
     assert.deepEqual(checkinScaleLabelOrder('soreness'), ['high', 'low']);
     assert.deepEqual(checkinScaleLabelOrder('stress'), ['high', 'low']);
   });
 
-  it('button order matches the label order without renumbering the steps', () => {
-    const steps = [1, 2, 3, 4, 5] as const;
-    assert.deepEqual(orderedCheckinSteps(steps, 'sleep'), [1, 2, 3, 4, 5]);
-    assert.deepEqual(orderedCheckinSteps(steps, 'energy'), [1, 2, 3, 4, 5]);
-    assert.deepEqual(orderedCheckinSteps(steps, 'soreness'), [5, 4, 3, 2, 1]);
-    assert.deepEqual(orderedCheckinSteps(steps, 'stress'), [5, 4, 3, 2, 1]);
+  it('sleep and energy save the displayed digit unchanged', () => {
+    for (const question of ['sleep', 'energy']) {
+      for (const displayed of ALL_STEPS) {
+        assert.equal(toStoredCheckinValue(question, displayed), displayed);
+        assert.equal(toDisplayedCheckinValue(question, displayed), displayed);
+      }
+    }
+  });
+
+  it('soreness and stress save 6 minus the displayed digit, so the right button is still good', () => {
+    for (const question of ['soreness', 'stress']) {
+      assert.equal(toStoredCheckinValue(question, 1), 5); // leftmost tap → old "very" value
+      assert.equal(toStoredCheckinValue(question, 5), 1); // rightmost tap → old "barely" value
+      assert.deepEqual(
+        ALL_STEPS.map((displayed) => toStoredCheckinValue(question, displayed)),
+        [5, 4, 3, 2, 1],
+      );
+    }
+  });
+
+  it('round-trips in both directions, including redisplaying an already-saved check-in', () => {
+    for (const question of ['sleep', 'energy', 'soreness', 'stress']) {
+      for (const value of ALL_STEPS) {
+        // A tap saved and immediately reread shows the same button.
+        assert.equal(toDisplayedCheckinValue(question, toStoredCheckinValue(question, value)), value);
+        // A value stored before this change (or by the other conversion)
+        // still redisplays as the button matching its original meaning.
+        assert.equal(toStoredCheckinValue(question, toDisplayedCheckinValue(question, value)), value);
+      }
+    }
+  });
+
+  it('redisplaying a check-in saved before this change keeps the same meaning', () => {
+    // A pre-existing row with soreness: 4 ("fairly sore", old high end) must
+    // still highlight a button on the bad (left) side, not the good side.
+    const displayed = toDisplayedCheckinValue('soreness', 4);
+    assert.equal(displayed, 2);
+    assert.ok(displayed < 3, 'a sore value must redisplay left of center');
   });
 
   it('the rightmost button for every question saves the best possible wellness score', () => {
-    // Regression guard: whatever button ends up on the right must still be
+    // Regression guard: the button that ends up on the right must still be
     // the answer readiness.ts treats as best, so existing check-ins and the
-    // Tagesform math never shift just because the display was reordered.
-    const rightmost = (question: keyof CheckinAnswers): number => {
-      const value = orderedCheckinSteps([1, 2, 3, 4, 5] as const, question).at(-1);
-      if (value == null) {
-        throw new Error(`no steps for ${question}`);
-      }
-      return value;
-    };
-
+    // Tagesform math never shift just because the display was flipped.
     const bestAnswers: CheckinAnswers = {
-      sleep: rightmost('sleep'),
-      energy: rightmost('energy'),
-      soreness: rightmost('soreness'),
-      stress: rightmost('stress'),
+      sleep: toStoredCheckinValue('sleep', 5),
+      energy: toStoredCheckinValue('energy', 5),
+      soreness: toStoredCheckinValue('soreness', 5),
+      stress: toStoredCheckinValue('stress', 5),
     };
 
     assert.deepEqual(bestAnswers, { sleep: 5, energy: 5, soreness: 1, stress: 1 });
