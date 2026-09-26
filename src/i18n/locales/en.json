@@ -2366,7 +2366,7 @@
       "show": "Morning check-in",
       "reminder": "Reminder",
       "time": "Time",
-      "hint": "Four quick questions on the Today screen, until noon.",
+      "hint": "Four quick questions on the Today screen, until 6 pm.",
       "reminderHint": "Kolibi reminds you every morning at this time.",
       "saveFailed": "Try again in a moment – the connection is a bit slow.",
       "permissionOff": "Notifications are off in the iOS settings. Turn them on there to get the reminder.",

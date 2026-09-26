@@ -1205,10 +1205,11 @@ describe('week simulation 1.4 (build_muscle, 4 units, Push + Pull & Legs)', () =
     };
     out.recommendations = results;
 
-    // 09:00: nothing for nutrition yet, no weight hint (weighed today), check-in card still owns the morning.
+    // 09:00: nothing for nutrition yet, no weight hint (weighed today), check-in card still owns the day (until 18:00).
     assert.deepEqual(results.mon0900, []);
     // 14:00 on a training day, protein and carbs clearly behind: protein first, then carbs before the unit.
-    assert.deepEqual(results.mon1400.map((r) => r.kind), ['protein', 'carbs_training', 'checkin']);
+    // No "checkin" yet either — the inline card's own window (now until 18:00) hasn't closed.
+    assert.deepEqual(results.mon1400.map((r) => r.kind), ['protein', 'carbs_training']);
     assert.equal(results.mon1400[0]!.message.params?.grams, mon.proteinG - 40);
     assert.equal(results.mon1400[0]!.reason?.key, 'onboarding2.focus.reason.muscle.protein');
     assert.deepEqual(results.mon1400ProteinOk, ['carbs_training']);
@@ -1490,10 +1491,13 @@ describe('week simulation 2 (six weeks, 1.4.0 additions)', () => {
       focusAreas,
     } as RecommendationContext);
     const kinds = (c: RecommendationContext) => buildRecommendations(c).map((r) => r.kind);
-    assert.deepEqual(kinds(ctx('muscle', null)), ['protein', 'carbs_training', 'checkin']);
-    assert.deepEqual(kinds(ctx('muscle', ['more_training_energy'])), ['carbs_training', 'protein', 'checkin']);
-    assert.deepEqual(kinds(ctx('lose', null)), ['protein', 'fiber', 'checkin']);
-    assert.deepEqual(kinds(ctx('lose', ['more_fiber'])), ['fiber', 'protein', 'checkin']);
+    // 13:00 is still inside the inline check-in card's own window (now until
+    // 18:00), so no "checkin" recommendation yet — same reasoning as week 1.4
+    // test 8.
+    assert.deepEqual(kinds(ctx('muscle', null)), ['protein', 'carbs_training']);
+    assert.deepEqual(kinds(ctx('muscle', ['more_training_energy'])), ['carbs_training', 'protein']);
+    assert.deepEqual(kinds(ctx('lose', null)), ['protein', 'fiber']);
+    assert.deepEqual(kinds(ctx('lose', ['more_fiber'])), ['fiber', 'protein']);
     // Fix (Befund 5, test week 2): a focus area can now surface a card the
     // goal's own table would otherwise leave out. "Mehr Ballaststoffe" with
     // build_muscle now yields a fiber hint, ahead of the goal's own topics —

@@ -52,10 +52,13 @@ describe('resolveTodayCheckinStatus', () => {
 });
 
 describe('checkinCardMode', () => {
-  it('asks in the morning until 12:00', () => {
+  it('asks until 18:00, then counts as a day without a check-in', () => {
     assert.equal(checkinCardMode('open', at(6, 30)), 'questions');
-    assert.equal(checkinCardMode('open', at(11, 59)), 'questions');
-    assert.equal(checkinCardMode('open', at(12, 0)), 'hidden');
+    assert.equal(checkinCardMode('open', at(11, 0)), 'questions');
+    assert.equal(checkinCardMode('open', at(14, 0)), 'questions');
+    assert.equal(checkinCardMode('open', at(17, 59)), 'questions');
+    assert.equal(checkinCardMode('open', at(18, 1)), 'hidden');
+    assert.equal(checkinCardMode('open', at(18, 0)), 'hidden');
   });
 
   it('shows the result line all day after answering', () => {

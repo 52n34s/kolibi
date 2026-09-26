@@ -353,17 +353,17 @@ describe('buildRecommendations – data', () => {
     );
   });
 
-  it('open check-in from 12:00 on', () => {
-    assert.deepEqual(kinds(buildRecommendations(ctx({ checkinStatus: 'open' }))), ['checkin']);
-    const [card] = buildRecommendations(ctx({ checkinStatus: 'open' }));
+  it('open check-in from 18:00 on (once the inline card\'s own window has closed)', () => {
+    assert.deepEqual(kinds(buildRecommendations(ctx({ checkinStatus: 'open', hour: 18 }))), ['checkin']);
+    const [card] = buildRecommendations(ctx({ checkinStatus: 'open', hour: 18 }));
     assert.equal(card?.message.key, 'recommendations.checkin.message');
     assert.equal(card?.reason?.key, 'recommendations.checkin.body');
     assert.deepEqual(
-      kinds(buildRecommendations(ctx({ checkinStatus: 'open', hour: 11, minute: 59 }))),
+      kinds(buildRecommendations(ctx({ checkinStatus: 'open', hour: 17, minute: 59 }))),
       [],
     );
     for (const status of ['answered', 'skipped', 'disabled'] as const) {
-      assert.deepEqual(kinds(buildRecommendations(ctx({ checkinStatus: status }))), []);
+      assert.deepEqual(kinds(buildRecommendations(ctx({ checkinStatus: status, hour: 18 }))), []);
     }
   });
 });

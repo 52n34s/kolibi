@@ -2366,7 +2366,7 @@
       "show": "Check-in por la mañana",
       "reminder": "Recordatorio",
       "time": "Hora",
-      "hint": "Cuatro preguntas rápidas en la pantalla Hoy, hasta el mediodía.",
+      "hint": "Cuatro preguntas rápidas en la pantalla Hoy, hasta las 18:00.",
       "reminderHint": "Kolibi te lo recuerda cada mañana a esta hora.",
       "saveFailed": "Inténtalo de nuevo en un momento: la conexión va lenta.",
       "permissionOff": "Las notificaciones están desactivadas en los ajustes de iOS. Actívalas allí para recibir el recordatorio.",

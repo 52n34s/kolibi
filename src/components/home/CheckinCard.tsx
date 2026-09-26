@@ -33,7 +33,7 @@ function isComplete(draft: Draft): draft is CheckinAnswers {
   return QUESTIONS.every((q) => typeof draft[q] === 'number');
 }
 
-/** Refreshes on return to the app, so the 12:00 window is judged per opening. */
+/** Refreshes on return to the app, so the check-in window is judged per opening. */
 function useOpenedAt(): Date {
   const [openedAt, setOpenedAt] = useState(() => new Date());
   useEffect(() => {
@@ -61,7 +61,7 @@ export function readinessLine(
 
 /**
  * Morning check-in on the Today screen. Inline card, never a pop-up:
- * four questions until 12:00, then gone; after answering, one result line.
+ * four questions until CHECKIN_CARD_UNTIL_HOUR, then gone; after answering, one result line.
  */
 export function CheckinCard() {
   const { t } = useTranslation();
