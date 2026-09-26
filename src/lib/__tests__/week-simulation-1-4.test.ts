@@ -1583,3 +1583,588 @@ describe('week simulation 2 (six weeks, 1.4.0 additions)', () => {
     assert.equal(celebration?.mode === 'multi_level' && celebration.praiseLine?.name, 'Plank');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Week simulation 3 (test week 3): "Alex", 32, bodyweight at home and in the
+// park, wants to build muscle and look more defined. Plan wizard: Muskelaufbau,
+// 4 units/week, 45 min, pull-up bar — the exact answers used in the Day 1
+// Maestro run (assessment push 1-5 / pull 0 / squats 10-25), so this mirrors
+// the plan Alex actually got in the app. Seven days plus the following Monday,
+// injected time throughout.
+// ---------------------------------------------------------------------------
+
+describe('week simulation 3 (Alex: bodyweight, build_muscle, 4×45min, pull-up bar)', () => {
+  const DAYS3 = ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08'] as const;
+  const [MON3, TUE3, WED3, THU3, FRI3, SAT3, SUN3] = DAYS3;
+  const NEXT_MON3 = '2026-11-09';
+
+  const PROFILE3 = {
+    biologicalSex: 'male' as BiologicalSex,
+    birthDate: new Date(1994, 4, 10),
+    birthDateKey: '1994-05-10',
+    heightCm: 178,
+    weightKg: 75,
+    targetWeightKg: 77,
+    activityLevel: 'lightly_active' as const,
+    goalType: 'build_muscle' as const,
+    diet: 'omnivore',
+    sessionsPerWeek: 4,
+  };
+
+  const PLAN3 = buildPlan({
+    goal: 'muscle',
+    days: 4,
+    minutes: 45,
+    equipment: ['bar'],
+    assessment: { push: 1, pull: 0, legs: 1 },
+    focus: 'balanced',
+    cardio: 'none',
+    scope: 'full',
+  });
+
+  type UnitKey3 = 'push' | 'pull_legs';
+  const UNIT_META3: Record<UnitKey3, { name: string; shortLabel: string }> = {
+    push: { name: 'Push', shortLabel: 'P' },
+    pull_legs: { name: 'Pull & Legs', shortLabel: 'PL' },
+  };
+
+  function planSession3(kind: UnitKey3): BuiltPlanExercise[] {
+    const session = PLAN3.sessions.find((s) => s.kind === kind);
+    assert.ok(session, `plan has ${kind}`);
+    return session.exercises;
+  }
+
+  const templates3: Record<UnitKey3, SaveTemplateExerciseInput[]> = {
+    push: toTemplate(planSession3('push')),
+    pull_legs: toTemplate(planSession3('pull_legs')),
+  };
+
+  type Perf3 = { values: number[]; rir?: (number | null)[] };
+  type DayPlan3 = {
+    unit: UnitKey3 | null;
+    intensity: GymIntensity;
+    durationMinutes: number;
+    perf: Record<string, Perf3>;
+    activeEnergyKcal: number;
+    proteinG: number;
+    weightKg?: number;
+    checkin?: { sleep: number; energy: number; soreness: number; stress: number };
+  };
+
+  const WEEK3: Record<string, DayPlan3> = {
+    [MON3]: {
+      // Deliberately weak day ("Was war los?"): every exercise well under target.
+      unit: 'push',
+      intensity: 'normal',
+      durationMinutes: 40,
+      perf: {
+        incline_push_up: { values: [6, 5, 5] },
+        elevated_hands_pike_push_up: { values: [5, 4, 4] },
+        bench_dip: { values: [6, 5, 5] },
+        wall_push_up: { values: [10, 9, 8] },
+        tuck_hollow_hold: { values: [15, 12, 10] },
+      },
+      activeEnergyKcal: 320,
+      proteinG: 130,
+      checkin: { sleep: 1, energy: 2, soreness: 2, stress: 2 },
+    },
+    [TUE3]: {
+      // Bonus set on the squat: 4 logged sets against a template of 3.
+      unit: 'pull_legs',
+      intensity: 'normal',
+      durationMinutes: 48,
+      perf: {
+        negative_pull_up: { values: [4, 4, 3] },
+        bodyweight_squat: { values: [15, 14, 13, 12] },
+        inverted_row_bent_knees: { values: [10, 9] },
+        glute_bridge: { values: [15, 15, 14] },
+        hanging_knee_raise: { values: [10, 9, 8] },
+      },
+      activeEnergyKcal: 400,
+      proteinG: 155,
+      checkin: { sleep: 4, energy: 4, soreness: 3, stress: 4 },
+    },
+    [WED3]: { unit: null, intensity: 'normal', durationMinutes: 0, perf: {}, activeEnergyKcal: 280, proteinG: 100 },
+    [THU3]: {
+      // Every set at the upper bound with reps in reserve: level-up on offer.
+      unit: 'push',
+      intensity: 'hard',
+      durationMinutes: 42,
+      perf: {
+        incline_push_up: { values: [15, 15, 15], rir: [2, 1, 0] },
+        elevated_hands_pike_push_up: { values: [12, 12, 12] },
+        bench_dip: { values: [12, 12, 12], rir: [1, 1, 0] },
+        wall_push_up: { values: [20, 20, 20] },
+        tuck_hollow_hold: { values: [40, 40, 40] },
+      },
+      activeEnergyKcal: 380,
+      proteinG: 100,
+      checkin: { sleep: 4, energy: 4, soreness: 3, stress: 3 },
+    },
+    [FRI3]: {
+      unit: 'pull_legs',
+      intensity: 'hard',
+      durationMinutes: 47,
+      perf: {
+        negative_pull_up: { values: [6, 6, 6], rir: [2, 1, 0] },
+        bodyweight_squat: { values: [20, 20, 20] },
+        inverted_row_bent_knees: { values: [12, 12] },
+        glute_bridge: { values: [20, 20, 20] },
+        hanging_knee_raise: { values: [15, 14, 14] },
+      },
+      activeEnergyKcal: 420,
+      proteinG: 150,
+      weightKg: 75.1,
+      checkin: { sleep: 4, energy: 4, soreness: 4, stress: 2 },
+    },
+    [SAT3]: { unit: null, intensity: 'normal', durationMinutes: 0, perf: {}, activeEnergyKcal: 260, proteinG: 140, weightKg: 75.3 },
+    [SUN3]: { unit: null, intensity: 'normal', durationMinutes: 0, perf: {}, activeEnergyKcal: 240, proteinG: 145 },
+  };
+
+  const sessions3: SimSession[] = [];
+  const trainingRows3: TrainingRow[] = [];
+  const events3: ProgressionEvent[] = [];
+  const suggestionsByDay3: Record<string, ProgressionSuggestion[]> = {};
+
+  function suggestFor3(
+    row: SaveTemplateExerciseInput,
+    template: SaveTemplateExerciseInput[],
+    current: SimSession,
+    earlier: SimSession[],
+  ): ProgressionSuggestion | null {
+    const exercise = cat(row.exerciseId);
+    const unitOf = (s: SimSession) =>
+      unitFromSets(s.workout.id, s.intensity, s.workout.sets.filter((set) => set.exerciseId === row.exerciseId));
+    const history = [current, ...earlier.slice().reverse()].map(unitOf).filter((u) => u.sets.length > 0);
+    return suggestProgression({
+      exercise,
+      ladder: ladderOf(exercise),
+      currentTarget: {
+        targetSets: row.targetSets,
+        targetReps: row.targetReps,
+        targetRepsMax: row.targetRepsMax,
+        targetSeconds: row.targetSeconds,
+        targetSecondsMax: row.targetSecondsMax,
+      },
+      history,
+      templateExerciseIds: template.map((t) => t.exerciseId),
+      lastEvents: events3.filter((ev) => ev.fromExerciseId === row.exerciseId),
+    });
+  }
+
+  /** variant_up accepted on Thursday (push-ups) and Friday (negatives). */
+  const ACCEPT3: Record<string, string[]> = {
+    [THU3]: ['incline_push_up'],
+    [FRI3]: ['negative_pull_up'],
+  };
+
+  function playWeek3() {
+    if (sessions3.length > 0) {
+      return;
+    }
+    for (const dateKey of DAYS3) {
+      const day = WEEK3[dateKey]!;
+      if (!day.unit) {
+        continue;
+      }
+      const template = templates3[day.unit];
+      const sessionId = `w3-ws-${dateKey}`;
+      const trainingSessionId = `w3-ts-${dateKey}`;
+      const sets = template.flatMap((row, position) => {
+        const perf = day.perf[row.exerciseId];
+        assert.ok(perf, `${dateKey}: values for ${row.exerciseId}`);
+        return setsFor(sessionId, dateKey, row, position, perf);
+      });
+      const startedAt = at(dateKey, 18, 0);
+      const workout: WorkoutSession = {
+        id: sessionId,
+        userId: 'sim-user',
+        templateId: day.unit,
+        templateName: UNIT_META3[day.unit].name,
+        shortLabel: UNIT_META3[day.unit].shortLabel,
+        colorKey: day.unit === 'push' ? 'indigo' : 'violet',
+        loggedOn: dateKey,
+        startedAt,
+        finishedAt: new Date(Date.parse(startedAt) + day.durationMinutes * 60_000).toISOString(),
+        intensity: day.intensity,
+        trainingSessionId,
+        createdAt: startedAt,
+        sets,
+      };
+      const current: SimSession = { dateKey, unit: day.unit, intensity: day.intensity, workout, trainingSessionId };
+      const earlier = sessions3.filter((s) => s.unit === day.unit);
+      suggestionsByDay3[dateKey] = template
+        .map((row) => suggestFor3(row, template, current, earlier))
+        .filter((s): s is ProgressionSuggestion => s != null);
+
+      for (const exerciseId of ACCEPT3[dateKey] ?? []) {
+        const suggestion = suggestionsByDay3[dateKey]!.find((s) => s.exerciseId === exerciseId && s.kind === 'variant_up');
+        assert.ok(suggestion, `${dateKey}: variant_up for ${exerciseId}`);
+        templates3[day.unit] = applyProgression(templates3[day.unit], suggestion);
+        events3.push({
+          id: `w3-ev-${dateKey}-${exerciseId}`,
+          userId: 'sim-user',
+          templateId: day.unit,
+          sessionId,
+          kind: 'variant_up',
+          fromExerciseId: suggestion.exerciseId,
+          toExerciseId: suggestion.toExerciseId,
+          fromTarget: suggestion.fromTarget,
+          toTarget: suggestion.toTarget,
+          status: 'accepted',
+          createdAt: at(dateKey, 19, 30),
+        });
+      }
+
+      sessions3.push(current);
+      trainingRows3.push({
+        id: trainingSessionId,
+        loggedOn: dateKey,
+        activity: 'strength',
+        intensity: day.intensity,
+        kcal: calculateTrainingCalories({
+          activity: 'strength',
+          weightKg: PROFILE3.weightKg,
+          durationMinutes: day.durationMinutes,
+          intensity: day.intensity,
+        }),
+      });
+    }
+  }
+
+  function baseGoal3(calorieSource: CalorieSource, todayKey: string, activeEnergyBurnedKcal = 0) {
+    return calculateDailyCalorieGoalForSource({
+      biologicalSex: PROFILE3.biologicalSex,
+      birthDate: PROFILE3.birthDate,
+      heightCm: PROFILE3.heightCm,
+      weightKg: PROFILE3.weightKg,
+      activityLevel: PROFILE3.activityLevel,
+      calorieSource,
+      goalType: PROFILE3.goalType,
+      activeEnergyBurnedKcal,
+      today: localDate(todayKey),
+    });
+  }
+
+  function baseMacros3(dailyCalorieGoal: number) {
+    return computeMacroGoals({
+      dailyCalorieGoal,
+      weightKg: PROFILE3.weightKg,
+      heightCm: PROFILE3.heightCm,
+      targetWeightKg: PROFILE3.targetWeightKg,
+      goalType: PROFILE3.goalType,
+      dietPreference: PROFILE3.diet,
+      birthDate: PROFILE3.birthDateKey,
+    });
+  }
+
+  function sportDayFor3(dateKey: string): SportEnergyDay {
+    const day = WEEK3[dateKey]!;
+    const rows = trainingRows3.filter((t) => t.loggedOn === dateKey);
+    const unit = sessions3.find((s) => s.dateKey === dateKey);
+    return buildSportEnergyDay({
+      activeEnergyKcal: day.activeEnergyKcal,
+      workouts: [],
+      trainingSessions: rows.map((t) => ({
+        activity: t.activity,
+        kcal: t.kcal,
+        intensity: mapTrainingIntensityToSportIntensity(t.intensity),
+        label: unit && t.id === unit.trainingSessionId ? UNIT_META3[unit.unit].name : t.activity,
+        ...(unit && t.id === unit.trainingSessionId ? { shortLabel: UNIT_META3[unit.unit].shortLabel } : {}),
+      })),
+      sessionsPerWeek: PROFILE3.sessionsPerWeek,
+      baselineLabel: 'Alltagsbewegung',
+    });
+  }
+
+  function healthDay3(dateKey: string) {
+    const base = baseGoal3(CalorieSource.HEALTH, dateKey);
+    const macros = baseMacros3(base.baseDailyGoal);
+    const sportDay = sportDayFor3(dateKey);
+    const calorieGoal = resolveEffectiveDailyCalorieGoal({
+      calorieSource: CalorieSource.HEALTH,
+      baseDailyGoal: base.baseDailyGoal,
+      activeEnergyBurnedKcal: sportDay.totalActiveKcal,
+      bmr: base.bmr,
+    });
+    const scaled = scaleMacrosForSportCalories({
+      basisKcal: base.baseDailyGoal,
+      segments: sportDay.segments,
+      proteinG: macros.proteinG!,
+      fatBasisG: macros.fatG!,
+      carbsBasisG: macros.carbsG!,
+      weightKg: PROFILE3.weightKg,
+    });
+    assert.equal(scaled.ok, true, `${dateKey}: macros scale`);
+    if (!scaled.ok) {
+      throw new Error('unreachable');
+    }
+    return {
+      dateKey,
+      base: base.baseDailyGoal,
+      bmr: base.bmr,
+      calorieGoal,
+      totalActiveKcal: sportDay.totalActiveKcal,
+      trainingKcal: trainingRows3.filter((t) => t.loggedOn === dateKey).reduce((sum, t) => sum + t.kcal, 0),
+      proteinG: scaled.proteinG,
+      carbsG: scaled.carbsG,
+      fatG: scaled.fatG,
+      macroKcal: scaled.totalKcal,
+      sportDay,
+    };
+  }
+
+  function readinessSessions3(): ReadinessSession[] {
+    return sessions3.map((s) => ({
+      id: s.workout.id,
+      loggedOn: s.dateKey,
+      startedAt: s.workout.startedAt,
+      finishedAt: s.workout.finishedAt,
+      intensity: s.intensity,
+      sets: s.workout.sets.map((set) => ({
+        exerciseId: set.exerciseId,
+        kind: set.kind,
+        perSide: set.perSide,
+        reps: set.reps,
+        seconds: set.seconds,
+        secondsOtherSide: set.secondsOtherSide,
+        weightKg: set.weightKg,
+      })),
+    }));
+  }
+
+  it('0 plan from the wizard: same answers as the Day 1 Maestro run', () => {
+    assert.equal(PLAN3.sessionsPerWeek, 4);
+    assert.deepEqual(PLAN3.sessions.map((s) => s.kind), ['push', 'pull_legs']);
+    for (const session of PLAN3.sessions) {
+      assert.equal(session.exercises.length, 5);
+      assert.ok(session.estimatedMinutes <= 45, `${session.kind}: ${session.estimatedMinutes} min`);
+    }
+    // Assessment push 1-5 / pull 0 / squats 10-25 (Day 1 wizard answers):
+    // pull starts on the bent-knee row at 2 sets, not the plain inverted row.
+    assert.equal(planSession3('push')[0]!.slug, 'incline_push_up');
+    assert.equal(planSession3('pull_legs')[0]!.slug, 'negative_pull_up');
+    const row = planSession3('pull_legs').find((e) => e.muscle === 'pull' && e.slug !== 'negative_pull_up');
+    assert.equal(row?.slug, 'inverted_row_bent_knees');
+    assert.equal(row?.sets, 2);
+    assert.equal(goalCategoryForGoalType(PROFILE3.goalType), 'muscle');
+    assert.equal(isBuildUpGoal(PROFILE3.goalType), true);
+  });
+
+  it('1 calorie and macro targets: training days sit above the rest day, protein is fixed', () => {
+    playWeek3();
+    const rows = DAYS3.map((d) => healthDay3(d));
+    out.week3Goals = rows.map(({ sportDay: _s, ...r }) => r);
+
+    const base = baseGoal3(CalorieSource.HEALTH, MON3);
+    assert.equal(base.baseDailyGoal, base.maintenanceCalories, 'build_muscle: recomposition, no surplus');
+    const macros = baseMacros3(base.baseDailyGoal);
+    assert.equal(new Set(rows.map((r) => r.proteinG)).size, 1, 'protein target is the same every day');
+
+    const byDay = Object.fromEntries(rows.map((r) => [r.dateKey, r]));
+    for (const d of [MON3, TUE3, THU3, FRI3]) {
+      assert.ok(byDay[d]!.calorieGoal > byDay[WED3]!.calorieGoal, `${d}: training day above the rest day`);
+    }
+    // "hart" (Thursday, Friday) pushes more of the extra energy into carbs than "normal" (Tuesday).
+    const carbShare = (d: string) => {
+      const seg = byDay[d]!.sportDay.breakdown.find((b) => b.kind === 'training_session' && b.counted)!;
+      return seg.intensity;
+    };
+    assert.equal(carbShare(TUE3), SportIntensity.MODERATE);
+    assert.equal(carbShare(THU3), SportIntensity.HIGH);
+    assert.equal(macros.proteinPerKg, PROTEIN_G_PER_KG_BY_GOAL.build_muscle);
+  });
+
+  it('2 progression: a bonus set, a deliberately weak day, and every set at the top', () => {
+    playWeek3();
+    const show = (list: ProgressionSuggestion[] | undefined) =>
+      (list ?? []).map((s) => `${s.exerciseId}:${s.kind}${s.toExerciseId ? `→${s.toExerciseId}` : ''}`).sort();
+    out.week3Suggestions = Object.fromEntries(Object.keys(suggestionsByDay3).map((d) => [d, show(suggestionsByDay3[d])]));
+    const find = (d: string, id: string) => (suggestionsByDay3[d] ?? []).find((s) => s.exerciseId === id) ?? null;
+
+    // Monday: nowhere near the top on a weak day — no exercise gets a suggestion.
+    assert.deepEqual(suggestionsByDay3[MON3], []);
+
+    // Tuesday: the bonus set (4 logged against a template of 3) is exactly
+    // what unlocks "sets_up" once a second unit repeats it — Tuesday alone
+    // is still a first-time success, so nothing fires yet.
+    assert.equal(find(TUE3, 'bodyweight_squat'), null);
+
+    // Thursday "hart", every set at the upper bound with reps in reserve:
+    // level-up on the ladder, accepted and applied to the template.
+    const incline = find(THU3, 'incline_push_up');
+    assert.equal(incline?.kind, 'variant_up');
+    assert.equal(incline?.toExerciseId, 'push_up');
+    const pushRow = templates3.push.find((t) => t.exerciseId === 'push_up');
+    assert.ok(pushRow, 'the accepted level-up changed the Push template');
+
+    // Friday "hart", negatives at the top with reps in reserve: also a level-up.
+    const negatives = find(FRI3, 'negative_pull_up');
+    assert.equal(negatives?.kind, 'variant_up');
+    assert.ok(templates3.pull_legs.some((t) => t.exerciseId === negatives?.toExerciseId));
+
+    // Rows never surface a suggestion: "hart" 2×12 at the top without a
+    // second successful unit first (old rule, since these sets carry no rir).
+    assert.equal(find(FRI3, 'inverted_row_bent_knees'), null);
+  });
+
+  it('3 readiness across the week, with and without a check-in', () => {
+    playWeek3();
+    const all = readinessSessions3();
+    const checkins: DailyCheckin[] = DAYS3.filter((d) => WEEK3[d]!.checkin).map((d) => ({ date: d, ...WEEK3[d]!.checkin! }));
+    const on = (todayKey: string, checkin: DailyCheckin | null) =>
+      computeReadiness({
+        todayKey,
+        checkin: checkin ? { sleep: checkin.sleep, energy: checkin.energy, soreness: checkin.soreness, stress: checkin.stress } : null,
+        pastCheckins: checkins.filter((c) => c.date < todayKey),
+        sessions: all.filter((s) => s.loggedOn < todayKey),
+        nutrition: [],
+      });
+    const c = (d: string) => checkins.find((x) => x.date === d)!;
+    const results = {
+      monWeak: on(MON3, c(MON3)),
+      tueOk: on(TUE3, c(TUE3)),
+      wedNoCheckin: on(WED3, null),
+      friSore: on(FRI3, c(FRI3)),
+    };
+    out.week3Readiness = Object.fromEntries(
+      Object.entries(results).map(([k, r]) => [k, { level: r.level, basis: r.basis, rating: r.checkinRating, signals: r.signals }]),
+    );
+
+    // Sleep at 1 is the explicit red flag: always "low" regardless of the
+    // (still empty) baseline, and a low rating always means a "gentle" day.
+    assert.deepEqual([results.monWeak.level, results.monWeak.basis, results.monWeak.checkinRating], ['gentle', 'checkin', 'low']);
+    assert.equal(results.tueOk.basis, 'checkin');
+    // No check-in on the rest day: rated from data only (Monday's unit).
+    assert.equal(results.wedNoCheckin.basis, 'data');
+    // Friday soreness 4 counts as "high" regardless of the wellness score.
+    assert.ok(results.friSore.signals.includes('soreHigh'));
+  });
+
+  it('4 recommendations by time of day: protein and pre-training carbs, then just protein once trained', () => {
+    playWeek3();
+    const mon = healthDay3(MON3);
+    const wed = healthDay3(WED3);
+    const ctx = (over: Partial<RecommendationContext>): RecommendationContext => ({
+      goalCategory: 'muscle',
+      hour: 9,
+      minute: 0,
+      todayKey: MON3,
+      nowMs: Date.parse(at(MON3, 9)),
+      trainingDay: true,
+      trainedToday: false,
+      consumed: { proteinG: 20, carbsG: 60, fiberG: 5 },
+      targets: { kcal: mon.calorieGoal, proteinG: mon.proteinG, carbsG: mon.carbsG, fiberG: 35 },
+      readiness: 'normal',
+      nextLevel: null,
+      muscleDeficits: [],
+      lastWeightDateKey: MON3,
+      lastMeasurementDateKey: null,
+      usesMeasurements: false,
+      checkinStatus: 'answered',
+      dismissals: {},
+      ...over,
+    });
+    const kinds = (c: RecommendationContext) => buildRecommendations(c).map((r) => r.kind);
+    const results = {
+      mon1400: kinds(ctx({ hour: 14, nowMs: Date.parse(at(MON3, 14)), consumed: { proteinG: 40, carbsG: 80, fiberG: 10 } })),
+      mon1930Trained: kinds(ctx({ hour: 19, minute: 30, trainedToday: true, consumed: { proteinG: 60, carbsG: 120, fiberG: 10 } })),
+      wed1400Rest: kinds(
+        ctx({
+          todayKey: WED3,
+          hour: 14,
+          trainingDay: false,
+          targets: { kcal: wed.calorieGoal, proteinG: wed.proteinG, carbsG: wed.carbsG, fiberG: 35 },
+          consumed: { proteinG: 90, carbsG: 50, fiberG: 10 },
+        }),
+      ),
+    };
+    out.week3Recommendations = results;
+
+    // Training day, protein and carbs both behind: protein first, then carbs before the unit.
+    assert.deepEqual(results.mon1400, ['protein', 'carbs_training']);
+    // After training: no more "carbs before training", protein still short.
+    assert.deepEqual(results.mon1930Trained, ['protein']);
+    // Rest day, carbs low but nothing to train for: no carbs hint.
+    assert.deepEqual(results.wed1400Rest, []);
+  });
+
+  it('5 muscle groups counted over the week', () => {
+    playWeek3();
+    const sets = sessions3.flatMap((s) =>
+      s.workout.sets.map((set) => ({ exerciseId: set.exerciseId, loggedOn: s.dateKey, reps: set.reps, seconds: set.seconds, rir: set.rir ?? null })),
+    );
+    const counts = countMuscleSets({ sets, resolve: (id) => byId.get(id), todayKey: SUN3, days: 7 });
+    const status = muscleStatus(counts, weeklySetTarget(PROFILE3.goalType));
+    out.week3Muscles = { counts, status };
+    // Chest and shoulders each got two Push units' worth of sets.
+    assert.ok(counts.chest > 0 && counts.shoulders > 0 && counts.back > 0 && counts.quads > 0);
+    const missing = Object.fromEntries(status.filter((s) => !s.reached).map((s) => [s.group, s.missing]));
+    // Biceps have no dedicated exercise in this plan: always behind target.
+    assert.ok((missing.biceps ?? 0) > 0);
+  });
+
+  it('6 build-up sentence after one week', () => {
+    playWeek3();
+    const input = {
+      todayKey: SUN3,
+      weeks: 4 as const,
+      weightKg: [{ on: FRI3, value: WEEK3[FRI3]!.weightKg! }, { on: SAT3, value: WEEK3[SAT3]!.weightKg! }],
+      waistCm: [],
+      chestCm: [],
+      armCm: [],
+      sessions: sessions3.map((s) => ({ loggedOn: s.dateKey, sets: s.workout.sets })),
+      beforeBests: {},
+      progressionEvents: events3.map((ev) => ({ kind: ev.kind, status: ev.status, day: localKey(ev.createdAt) })),
+    };
+    const week1 = computeBuildUp(input);
+    const de = formatBuildUpSentence(week1, { unitSystem: 'metric', locale: 'de-DE', t: translator('de') });
+    out.week3BuildUp = { week1, de };
+    // First week: no weight baseline yet, but the two accepted level-ups show.
+    assert.equal(week1.weightDeltaKg, null);
+    assert.match(de, /\+2 Stufen/);
+  });
+
+  it('7 skill goal forecast: too little data after a single week', () => {
+    playWeek3();
+    const units = sessions3.map((s) => ({ loggedOn: s.dateKey, sets: s.workout.sets }));
+    const forecast = computeSkillGoalForecast({ goalExerciseId: 'chin_up', targetValue: 5, exercises: CATALOG, units, todayKey: SUN3 });
+    out.week3SkillGoal = forecast;
+    assert.ok(forecast);
+    assert.equal(forecast?.status, 'too_little_data');
+    assert.equal(forecast?.current?.exerciseId, 'negative_pull_up');
+  });
+
+  it('8 rolling recap for the week', () => {
+    playWeek3();
+    const bestsBefore3 = (startKey: string) => {
+      const map: Record<string, number> = {};
+      for (const s of sessions3.filter((x) => x.dateKey < startKey)) {
+        for (const set of s.workout.sets) {
+          const v = (set.kind === 'time' ? set.seconds : set.reps) ?? 0;
+          if (set.exerciseId && v > (map[set.exerciseId] ?? 0)) {
+            map[set.exerciseId] = v;
+          }
+        }
+      }
+      return map;
+    };
+    const proteinGoal = healthDay3(MON3).proteinG;
+    const proteinDays = DAYS3.map((d) => ({ date: d, hit: WEEK3[d]!.proteinG >= proteinGoal }));
+    const recap = buildRecapSticker('week', {
+      todayKey: SUN3,
+      workoutSessions: sessions3.map((s) => s.workout),
+      manualSessions: trainingRows3,
+      beforeBests: bestsBefore3(recapWindow('week', SUN3).startKey),
+      events: events3,
+      proteinDays,
+      nameOf: (best) => cat(best.exerciseId!).names.de!,
+    });
+    out.week3Recap = { proteinGoal, recap };
+    // 4 units this week, 2 of them ending in an accepted level-up.
+    assert.equal(recap.sessions, 4);
+    assert.equal(recap.levelsCount, 2);
+    // First week: nothing before the window to beat.
+    assert.equal(recap.bestsCount, 0);
+  });
+});
