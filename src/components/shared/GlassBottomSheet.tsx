@@ -68,9 +68,11 @@ export function GlassBottomSheet({
                 style={styles.modalRoot}
                 behavior={isCentered && Platform.OS === 'ios' ? 'padding' : undefined}>
                 <Pressable
+                  accessible={false}
                   style={[styles.overlay, isCentered && styles.overlayCenter]}
                   onPress={onClose}>
                   <Pressable
+                    accessible={false}
                     style={[
                       styles.sheetShell,
                       isCentered && styles.sheetShellCenter,

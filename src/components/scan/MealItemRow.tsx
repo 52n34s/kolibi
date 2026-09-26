@@ -71,6 +71,7 @@ type StepperFieldProps = {
   onFocus?: (draftText: string) => void;
   onBlur?: () => void;
   onDraftChange?: (draftText: string) => void;
+  testID?: string;
 };
 
 function formatStepperValue(value: number, allowDecimals: boolean): string {
@@ -115,6 +116,7 @@ function StepperField({
   onFocus,
   onBlur,
   onDraftChange,
+  testID,
 }: StepperFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [draftText, setDraftText] = useState('');
@@ -156,6 +158,7 @@ function StepperField({
           <Ionicons name="remove" size={14} color={minusDisabled ? '#9CA3AF' : '#4F46E5'} />
         </Pressable>
         <TextInput
+          testID={testID}
           accessibilityLabel={label}
           keyboardType={keyboardType}
           returnKeyType="done"
@@ -532,6 +535,7 @@ export function MealItemRow({
       <View style={styles.headerRow}>
         <View ref={nameInputWrapRef} style={styles.nameInputWrap} collapsable={false}>
           <TextInput
+            testID="home.manualEntry.nameInput"
             ref={nameInputRef}
             accessibilityLabel={t('home.manualEntry.namePlaceholder')}
             placeholder={t('home.manualEntry.namePlaceholder')}
@@ -572,6 +576,7 @@ export function MealItemRow({
           <View style={styles.unitToggleWrap}>
             <CompactSegmentToggle
             variant="unit"
+            testIDPrefix="home.manualEntry.unit"
             containerStyle={styles.unitToggle}
             value={currentUnitSegment}
             disabledSegmentIds={pcsAvailable ? [] : ['count']}
@@ -606,6 +611,7 @@ export function MealItemRow({
 
       <View style={styles.steppersRow}>
         <StepperField
+          testID="home.manualEntry.quantityInput"
           allowDecimals={allowDecimalQuantity}
           decreaseLabel={t('home.scan.confirmation.decrease')}
           increaseLabel={t('home.scan.confirmation.increase')}

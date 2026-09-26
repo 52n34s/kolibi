@@ -419,7 +419,8 @@
       "startTitle": "Peso inicial",
       "targetTitle": "Peso objetivo",
       "logAction": "Registra tu peso",
-      "dailyToday": "hoy {{weight}}",
+      "trendOnly": "Media 7 días {{trend}}",
+      "trendAndToday": "Media 7 días {{trend}} · hoy {{today}}",
       "modalTitle": "Actualizar peso",
       "modalSubtitle": "La entrada de hoy reemplaza cualquier peso anterior de hoy.",
       "updateTargetTitle": "Editar peso objetivo",
@@ -445,6 +446,7 @@
       "title": "Comidas de hoy",
       "emptyTitle": "Tu día empieza con la primera comida",
       "emptySubtitle": "Escanea tu primera comida para empezar.",
+      "emptySubtitleReturning": "Tu primera comida de hoy: con foto, código de barras o búsqueda",
       "unnamedMeal": "Comida",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
       "macroAbbrevProtein": "P",
@@ -736,6 +738,7 @@
     },
     "starterPlans": {
       "chooseTitle": "Tu punto de partida",
+      "orTemplate": "O empieza con una plantilla",
       "chooseIntro": "Tres planes listos para empezar — primero ves qué incluye, luego lo adoptas.",
       "sessionMeta": "{{label}}: {{exercises}} ejercicios · ~{{minutes}} min",
       "apply": "Usar este plan",
@@ -948,6 +951,11 @@
       "restLabel": "Pausa estándar",
       "restValue": "{{seconds}} s",
       "restHint": "Se aplica a todos los ejercicios sin descanso propio: el mismo valor que el temporizador en la pestaña Entrenamiento.",
+      "customRestCount": "{{count}} ejercicios usan su propio descanso.",
+      "applyStandardRestAction": "Aplicar a todos los ejercicios",
+      "applyStandardRestTitle": "¿Aplicar el descanso estándar?",
+      "applyStandardRestConfirm": "Esto restablece el descanso propio en {{count}} ejercicios: a partir de ahora usarán el descanso estándar.",
+      "applyStandardRestFailed": "No se pudo aplicar. Inténtalo de nuevo.",
       "unitMeta": "{{count}} ejercicios · {{days}}",
       "rotating": "en rotación",
       "emptyTitle": "Aquí nace tu plan",
@@ -977,7 +985,8 @@
       "seconds": "Segundos",
       "range": "Rango",
       "rangeMax": "hasta",
-      "restStandard": "Pausa estándar",
+      "restUseStandard": "Usar descanso estándar",
+      "restStandardValue": "{{seconds}} s (estándar)",
       "remove": "Quitar",
       "addExercises": "Añadir ejercicios",
       "save": "Guardar",
@@ -1311,7 +1320,8 @@
       "topFoods": "La mayor parte vino de: {{foods}}",
       "summary": {
         "onTrack": "Vas bien esta semana.",
-        "calorieUndershoot": "En tres de los últimos siete días, tu déficit estuvo claramente por encima de lo previsto.",
+        "calorieUndershoot_one": "En uno de los últimos siete días comiste bastante menos de tu objetivo; suficiente energía te ayuda a progresar.",
+        "calorieUndershoot_other": "En {{count}} de los últimos siete días comiste bastante menos de tu objetivo; suficiente energía te ayuda a progresar.",
         "smallUnder": "Vas bien — unos {{amount}} g más de {{nutrient}} al día lo redondearían.",
         "smallOver": "Vas bien — unos {{amount}} g menos de {{nutrient}} al día lo redondearían.",
         "largeUnder": {
@@ -1437,7 +1447,7 @@
       "body": "Una serie menos por ejercicio. Tu cuerpo se recupera y tu plan sigue.",
       "active": "Activa hasta el {{date}}",
       "end": "Terminar la semana suave",
-      "inactive": "Ahora mismo no hay ninguna semana suave activa."
+      "inactive": "Ahora mismo entrenas a tu ritmo normal."
     },
     "focusAreas": {
       "title": "Tus prioridades",
@@ -1728,7 +1738,7 @@
       "bodyFatBelowSustainable": "Eso está por debajo de lo que suele ser sostenible a largo plazo.",
       "progressStartLabel": "El progreso cuenta desde",
       "progressStartHint": "Opcional. Vacío = el peso más antiguo. Al fijarlo por primera vez, el selector empieza en hoy.",
-      "progressStartEmpty": "No establecido",
+      "progressStartEmpty": "Establecer ahora",
       "progressStartClear": "Quitar fecha",
       "notSet": "No establecido",
       "invalid": "Introduce un peso válido.",
@@ -1967,6 +1977,8 @@
   },
   "rir": {
     "question": "¿Cuántas más habrías podido hacer?",
+    "infoA11y": "¿Qué significa repeticiones en reserva?",
+    "info": "Así Kolibi sabe cuándo un ejercicio se vuelve demasiado fácil. Si en todas las series al límite superior aún te quedaban 2 o más repeticiones, pasas al siguiente nivel enseguida. Para ganar músculo, las series con 0 a 2 repeticiones en reserva son especialmente efectivas. Es opcional.",
     "shortfallTitle": "¿Qué pasó?",
     "reasonTooHard": "Demasiado difícil dos veces seguidas: con el nivel más fácil construyes una base sólida.",
     "reason": {
@@ -2269,27 +2281,27 @@
       "editHint": "Toca para cambiar"
     },
     "questions": {
-      "sleep": "Sueño",
-      "energy": "Energía",
-      "soreness": "Agujetas",
-      "stress": "Estrés"
+      "sleep": "¿Cómo has dormido?",
+      "energy": "¿Cómo te sientes de energía?",
+      "soreness": "¿Cuántas agujetas tienes?",
+      "stress": "¿Cuánto estrés tienes?"
     },
     "scale": {
       "sleep": {
-        "low": "corto",
+        "low": "inquieto",
         "high": "reparador"
       },
       "energy": {
-        "low": "poca",
-        "high": "mucha"
+        "low": "cansado",
+        "high": "con energía"
       },
       "soreness": {
-        "low": "apenas",
-        "high": "fuertes"
+        "low": "casi nada",
+        "high": "muchas"
       },
       "stress": {
-        "low": "tranquilo",
-        "high": "alto"
+        "low": "relajado",
+        "high": "mucho"
       },
       "stepLabel": "{{question}}: {{value}} de 5"
     },
@@ -2366,7 +2378,7 @@
       "show": "Check-in por la mañana",
       "reminder": "Recordatorio",
       "time": "Hora",
-      "hint": "Cuatro preguntas rápidas en la pantalla Hoy, hasta el mediodía.",
+      "hint": "Cuatro preguntas rápidas en la pantalla Hoy, hasta las 18:00.",
       "reminderHint": "Kolibi te lo recuerda cada mañana a esta hora.",
       "saveFailed": "Inténtalo de nuevo en un momento: la conexión va lenta.",
       "permissionOff": "Las notificaciones están desactivadas en los ajustes de iOS. Actívalas allí para recibir el recordatorio.",
@@ -2459,21 +2471,22 @@
   "recommendations": {
     "title": "Para ti hoy",
     "dismiss": "Ocultar",
+    "why": "¿Por qué?",
     "deload": {
-      "message": "Una semana más suave te lleva más lejos. Tu cuerpo se recupera y luego vuelves con más fuerza.",
+      "message": "Una semana más suave te lleva más lejos",
       "actionStart": "Empezar semana suave",
       "actionDismiss": "Ahora no"
     },
     "protein": {
-      "message": "Te quedan {{grams}} g de proteína para tu objetivo",
+      "message": "Te faltan {{grams}} g de proteína",
       "action": "Registrar proteína"
     },
     "fiber": {
-      "message": "Te quedan {{grams}} g de fibra para tu objetivo",
+      "message": "Un poco más de fibra hoy",
       "action": "Registrar comida"
     },
     "carbs": {
-      "message": "Día de entreno: los carbohidratos antes de la sesión te dan más fuerza",
+      "message": "Algunos carbohidratos antes de entrenar",
       "action": "Registrar comida"
     },
     "restDay": {
@@ -2519,6 +2532,6 @@
   "postTraining": {
     "protein": "Te faltan {{g}} g de proteína – buena para la recuperación.",
     "carbs": "Te faltan {{g}} g de carbohidratos – recargan tus reservas.",
-    "fat": "Casi alcanzas la grasa. Para el resto del día van bien las proteínas magras."
+    "fat": "Casi en tu objetivo de grasas"
   }
 }

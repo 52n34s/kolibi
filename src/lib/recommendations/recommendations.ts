@@ -54,16 +54,17 @@ export type Recommendation = {
   category: RecommendationCategory;
   /** Ionicons glyph name. */
   icon: string;
-  /** The one sentence. */
+  /** The one sentence. Tapping the card runs `action`. */
   message: RecommendationText;
-  /** Further sentences under it (the post-training macro lines). */
-  moreLines?: RecommendationText[];
-  /** Optional goal-specific reason (from the goal-focus table). */
+  /** Optional goal-specific reason (from the goal-focus table); shown behind an info icon, not inline. */
   reason: RecommendationText | null;
   action: RecommendationAction;
   /** A second choice next to the action ("Jetzt nicht" for the lighter week). */
   secondaryAction?: RecommendationAction;
 };
+
+/** Last meal logged today, by display slot (see meal-groups.ts); null = none yet. */
+export type LastMealSlot = 'breakfast' | 'lunch' | 'afternoonSnack' | 'snack' | 'dinner';
 
 export type MacroAmounts = {
   proteinG: number | null;
@@ -121,6 +122,12 @@ export type RecommendationContext = {
   /** Consumed so far today; null per macro = unknown. */
   consumed: MacroAmounts | null;
   targets: MacroTargets | null;
+  /**
+   * Slot of the last meal logged today (see meal-groups.ts). null = nothing
+   * logged yet today → the nutrition-gap cards stay quiet. undefined = unknown
+   * (still loading) → same as null.
+   */
+  lastMealSlot: LastMealSlot | null | undefined;
   /** Readiness level; null = no readiness (unavailable or still loading). */
   readiness: ReadinessLevel | null;
   /** First exercise of the next unit that is ready for the next level. */
@@ -144,12 +151,20 @@ export const RECOMMENDATION_RULES = {
   maxShown: 3,
   /** A dismissed kind comes back after 3 days (72 h). */
   snoozeMs: 3 * 24 * 60 * 60 * 1000,
-  /** Expected share of the day target: 0 % until 08:00 … */
-  curveStartMinutes: 8 * 60,
-  /** … rising linearly to 100 % at 21:00. */
-  curveEndMinutes: 21 * 60,
-  /** Nutrition hints start at 10:00. */
-  nutritionFromMinutes: 10 * 60,
+  /**
+   * Expected share of the day target once THIS was the last meal logged
+   * (day-progress, not clock time) — an afternoon snack and an early dinner
+   * read the same, since dinner can start as early as 17:30.
+   */
+  mealProgressShare: {
+    breakfast: 0.25,
+    lunch: 0.55,
+    afternoonSnack: 0.7,
+    snack: 0.25,
+    dinner: 0.7,
+  } as Record<LastMealSlot, number>,
+  /** From this hour on, the full day target is expected regardless of the last meal. */
+  fullDayShareFromHour: 19,
   /** "Clearly below": consumed < 80 % of the expected share. */
   clearlyBelowRatio: 0.8,
   /** Smallest gap to the day target worth a hint (grams). */
@@ -188,30 +203,38 @@ const CATEGORY_ORDER: Record<RecommendationCategory, number> = {
 
 const K = 'recommendations';
 
-/** 0 … 1: share of the day target expected by this time. */
-export function expectedDayShare(hour: number, minute: number): number {
-  const minutes = hour * 60 + minute;
-  const { curveStartMinutes, curveEndMinutes } = RECOMMENDATION_RULES;
-  if (minutes <= curveStartMinutes) {
+/**
+ * 0 … 1: share of the day target expected once `lastMealSlot` was logged —
+ * day progress, not the clock. null/undefined (nothing logged yet today) is
+ * 0: too early to say anything. From `fullDayShareFromHour` on, the full
+ * target is expected no matter which meal was last (the day is basically over).
+ */
+export function expectedDayShareByMeal(params: {
+  lastMealSlot: LastMealSlot | null | undefined;
+  hour: number;
+}): number {
+  if (params.lastMealSlot == null) {
     return 0;
   }
-  if (minutes >= curveEndMinutes) {
+  if (params.hour >= RECOMMENDATION_RULES.fullDayShareFromHour) {
     return 1;
   }
-  return (minutes - curveStartMinutes) / (curveEndMinutes - curveStartMinutes);
+  return RECOMMENDATION_RULES.mealProgressShare[params.lastMealSlot];
 }
 
 /**
- * Grams still missing to the day target when the intake is clearly behind the
- * time curve; null when no hint is due.
+ * Grams still missing to the day target when the intake is clearly behind
+ * where today's meals so far should have put it; null when no hint is due.
+ * `relativeGap` (0…1, how far below the expected pace) lets the caller pick
+ * the single biggest gap among several macros.
  */
 export function macroGap(params: {
   consumed: number | null | undefined;
   target: number | null | undefined;
+  lastMealSlot: LastMealSlot | null | undefined;
   hour: number;
-  minute: number;
   minRemaining: number;
-}): number | null {
+}): { remainingG: number; relativeGap: number } | null {
   const { consumed, target } = params;
   if (consumed == null || !Number.isFinite(consumed) || consumed < 0) {
     return null;
@@ -219,15 +242,19 @@ export function macroGap(params: {
   if (target == null || !Number.isFinite(target) || target <= 0) {
     return null;
   }
-  if (params.hour * 60 + params.minute < RECOMMENDATION_RULES.nutritionFromMinutes) {
+  const expectedShare = expectedDayShareByMeal(params);
+  if (expectedShare <= 0) {
     return null;
   }
-  const expected = target * expectedDayShare(params.hour, params.minute);
+  const expected = target * expectedShare;
   if (!(consumed < expected * RECOMMENDATION_RULES.clearlyBelowRatio)) {
     return null;
   }
   const remaining = Math.round(target - consumed);
-  return remaining >= params.minRemaining ? remaining : null;
+  if (remaining < params.minRemaining) {
+    return null;
+  }
+  return { remainingG: remaining, relativeGap: (expected - consumed) / expected };
 }
 
 /** Whole days between two YYYY-MM-DD keys (later − earlier). */
@@ -308,7 +335,8 @@ function postTraining(ctx: RecommendationContext): Ranked | null {
       fatG: targets.fatG ?? null,
     },
   });
-  const [first, ...rest] = lines;
+  // One sentence only: the single most relevant line, not the whole list.
+  const first = lines[0];
   if (!first) {
     return null;
   }
@@ -317,14 +345,6 @@ function postTraining(ctx: RecommendationContext): Ranked | null {
     category: 'nutrition',
     icon: 'nutrition-outline',
     message: { key: first.messageKey, params: 'params' in first ? first.params : undefined },
-    ...(rest.length > 0
-      ? {
-          moreLines: rest.map((line) => ({
-            key: line.messageKey,
-            params: 'params' in line ? line.params : undefined,
-          })),
-        }
-      : {}),
     reason: null,
     action: { target: 'meals', labelKey: `${K}.protein.action` },
     // Ahead of the day hints: the window is short and the moment is now.
@@ -332,9 +352,17 @@ function postTraining(ctx: RecommendationContext): Ranked | null {
   };
 }
 
-function nutrition(ctx: RecommendationContext): Ranked[] {
-  const out: Ranked[] = [];
-  const { consumed, targets, goalCategory: goal, hour, minute } = ctx;
+type NutritionCandidate = Ranked & { relativeGap: number };
+
+/**
+ * Protein, fiber and training-day carbs: at most ONE of these shows at a
+ * time — whichever has the biggest relative gap to its expected pace. A
+ * chosen focus area still nudges the pick via the existing rank/boost order
+ * (applied by the caller), used here only to break a tie.
+ */
+function nutritionMacroCandidates(ctx: RecommendationContext): NutritionCandidate[] {
+  const out: NutritionCandidate[] = [];
+  const { consumed, targets, goalCategory: goal, hour, lastMealSlot } = ctx;
   if (!consumed || !targets) {
     return out;
   }
@@ -344,8 +372,8 @@ function nutrition(ctx: RecommendationContext): Ranked[] {
   const protein = macroGap({
     consumed: consumed.proteinG,
     target: targets.proteinG,
+    lastMealSlot,
     hour,
-    minute,
     minRemaining: minRemaining.protein,
   });
   if (protein != null) {
@@ -353,10 +381,11 @@ function nutrition(ctx: RecommendationContext): Ranked[] {
       kind: 'protein',
       category: 'nutrition',
       icon: 'egg-outline',
-      message: { key: `${K}.protein.message`, params: { grams: protein } },
+      message: { key: `${K}.protein.message`, params: { grams: protein.remainingG } },
       reason: reasonFor(goal, 'protein'),
       action: { target: 'meals', labelKey: `${K}.protein.action` },
       rank: focusIndex(goal, 'protein'),
+      relativeGap: protein.relativeGap,
     });
   }
 
@@ -366,8 +395,8 @@ function nutrition(ctx: RecommendationContext): Ranked[] {
     const fiber = macroGap({
       consumed: consumed.fiberG,
       target: targets.fiberG,
+      lastMealSlot,
       hour,
-      minute,
       minRemaining: minRemaining.fiber,
     });
     if (fiber != null) {
@@ -375,10 +404,11 @@ function nutrition(ctx: RecommendationContext): Ranked[] {
         kind: 'fiber',
         category: 'nutrition',
         icon: 'leaf-outline',
-        message: { key: `${K}.fiber.message`, params: { grams: fiber } },
+        message: { key: `${K}.fiber.message` },
         reason: reasonFor(goal, 'fiber'),
         action: { target: 'meals', labelKey: `${K}.fiber.action` },
         rank: focusIndex(goal, 'fiber'),
+        relativeGap: fiber.relativeGap,
       });
     }
   }
@@ -391,8 +421,8 @@ function nutrition(ctx: RecommendationContext): Ranked[] {
     const carbs = macroGap({
       consumed: consumed.carbsG,
       target: targets.carbsG,
+      lastMealSlot,
       hour,
-      minute,
       minRemaining: minRemaining.carbs,
     });
     if (carbs != null) {
@@ -405,16 +435,37 @@ function nutrition(ctx: RecommendationContext): Ranked[] {
         action: { target: 'meals', labelKey: `${K}.carbs.action` },
         rank: carbsFocus ? focusIndex(goal, carbsFocus.focus) : goalFocusFor(goal).length,
         focus: carbsFocus?.focus,
+        relativeGap: carbs.relativeGap,
       });
     }
   }
+  return out;
+}
 
+function nutrition(ctx: RecommendationContext): Ranked[] {
   const post = postTraining(ctx);
-  if (post == null) {
-    return out;
+  if (post != null && !isSnoozed(ctx.dismissals.post_training, ctx.nowMs)) {
+    // The post-training hint is the one nutrition card for this moment: it
+    // already says the same thing the day-progress cards would.
+    return [post];
   }
-  // The same two macros, said at the better moment: the day hints step aside.
-  return [post, ...out.filter((rec) => rec.kind !== 'protein' && rec.kind !== 'carbs_training')];
+  // A dismissed macro should not block the others from getting a turn.
+  const candidates = nutritionMacroCandidates(ctx).filter(
+    (candidate) => !isSnoozed(ctx.dismissals[candidate.kind], ctx.nowMs),
+  );
+  if (candidates.length === 0) {
+    return [];
+  }
+  // A tie on relative gap breaks by the same rank/boost order buildRecommendations
+  // uses across categories, so a chosen focus area can still decide the pick.
+  const boost = focusAreaBoost(ctx.focusAreas);
+  const rankOf = (rec: NutritionCandidate) =>
+    rec.rank + (boost[rec.kind] ?? (rec.focus != null ? (boost[rec.focus] ?? 0) : 0));
+  const best = [...candidates].sort(
+    (a, b) => b.relativeGap - a.relativeGap || rankOf(a) - rankOf(b),
+  )[0];
+  const { relativeGap: _relativeGap, ...rec } = best;
+  return [rec];
 }
 
 function training(ctx: RecommendationContext): Ranked[] {

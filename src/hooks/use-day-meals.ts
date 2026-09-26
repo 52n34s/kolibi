@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { fetchCalorieGoalForDate } from '@/lib/calorie-goals';
 import { fetchDailyHealthStatsForDate } from '@/lib/daily-health-stats';
-import { fetchMealsForLocalDate } from '@/lib/meals';
+import { fetchMealsForLocalDate, hasLoggedAnyMealEver } from '@/lib/meals';
 
 export function useDayMeals(userId: string | undefined, dateKey: string) {
   return useQuery({
@@ -15,6 +15,15 @@ export function useDayMeals(userId: string | undefined, dateKey: string) {
 
       return fetchMealsForLocalDate(userId, dateKey);
     },
+  });
+}
+
+/** For the empty-state copy: has this user logged a meal on ANY day, ever? */
+export function useHasLoggedAnyMeal(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['has-logged-any-meal', userId],
+    enabled: Boolean(userId),
+    queryFn: () => hasLoggedAnyMealEver(userId!),
   });
 }
 

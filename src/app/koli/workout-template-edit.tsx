@@ -40,6 +40,7 @@ import { suggestShortLabel } from '@/lib/workouts/short-label';
 import { useOwnWorkoutTemplates } from '@/hooks/use-own-workout-templates';
 import { useRequirePlan } from '@/hooks/use-require-plan';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
+import { useRestTimerStore } from '@/stores/rest-timer-store';
 import {
   UNIT_COLOR_KEYS,
   type Exercise,
@@ -204,6 +205,7 @@ export default function WorkoutTemplateEditScreen() {
   const exercisesQuery = useExercises();
   const { data: profileData } = useProfileSettings(userId);
   const activeSession = useWorkoutSessionStore((s) => s.active);
+  const standardRestSeconds = useRestTimerStore((s) => s.idleDurationSec);
 
   const existing = useMemo(
     () => templatesQuery.data?.find((row) => row.id === paramId),
@@ -729,7 +731,7 @@ export default function WorkoutTemplateEditScreen() {
                   ) : null}
 
                   <View style={styles.switchRow}>
-                    <Text style={styles.switchLabel}>{t('training.templateEdit.restStandard')}</Text>
+                    <Text style={styles.switchLabel}>{t('training.templateEdit.restUseStandard')}</Text>
                     <Switch
                       value={!useCustomRest}
                       onValueChange={(useStandard) =>
@@ -757,7 +759,7 @@ export default function WorkoutTemplateEditScreen() {
                     <Text
                       testID={`training.templateEdit.exercise.${index}.rest`}
                       style={styles.restStandardLabel}>
-                      {t('training.templateEdit.restStandard')}
+                      {t('training.templateEdit.restStandardValue', { seconds: standardRestSeconds })}
                     </Text>
                   )}
 

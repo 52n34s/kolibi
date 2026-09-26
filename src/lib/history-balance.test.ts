@@ -8,6 +8,7 @@ import {
   computeBalanceStats,
   computeBalanceSummaryHeadline,
   computeProteinDistributionStats,
+  countCalorieUndershootDays,
   detectRepeatedCalorieUndershoot,
   formatBalanceAccuracyValue,
   pickBalanceAccuracyHint,
@@ -348,6 +349,32 @@ describe('detectRepeatedCalorieUndershoot', () => {
       }),
       false,
     );
+  });
+});
+
+describe('countCalorieUndershootDays', () => {
+  const todayKey = '2026-09-21';
+
+  it('counts every qualifying day, not just whether the threshold was crossed', () => {
+    // Five of the seven closed days are clearly under goal — the UI text
+    // must say five, not always "three" (week test 3 follow-up).
+    assert.equal(
+      countCalorieUndershootDays({
+        todayKey,
+        days: closedWeek({
+          '2026-09-14': { calories: 1400 },
+          '2026-09-15': { calories: 1400 },
+          '2026-09-16': { calories: 1400 },
+          '2026-09-17': { calories: 1400 },
+          '2026-09-18': { calories: 1400 },
+        }),
+      }),
+      5,
+    );
+  });
+
+  it('is null without seven complete closed days', () => {
+    assert.equal(countCalorieUndershootDays({ todayKey, days: closedWeek().slice(2) }), null);
   });
 });
 

@@ -62,7 +62,9 @@ export function HomeSupplementChips({ date }: HomeSupplementChipsProps) {
     queryFn: () => fetchSupplementsForDay(dateKey),
   });
 
-  const dueItems = (data ?? []).filter((item) => item.is_due);
+  // Taken supplements drop out of the row (and the whole row disappears once
+  // none are left) — the Nutrition tab keeps the full due+taken view.
+  const dueItems = (data ?? []).filter((item) => item.is_due && !item.taken);
 
   const toggleMutation = useMutation({
     mutationFn: async (item: SupplementForDay) => {

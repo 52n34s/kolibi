@@ -415,6 +415,20 @@ export function getMealMacroDisplay(meal: TodayMeal): {
   };
 }
 
+/** Cheap existence check — for choosing an empty-state message, not a count. */
+export async function hasLoggedAnyMealEver(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('meals')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+
+  if (error) {
+    throw error;
+  }
+  return (data?.length ?? 0) > 0;
+}
+
 export async function fetchMealsForLocalDate(
   userId: string,
   dateKey: string,

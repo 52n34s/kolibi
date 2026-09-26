@@ -33,7 +33,7 @@ import { useWorkoutTemplates } from '@/hooks/use-workout-templates';
 import { invalidateTrainingQueries } from '@/lib/training-query-keys';
 import { clampRestSeconds, DEFAULT_REST_SECONDS } from '@/lib/training/rest-timer';
 import type { WorkoutTemplate } from '@/lib/workouts/types';
-import { reorderTemplates, restoreTemplate } from '@/lib/workouts/workouts-api';
+import { reorderTemplates, restoreTemplate, saveTemplate } from '@/lib/workouts/workouts-api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRestTimerStore } from '@/stores/rest-timer-store';
 
@@ -61,6 +61,7 @@ export default function WorkoutPlanScreen() {
   const archived = archivedQuery.data ?? [];
   const [reordering, setReordering] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [applyingStandardRest, setApplyingStandardRest] = useState(false);
   const openPlanWizard = useOpenPlanWizard();
 
   const idleDurationSec = useRestTimerStore((s) => s.idleDurationSec);
@@ -70,6 +71,15 @@ export default function WorkoutPlanScreen() {
   const ordered = useMemo(
     () => [...templates].sort((a, b) => a.position - b.position),
     [templates],
+  );
+
+  const customRestCount = useMemo(
+    () =>
+      ordered.reduce(
+        (sum, template) => sum + template.exercises.filter((ex) => ex.restSeconds != null).length,
+        0,
+      ),
+    [ordered],
   );
 
   async function move(index: number, direction: -1 | 1) {
@@ -118,6 +128,59 @@ export default function WorkoutPlanScreen() {
     setIdleDurationSec(restSec + delta);
   }
 
+  async function applyStandardRestToAll() {
+    if (applyingStandardRest) {
+      return;
+    }
+    setApplyingStandardRest(true);
+    try {
+      const affected = ordered.filter((template) =>
+        template.exercises.some((ex) => ex.restSeconds != null),
+      );
+      for (const template of affected) {
+        await saveTemplate({
+          id: template.id,
+          name: template.name,
+          shortLabel: template.shortLabel,
+          colorKey: template.colorKey,
+          weekdays: template.weekdays,
+          position: template.position,
+          exercises: template.exercises.map((ex) => ({
+            exerciseId: ex.exerciseId,
+            targetSets: ex.targetSets,
+            targetReps: ex.targetReps,
+            targetRepsMax: ex.targetRepsMax,
+            targetSeconds: ex.targetSeconds,
+            targetSecondsMax: ex.targetSecondsMax,
+            targetWeightKg: ex.targetWeightKg,
+            restSeconds: null,
+          })),
+        });
+      }
+      if (userId) {
+        await invalidateTrainingQueries(queryClient, userId);
+      } else {
+        await refetch();
+      }
+    } catch (error) {
+      Sentry.captureException(error);
+      Alert.alert(t('settings.errors.title'), t('training.plan.applyStandardRestFailed'));
+    } finally {
+      setApplyingStandardRest(false);
+    }
+  }
+
+  function confirmApplyStandardRestToAll() {
+    Alert.alert(
+      t('training.plan.applyStandardRestTitle'),
+      t('training.plan.applyStandardRestConfirm', { count: customRestCount }),
+      [
+        { text: t('settings.common.cancel'), style: 'cancel' },
+        { text: t('training.plan.applyStandardRestAction'), onPress: () => void applyStandardRestToAll() },
+      ],
+    );
+  }
+
   function metaLine(template: WorkoutTemplate): string {
     const count = template.exercises.length;
     const days = formatWeekdays(template.weekdays, t);
@@ -154,6 +217,7 @@ export default function WorkoutPlanScreen() {
           <>
             {showStarterPicker ? (
               <View style={styles.empty}>
+                <Text style={styles.startTitle}>{t('training.starterPlans.chooseTitle')}</Text>
                 <PlanWizardEntryCard testID="training.plan.planWizard" />
                 <StarterPlanPicker
                   onCustom={() => router.push('/koli/workout-template-edit' as Href)}
@@ -277,6 +341,25 @@ export default function WorkoutPlanScreen() {
             </Pressable>
           </View>
           <Text style={styles.restHint}>{t('training.plan.restHint')}</Text>
+          {customRestCount > 0 ? (
+            <>
+              <Text style={styles.restCustomCount}>
+                {t('training.plan.customRestCount', { count: customRestCount })}
+              </Text>
+              <Pressable
+                testID="training.plan.applyStandardRest"
+                accessibilityRole="button"
+                disabled={applyingStandardRest}
+                onPress={confirmApplyStandardRestToAll}
+                style={styles.linkWrap}>
+                {applyingStandardRest ? (
+                  <ActivityIndicator color={BRAND_INDIGO} />
+                ) : (
+                  <Text style={styles.link}>{t('training.plan.applyStandardRestAction')}</Text>
+                )}
+              </Pressable>
+            </>
+          ) : null}
         </View>
       </ScrollView>
     </HomeLayout>
@@ -287,6 +370,12 @@ const styles = StyleSheet.create({
   empty: {
     gap: 12,
     paddingVertical: 12,
+  },
+  startTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E1B4B',
+    textAlign: 'center',
   },
   archivedEmptyHint: {
     marginBottom: 16,
@@ -412,6 +501,13 @@ const styles = StyleSheet.create({
   },
   restHint: {
     marginTop: 10,
+    fontSize: 13,
+    lineHeight: 18,
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+  },
+  restCustomCount: {
+    marginTop: 14,
     fontSize: 13,
     lineHeight: 18,
     color: TEXT_SECONDARY,

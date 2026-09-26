@@ -136,8 +136,9 @@ export function WeightInputSheet({
       {visible ? (
         <View style={styles.overlayRoot}>
           <View style={styles.overlay}>
-            <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+            <Pressable accessible={false} style={StyleSheet.absoluteFill} onPress={onClose} />
             <Pressable
+              accessible={false}
               style={[
                 styles.sheetShell,
                 { maxHeight: maxSheetHeight, bottom: keyboardHeight },
@@ -162,6 +163,7 @@ export function WeightInputSheet({
                 <View style={styles.body}>
                   {subtitle && isToday ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
                   <TextInput
+                    testID="home.weight.sheet.weightInput"
                     ref={inputRef}
                     keyboardType={resolveNumericKeyboardType('decimal-pad')}
                     placeholder={
@@ -196,6 +198,7 @@ export function WeightInputSheet({
                   </Pressable>
                   <Text style={styles.optionalLabel}>{t('home.weight.waistLabel')}</Text>
                   <TextInput
+                    testID="home.weight.sheet.waistInput"
                     keyboardType={resolveNumericKeyboardType('decimal-pad')}
                     placeholder={
                       unitSystem === 'imperial'
@@ -217,6 +220,7 @@ export function WeightInputSheet({
                   <Text style={styles.hint}>{t('home.weight.waistHint')}</Text>
                   <Text style={styles.optionalLabel}>{t('home.weight.bodyFatLabel')}</Text>
                   <TextInput
+                    testID="home.weight.sheet.bodyFatInput"
                     keyboardType={resolveNumericKeyboardType('decimal-pad')}
                     placeholder={t('home.weight.bodyFatPlaceholder')}
                     placeholderTextColor={TEXT_SECONDARY}
@@ -232,6 +236,7 @@ export function WeightInputSheet({
                     {...NUMERIC_DONE_INPUT_PROPS}
                   />
                   <Pressable
+                    testID="home.weight.sheet.save"
                     accessibilityRole="button"
                     accessibilityLabel={saveLabel}
                     disabled={isSaving}

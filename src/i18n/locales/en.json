@@ -419,7 +419,8 @@
       "startTitle": "Starting weight",
       "targetTitle": "Target weight",
       "logAction": "Log your weight",
-      "dailyToday": "today {{weight}}",
+      "trendOnly": "7-day avg {{trend}}",
+      "trendAndToday": "7-day avg {{trend}} · today {{today}}",
       "modalTitle": "Update weight",
       "modalSubtitle": "Today's entry replaces any earlier weight logged today.",
       "updateTargetTitle": "Update target weight",
@@ -445,6 +446,7 @@
       "title": "Today's meals",
       "emptyTitle": "Your day starts with the first meal",
       "emptySubtitle": "Scan your first meal to start tracking.",
+      "emptySubtitleReturning": "Your first meal today – by photo, barcode or search",
       "unnamedMeal": "Meal",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
       "macroAbbrevProtein": "P",
@@ -736,6 +738,7 @@
     },
     "starterPlans": {
       "chooseTitle": "Your starting point",
+      "orTemplate": "Or start from a template",
       "chooseIntro": "Three ready-made plans to begin — preview first, then take one on.",
       "sessionMeta": "{{label}}: {{exercises}} exercises · ~{{minutes}} min",
       "apply": "Use this plan",
@@ -948,6 +951,11 @@
       "restLabel": "Default rest duration",
       "restValue": "{{seconds}} s",
       "restHint": "Applies to every exercise without its own rest — the same value as the timer on the Training tab.",
+      "customRestCount": "{{count}} exercises use their own rest.",
+      "applyStandardRestAction": "Apply to all exercises",
+      "applyStandardRestTitle": "Apply the default rest?",
+      "applyStandardRestConfirm": "This resets the custom rest on {{count}} exercises — they'll use the default rest afterwards.",
+      "applyStandardRestFailed": "Could not apply this. Please try again.",
       "unitMeta": "{{count}} exercises · {{days}}",
       "rotating": "rotating",
       "emptyTitle": "Your plan takes shape here",
@@ -977,7 +985,8 @@
       "seconds": "Seconds",
       "range": "Range",
       "rangeMax": "to",
-      "restStandard": "Default rest",
+      "restUseStandard": "Use default rest",
+      "restStandardValue": "{{seconds}} s (default)",
       "remove": "Remove",
       "addExercises": "Add exercises",
       "save": "Save",
@@ -1311,7 +1320,8 @@
       "topFoods": "Most of it came from: {{foods}}",
       "summary": {
         "onTrack": "You're on track this week.",
-        "calorieUndershoot": "On three of the last seven days, your deficit was well above what you had planned.",
+        "calorieUndershoot_one": "On one of the last seven days you ate well below your target – enough energy helps you build.",
+        "calorieUndershoot_other": "On {{count}} of the last seven days you ate well below your target – enough energy helps you build.",
         "smallUnder": "You're on track — about {{amount}} g more {{nutrient}} a day would round it off.",
         "smallOver": "You're on track — about {{amount}} g less {{nutrient}} a day would round it off.",
         "largeUnder": {
@@ -1437,7 +1447,7 @@
       "body": "One set less per exercise. Your body catches up, your plan stays.",
       "active": "Running until {{date}}",
       "end": "End lighter week",
-      "inactive": "No lighter week is running right now."
+      "inactive": "You're training at your normal rhythm right now."
     },
     "focusAreas": {
       "title": "Your focus areas",
@@ -1728,7 +1738,7 @@
       "bodyFatBelowSustainable": "That's below what's typically sustainable long term.",
       "progressStartLabel": "Progress counts from",
       "progressStartHint": "Optional. Empty = oldest weight entry. The first time you set it, the picker starts on today.",
-      "progressStartEmpty": "Not set",
+      "progressStartEmpty": "Set now",
       "progressStartClear": "Clear date",
       "notSet": "Not set",
       "invalid": "Please enter a valid weight.",
@@ -1967,6 +1977,8 @@
   },
   "rir": {
     "question": "How many more could you have done?",
+    "infoA11y": "What does reps in reserve mean?",
+    "info": "This helps Kolibi know when an exercise is getting too easy. If you still had 2 or more reps left in every set at the upper limit, the next level comes right away. For building muscle, sets with 0 to 2 reps in reserve work especially well. This is optional.",
     "shortfallTitle": "What happened?",
     "reasonTooHard": "Too hard twice in a row – the easier rung helps you build a solid base.",
     "reason": {
@@ -2269,27 +2281,27 @@
       "editHint": "Tap to change"
     },
     "questions": {
-      "sleep": "Sleep",
-      "energy": "Energy",
-      "soreness": "Soreness",
-      "stress": "Stress"
+      "sleep": "How did you sleep?",
+      "energy": "How fit do you feel?",
+      "soreness": "How sore are your muscles?",
+      "stress": "How stressed are you?"
     },
     "scale": {
       "sleep": {
-        "low": "short",
+        "low": "restless",
         "high": "restful"
       },
       "energy": {
-        "low": "low",
-        "high": "high"
+        "low": "tired",
+        "high": "full of energy"
       },
       "soreness": {
         "low": "barely",
-        "high": "strong"
+        "high": "very"
       },
       "stress": {
         "low": "relaxed",
-        "high": "high"
+        "high": "very"
       },
       "stepLabel": "{{question}}: {{value}} of 5"
     },
@@ -2366,7 +2378,7 @@
       "show": "Morning check-in",
       "reminder": "Reminder",
       "time": "Time",
-      "hint": "Four quick questions on the Today screen, until noon.",
+      "hint": "Four quick questions on the Today screen, until 6 pm.",
       "reminderHint": "Kolibi reminds you every morning at this time.",
       "saveFailed": "Try again in a moment – the connection is a bit slow.",
       "permissionOff": "Notifications are off in the iOS settings. Turn them on there to get the reminder.",
@@ -2459,21 +2471,22 @@
   "recommendations": {
     "title": "For you today",
     "dismiss": "Hide",
+    "why": "Why?",
     "deload": {
-      "message": "A lighter week takes you further. Your body catches up, then you come back stronger.",
+      "message": "A lighter week takes you further",
       "actionStart": "Start lighter week",
       "actionDismiss": "Not now"
     },
     "protein": {
-      "message": "{{grams}} g of protein to reach your goal",
+      "message": "{{grams}} g of protein to go",
       "action": "Log protein"
     },
     "fiber": {
-      "message": "{{grams}} g of fiber to reach your goal",
+      "message": "A little more fiber today",
       "action": "Log a meal"
     },
     "carbs": {
-      "message": "Training day: carbs before your session give you more power",
+      "message": "Some carbs before training",
       "action": "Log a meal"
     },
     "restDay": {
@@ -2519,6 +2532,6 @@
   "postTraining": {
     "protein": "{{g}} g of protein to go – good for recovery.",
     "carbs": "{{g}} g of carbs to go – refills your energy stores.",
-    "fat": "Fat is almost reached. Lean protein sources fit well for the rest of the day."
+    "fat": "Almost at your fat target"
   }
 }

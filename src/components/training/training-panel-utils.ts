@@ -1,11 +1,15 @@
 import type { ActiveExercise, ActiveSession, WorkoutTemplate } from '@/lib/workouts/types';
 import { parseDateOnly } from '@/lib/day-window';
+import { resolveRestSeconds } from '@/lib/training/rest-timer';
 
 /** Estimate duration minutes: each set ≈ 45s work + rest. */
-export function estimateTemplateMinutes(template: WorkoutTemplate): number {
+export function estimateTemplateMinutes(
+  template: WorkoutTemplate,
+  standardRestSeconds: number,
+): number {
   let seconds = 0;
   for (const exercise of template.exercises) {
-    const rest = exercise.restSeconds ?? exercise.exercise.defaultRestSeconds ?? 90;
+    const rest = resolveRestSeconds(exercise.restSeconds, standardRestSeconds);
     const sets = Math.max(1, exercise.targetSets);
     seconds += sets * (45 + Math.max(0, rest));
   }

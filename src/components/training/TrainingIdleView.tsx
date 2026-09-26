@@ -33,6 +33,7 @@ import { useReadiness } from '@/hooks/use-checkin';
 import { pickNextTemplateForReadiness } from '@/lib/workouts/progression-readiness';
 import { resolveTrainingTabEnabled } from '@/lib/workouts/training-release';
 import type { WorkoutTemplate } from '@/lib/workouts/types';
+import { useRestTimerStore } from '@/stores/rest-timer-store';
 
 type TrainingIdleViewProps = {
   onStart: (template: WorkoutTemplate) => void;
@@ -88,6 +89,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
   const archived = archivedQuery.data ?? [];
   const sessions = sessionsQuery.data ?? [];
 
+  const standardRestSeconds = useRestTimerStore((state) => state.idleDurationSec);
   const readiness = useReadiness();
   // Without a check-in and without notable data this is plain pickNextTemplate.
   const nextPick = useMemo(
@@ -142,7 +144,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
   function metaLabel(template: WorkoutTemplate): string {
     return t('training.panel.meta', {
       exercises: countTemplateExercises(template),
-      minutes: estimateTemplateMinutes(template),
+      minutes: estimateTemplateMinutes(template, standardRestSeconds),
     });
   }
 
@@ -175,6 +177,7 @@ export function TrainingIdleView({ onStart, onEditPlan }: TrainingIdleViewProps)
       <ScrollView
         contentContainerStyle={styles.empty}
         showsVerticalScrollIndicator={false}>
+        <Text style={styles.startTitle}>{t('training.starterPlans.chooseTitle')}</Text>
         <PlanWizardEntryCard testID="training.idle.planWizard" />
         <StarterPlanPicker onCustom={withPlan('editPlan', openNewWorkout)} />
         <RestTimerCard />
@@ -341,6 +344,12 @@ const styles = StyleSheet.create({
   empty: {
     gap: 16,
     paddingVertical: 24,
+  },
+  startTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E1B4B',
+    textAlign: 'center',
   },
   archivedHintCard: {
     padding: 20,

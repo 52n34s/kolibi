@@ -419,7 +419,8 @@
       "startTitle": "Startgewicht",
       "targetTitle": "Zielgewicht",
       "logAction": "Gewicht eintragen",
-      "dailyToday": "heute {{weight}}",
+      "trendOnly": "Ø 7 Tage {{trend}}",
+      "trendAndToday": "Ø 7 Tage {{trend}} · heute {{today}}",
       "modalTitle": "Gewicht aktualisieren",
       "modalSubtitle": "Der heutige Eintrag ersetzt ein früheres Gewicht von heute.",
       "updateTargetTitle": "Zielgewicht bearbeiten",
@@ -445,6 +446,7 @@
       "title": "Heutige Mahlzeiten",
       "emptyTitle": "Dein Tag startet mit der ersten Mahlzeit",
       "emptySubtitle": "Scanne deine erste Mahlzeit, um zu starten.",
+      "emptySubtitleReturning": "Deine erste Mahlzeit heute – per Foto, Barcode oder Suche",
       "unnamedMeal": "Mahlzeit",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
       "macroAbbrevProtein": "P",
@@ -736,6 +738,7 @@
     },
     "starterPlans": {
       "chooseTitle": "Dein Einstieg",
+      "orTemplate": "Oder starte mit einer Vorlage",
       "chooseIntro": "Drei fertige Pläne für den Start – du siehst zuerst, was drin ist, und übernimmst dann.",
       "sessionMeta": "{{label}}: {{exercises}} Übungen · ~{{minutes}} min",
       "apply": "Plan übernehmen",
@@ -799,7 +802,7 @@
       "saveSet": "Speichern",
       "finish": "Beenden",
       "finishTitle": "Einheit beenden?",
-      "finishEmptyBody": "Gespeichert wird ab dem ersten Satz.",
+      "finishEmptyBody": "Wir speichern deine Einheit ab dem ersten Satz.",
       "finishSave": "Speichern",
       "finishDiscard": "Verwerfen",
       "finishContinue": "Weiter trainieren",
@@ -948,6 +951,11 @@
       "restLabel": "Standard-Pausendauer",
       "restValue": "{{seconds}} s",
       "restHint": "Gilt für alle Übungen ohne eigene Pause – derselbe Wert wie der Timer im Training-Tab.",
+      "customRestCount": "{{count}} Übungen nutzen eine eigene Pause.",
+      "applyStandardRestAction": "Auf alle Übungen anwenden",
+      "applyStandardRestTitle": "Standard-Pause übernehmen?",
+      "applyStandardRestConfirm": "Das setzt die eigene Pause bei {{count}} Übungen zurück – sie nutzen danach die Standard-Pause.",
+      "applyStandardRestFailed": "Konnte nicht übernommen werden. Bitte erneut versuchen.",
       "unitMeta": "{{count}} Übungen · {{days}}",
       "rotating": "im Wechsel",
       "emptyTitle": "Dein Plan entsteht hier",
@@ -977,7 +985,8 @@
       "seconds": "Sekunden",
       "range": "Bereich",
       "rangeMax": "bis",
-      "restStandard": "Standard-Pause",
+      "restUseStandard": "Standard-Pause verwenden",
+      "restStandardValue": "{{seconds}} s (Standard)",
       "remove": "Entfernen",
       "addExercises": "Übungen hinzufügen",
       "save": "Speichern",
@@ -1311,7 +1320,8 @@
       "topFoods": "Am meisten davon hattest du bei: {{foods}}",
       "summary": {
         "onTrack": "Du bist diese Woche auf Kurs.",
-        "calorieUndershoot": "An drei der letzten sieben Tage lag dein Defizit deutlich über dem geplanten.",
+        "calorieUndershoot_one": "An einem der letzten sieben Tage lagst du deutlich unter deinem Ziel – genug Energie hilft dir beim Aufbau.",
+        "calorieUndershoot_other": "An {{count}} der letzten sieben Tage lagst du deutlich unter deinem Ziel – genug Energie hilft dir beim Aufbau.",
         "smallUnder": "Du bist auf Kurs — etwa {{amount}} g mehr {{nutrient}} pro Tag würden es abrunden.",
         "smallOver": "Du bist auf Kurs — etwa {{amount}} g weniger {{nutrient}} pro Tag würden es abrunden.",
         "largeUnder": {
@@ -1437,7 +1447,7 @@
       "body": "Ein Satz weniger pro Übung. Dein Körper holt auf, dein Plan bleibt.",
       "active": "Läuft bis {{date}}",
       "end": "Leichtere Woche beenden",
-      "inactive": "Gerade läuft keine leichtere Woche."
+      "inactive": "Du trainierst gerade im normalen Rhythmus."
     },
     "focusAreas": {
       "title": "Deine Schwerpunkte",
@@ -1728,7 +1738,7 @@
       "bodyFatBelowSustainable": "Das liegt unter dem, was langfristig typischerweise nachhaltig ist.",
       "progressStartLabel": "Fortschritt zählt ab",
       "progressStartHint": "Optional. Leer = ältester Gewichtseintrag. Beim ersten Setzen startet die Auswahl bei heute.",
-      "progressStartEmpty": "Nicht gesetzt",
+      "progressStartEmpty": "Jetzt festlegen",
       "progressStartClear": "Datum entfernen",
       "notSet": "Nicht gesetzt",
       "invalid": "Bitte gib ein gültiges Gewicht ein.",
@@ -1967,6 +1977,8 @@
   },
   "rir": {
     "question": "Wie viele wären noch gegangen?",
+    "infoA11y": "Was bedeutet Wiederholungen in Reserve?",
+    "info": "Damit erkennt Kolibi, wann eine Übung zu leicht wird. Hattest du bei allen Sätzen an der oberen Grenze noch 2 oder mehr übrig, kommt die nächste Stufe sofort. Für Muskelaufbau sind Sätze mit 0 bis 2 Wiederholungen Reserve besonders wirksam. Die Angabe ist freiwillig.",
     "shortfallTitle": "Was war los?",
     "reasonTooHard": "Zweimal in Folge zu schwer – mit der leichteren Stufe baust du eine solide Basis auf.",
     "reason": {
@@ -2269,19 +2281,19 @@
       "editHint": "Tippen zum Ändern"
     },
     "questions": {
-      "sleep": "Schlaf",
-      "energy": "Energie",
-      "soreness": "Muskelkater",
-      "stress": "Stress"
+      "sleep": "Wie hast du geschlafen?",
+      "energy": "Wie fit fühlst du dich?",
+      "soreness": "Wie stark ist dein Muskelkater?",
+      "stress": "Wie gestresst bist du?"
     },
     "scale": {
       "sleep": {
-        "low": "kurz",
+        "low": "unruhig",
         "high": "erholsam"
       },
       "energy": {
-        "low": "wenig",
-        "high": "viel"
+        "low": "müde",
+        "high": "voller Energie"
       },
       "soreness": {
         "low": "kaum",
@@ -2289,7 +2301,7 @@
       },
       "stress": {
         "low": "entspannt",
-        "high": "hoch"
+        "high": "sehr"
       },
       "stepLabel": "{{question}}: {{value}} von 5"
     },
@@ -2366,7 +2378,7 @@
       "show": "Check-in am Morgen",
       "reminder": "Erinnerung",
       "time": "Uhrzeit",
-      "hint": "Vier kurze Fragen auf dem Heute-Screen, bis 12 Uhr.",
+      "hint": "Vier kurze Fragen auf dem Heute-Screen, bis 18 Uhr.",
       "reminderHint": "Kolibi erinnert dich jeden Morgen zu dieser Uhrzeit.",
       "saveFailed": "Gleich nochmal versuchen – die Verbindung hakt gerade.",
       "permissionOff": "Mitteilungen sind in den iOS-Einstellungen aus. Schalte sie dort ein, dann klappt die Erinnerung.",
@@ -2459,21 +2471,22 @@
   "recommendations": {
     "title": "Für dich heute",
     "dismiss": "Ausblenden",
+    "why": "Warum?",
     "deload": {
-      "message": "Eine leichtere Woche bringt dich weiter. Dein Körper holt auf, danach geht's stärker weiter.",
+      "message": "Eine leichtere Woche bringt dich weiter",
       "actionStart": "Leichtere Woche starten",
       "actionDismiss": "Jetzt nicht"
     },
     "protein": {
-      "message": "Noch {{grams}} g Protein bis zum Ziel",
+      "message": "Noch {{grams}} g Protein",
       "action": "Protein erfassen"
     },
     "fiber": {
-      "message": "Noch {{grams}} g Ballaststoffe bis zum Ziel",
+      "message": "Noch ein paar Ballaststoffe",
       "action": "Mahlzeit erfassen"
     },
     "carbs": {
-      "message": "Trainingstag: Kohlenhydrate vor der Einheit geben dir mehr Kraft",
+      "message": "Vor dem Training noch Kohlenhydrate",
       "action": "Mahlzeit erfassen"
     },
     "restDay": {
@@ -2517,8 +2530,8 @@
     }
   },
   "postTraining": {
-    "protein": "Noch {{g}} g Protein bis zum Ziel – gut für die Erholung.",
+    "protein": "Noch {{g}} g Protein – gut für die Erholung.",
     "carbs": "Noch {{g}} g Kohlenhydrate – damit füllst du deine Speicher wieder auf.",
-    "fat": "Fett ist fast erreicht. Für den Rest des Tages passen magere Proteinquellen gut."
+    "fat": "Fett fast am Ziel"
   }
 }

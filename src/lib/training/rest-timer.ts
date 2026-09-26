@@ -27,6 +27,20 @@ export function clampRestSeconds(seconds: number): number {
   return Math.min(REST_MAX_SECONDS, Math.max(REST_MIN_SECONDS, Math.round(seconds)));
 }
 
+/**
+ * The one rule for an exercise's effective rest, used by the active session,
+ * the rest timer, and the plan editor's preview alike: the plan's own value
+ * if the exercise has one, else the shared standard rest. The exercise
+ * catalog's own default_rest_seconds is never read here — it only seeds a
+ * new custom value once, when a plan editor turns "use the standard" off.
+ */
+export function resolveRestSeconds(
+  templateRestSeconds: number | null | undefined,
+  standardRestSeconds: number,
+): number {
+  return templateRestSeconds ?? standardRestSeconds;
+}
+
 /** Nearest 15 s step inside the shared standard band (for the rest duration wheel). */
 export function snapRestSeconds(seconds: number): number {
   if (!Number.isFinite(seconds)) {

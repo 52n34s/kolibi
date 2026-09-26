@@ -6,6 +6,7 @@ import { create } from 'zustand';
 
 import { useDeferredProgressions } from '@/components/training/IdleProgressionOverlay';
 import { useReadiness, useTodayCheckinStatus } from '@/hooks/use-checkin';
+import { useDayMeals } from '@/hooks/use-day-meals';
 import { useDeloadSuggestion } from '@/hooks/use-deload';
 import { useExercises } from '@/hooks/use-exercises';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
@@ -18,6 +19,7 @@ import { fetchBodyMeasurementsSince } from '@/lib/body-measurements';
 import { usesMeasurements as usesMeasurementsCore } from '@/lib/body-measurements-core';
 import { localDateKey, shiftLocalDateKey } from '@/lib/day-window';
 import { goalCategoryForGoalType } from '@/lib/goal-category';
+import { groupMeals, mealGroupLabel } from '@/lib/meal-groups';
 import {
   readDismissals,
   writeDismissal,
@@ -26,6 +28,7 @@ import {
 import { recommendationStorage } from '@/lib/recommendations/dismissals-storage';
 import {
   buildRecommendations,
+  type LastMealSlot,
   type MuscleDeficit,
   type NextLevelReady,
   type Recommendation,
@@ -172,6 +175,25 @@ export function useRecommendations(): {
     queryFn: () =>
       fetchBodyMeasurementsSince(userId!, shiftLocalDateKey(todayKey, -MEASUREMENTS_LOOKBACK_DAYS)),
   });
+
+  const todayMealsQuery = useDayMeals(userId, todayKey);
+  // The nutrition-gap cards trigger on day progress, not the clock: null =
+  // nothing logged yet today, undefined = still loading.
+  const lastMealSlot = useMemo((): LastMealSlot | null | undefined => {
+    const meals = todayMealsQuery.data;
+    if (meals == null) {
+      return undefined;
+    }
+    if (meals.length === 0) {
+      return null;
+    }
+    const groups = groupMeals(meals, {
+      eatenAt: (meal) => meal.eaten_at,
+      kcal: (meal) => meal.total_kcal,
+    });
+    const last = groups[groups.length - 1];
+    return last ? mealGroupLabel(last) : null;
+  }, [todayMealsQuery.data]);
 
   const dismissals = useDismissals(userId);
   const dismissInStore = useDismissStore((state) => state.dismiss);
@@ -329,6 +351,7 @@ export function useRecommendations(): {
         focusAreas,
         deloadSuggested,
         consumed,
+        lastMealSlot,
         targets: goal
           ? {
               kcal: goal.daily_calorie_goal,
@@ -364,6 +387,7 @@ export function useRecommendations(): {
     dismissals,
     focusAreas,
     goalCategory,
+    lastMealSlot,
     lastTraining,
     measurementRows,
     muscleDeficits,

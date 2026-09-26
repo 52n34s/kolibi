@@ -11,12 +11,29 @@ import {
   formatHoldMmSs,
   formatTimerMmSs,
   remainingMs,
+  resolveRestSeconds,
   restDurationWheelValues,
   restProgress,
   shouldStopRestTimer,
   snapRestSeconds,
   type RestTimerClockState,
 } from './rest-timer.ts';
+
+describe('resolveRestSeconds', () => {
+  it('uses the plan\'s own rest when the exercise has one, regardless of the standard', () => {
+    assert.equal(resolveRestSeconds(180, 120), 180);
+    assert.equal(resolveRestSeconds(45, 120), 45);
+  });
+
+  it('falls back to the standard rest when the exercise has none — never the catalog', () => {
+    assert.equal(resolveRestSeconds(null, 120), 120);
+    assert.equal(resolveRestSeconds(undefined, 90), 90);
+  });
+
+  it('0 is a real plan value, not "unset"', () => {
+    assert.equal(resolveRestSeconds(0, 120), 0);
+  });
+});
 
 describe('remainingMs', () => {
   it('computes max(0, endsAt - now) while running', () => {
