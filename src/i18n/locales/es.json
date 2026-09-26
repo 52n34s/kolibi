@@ -2269,10 +2269,10 @@
       "editHint": "Toca para cambiar"
     },
     "questions": {
-      "sleep": "Sueño",
-      "energy": "Energía",
-      "soreness": "Agujetas",
-      "stress": "Estrés"
+      "sleep": "¿Cómo has dormido?",
+      "energy": "¿Cómo te sientes de energía?",
+      "soreness": "¿Cuántas agujetas tienes?",
+      "stress": "¿Cuánto estrés tienes?"
     },
     "scale": {
       "sleep": {
@@ -2280,16 +2280,16 @@
         "high": "reparador"
       },
       "energy": {
-        "low": "poca",
-        "high": "mucha"
+        "low": "cansado",
+        "high": "con energía"
       },
       "soreness": {
-        "low": "apenas",
-        "high": "fuertes"
+        "low": "casi nada",
+        "high": "muchas"
       },
       "stress": {
-        "low": "tranquilo",
-        "high": "alto"
+        "low": "relajado",
+        "high": "mucho"
       },
       "stepLabel": "{{question}}: {{value}} de 5"
     },

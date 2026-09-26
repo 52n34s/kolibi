@@ -2269,10 +2269,10 @@
       "editHint": "Tippen zum Ändern"
     },
     "questions": {
-      "sleep": "Schlaf",
-      "energy": "Energie",
-      "soreness": "Muskelkater",
-      "stress": "Stress"
+      "sleep": "Wie hast du geschlafen?",
+      "energy": "Wie fit fühlst du dich?",
+      "soreness": "Wie stark ist dein Muskelkater?",
+      "stress": "Wie gestresst bist du?"
     },
     "scale": {
       "sleep": {
@@ -2280,8 +2280,8 @@
         "high": "erholsam"
       },
       "energy": {
-        "low": "wenig",
-        "high": "viel"
+        "low": "müde",
+        "high": "voller Energie"
       },
       "soreness": {
         "low": "kaum",
@@ -2289,7 +2289,7 @@
       },
       "stress": {
         "low": "entspannt",
-        "high": "hoch"
+        "high": "sehr"
       },
       "stepLabel": "{{question}}: {{value}} von 5"
     },

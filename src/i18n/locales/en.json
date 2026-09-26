@@ -2269,10 +2269,10 @@
       "editHint": "Tap to change"
     },
     "questions": {
-      "sleep": "Sleep",
-      "energy": "Energy",
-      "soreness": "Soreness",
-      "stress": "Stress"
+      "sleep": "How did you sleep?",
+      "energy": "How fit do you feel?",
+      "soreness": "How sore are your muscles?",
+      "stress": "How stressed are you?"
     },
     "scale": {
       "sleep": {
@@ -2280,16 +2280,16 @@
         "high": "restful"
       },
       "energy": {
-        "low": "low",
-        "high": "high"
+        "low": "tired",
+        "high": "full of energy"
       },
       "soreness": {
         "low": "barely",
-        "high": "strong"
+        "high": "very"
       },
       "stress": {
         "low": "relaxed",
-        "high": "high"
+        "high": "very"
       },
       "stepLabel": "{{question}}: {{value}} of 5"
     },

@@ -154,7 +154,7 @@ export function CheckinCard() {
           return (
             <View key={question} className="mb-3">
               <View className="mb-1.5 flex-row items-baseline justify-between">
-                <Text className="text-sm font-medium text-gray-800">
+                <Text className="mr-2 flex-1 text-sm font-medium text-gray-800">
                   {t(`checkin.questions.${question}`)}
                 </Text>
                 <Text className="text-xs text-gray-500">
