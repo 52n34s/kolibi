@@ -23,6 +23,8 @@ type CompactSegmentToggleProps = {
   containerStyle?: import('react-native').StyleProp<import('react-native').ViewStyle>;
   /** Overrides inactive label color. Active labels stay white. */
   inactiveLabelColor?: string;
+  /** Per-segment testID becomes `${testIDPrefix}.${segment.id}` when set. */
+  testIDPrefix?: string;
 };
 
 export function CompactSegmentToggle({
@@ -36,6 +38,7 @@ export function CompactSegmentToggle({
   style,
   containerStyle,
   inactiveLabelColor,
+  testIDPrefix,
 }: CompactSegmentToggleProps) {
   return (
     <View style={[styles.fitWrapper, style]}>
@@ -53,6 +56,7 @@ export function CompactSegmentToggle({
           return (
             <Pressable
               key={segment.id}
+              testID={testIDPrefix ? `${testIDPrefix}.${segment.id}` : undefined}
               style={[
                 styles.segment,
                 compact && styles.segmentCompact,

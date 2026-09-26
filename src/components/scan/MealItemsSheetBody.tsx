@@ -114,6 +114,7 @@ export function MealItemsSheetBody({
             onScroll={onScroll}
             scrollEventThrottle={16}>
             <Pressable
+              accessible={false}
               style={styles.dismissTapArea}
               onPress={() => {
                 onBackgroundPress?.();

@@ -425,6 +425,7 @@ function ManualMealEntrySheetContent({
           ) : null}
 
           <Pressable
+            testID="home.manualEntry.addProduct"
             accessibilityRole="button"
             accessibilityLabel={t('home.manualEntry.addProduct')}
             style={styles.addButton}
@@ -434,6 +435,7 @@ function ManualMealEntrySheetContent({
           </Pressable>
 
           <Pressable
+            testID="home.manualEntry.save"
             accessibilityRole="button"
             accessibilityLabel={t('home.manualEntry.save')}
             disabled={isSaving || !canSave}
