@@ -419,7 +419,8 @@
       "startTitle": "Peso inicial",
       "targetTitle": "Peso objetivo",
       "logAction": "Registra tu peso",
-      "dailyToday": "hoy {{weight}}",
+      "trendOnly": "Media 7 días {{trend}}",
+      "trendAndToday": "Media 7 días {{trend}} · hoy {{today}}",
       "modalTitle": "Actualizar peso",
       "modalSubtitle": "La entrada de hoy reemplaza cualquier peso anterior de hoy.",
       "updateTargetTitle": "Editar peso objetivo",
@@ -445,6 +446,7 @@
       "title": "Comidas de hoy",
       "emptyTitle": "Tu día empieza con la primera comida",
       "emptySubtitle": "Escanea tu primera comida para empezar.",
+      "emptySubtitleReturning": "Tu primera comida de hoy: con foto, código de barras o búsqueda",
       "unnamedMeal": "Comida",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
       "macroAbbrevProtein": "P",
@@ -1973,6 +1975,8 @@
   },
   "rir": {
     "question": "¿Cuántas más habrías podido hacer?",
+    "infoA11y": "¿Qué significa repeticiones en reserva?",
+    "info": "Así Kolibi sabe cuándo un ejercicio se vuelve demasiado fácil. Si en todas las series al límite superior aún te quedaban 2 o más repeticiones, pasas al siguiente nivel enseguida. Para ganar músculo, las series con 0 a 2 repeticiones en reserva son especialmente efectivas. Es opcional.",
     "shortfallTitle": "¿Qué pasó?",
     "reasonTooHard": "Demasiado difícil dos veces seguidas: con el nivel más fácil construyes una base sólida.",
     "reason": {

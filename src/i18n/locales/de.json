@@ -419,7 +419,8 @@
       "startTitle": "Startgewicht",
       "targetTitle": "Zielgewicht",
       "logAction": "Gewicht eintragen",
-      "dailyToday": "heute {{weight}}",
+      "trendOnly": "Ø 7 Tage {{trend}}",
+      "trendAndToday": "Ø 7 Tage {{trend}} · heute {{today}}",
       "modalTitle": "Gewicht aktualisieren",
       "modalSubtitle": "Der heutige Eintrag ersetzt ein früheres Gewicht von heute.",
       "updateTargetTitle": "Zielgewicht bearbeiten",
@@ -445,6 +446,7 @@
       "title": "Heutige Mahlzeiten",
       "emptyTitle": "Dein Tag startet mit der ersten Mahlzeit",
       "emptySubtitle": "Scanne deine erste Mahlzeit, um zu starten.",
+      "emptySubtitleReturning": "Deine erste Mahlzeit heute – per Foto, Barcode oder Suche",
       "unnamedMeal": "Mahlzeit",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
       "macroAbbrevProtein": "P",
@@ -1973,6 +1975,8 @@
   },
   "rir": {
     "question": "Wie viele wären noch gegangen?",
+    "infoA11y": "Was bedeutet Wiederholungen in Reserve?",
+    "info": "Damit erkennt Kolibi, wann eine Übung zu leicht wird. Hattest du bei allen Sätzen an der oberen Grenze noch 2 oder mehr übrig, kommt die nächste Stufe sofort. Für Muskelaufbau sind Sätze mit 0 bis 2 Wiederholungen Reserve besonders wirksam. Die Angabe ist freiwillig.",
     "shortfallTitle": "Was war los?",
     "reasonTooHard": "Zweimal in Folge zu schwer – mit der leichteren Stufe baust du eine solide Basis auf.",
     "reason": {

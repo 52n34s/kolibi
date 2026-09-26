@@ -685,26 +685,39 @@ export default function HomeScreen() {
   }, [currentDisplayKg, t, unitSystem, weightUnitLabels]);
 
   const dailyWeightLabel = useMemo(() => {
-    const dailyKg = displayWeight?.dailyKg;
+    // The big number is the 7-day trend once there's enough history — label
+    // it as such, so "88 kg" doesn't read as today's raw weigh-in. Below the
+    // baseline-window threshold trendKg is just dailyKg, nothing to label.
     const trendKg = displayWeight?.trendKg;
-    if (dailyKg == null || trendKg == null) {
+    if (trendKg == null || !displayWeight?.trendUsesMa) {
       return null;
     }
-    const dailyFormatted = formatWeightForDisplay({
-      weightKg: dailyKg,
-      unitSystem,
-      ...weightUnitLabels,
-    });
     const trendFormatted = formatWeightForDisplay({
       weightKg: trendKg,
       unitSystem,
       ...weightUnitLabels,
     });
-    if (dailyFormatted === trendFormatted) {
-      return null;
+    const dailyKg = displayWeight?.dailyKg;
+    if (dailyKg != null && hasWeightLogToday) {
+      const dailyFormatted = formatWeightForDisplay({
+        weightKg: dailyKg,
+        unitSystem,
+        ...weightUnitLabels,
+      });
+      if (dailyFormatted !== trendFormatted) {
+        return t('home.weight.trendAndToday', { trend: trendFormatted, today: dailyFormatted });
+      }
     }
-    return t('home.weight.dailyToday', { weight: dailyFormatted });
-  }, [displayWeight?.dailyKg, displayWeight?.trendKg, t, unitSystem, weightUnitLabels]);
+    return t('home.weight.trendOnly', { trend: trendFormatted });
+  }, [
+    displayWeight?.dailyKg,
+    displayWeight?.trendKg,
+    displayWeight?.trendUsesMa,
+    hasWeightLogToday,
+    t,
+    unitSystem,
+    weightUnitLabels,
+  ]);
 
   const weightProgressPercent = useMemo(
     () =>

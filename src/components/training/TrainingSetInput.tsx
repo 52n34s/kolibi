@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,6 +10,7 @@ import {
   View,
 } from 'react-native';
 
+import { GlassBottomSheet } from '@/components/shared/GlassBottomSheet';
 import { HoldTimer } from '@/components/training/HoldTimer';
 import { BRAND_INDIGO, TEXT_SECONDARY } from '@/constants/brand';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
@@ -65,6 +67,7 @@ export function TrainingSetInput({
   const { t } = useTranslation();
   const keyboardHeight = useKeyboardHeight();
   const [directEdit, setDirectEdit] = useState(false);
+  const [showRirInfo, setShowRirInfo] = useState(false);
   const [draft, setDraft] = useState(String(set.value));
   const [holdPhase, setHoldPhase] = useState(() =>
     initialHoldPhase({
@@ -211,7 +214,17 @@ export function TrainingSetInput({
 
       {!showHold && showRir && !isEditingDone && item.kind !== 'time' && onSetRir ? (
         <View style={styles.rir} testID="training.input.rir">
-          <Text style={styles.rirQuestion}>{t('rir.question')}</Text>
+          <View style={styles.rirQuestionRow}>
+            <Text style={styles.rirQuestion}>{t('rir.question')}</Text>
+            <Pressable
+              testID="training.input.rir.info"
+              accessibilityRole="button"
+              accessibilityLabel={t('rir.infoA11y')}
+              hitSlop={10}
+              onPress={() => setShowRirInfo(true)}>
+              <Ionicons name="information-circle-outline" size={18} color={TEXT_SECONDARY} />
+            </Pressable>
+          </View>
           <View style={styles.rirRow}>
             {RIR_OPTIONS.map((option) => {
               const selected = set.rir === option.value;
@@ -235,6 +248,20 @@ export function TrainingSetInput({
           </View>
         </View>
       ) : null}
+
+      <GlassBottomSheet
+        visible={showRirInfo}
+        onClose={() => setShowRirInfo(false)}
+        presentation="center">
+        <Text style={styles.rirInfoText}>{t('rir.info')}</Text>
+        <Pressable
+          testID="training.input.rir.infoClose"
+          accessibilityRole="button"
+          onPress={() => setShowRirInfo(false)}
+          style={styles.rirInfoClose}>
+          <Text style={styles.rirInfoCloseText}>{t('settings.common.ok')}</Text>
+        </Pressable>
+      </GlassBottomSheet>
 
       {!showHold ? (
         <Pressable
@@ -305,10 +332,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  rirQuestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   rirQuestion: {
     fontSize: 13,
     fontWeight: '600',
     color: TEXT_SECONDARY,
+  },
+  rirInfoText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#111827',
+  },
+  rirInfoClose: {
+    marginTop: 16,
+    backgroundColor: BRAND_INDIGO,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  rirInfoCloseText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   rirRow: {
     flexDirection: 'row',

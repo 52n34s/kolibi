@@ -419,7 +419,8 @@
       "startTitle": "Starting weight",
       "targetTitle": "Target weight",
       "logAction": "Log your weight",
-      "dailyToday": "today {{weight}}",
+      "trendOnly": "7-day avg {{trend}}",
+      "trendAndToday": "7-day avg {{trend}} · today {{today}}",
       "modalTitle": "Update weight",
       "modalSubtitle": "Today's entry replaces any earlier weight logged today.",
       "updateTargetTitle": "Update target weight",
@@ -445,6 +446,7 @@
       "title": "Today's meals",
       "emptyTitle": "Your day starts with the first meal",
       "emptySubtitle": "Scan your first meal to start tracking.",
+      "emptySubtitleReturning": "Your first meal today – by photo, barcode or search",
       "unnamedMeal": "Meal",
       "rowMeta": "{{quantity}} · {{kcal}} kcal · {{time}}",
       "macroAbbrevProtein": "P",
@@ -1973,6 +1975,8 @@
   },
   "rir": {
     "question": "How many more could you have done?",
+    "infoA11y": "What does reps in reserve mean?",
+    "info": "This helps Kolibi know when an exercise is getting too easy. If you still had 2 or more reps left in every set at the upper limit, the next level comes right away. For building muscle, sets with 0 to 2 reps in reserve work especially well. This is optional.",
     "shortfallTitle": "What happened?",
     "reasonTooHard": "Too hard twice in a row – the easier rung helps you build a solid base.",
     "reason": {

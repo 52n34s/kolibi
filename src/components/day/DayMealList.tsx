@@ -17,7 +17,7 @@ import {
 } from '@/components/onboarding/onboarding-styles';
 import { GLASS_SURFACE_PRESSED } from '@/components/ui/glass-styles';
 import { TEXT_SECONDARY } from '@/constants/brand';
-import { useDayMeals } from '@/hooks/use-day-meals';
+import { useDayMeals, useHasLoggedAnyMeal } from '@/hooks/use-day-meals';
 import { groupMeals, isMealGroupExpanded, mealGroupLabel, sumMealGroupTotals } from '@/lib/meal-groups';
 import {
   buildMealListTitle,
@@ -82,6 +82,7 @@ export function DayMealList({
   const initializeUnitSystem = useOnboardingStore((state) => state.initializeUnitSystem);
   const { data: meals, isLoading } = useDayMeals(userId, date);
   const hasMeals = (meals?.length ?? 0) > 0;
+  const { data: hasLoggedBefore = false } = useHasLoggedAnyMeal(userId);
   const showAddMeal = editable && onAddMeal != null;
 
   useEffect(() => {
@@ -187,7 +188,7 @@ export function DayMealList({
               {t('history.day.emptyMeals')}
             </Text>
             <Text className="mt-2 text-center text-sm text-gray-500">
-              {t('home.meals.emptySubtitle')}
+              {t(hasLoggedBefore ? 'home.meals.emptySubtitleReturning' : 'home.meals.emptySubtitle')}
             </Text>
           </View>
         </View>
